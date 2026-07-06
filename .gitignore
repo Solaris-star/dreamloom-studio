@@ -1,0 +1,53 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Python virtual environment
+.venv
+venv
+
+# Production
+dist
+dist-web
+dist-ssr
+out
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Cache
+.eslintcache
+.playwright-mcp
+tmp
+
+# Local writing data
+.booksDir
+.store.json
+/*.txt
+/第*.md
+
+# Local verification captures and backups
+zhimeng-*.png
+electron.vite.config.*.mjs
+
+docs
+others

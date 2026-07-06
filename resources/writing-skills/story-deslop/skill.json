@@ -1,0 +1,16 @@
+{
+  "id": "story-deslop",
+  "key": "deslop",
+  "title": "去 AI 味",
+  "category": "写作",
+  "description": "把选中文本改得更像自然中文小说表达，保留剧情事实。",
+  "instruction": "请处理选中文本的 AI 味，减少空泛表达和机械句式，保留剧情事实，只输出改写后的正文。",
+  "inputScopes": ["selected_text"],
+  "requiredContext": ["book_meta", "characters", "dictionary", "settings"],
+  "references": ["resources/writing-skills/story-deslop/SKILL.md"],
+  "canWriteChapter": false,
+  "outputMode": "preview",
+  "runner": "editor_preview",
+  "requireSelection": true,
+  "type": "deslop"
+}

@@ -1,0 +1,179 @@
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import net from 'node:net'
+import os from 'node:os'
+import { randomBytes } from 'node:crypto'
+import { join } from 'node:path'
+import {
+  createAgentTask,
+  recordAgentTaskStream
+} from '../src/main/services/editorAgentTaskService.js'
+import {
+  startAgentTaskProgressServer,
+  stopAgentTaskProgressServer
+} from '../src/main/services/agentTaskProgressWebSocket.js'
+
+function encodeClientTextFrame(text) {
+  const data = Buffer.from(text, 'utf-8')
+  const mask = randomBytes(4)
+  const header = data.length < 126
+    ? Buffer.from([0x81, 0x80 | data.length])
+    : Buffer.from([0x81, 0x80 | 126, data.length >> 8, data.length & 0xff])
+  const masked = Buffer.from(data.map((byte, index) => byte ^ mask[index % 4]))
+  return Buffer.concat([header, mask, masked])
+}
+
+function readFrames(buffer, onMessage) {
+  let offset = 0
+  while (offset + 2 <= buffer.length) {
+    const first = buffer[offset]
+    const second = buffer[offset + 1]
+    const opcode = first & 0x0f
+    let length = second & 0x7f
+    let headerLength = 2
+    if (length === 126) {
+      if (offset + 4 > buffer.length) break
+      length = buffer.readUInt16BE(offset + 2)
+      headerLength = 4
+    } else if (length === 127) {
+      if (offset + 10 > buffer.length) break
+      length = Number(buffer.readBigUInt64BE(offset + 2))
+      headerLength = 10
+    }
+    const frameEnd = offset + headerLength + length
+    if (frameEnd > buffer.length) break
+    const payload = buffer.subarray(offset + headerLength, frameEnd)
+    if (opcode === 0x1) onMessage(JSON.parse(payload.toString('utf-8')))
+    offset = frameEnd
+  }
+  return buffer.subarray(offset)
+}
+
+async function connectWebSocket({ port, path }) {
+  const socket = net.createConnection({ host: '127.0.0.1', port })
+  const key = randomBytes(16).toString('base64')
+  const messages = []
+  let pending = Buffer.alloc(0)
+  let connected = false
+  let handshake = ''
+
+  const ready = new Promise((resolve, reject) => {
+    socket.once('error', reject)
+    socket.once('connect', () => {
+      socket.write([
+        `GET ${path} HTTP/1.1`,
+        'Host: 127.0.0.1',
+        'Upgrade: websocket',
+        'Connection: Upgrade',
+        `Sec-WebSocket-Key: ${key}`,
+        'Sec-WebSocket-Version: 13',
+        '\r\n'
+      ].join('\r\n'))
+    })
+    socket.on('data', (chunk) => {
+      if (!connected) {
+        handshake += chunk.toString('binary')
+        const index = handshake.indexOf('\r\n\r\n')
+        if (index === -1) return
+        const headers = handshake.slice(0, index)
+        assert.match(headers, /101 Switching Protocols/)
+        connected = true
+        const rest = Buffer.from(handshake.slice(index + 4), 'binary')
+        if (rest.length) pending = readFrames(rest, (message) => messages.push(message))
+        resolve()
+        return
+      }
+      pending = readFrames(Buffer.concat([pending, chunk]), (message) => messages.push(message))
+    })
+  })
+
+  await ready
+  return {
+    socket,
+    messages,
+    send(text) {
+      socket.write(encodeClientTextFrame(text))
+    },
+    close() {
+      socket.end()
+    }
+  }
+}
+
+async function waitForMessage(messages, predicate, timeoutMs = 3000) {
+  const startedAt = Date.now()
+  while (Date.now() - startedAt < timeoutMs) {
+    const found = messages.find(predicate)
+    if (found) return found
+    await new Promise((resolve) => setTimeout(resolve, 20))
+  }
+  throw new Error('等待 WebSocket 任务事件超时')
+}
+
+const rootDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-agent-ws-'))
+const bookPath = join(rootDir, '寒灯写剑')
+
+try {
+  fs.mkdirSync(bookPath, { recursive: true })
+  const server = await startAgentTaskProgressServer({ host: '127.0.0.1', port: 0 })
+  assert.equal(server.success, true)
+  assert.equal(server.path, '/agent-tasks')
+
+  const client = await connectWebSocket({
+    port: server.port,
+    path: `/agent-tasks?bookName=${encodeURIComponent('寒灯写剑')}`
+  })
+  await waitForMessage(client.messages, (message) => message.type === 'agent_task_ws_ready')
+
+  const task = createAgentTask(bookPath, {
+    bookName: '寒灯写剑',
+    bookId: '寒灯写剑',
+    chapterId: '第一章',
+    title: '流式写作',
+    type: 'write',
+    agentMode: 'writing',
+    instruction: '写一个真实任务事件。'
+  })
+
+  const started = await waitForMessage(
+    client.messages,
+    (message) => message.type === 'agent_task_updated' && message.taskId === task.id
+  )
+  assert.equal(started.bookPath, bookPath)
+  assert.equal(started.event.type, 'task_started')
+  assert.equal(started.task.status, 'running')
+
+  recordAgentTaskStream(bookPath, {
+    taskId: task.id,
+    generationId: 'gen_ws_001',
+    status: 'running',
+    content: '寒灯下第一行正文。',
+    chunkCount: 1,
+    wordCount: 9,
+    modelUsed: 'test-stream-model'
+  })
+
+  const streamed = await waitForMessage(
+    client.messages,
+    (message) =>
+      message.type === 'agent_task_updated' &&
+      message.taskId === task.id &&
+      message.event?.type === 'writer_stream'
+  )
+  assert.equal(streamed.generationId, 'gen_ws_001')
+  assert.equal(streamed.event.content, '寒灯下第一行正文。')
+  assert.equal(streamed.event.modelUsed, 'test-stream-model')
+
+  client.send(JSON.stringify({ type: 'client_ping' }))
+  client.close()
+} finally {
+  const stopResult = await stopAgentTaskProgressServer()
+  assert.equal(stopResult.success, true)
+  assert.equal(stopResult.stoppedServerCount, 1)
+  assert.equal(stopResult.closeQueueProgress, true)
+  assert.equal(typeof stopResult.closedClientCount, 'number')
+  assert.equal(typeof stopResult.closedQueueProgressListeners, 'number')
+  fs.rmSync(rootDir, { recursive: true, force: true })
+}
+
+console.log('agent task progress websocket tests passed')

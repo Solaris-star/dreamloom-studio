@@ -1,0 +1,61 @@
+name: Build and Release Web
+
+on:
+  push:
+    tags:
+      - 'v*' # 当推送以 v 开头的 tag 时触发
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Pack web artifact
+        run: |
+          cd dist-web
+          zip -r ../dreamloom-studio-web-${{ github.ref_name }}.zip .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: |
+            dist-web/
+            dreamloom-studio-web-${{ github.ref_name }}.zip
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: |
+            ## Release ${{ github.ref_name }}
+
+            这是当前 Web 版构建产物。
+
+            - 构建时间：${{ github.event.head_commit.timestamp }}
+            - 提交：${{ github.sha }}
+          files: |
+            dreamloom-studio-web-${{ github.ref_name }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
