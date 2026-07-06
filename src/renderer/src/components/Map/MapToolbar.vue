@@ -223,8 +223,9 @@ function handleSaveMap() {
   justify-content: center;
   position: fixed;
   top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
+  right: 0;
+  left: var(--map-design-left-offset, 0px);
+  margin: 0 auto;
   z-index: 1000;
   width: max-content;
   padding: 5px 10px;

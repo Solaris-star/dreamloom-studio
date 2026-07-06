@@ -123,7 +123,7 @@ function handleRedo() {
   gap: 10px;
   position: fixed;
   bottom: 20px;
-  left: 20px;
+  left: calc(var(--map-design-left-offset, 0px) + 20px);
   z-index: 1000;
 }
 

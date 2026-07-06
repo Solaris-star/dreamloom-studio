@@ -216,7 +216,7 @@ onMounted(() => {
 
 .floating-sidebar {
   position: fixed;
-  left: 0;
+  left: var(--map-design-left-offset, 0px);
   z-index: 1001;
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(8px);

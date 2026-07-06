@@ -59,6 +59,25 @@ function notSupportedSilent(method) {
   })
 }
 
+function hasResultData(result) {
+  return result && typeof result === 'object' && Object.prototype.hasOwnProperty.call(result, 'data')
+}
+
+function requireSuccessResult(result, fallbackMessage = '操作失败') {
+  if (result?.success === false) {
+    throw new Error(result?.message || fallbackMessage)
+  }
+  return result
+}
+
+function unwrapResultData(result, fallbackMessage = '读取数据失败') {
+  if (result?.success === false) {
+    throw new Error(result?.message || fallbackMessage)
+  }
+  if (result?.success === true && hasResultData(result)) return result.data
+  return result
+}
+
 function buildImageGenerationsUrl(baseUrl = '') {
   const trimmedUrl = String(baseUrl || '').replace(/\/$/, '')
   if (!trimmedUrl) return ''
@@ -1228,13 +1247,24 @@ function buildElectronShim() {
       postJson('/api/studio/outline-ai-sessions/read', { bookName }),
     writeOutlineAiSessions: (bookName, data) =>
       postJson('/api/studio/outline-ai-sessions/write', { bookName, data }),
-    readMaps: (bookName) => postJson('/api/studio/maps/list', { bookName }),
-    createMap: (payload) => postJson('/api/studio/maps/create', payload),
-    updateMap: (payload) => postJson('/api/studio/maps/update', payload),
-    readMapImage: (payload) => postJson('/api/studio/maps/image', payload),
-    deleteMap: (payload) => postJson('/api/studio/maps/delete', payload),
-    saveMapData: (payload) => postJson('/api/studio/maps/data/save', payload),
-    loadMapData: (payload) => postJson('/api/studio/maps/data/load', payload),
+    readMaps: async (bookName) => {
+      const result = await postJson('/api/studio/maps/list', { bookName })
+      const maps = unwrapResultData(result, '读取地图列表失败')
+      if (Array.isArray(maps)) return maps
+      throw new Error('读取地图列表失败：接口返回格式不正确')
+    },
+    createMap: async (payload) =>
+      requireSuccessResult(await postJson('/api/studio/maps/create', payload), '创建地图失败'),
+    updateMap: async (payload) =>
+      requireSuccessResult(await postJson('/api/studio/maps/update', payload), '保存地图失败'),
+    readMapImage: async (payload) =>
+      unwrapResultData(await postJson('/api/studio/maps/image', payload), '读取地图图片失败'),
+    deleteMap: async (payload) =>
+      requireSuccessResult(await postJson('/api/studio/maps/delete', payload), '删除地图失败'),
+    saveMapData: async (payload) =>
+      requireSuccessResult(await postJson('/api/studio/maps/data/save', payload), '保存地图数据失败'),
+    loadMapData: async (payload) =>
+      unwrapResultData(await postJson('/api/studio/maps/data/load', payload), '读取地图数据失败'),
     readCharacters: (bookName) => postJson('/api/studio/characters/read', { bookName }),
     writeCharacters: (bookName, data) =>
       postJson('/api/studio/characters/write', { bookName, data }),

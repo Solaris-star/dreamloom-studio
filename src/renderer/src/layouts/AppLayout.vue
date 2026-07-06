@@ -73,7 +73,8 @@
       class="app-main"
       :class="{
         'knowledge-library-main': isKnowledgeLibraryRoute,
-        'studio-main': isStudioRoute
+        'studio-main': isStudioRoute,
+        'map-design-main': isMapDesignRoute
       }"
     >
       <router-view v-slot="{ Component, route: viewRoute }">
@@ -107,6 +108,7 @@ import {
   BookOpen,
   BookOpenText,
   Library,
+  Map as MapIcon,
   Settings,
   Sparkles,
   TrendingUp
@@ -125,6 +127,7 @@ const cachedRouteNames = ['Editor']
 const navigationItems = [
   { key: 'dashboard', label: '首页', path: '/dashboard', match: ['/dashboard'], icon: markRaw(Library) },
   { key: 'editor', label: '创作台', path: '/editor', match: ['/editor'], icon: markRaw(BookOpen) },
+  { key: 'maps', label: '地图设计', path: '/map-list', match: ['/map-list', '/map-design'], icon: markRaw(MapIcon) },
   { key: 'knowledgeLibrary', label: '创作库', path: '/knowledge', match: ['/knowledge', '/knowledge-library', '/creative-library', '/books'], icon: markRaw(BookOpenText) },
   { key: 'aiWorkshop', label: 'AI 工坊', path: '/ai/creation-starter', match: ['/ai'], icon: markRaw(Sparkles) },
   { key: 'market', label: '市场灵感', path: '/market/overview', match: ['/market'], icon: markRaw(TrendingUp) },
@@ -162,6 +165,8 @@ const isStudioRoute = computed(() => (
   route.path.startsWith('/editor/')
 ))
 
+const isMapDesignRoute = computed(() => route.path === '/map-design')
+
 onMounted(async () => {
   try {
     const result = await window.electron?.getAppVersion?.()
@@ -193,6 +198,11 @@ function subItemsFor(item) {
 async function handleNavigate(item) {
   if (item.key === 'editor') {
     await openEditorEntry()
+    return
+  }
+
+  if (item.key === 'maps') {
+    await openMapEntry()
     return
   }
 
@@ -237,6 +247,48 @@ async function openEditorEntry() {
   }
 
   await router.push('/editor')
+}
+
+async function openMapEntry() {
+  if ((route.path === '/map-list' || route.path === '/map-design') && route.query.name) return
+
+  let books
+  try {
+    books = await readBooksDir()
+  } catch (error) {
+    console.warn('读取书架失败，无法进入地图设计:', error)
+    ElMessage.error(error?.message || '读取书架失败')
+    return
+  }
+
+  try {
+    const lastActiveBookId = await readLastActiveBookId()
+    const lastBook = books.find((book) => bookMatchesId(book, lastActiveBookId))
+    const targetBook = lastBook || books[0]
+
+    if (!targetBook) {
+      ElMessage.warning('请先创建一个作品，再进入地图设计')
+      await router.push('/knowledge')
+      return
+    }
+
+    const id = getBookRouteId(targetBook)
+    if (id) await writeLastActiveBookId(id)
+
+    const query = buildBookQuery(targetBook)
+    if (!query.name) {
+      ElMessage.error('作品名称为空，无法进入地图设计')
+      return
+    }
+
+    await router.push({
+      path: '/map-list',
+      query
+    })
+  } catch (error) {
+    console.warn('打开地图设计失败:', error)
+    ElMessage.error(error?.message || '打开地图设计失败')
+  }
 }
 
 function bookMatchesId(book = {}, id = '') {
@@ -485,6 +537,13 @@ function isEditorRouteElement(el) {
   background-size: 34px 34px, 28px 28px, auto;
 }
 
+.app-main.map-design-main {
+  --map-design-left-offset: 156px;
+
+  padding: 0;
+  overflow: hidden;
+}
+
 @media (max-width: 760px) {
   .app-shell {
     display: grid;
@@ -504,6 +563,10 @@ function isEditorRouteElement(el) {
     min-width: 0;
     overflow: visible;
     padding: 16px;
+  }
+
+  .app-main.map-design-main {
+    --map-design-left-offset: 0px;
   }
 }
 </style>

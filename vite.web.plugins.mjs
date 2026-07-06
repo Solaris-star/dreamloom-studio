@@ -623,6 +623,20 @@ export function createWebServerPlugins() {
               sendJson(res, await webBooksApi.updateChapterFormat(body || {}, getActiveBooksDir()))
             } else if (path === '/api/chapter-numbers/reformat') {
               sendJson(res, await webBooksApi.reformatChapterNumbers(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/maps/list') {
+              sendJson(res, webBooksApi.readMaps(body.bookName, getActiveBooksDir()))
+            } else if (path === '/api/studio/maps/create') {
+              sendJson(res, webBooksApi.createMap(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/maps/update') {
+              sendJson(res, webBooksApi.updateMap(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/maps/image') {
+              sendJson(res, { success: true, data: webBooksApi.readMapImage(body || {}, getActiveBooksDir()) })
+            } else if (path === '/api/studio/maps/delete') {
+              sendJson(res, webBooksApi.deleteMap(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/maps/data/save') {
+              sendJson(res, webBooksApi.saveMapData(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/maps/data/load') {
+              sendJson(res, { success: true, data: webBooksApi.loadMapData(body || {}, getActiveBooksDir()) })
             } else if (path === '/api/notes/load') {
               if (!sanitizeText(body.bookName)) {
                 sendJson(res, { success: true, bookName: '', notes: [] })
