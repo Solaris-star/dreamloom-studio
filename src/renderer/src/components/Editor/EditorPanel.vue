@@ -438,7 +438,8 @@ const saveStatusText = computed(() => {
 
 const saveQueue = createEditorSaveQueue({
   persist: persistSaveSnapshot,
-  onStatusChange({ status, error, savedAt }) {
+  onStatusChange({ status, error, savedAt, filePath }) {
+    if (editorStore.file?.path !== filePath) return
     editorStore.setSaveState(status, { error: error?.message, savedAt })
   }
 })
@@ -699,7 +700,79 @@ function handleKeydown(event) {
   }
 }
 
-// 窗口关闭前保存设置
+const RECOVERY_DRAFT_PREFIX = 'dreamloom:editor-recovery-draft:'
+
+function recoveryDraftKey(bookName, filePath) {
+  return `${RECOVERY_DRAFT_PREFIX}${encodeURIComponent(bookName || '')}:${encodeURIComponent(filePath || '')}`
+}
+
+function saveRecoveryDraft() {
+  const file = editorStore.file
+  if (!file?.path) return
+  try {
+    const component = getEditorContentComponent()
+    const content = editor.value && component
+      ? component.getSaveContent(editor.value)
+      : editorStore.content
+    localStorage.setItem(
+      recoveryDraftKey(props.bookName, file.path),
+      JSON.stringify({
+        bookName: props.bookName,
+        filePath: file.path,
+        fileType: file.type,
+        title: editorStore.chapterTitle,
+        content,
+        savedAt: Date.now()
+      })
+    )
+  } catch (error) {
+    console.error('保存浏览器恢复副本失败:', error)
+  }
+}
+
+async function offerRecoveryDraft() {
+  const file = editorStore.file
+  if (!file?.path || !editor.value) return
+  const key = recoveryDraftKey(props.bookName, file.path)
+  let draft
+  try {
+    draft = JSON.parse(localStorage.getItem(key) || 'null')
+  } catch {
+    localStorage.removeItem(key)
+    return
+  }
+  if (!draft || typeof draft.content !== 'string') return
+
+  const component = getEditorContentComponent()
+  const currentContent = component?.getSaveContent(editor.value)
+  if (draft.content === currentContent) {
+    localStorage.removeItem(key)
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      '检测到浏览器关闭前留下的未确认正文。恢复后请检查内容并重新保存。',
+      '恢复未保存正文',
+      {
+        confirmButtonText: '恢复',
+        cancelButtonText: '保留当前正文',
+        type: 'warning'
+      }
+    )
+    editor.value.commands.setContent(draft.content)
+    if (file.type === 'note') {
+      editorStore.updateNoteDraftHtml(file.path, draft.content)
+    } else {
+      editorStore.setContent(draft.content)
+    }
+    editorStore.setSaveState('offline', { error: '已恢复浏览器副本，请重新保存' })
+  } catch {
+    localStorage.removeItem(key)
+  }
+}
+
+// 浏览器关闭时异步请求无法保证完成，先同步保留恢复副本。
 function handleWindowClose() {
   // 清除定时器
   if (saveTimer.value) clearTimeout(saveTimer.value)
@@ -720,10 +793,7 @@ function handleWindowClose() {
       console.error('保存编辑器设置失败:', error)
     })
 
-  // 保存最后的内容
-  autoSaveContent().catch((error) => {
-    console.error('自动保存失败:', error)
-  })
+  saveRecoveryDraft()
 }
 
 // 初始化编辑器的函数
@@ -905,6 +975,7 @@ onMounted(async () => {
       await loadCharacterHighlightState(props.bookName)
       await loadBannedWordsHintState(props.bookName)
     }
+    await offerRecoveryDraft()
   }
   // 如果 file 不存在，watch 会在文件加载后触发初始化
 
@@ -1175,6 +1246,7 @@ async function saveFile(showMessage = false) {
   if (result?.superseded) return true
 
   if (result?.success) {
+    localStorage.removeItem(recoveryDraftKey(snapshot.bookName, snapshot.filePath))
     const isStillCurrentFile = editorStore.file?.path === snapshot.filePath
     if (result.name && result.name !== file.name && isStillCurrentFile) {
       editorStore.setFile({ ...snapshot.file, name: result.name })
@@ -1190,9 +1262,11 @@ async function saveFile(showMessage = false) {
     if (showMessage) ElMessage.success(t('editorPanel.saveSuccess'))
     return true
   } else {
-    editorStore.setSaveState(result?.error?.offline ? 'offline' : 'error', {
-      error: result?.message
-    })
+    if (editorStore.file?.path === snapshot.filePath) {
+      editorStore.setSaveState(result?.error?.offline ? 'offline' : 'error', {
+        error: result?.message
+      })
+    }
     if (showMessage) ElMessage.error(result?.message || t('editorPanel.saveFailed'))
     else ElMessage.error(result?.message || t('editorPanel.autoSaveFailed'))
     return false
