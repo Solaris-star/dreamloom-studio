@@ -163,24 +163,20 @@ const storageKey = computed(
   () => `dreamloom:editor-layout:${encodeURIComponent(bookName.value || 'default')}`
 )
 const defaultLayout = { left: 240, right: 180, lastLeft: 240, lastRight: 180, focus: false }
-const storedLayout = readStoredLayout()
-const leftPanelSize = ref(storedLayout.left)
-const rightPanelSize = ref(storedLayout.right)
+const leftPanelSize = ref(240)
+const rightPanelSize = ref(180)
 const lastLeftPanelSize = ref(240)
 const lastRightPanelSize = ref(180)
-const focusMode = ref(Boolean(storedLayout.focus))
+const focusMode = ref(false)
 const catalogVisible = ref(false)
 const readingSettingsVisible = ref(false)
 const chapterOutline = ref([])
 const viewportWidth = ref(window.innerWidth)
 const readingSettings = ref({
-  fontSize: Number(storedLayout.fontSize) || 18,
-  lineHeight: Number(storedLayout.lineHeight) || 1.8,
-  contentWidth: Number(storedLayout.contentWidth) || 760
+  fontSize: 18,
+  lineHeight: 1.8,
+  contentWidth: 760
 })
-
-lastLeftPanelSize.value = storedLayout.lastLeft || 240
-lastRightPanelSize.value = storedLayout.lastRight || 180
 
 const editorReadingStyle = computed(() => ({
   '--editor-reading-font-size': `${readingSettings.value.fontSize}px`,
@@ -189,15 +185,45 @@ const editorReadingStyle = computed(() => ({
 }))
 const catalogDrawerSize = computed(() => (viewportWidth.value < 768 ? '100%' : '380px'))
 
-function readStoredLayout() {
-  try {
-    return { ...defaultLayout, ...JSON.parse(localStorage.getItem(storageKey.value) || '{}') }
-  } catch {
-    return { ...defaultLayout }
+let isLoadingLayout = false
+
+function loadLayout() {
+  isLoadingLayout = true
+  const stored = localStorage.getItem(storageKey.value)
+  if (stored) {
+    try {
+      const data = JSON.parse(stored)
+      leftPanelSize.value = data.left !== undefined ? data.left : 240
+      rightPanelSize.value = data.right !== undefined ? data.right : 180
+      lastLeftPanelSize.value = data.lastLeft !== undefined ? data.lastLeft : 240
+      lastRightPanelSize.value = data.lastRight !== undefined ? data.lastRight : 180
+      focusMode.value = data.focus !== undefined ? !!data.focus : false
+      if (data.fontSize) readingSettings.value.fontSize = Number(data.fontSize)
+      if (data.lineHeight) readingSettings.value.lineHeight = Number(data.lineHeight)
+      if (data.contentWidth) readingSettings.value.contentWidth = Number(data.contentWidth)
+    } catch (e) {
+      console.error('解析编辑器布局失败:', e)
+    }
+  } else {
+    leftPanelSize.value = 240
+    rightPanelSize.value = 180
+    lastLeftPanelSize.value = 240
+    lastRightPanelSize.value = 180
+    focusMode.value = false
+    readingSettings.value = { fontSize: 18, lineHeight: 1.8, contentWidth: 760 }
   }
+  nextTick(() => {
+    isLoadingLayout = false
+  })
 }
 
+// 监听 storageKey 变化重新加载
+watch(storageKey, () => {
+  loadLayout()
+}, { immediate: true })
+
 function persistLayout() {
+  if (isLoadingLayout || !bookName.value) return
   localStorage.setItem(storageKey.value, JSON.stringify({
     left: leftPanelSize.value,
     right: rightPanelSize.value,

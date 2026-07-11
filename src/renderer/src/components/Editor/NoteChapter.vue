@@ -1013,28 +1013,33 @@ async function deleteNoteNode(node) {
   }
 }
 
-// 组件挂载时加载书籍数据
-onMounted(async () => {
-  try {
-    sortOrder.value = await window.electron.getSortOrder(props.bookName)
-    // 从子页面返回时 store 仍持有当前文件：只刷新树并同步侧栏，勿执行「恢复上次章节 / 最新章节」以免覆盖正在编辑的笔记
-    const preserveOpenFile =
-      !!editorStore.file && !!props.bookName && editorStore.currentBookName === props.bookName
+// 监听 bookName 变化重新加载书籍数据
+watch(
+  () => props.bookName,
+  async (newBookName) => {
+    if (!newBookName) return
+    try {
+      sortOrder.value = await window.electron.getSortOrder(newBookName)
+      // 从子页面返回时 store 仍持有当前文件：只刷新树并同步侧栏，勿执行「恢复上次章节 / 最新章节」以免覆盖正在编辑的笔记
+      const preserveOpenFile =
+        !!editorStore.file && editorStore.currentBookName === newBookName
 
-    if (preserveOpenFile) {
-      await loadChapters(false)
-      await loadNotesTree()
-      await syncSidebarFromPersistedFile()
-    } else {
-      // 首次进入本书编辑页：优先恢复上次查看的章节，否则选中最新章节
-      await loadChapters({ restoreLastChapter: true, autoSelectLatest: true })
-      await loadNotesTree()
+      if (preserveOpenFile) {
+        await loadChapters(false)
+        await loadNotesTree()
+        await syncSidebarFromPersistedFile()
+      } else {
+        // 首次进入本书编辑页：优先恢复上次查看的章节，否则选中最新章节
+        await loadChapters({ restoreLastChapter: true, autoSelectLatest: true })
+        await loadNotesTree()
+      }
+      await loadChapterSettings()
+    } catch {
+      ElMessage.error(t('noteChapter.loadBookDataFailed'))
     }
-    await loadChapterSettings()
-  } catch {
-    ElMessage.error(t('noteChapter.loadBookDataFailed'))
-  }
-})
+  },
+  { immediate: true }
+)
 
 defineExpose({
   reloadNotes,

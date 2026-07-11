@@ -189,6 +189,7 @@ export const useEditorStore = defineStore('editor', () => {
     fontSize: '16px',
     lineHeight: '1.6',
     paragraphSpacing: '0.5em', // 段落之间间距（如 0、0.5em、1em）
+    pageWidth: '80%', // 页边距/页宽
     globalBoldMode: false,
     globalItalicMode: false
   })
@@ -215,6 +216,7 @@ export const useEditorStore = defineStore('editor', () => {
         fontSize: editorSettings.value.fontSize,
         lineHeight: editorSettings.value.lineHeight,
         paragraphSpacing: editorSettings.value.paragraphSpacing,
+        pageWidth: editorSettings.value.pageWidth,
         globalBoldMode: editorSettings.value.globalBoldMode,
         globalItalicMode: editorSettings.value.globalItalicMode
       }
