@@ -865,6 +865,72 @@ export function createWebServerPlugins() {
                 success: true,
                 data: webBooksApi.loadMapData(body || {}, getActiveBooksDir())
               })
+            } else if (path === '/api/studio/timeline/read') {
+              sendJson(res, webBooksApi.readTimeline(body.bookName, getActiveBooksDir()))
+            } else if (path === '/api/studio/timeline/write') {
+              sendJson(res, webBooksApi.writeTimeline(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/outlines/read') {
+              sendJson(res, webBooksApi.readOutlines(body.bookName, getActiveBooksDir()))
+            } else if (path === '/api/studio/outlines/write') {
+              sendJson(res, webBooksApi.writeOutlines(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/outline-ai-sessions/read') {
+              sendJson(res, webBooksApi.readOutlineAiSessions(body.bookName, getActiveBooksDir()))
+            } else if (path === '/api/studio/outline-ai-sessions/write') {
+              sendJson(res, webBooksApi.writeOutlineAiSessions(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/characters/read') {
+              sendJson(res, webBooksApi.readCharacters(body.bookName, getActiveBooksDir()))
+            } else if (path === '/api/studio/characters/write') {
+              sendJson(res, webBooksApi.writeCharacters(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/entity-profiles/read') {
+              sendJson(res, webBooksApi.readEntityProfilesForBook(body.bookName, getActiveBooksDir()))
+            } else if (path === '/api/studio/entity-profiles/write-category') {
+              sendJson(res, webBooksApi.writeEntityProfileCategory(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/dictionary/read') {
+              sendJson(res, webBooksApi.readDictionary(body.bookName, getActiveBooksDir()))
+            } else if (path === '/api/studio/dictionary/write') {
+              sendJson(res, webBooksApi.writeDictionary(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/settings/read') {
+              sendJson(res, webBooksApi.readSettings(body.bookName, getActiveBooksDir()))
+            } else if (path === '/api/studio/settings/write') {
+              sendJson(res, webBooksApi.writeSettings(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/sequences/read') {
+              sendJson(res, webBooksApi.readSequenceCharts(body.bookName, getActiveBooksDir()))
+            } else if (path === '/api/studio/sequences/write') {
+              sendJson(res, webBooksApi.writeSequenceCharts(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/relationships/list') {
+              sendJson(res, webBooksApi.readRelationships(body.bookName, getActiveBooksDir()))
+            } else if (path === '/api/studio/relationships/read') {
+              sendJson(res, webBooksApi.readRelationshipData(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/relationships/create') {
+              sendJson(res, webBooksApi.createRelationship(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/relationships/write') {
+              sendJson(res, webBooksApi.saveRelationshipData(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/relationships/thumbnail') {
+              sendJson(res, webBooksApi.updateRelationshipThumbnail(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/relationships/delete') {
+              sendJson(res, webBooksApi.deleteRelationship(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/relationships/image') {
+              sendJson(res, {
+                success: true,
+                data: webBooksApi.readRelationshipImage(body || {}, getActiveBooksDir())
+              })
+            } else if (path === '/api/studio/organizations/list') {
+              sendJson(res, webBooksApi.readOrganizations(body.bookName, getActiveBooksDir()))
+            } else if (path === '/api/studio/organizations/read') {
+              sendJson(res, webBooksApi.readOrganization(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/organizations/create') {
+              sendJson(res, webBooksApi.createOrganization(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/organizations/write') {
+              sendJson(res, webBooksApi.writeOrganization(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/organizations/thumbnail') {
+              sendJson(res, webBooksApi.updateOrganizationThumbnail(body || {}, getActiveBooksDir()))
+            } else if (path === '/api/studio/organizations/image') {
+              sendJson(res, {
+                success: true,
+                data: webBooksApi.readOrganizationImage(body || {}, getActiveBooksDir())
+              })
+            } else if (path === '/api/studio/organizations/delete') {
+              sendJson(res, webBooksApi.deleteOrganization(body || {}, getActiveBooksDir()))
             } else if (path === '/api/notes/load') {
               if (!sanitizeText(body.bookName)) {
                 sendJson(res, { success: true, bookName: '', notes: [] })
