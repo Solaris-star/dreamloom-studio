@@ -1,117 +1,108 @@
 /**
- * 通义万相 AI 封面 - 前端服务封装
- * 通过 IPC 调用主进程中的通义万相能力
+ * AI 图片生成与素材确认服务。
  */
 
-/**
- * 设置通义万相 API Key
- * @param {string} apiKey
- * @returns {Promise<{success: boolean, message?: string}>}
- */
+import { postJson } from './webHttpClient.js'
+
+async function getStoreValue(key, fallback = '') {
+  const result = await postJson('/api/store/get', { key })
+  if (result?.success !== true || result.key !== key) {
+    throw new Error('读取图像 AI 设置失败')
+  }
+  return result.value ?? fallback
+}
+
+async function setStoreValue(key, value) {
+  const result = await postJson('/api/store/set', { key, value })
+  if (result?.success !== true || result.key !== key) {
+    throw new Error('保存图像 AI 设置失败')
+  }
+}
+
+function requireImageResult(result, fallback) {
+  if (result?.success !== true) {
+    throw new Error(result?.message || fallback)
+  }
+  if (typeof result.localPath !== 'string' || !result.localPath) {
+    throw new Error(`${fallback}：接口没有返回图片路径`)
+  }
+  return result
+}
+
 export async function setTongyiwanxiangApiKey(apiKey) {
-  return await window.electron.setTongyiwanxiangApiKey(apiKey)
+  const savedApiKey = typeof apiKey === 'string' ? apiKey.trim() : ''
+  await setStoreValue('tongyiwanxiang.apiKey', savedApiKey)
+  return { success: true, configured: Boolean(savedApiKey), source: savedApiKey ? 'store' : '' }
 }
 
-/**
- * 获取通义万相 API Key
- * @returns {Promise<{success: boolean, apiKey?: string}>}
- */
 export async function getTongyiwanxiangApiKey() {
-  return await window.electron.getTongyiwanxiangApiKey()
+  const apiKey = await getStoreValue('tongyiwanxiang.apiKey', '')
+  return { success: true, apiKey }
 }
 
-/**
- * 验证通义万相 API Key
- * @returns {Promise<{success: boolean, isValid: boolean, message?: string}>}
- */
 export async function validateTongyiwanxiangApiKey() {
-  return await window.electron.validateTongyiwanxiangApiKey()
+  return {
+    success: false,
+    isValid: false,
+    message: '请在 AI Provider 中配置并测试图像服务'
+  }
 }
 
-/**
- * 调用通义万相生成封面，并在主进程中下载保存到书籍目录
- * @param {Object} options
- * @param {string} options.prompt - 封面提示词（正向）
- * @param {string} options.size - API 尺寸，如 "1200*1600"
- * @param {string} options.bookName - 书籍名称（必填；提示词等展示用）
- * @param {string} [options.bookFolderName] - 磁盘上书籍目录名（可选；未传时按 bookName 做安全化后与 create-book 一致）
- * @param {string} [options.negativePrompt] - 反向提示词，可选
- * @param {string} [options.imageProvider] - tongyi | gemini | doubao
- * @returns {Promise<{success: boolean, localPath?: string, message?: string}>}
- */
-export async function generateAICover(options) {
-  return await window.electron.generateAICover(options)
+export async function generateAICover(options = {}) {
+  const result = await postJson('/api/ai/image-task', {
+    ...options,
+    feature: 'ai_cover',
+    title: '封面生成',
+    prompt:
+      options.prompt ||
+      [options.titlePrompt, options.authorPrompt, options.backgroundPrompt]
+        .filter(Boolean)
+        .join('\n'),
+    size: options.size || '1024x1024',
+    providerId: options.providerId || options.imageProvider || ''
+  })
+  return requireImageResult(result, '生成封面失败')
 }
 
-/**
- * 确认使用某张已生成的封面：复制为书籍 cover 并清理临时文件
- * @param {Object} options
- * @param {string} options.bookName - 书籍名称（与生成时一致）
- * @param {string} [options.bookFolderName] - 磁盘上书籍目录名（与生成时一致；可选）
- * @param {string} options.chosenPath - 选中的本地图片路径
- * @returns {Promise<{success: boolean, localPath?: string, message?: string}>}
- */
 export async function confirmAICover(options) {
-  return await window.electron.confirmAICover(options)
+  return requireImageResult(await postJson('/api/ai/cover/confirm', options), '确认封面失败')
 }
 
-/**
- * 丢弃本会话生成的临时封面（关闭抽屉未确认时调用）
- * @param {Object} options
- * @param {string} options.bookName - 书籍名称
- */
 export async function discardAICovers(options) {
-  return await window.electron.discardAICovers(options)
+  return postJson('/api/ai/cover/discard', options)
 }
 
-// --------- 通义万相 AI 人物图 ---------
-
-/**
- * 调用通义万相生成人物图，并在主进程中下载保存到书籍目录临时文件夹
- * @param {Object} options
- * @param {string} options.prompt - 人物图提示词（正向）
- * @param {string} options.size - API 尺寸，如 "1024*1024"
- * @param {string} options.bookName - 书籍名称
- * @param {string} [options.negativePrompt] - 反向提示词，可选
- * @param {string} [options.imageProvider] - tongyi | gemini | doubao
- * @returns {Promise<{success: boolean, localPath?: string, message?: string}>}
- */
-export async function generateAICharacterImage(options) {
-  return await window.electron.generateAICharacterImage(options)
+export async function generateAICharacterImage(options = {}) {
+  const result = await postJson('/api/ai/image-task', {
+    ...options,
+    feature: 'ai_character_image',
+    title: '人物图生成',
+    prompt: options.prompt || options.description || '',
+    size: options.size || '1024x1024',
+    providerId: options.providerId || options.imageProvider || ''
+  })
+  return requireImageResult(result, '生成人物图失败')
 }
 
-/**
- * 确认使用某张已生成的人物图：复制到书籍 avatars 目录并返回本地路径
- * @param {Object} options
- * @param {string} options.bookName - 书籍名称
- * @param {string} options.chosenPath - 选中的本地图片路径
- * @returns {Promise<{success: boolean, localPath?: string, message?: string}>}
- */
 export async function confirmAICharacterImage(options) {
-  return await window.electron.confirmAICharacterImage(options)
+  return requireImageResult(
+    await postJson('/api/ai/character/confirm', options),
+    '确认人物图失败'
+  )
 }
 
-/**
- * 丢弃本会话生成的临时人物图（关闭抽屉未确认时调用）
- * @param {Object} options
- * @param {string} options.bookName - 书籍名称
- */
 export async function discardAICharacterImages(options) {
-  return await window.electron.discardAICharacterImages(options)
+  return postJson('/api/ai/character/discard', options)
 }
 
-// --------- 通义万相 AI 场景图（编辑器选中文本）---------
-
-/**
- * 生成场景图并保存到书籍目录 scene_images
- * @param {Object} options
- * @param {string} options.prompt
- * @param {string} options.size 如 "1280*720"
- * @param {string} options.bookName
- * @param {string} [options.negativePrompt]
- * @param {string} [options.imageProvider] - tongyi | gemini | doubao
- * @returns {Promise<{success: boolean, localPath?: string, message?: string}>}
- */
-export async function generateAISceneImage(options) {
-  return await window.electron.generateAISceneImage(options)
+export async function generateAISceneImage(options = {}) {
+  const result = await postJson('/api/ai/image-task', {
+    ...options,
+    feature: 'ai_scene_image',
+    title: '场景图生成',
+    prompt: options.prompt || options.description || '',
+    size: options.size || '1024x1024',
+    providerId: options.providerId || options.imageProvider || ''
+  })
+  return requireImageResult(result, '生成场景图失败')
 }

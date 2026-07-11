@@ -484,10 +484,6 @@ async function handleGenerate() {
     ElMessage.error(t('aiSceneImage.bookNameEmpty'))
     return
   }
-  if (!window.electron?.generateAISceneImage) {
-    ElMessage.error(t('aiSceneImage.generateUnsupported'))
-    return
-  }
   if (!selectedProvider.value) {
     ElMessage.warning(t('imageAi.noProviderHint'))
     return

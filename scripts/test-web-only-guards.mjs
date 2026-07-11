@@ -197,6 +197,48 @@ for (const method of [
 ]) {
   assert.doesNotMatch(webShimSource, new RegExp(`\\b${method}`), `Web shim 不应保留 AI 方法：${method}`)
 }
+for (const method of [
+  'setTongyiwanxiangApiKey:',
+  'getTongyiwanxiangApiKey:',
+  'validateTongyiwanxiangApiKey:',
+  'generateAICover:',
+  'confirmAICover:',
+  'discardAICovers:',
+  'generateAICharacterImage:',
+  'confirmAICharacterImage:',
+  'discardAICharacterImages:',
+  'generateAISceneImage:',
+  'listConfiguredImageProviders:',
+  'getImageAiLastProvider:',
+  'setImageAiLastProvider:',
+  'setGeminiApiKey:',
+  'getGeminiApiKey:',
+  'validateGeminiApiKey:',
+  'setDoubaoConfig:',
+  'getDoubaoConfig:',
+  'validateDoubaoConfig:'
+]) {
+  assert.doesNotMatch(
+    webShimSource,
+    new RegExp(`\\b${method}`),
+    `Web shim 不应保留图片 AI 方法：${method}`
+  )
+}
+for (const [file, label] of [
+  ['src/renderer/src/service/imageAi.js', '图片 AI 配置'],
+  ['src/renderer/src/service/tongyiwanxiang.js', '图片生成']
+]) {
+  assert.doesNotMatch(
+    read(file),
+    /window\.electron|ensureElectronApi/,
+    `${label}服务必须直接使用 Web API`
+  )
+}
+assert.doesNotMatch(
+  read('src/renderer/src/components/Editor/AISceneImageDialog.vue'),
+  /window\.electron\?\.generateAISceneImage/,
+  '场景图生成不能依赖 Electron 接口探测'
+)
 
 const rendererRoot = path.join(root, 'src/renderer/src')
 const rendererSourceFiles = fs
