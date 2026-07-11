@@ -105,59 +105,6 @@ async function testImageProviderByProxy({ baseUrl, apiKey, modelName = '' } = {}
   }
 }
 
-function selectBrowserImage() {
-  return new Promise((resolve) => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'image/*'
-    input.style.display = 'none'
-
-    const cleanup = () => {
-      input.remove()
-    }
-    const finish = (result) => {
-      cleanup()
-      resolve(result)
-    }
-
-    input.addEventListener(
-      'change',
-      () => {
-        const file = input.files?.[0]
-        if (!file) {
-          finish({ success: false, message: '未选择图片' })
-          return
-        }
-        const reader = new FileReader()
-        reader.onload = () => {
-          const dataUrl = String(reader.result || '')
-          finish({
-            success: true,
-            filePath: dataUrl,
-            dataUrl,
-            fileName: file.name,
-            mimeType: file.type
-          })
-        }
-        reader.onerror = () => finish({ success: false, message: '读取图片失败' })
-        reader.readAsDataURL(file)
-      },
-      { once: true }
-    )
-
-    input.addEventListener(
-      'cancel',
-      () => {
-        finish({ success: false, message: '已取消选择' })
-      },
-      { once: true }
-    )
-
-    document.body.appendChild(input)
-    input.click()
-  })
-}
-
 function pickResponseText(response) {
   if (!response) return ''
   return String(
@@ -785,7 +732,6 @@ function buildElectronShim() {
     //   - validateBooksDir → Home.vue 检测缺失后直接放行用户输入的路径
     // selectBooksDir: undefined
     // validateBooksDir: undefined
-    selectImage: selectBrowserImage,
     readWorkbenchDatabaseSnapshot: (payload) =>
       postJson('/api/workbench-database/snapshot', payload || {}),
     queryWorkbenchDatabase: (payload) => postJson('/api/workbench-database/query', payload || {}),

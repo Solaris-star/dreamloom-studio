@@ -7,8 +7,3 @@ export function bookImageUrl(bookName, fileName) {
   const params = new URLSearchParams({ book, file })
   return `/api/books/image?${params.toString()}`
 }
-
-export function selectedBrowserImageUrl(result = {}) {
-  const value = String(result.dataUrl || result.imageUrl || result.filePath || '').trim()
-  return /^(?:https?:|data:|blob:)/i.test(value) ? value : ''
-}

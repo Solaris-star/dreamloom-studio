@@ -813,6 +813,7 @@ import { isNavigationFailure, NavigationFailureType, useRoute, useRouter } from 
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Archive, BookOpen, Bookmark, Download, FileImage } from 'lucide-vue-next'
 import { getBookDir, readBooksDir } from '@renderer/service/books'
+import { selectBrowserImage } from '@renderer/service/browserImagePicker'
 import {
   getAssetUrl,
   imageSelectionToImportInput,
@@ -1363,12 +1364,8 @@ async function uploadBookImage() {
     ElMessage.warning('没有找到当前作品')
     return
   }
-  if (!window.electron?.selectImage) {
-    ElMessage.warning('当前环境没有图片选择能力')
-    return
-  }
   try {
-    const result = await window.electron.selectImage()
+    const result = await selectBrowserImage()
     const imageInput = imageSelectionToImportInput(result)
     if (!imageInput) return
     const imported = await importAsset({

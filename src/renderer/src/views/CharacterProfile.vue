@@ -507,7 +507,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Delete, Grid, List, Edit, MagicStick } from '@element-plus/icons-vue'
 import AICharacterDrawer from '@renderer/components/AICharacterDrawer.vue'
 import { genId } from '@renderer/utils/utils'
-import { bookImageUrl, selectedBrowserImageUrl } from '@renderer/utils/webImageUrl'
+import { bookImageUrl } from '@renderer/utils/webImageUrl'
+import { selectBrowserImage } from '@renderer/service/browserImagePicker'
 import Sortable from 'sortablejs'
 import { useI18n } from 'vue-i18n'
 
@@ -1287,13 +1288,10 @@ function removeCharacterImage(index) {
 // 人物图：选择本地图片并追加到列表
 async function selectLocalImageForCharacterImage() {
   try {
-    const result = await window.electron.selectImage()
-    if (result?.success) {
-      const imageUrl = selectedBrowserImageUrl(result)
-      if (!imageUrl) throw new Error('浏览器无法读取所选图片')
-      characterForm.characterImages.push(imageUrl)
-      ElMessage.success(t('characterProfile.addedToGallery'))
-    }
+    const result = await selectBrowserImage()
+    if (!result) return
+    characterForm.characterImages.push(result.dataUrl)
+    ElMessage.success(t('characterProfile.addedToGallery'))
   } catch (error) {
     console.error('选择图片失败:', error)
     ElMessage.error(t('characterProfile.selectImageFailed'))
@@ -1303,13 +1301,10 @@ async function selectLocalImageForCharacterImage() {
 // 选择本地图片
 async function selectLocalImage() {
   try {
-    const result = await window.electron.selectImage()
-    if (result?.success) {
-      const imageUrl = selectedBrowserImageUrl(result)
-      if (!imageUrl) throw new Error('浏览器无法读取所选图片')
-      characterForm.avatar = imageUrl
-      ElMessage.success(t('characterProfile.selectImageSuccess'))
-    }
+    const result = await selectBrowserImage()
+    if (!result) return
+    characterForm.avatar = result.dataUrl
+    ElMessage.success(t('characterProfile.selectImageSuccess'))
   } catch (error) {
     console.error('选择图片失败:', error)
     ElMessage.error(t('characterProfile.selectImageFailed'))

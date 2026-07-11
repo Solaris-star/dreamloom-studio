@@ -1031,6 +1031,7 @@ import LocalBookImportPanel from '@renderer/components/LocalBookImportPanel.vue'
 import NovelImportPanel from '@renderer/components/NovelImportPanel.vue'
 import { useMainStore } from '@renderer/stores'
 import { deleteBook, readBooksDir } from '@renderer/service/books'
+import { selectBrowserImage } from '@renderer/service/browserImagePicker'
 import { listChapterTree } from '@renderer/service/editor'
 import {
   attachAssetToBook,
@@ -2129,12 +2130,8 @@ async function handleUploadImage() {
     ElMessage.warning('请先创建或导入一本书，再上传图片')
     return
   }
-  if (!window.electron?.selectImage) {
-    ElMessage.warning('当前环境没有图片选择能力')
-    return
-  }
   try {
-    const result = await window.electron.selectImage()
+    const result = await selectBrowserImage()
     const imageInput = imageSelectionToImportInput(result)
     if (!imageInput) return
     requireAssetItemResult(

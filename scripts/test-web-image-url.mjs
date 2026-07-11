@@ -1,8 +1,5 @@
 import assert from 'node:assert/strict'
-import {
-  bookImageUrl,
-  selectedBrowserImageUrl
-} from '../src/renderer/src/utils/webImageUrl.js'
+import { bookImageUrl } from '../src/renderer/src/utils/webImageUrl.js'
 
 const url = new URL(bookImageUrl('测试书', 'avatars/主角.png'), 'http://localhost')
 assert.equal(url.pathname, '/api/books/image')
@@ -14,7 +11,4 @@ assert.equal(bookImageUrl('测试书', 'data:image/png;base64,AA=='), 'data:imag
 assert.equal(bookImageUrl('测试书', 'D:\\secret\\a.png'), '')
 assert.equal(bookImageUrl('测试书', '/etc/passwd'), '')
 assert.equal(bookImageUrl('测试书', 'file:///tmp/a.png'), '')
-assert.equal(selectedBrowserImageUrl({ dataUrl: 'data:image/png;base64,AA==' }), 'data:image/png;base64,AA==')
-assert.equal(selectedBrowserImageUrl({ filePath: 'D:\\secret\\a.png' }), '')
-
 console.log('Web 图片地址测试通过')

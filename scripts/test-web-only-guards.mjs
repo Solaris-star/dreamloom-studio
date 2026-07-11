@@ -176,7 +176,8 @@ for (const method of [
   'clearAssetTrash:',
   'exportAppSettings:',
   'importAppSettings:',
-  'openBookEditorWindow:'
+  'openBookEditorWindow:',
+  'selectImage:'
 ]) {
   assert.doesNotMatch(
     webShimSource,

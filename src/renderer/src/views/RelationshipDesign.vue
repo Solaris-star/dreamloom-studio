@@ -159,7 +159,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import RelationGraph from 'relation-graph-vue3'
 import RadialMenu from '@renderer/components/RadialMenu.vue'
 import { genId } from '@renderer/utils/utils'
-import { bookImageUrl, selectedBrowserImageUrl } from '@renderer/utils/webImageUrl'
+import { bookImageUrl } from '@renderer/utils/webImageUrl'
+import { selectBrowserImage } from '@renderer/service/browserImagePicker'
 import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
@@ -777,13 +778,10 @@ function selectPresetColor(color) {
 // 选择本地图片
 async function selectLocalImage() {
   try {
-    const result = await window.electron.selectImage()
-    if (result?.success) {
-      const imageUrl = selectedBrowserImageUrl(result)
-      if (!imageUrl) throw new Error('浏览器无法读取所选图片')
-      infoForm.avatar = imageUrl
-      ElMessage.success(t('characterProfile.selectImageSuccess'))
-    }
+    const result = await selectBrowserImage()
+    if (!result) return
+    infoForm.avatar = result.dataUrl
+    ElMessage.success(t('characterProfile.selectImageSuccess'))
   } catch (error) {
     console.error('选择图片失败:', error)
     ElMessage.error(t('characterProfile.selectImageFailed'))
