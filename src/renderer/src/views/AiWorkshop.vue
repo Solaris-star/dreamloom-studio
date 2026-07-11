@@ -397,6 +397,7 @@ import {
   runAiImageTask,
   runAiTextTask
 } from '@renderer/service/aiWorkshop'
+import { getActiveTextProvider, getAiProviders } from '@renderer/service/aiProvider'
 import {
   ensureNoteDocument,
   ensureNotebookDocument,
@@ -1472,8 +1473,8 @@ function sameContextTitle(left, right) {
 
 async function loadActiveProvider() {
   try {
-    const active = await window.electron?.getActiveTextProvider?.()
-    const providersResult = await window.electron?.getAiProviders?.()
+    const active = await getActiveTextProvider()
+    const providersResult = await getAiProviders()
     if (active?.success !== true) {
       throw new Error(active?.message || '读取当前文本 AI 服务失败')
     }

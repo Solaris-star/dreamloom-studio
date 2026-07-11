@@ -245,6 +245,31 @@ assert.doesNotMatch(
   'AI Provider 服务必须直接使用 Web API'
 )
 assert.doesNotMatch(
+  read('src/renderer/src/views/AiWorkshop.vue'),
+  /window\.electron[^;\n]*(?:getAiProviders|getActiveTextProvider)/,
+  'AI 工坊页面读取 Provider 时不能使用 Electron 兼容接口'
+)
+for (const method of [
+  'getAiProviders:',
+  'saveAiProviders:',
+  'addAiProvider:',
+  'updateAiProvider:',
+  'deleteAiProvider:',
+  'validateAiProvider:',
+  'listAiProviderModels:',
+  'testAiProviderModel:',
+  'getActiveTextProvider:',
+  'setActiveTextProvider:',
+  'getActiveImageProvider:',
+  'setActiveImageProvider:'
+]) {
+  assert.doesNotMatch(
+    webShimSource,
+    new RegExp(`\\b${method}`),
+    `Web shim 不应保留 AI Provider 方法：${method}`
+  )
+}
+assert.doesNotMatch(
   read('src/renderer/src/service/aiWorkshop.js'),
   /window\.electron|ensureElectronApi/,
   'AI 工坊服务必须直接使用 Web API'
