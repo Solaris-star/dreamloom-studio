@@ -345,6 +345,7 @@ const menubarState = ref({
   fontSize: '16px',
   lineHeight: '1.6',
   paragraphSpacing: '0.5em', // 段落之间间距
+  pageWidth: '800px', // 页边距/页宽
   isBold: false,
   isItalic: false
 })
@@ -495,6 +496,8 @@ function updateEditorStyle() {
       menubarState.value.paragraphSpacing ?? '0',
       'important'
     )
+    editorElement.style.setProperty('max-width', menubarState.value.pageWidth ?? '800px', 'important')
+    editorElement.style.setProperty('margin', '0 auto', 'important')
     // 根据文件类型设置首行缩进（章节：2em；笔记：0）
     const isChapter = editorStore.file?.type === 'chapter'
     editorElement.style.setProperty('text-indent', isChapter ? '2em' : '0', 'important')
@@ -512,6 +515,7 @@ function handleStyleUpdate() {
       fontSize: menubarState.value.fontSize,
       lineHeight: menubarState.value.lineHeight,
       paragraphSpacing: menubarState.value.paragraphSpacing,
+      pageWidth: menubarState.value.pageWidth,
       globalBoldMode: menubarState.value.isBold,
       globalItalicMode: menubarState.value.isItalic
     })
@@ -708,6 +712,7 @@ function handleWindowClose() {
       fontSize: menubarState.value.fontSize,
       lineHeight: menubarState.value.lineHeight,
       paragraphSpacing: menubarState.value.paragraphSpacing,
+      pageWidth: menubarState.value.pageWidth,
       globalBoldMode: menubarState.value.isBold,
       globalItalicMode: menubarState.value.isItalic
     })
@@ -752,6 +757,10 @@ async function initEditor() {
         settings.paragraphSpacing !== undefined && settings.paragraphSpacing !== null
           ? settings.paragraphSpacing
           : '0.5em',
+      pageWidth:
+        settings.pageWidth !== undefined && settings.pageWidth !== null
+          ? settings.pageWidth
+          : '800px',
       isBold: settings.globalBoldMode !== undefined ? settings.globalBoldMode : false,
       isItalic: settings.globalItalicMode !== undefined ? settings.globalItalicMode : false
     }
@@ -925,6 +934,7 @@ onDeactivated(async () => {
     fontSize: menubarState.value.fontSize,
     lineHeight: menubarState.value.lineHeight,
     paragraphSpacing: menubarState.value.paragraphSpacing,
+    pageWidth: menubarState.value.pageWidth,
     globalBoldMode: menubarState.value.isBold,
     globalItalicMode: menubarState.value.isItalic
   })
@@ -963,6 +973,7 @@ onBeforeUnmount(async () => {
     fontSize: menubarState.value.fontSize,
     lineHeight: menubarState.value.lineHeight,
     paragraphSpacing: menubarState.value.paragraphSpacing,
+    pageWidth: menubarState.value.pageWidth,
     globalBoldMode: menubarState.value.isBold,
     globalItalicMode: menubarState.value.isItalic
   })
@@ -2020,6 +2031,22 @@ defineExpose({
 .character-highlight-switch,
 .banned-words-hint-switch {
   flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .chapter-title {
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .chapter-title-input {
+    min-width: 0;
+  }
+
+  .character-highlight-switch,
+  .banned-words-hint-switch {
+    display: none;
+  }
 }
 
 /* 编辑区包裹层：用于固定右上角 AI 润色按钮 */

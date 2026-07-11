@@ -650,7 +650,7 @@ function isEditorRouteElement(el) {
 @media (max-width: 760px) {
   .app-shell {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) !important;
     height: auto;
     min-height: 100vh;
     overflow: visible;
@@ -666,6 +666,13 @@ function isEditorRouteElement(el) {
     min-width: 0;
     overflow: visible;
     padding: 16px;
+  }
+
+  .app-main.studio-main {
+    height: 100vh;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
   }
 
   .app-main.map-design-main {

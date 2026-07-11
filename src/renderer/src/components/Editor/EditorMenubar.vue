@@ -88,6 +88,18 @@
         </el-select>
       </el-tooltip>
       <el-tooltip
+        content="页边距/页宽"
+        placement="bottom"
+        :show-after="TOOLTIP_SHOW_AFTER"
+      >
+        <el-select v-model="pageWidth" class="toolbar-item" size="small" style="width: 80px">
+          <el-option label="极宽" value="100%" />
+          <el-option label="较宽" value="1000px" />
+          <el-option label="中等" value="800px" />
+          <el-option label="较窄" value="600px" />
+        </el-select>
+      </el-tooltip>
+      <el-tooltip
         :content="t('editorMenubar.bold')"
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
@@ -368,6 +380,14 @@ const paragraphSpacing = computed({
   get: () => props.modelValue.paragraphSpacing ?? '0.5em',
   set: (val) => {
     emit('update:modelValue', { ...props.modelValue, paragraphSpacing: val })
+    emit('update-style')
+  }
+})
+
+const pageWidth = computed({
+  get: () => props.modelValue.pageWidth ?? '800px',
+  set: (val) => {
+    emit('update:modelValue', { ...props.modelValue, pageWidth: val })
     emit('update-style')
   }
 })
