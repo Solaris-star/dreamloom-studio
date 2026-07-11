@@ -378,7 +378,8 @@ onBeforeUnmount(() => {
 }
 
 :deep(.editor-content .tiptap) {
-  width: min(100%, var(--editor-paper-width));
+  width: 100%;
+  max-width: var(--editor-paper-width);
   min-height: 100%;
   margin: 0 auto;
   padding: 48px clamp(24px, 6vw, 72px);

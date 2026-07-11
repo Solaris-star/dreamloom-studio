@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
 
 import {
+  MAX_LOCAL_BOOK_FILE_SIZE,
   makeUniqueChapterTitle,
+  parseLocalBookFile,
   parseLocalBookText,
   sanitizeChapterTitle,
   uniqueLocalBookName
@@ -57,5 +59,35 @@ assert.equal(uniqueLocalBookName('A/B', [{ name: 'A_B' }]), 'A_B_2')
 const usedChapterTitles = new Set()
 assert.equal(makeUniqueChapterTitle('正文', usedChapterTitles, '第1章'), '正文')
 assert.equal(makeUniqueChapterTitle('正文', usedChapterTitles, '第2章'), '正文_2')
+
+await assert.rejects(
+  () =>
+    parseLocalBookFile({
+      name: '伪装文档.docx',
+      size: 8,
+      arrayBuffer: async () => new TextEncoder().encode('not docx').buffer
+    }),
+  /DOCX 文件内容损坏/
+)
+
+await assert.rejects(
+  () =>
+    parseLocalBookFile({
+      name: '过大文档.txt',
+      size: MAX_LOCAL_BOOK_FILE_SIZE + 1,
+      arrayBuffer: async () => new ArrayBuffer(0)
+    }),
+  /文件超过 50 MB/
+)
+
+await assert.rejects(
+  () =>
+    parseLocalBookFile({
+      name: '空文档.docx',
+      size: 4,
+      arrayBuffer: async () => Uint8Array.from([0x50, 0x4b, 0x05, 0x06]).buffer
+    }),
+  /DOCX 文件无法解析|文件正文为空/
+)
 
 console.log('local book import parser tests passed')

@@ -1,6 +1,7 @@
 import mammoth from 'mammoth'
 
 export const SUPPORTED_LOCAL_BOOK_EXTENSIONS = ['txt', 'md', 'markdown', 'docx']
+export const MAX_LOCAL_BOOK_FILE_SIZE = 50 * 1024 * 1024
 
 const TEXT_EXTENSIONS = new Set(['txt', 'md', 'markdown'])
 const CHAPTER_TITLE_MAX_LENGTH = 90
@@ -40,8 +41,17 @@ export async function parseLocalBookFile(file) {
   if (!SUPPORTED_LOCAL_BOOK_EXTENSIONS.includes(extension)) {
     throw new Error('暂不支持该文件格式')
   }
+  if (Number(file.size) > MAX_LOCAL_BOOK_FILE_SIZE) {
+    throw new Error('文件超过 50 MB，无法导入')
+  }
 
-  const text = extension === 'docx' ? await readDocxText(file) : await readTextFile(file, extension)
+  let text
+  try {
+    text = extension === 'docx' ? await readDocxText(file) : await readTextFile(file, extension)
+  } catch (error) {
+    if (error?.message?.startsWith('DOCX')) throw error
+    throw new Error(`读取文件失败：${error?.message || '文件内容损坏'}`)
+  }
 
   return parseLocalBookText(text, {
     fileName: file.name,
@@ -163,7 +173,24 @@ export function countWords(text = '') {
 
 async function readDocxText(file) {
   const arrayBuffer = await file.arrayBuffer()
-  const result = await mammoth.extractRawText({ arrayBuffer })
+  const bytes = new Uint8Array(arrayBuffer, 0, Math.min(arrayBuffer.byteLength, 4))
+  const isZip =
+    bytes.length >= 4 &&
+    bytes[0] === 0x50 &&
+    bytes[1] === 0x4b &&
+    ((bytes[2] === 0x03 && bytes[3] === 0x04) ||
+      (bytes[2] === 0x05 && bytes[3] === 0x06) ||
+      (bytes[2] === 0x07 && bytes[3] === 0x08))
+  if (!isZip) {
+    throw new Error('DOCX 文件内容损坏，或文件扩展名与实际格式不符')
+  }
+
+  let result
+  try {
+    result = await mammoth.extractRawText({ arrayBuffer })
+  } catch {
+    throw new Error('DOCX 文件无法解析，请确认文件未损坏且未加密')
+  }
   return result?.value || ''
 }
 
