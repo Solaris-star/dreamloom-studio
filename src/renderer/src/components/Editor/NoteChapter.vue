@@ -160,6 +160,27 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useEditorStore } from '@renderer/stores/editor'
 import ChapterSettingsDialog from '@renderer/components/Editor/ChapterSettingsDialog.vue'
 import { useI18n } from 'vue-i18n'
+import {
+  createChapterDocument,
+  createNoteDocument,
+  createNotebookDocument,
+  createVolumeDocument,
+  deleteChapterNode,
+  deleteNoteDocument,
+  deleteNotebookDocument,
+  editChapterNode,
+  getChapterSettings,
+  getSortOrder,
+  listChapterTree,
+  listNoteTree,
+  readChapterContent,
+  readNoteDocument,
+  reformatChapterNumbers as reformatChapterNumbersDocument,
+  renameNoteDocument,
+  renameNotebookDocument,
+  setSortOrder
+} from '@renderer/service/editor'
+import { getStoreValue, setStoreValue } from '@renderer/service/webStore'
 
 const props = defineProps({
   bookName: {
@@ -382,8 +403,8 @@ async function handleNoteClick(data, node) {
       return
     }
     const parent = node.parent.data
-    const res = await window.electron.readNote(props.bookName, parent.name, data.name)
-    if (res.success) {
+    try {
+      const res = await readNoteDocument(props.bookName, parent.name, data.name)
       editorStore.setFile({
         name: data.name,
         type: 'note',
@@ -396,8 +417,8 @@ async function handleNoteClick(data, node) {
       editorStore.applyNoteDraftFromDisk(data.path, content)
       editorStore.setChapterTitle(data.name) // 笔记名作为标题
       currentNoteNodeKey.value = data.path // 保持选中态
-    } else {
-      ElMessage.error(res.message || t('noteChapter.readNoteFailed'))
+    } catch (error) {
+      ElMessage.error(error.message || t('noteChapter.readNoteFailed'))
     }
   }
 }
@@ -430,8 +451,8 @@ async function handleChapterClick(data, node) {
       return
     }
     // 读取章节内容
-    const res = await window.electron.readChapter(props.bookName, node.parent.data.name, data.name)
-    if (res.success) {
+    try {
+      const res = await readChapterContent(props.bookName, node.parent.data.name, data.name)
       editorStore.setFile({
         name: data.name,
         type: 'chapter',
@@ -445,39 +466,34 @@ async function handleChapterClick(data, node) {
       currentChapterNodeKey.value = data.path // 保持选中态
       // 持久化当前章节为「上次查看章节」，下次打开编辑框时优先恢复
       saveLastViewedChapter(node.parent.data, data)
-    } else {
-      ElMessage.error(res.message || t('noteChapter.readChapterFailed'))
+    } catch (error) {
+      ElMessage.error(error.message || t('noteChapter.readChapterFailed'))
     }
   }
 }
 
 /** 持久化当前查看的章节，用于下次打开编辑框时恢复定位 */
-function saveLastViewedChapter(volumeNode, chapterNode) {
+async function saveLastViewedChapter(volumeNode, chapterNode) {
   if (!props.bookName || !volumeNode || !chapterNode) return
-  // 使用 electronStore 按书籍存储，避免路径因 booksDir 变化而失效
   const payload = {
     volumeId: getVolumeId(volumeNode),
     chapterName: chapterNode.name
   }
-  window.electronStore?.set(`lastChapter:${props.bookName}`, payload).catch(() => {})
+  await setStoreValue(`lastChapter:${props.bookName}`, payload).catch(() => {})
 }
 
 // 创建卷
 async function createVolume() {
   try {
     const prevVolumeIds = new Set(getVolumeNodes(chaptersTree.value).map((v) => getVolumeId(v)))
-    const result = await window.electron.createVolume(props.bookName)
-    if (result.success) {
-      ElMessage.success(t('noteChapter.createVolumeSuccess'))
+    await createVolumeDocument(props.bookName)
+    ElMessage.success(t('noteChapter.createVolumeSuccess'))
 
-      // 等待一小段时间确保文件系统同步
-      await new Promise((resolve) => setTimeout(resolve, 100))
+    // 等待一小段时间确保文件系统同步
+    await new Promise((resolve) => setTimeout(resolve, 100))
 
-      // 重新加载章节数据
-      await loadChapters({ detectNewVolumeFrom: prevVolumeIds })
-    } else {
-      ElMessage.error(result.message || t('noteChapter.createVolumeFailed'))
-    }
+    // 重新加载章节数据
+    await loadChapters({ detectNewVolumeFrom: prevVolumeIds })
   } catch {
     ElMessage.error(t('noteChapter.createVolumeFailed'))
   }
@@ -486,21 +502,17 @@ async function createVolume() {
 // 创建章节
 async function createChapter(volumeId) {
   try {
-    const result = await window.electron.createChapter(props.bookName, volumeId)
-    if (result.success) {
-      ElMessage.success(t('noteChapter.createChapterSuccess'))
+    const result = await createChapterDocument(props.bookName, volumeId)
+    ElMessage.success(t('noteChapter.createChapterSuccess'))
 
-      // 等待一小段时间确保文件系统同步
-      await new Promise((resolve) => setTimeout(resolve, 100))
+    // 等待一小段时间确保文件系统同步
+    await new Promise((resolve) => setTimeout(resolve, 100))
 
-      // 仅展开“创建所在卷”，其他卷状态保持不变；并选中新建章节（使用主进程返回的 filePath 精确定位）
-      await loadChapters({
-        forceExpandVolumeId: volumeId,
-        selectChapter: { volumeId, chapterPath: result.filePath }
-      })
-    } else {
-      ElMessage.error(result.message || t('noteChapter.createChapterFailed'))
-    }
+    // 仅展开“创建所在卷”，其他卷状态保持不变；并选中新建章节
+    await loadChapters({
+      forceExpandVolumeId: volumeId,
+      selectChapter: { volumeId, chapterPath: result.filePath }
+    })
   } catch {
     ElMessage.error(t('noteChapter.createChapterFailed'))
   }
@@ -535,8 +547,7 @@ async function loadChapters(arg = false) {
       currentChapterNodeKey.value = null
     }
 
-    const chapterResult = await window.electron.loadChapters(props.bookName)
-    const rawChapters = Array.isArray(chapterResult) ? chapterResult : chapterResult.chapters
+    const rawChapters = await listChapterTree(props.bookName)
     const rawVolumes = getVolumeNodes(rawChapters)
     const chapters = sortOrder.value === 'desc' ? [...rawChapters].reverse() : rawChapters
 
@@ -557,7 +568,7 @@ async function loadChapters(arg = false) {
     // 1) 恢复上次章节时，确保该卷展开
     if (restoreLastChapter && rawVolumes.length > 0) {
       try {
-        const last = await window.electronStore?.get(`lastChapter:${props.bookName}`)
+        const last = await getStoreValue(`lastChapter:${props.bookName}`, null)
         if (last?.volumeId) {
           finalForceExpandVolumeId = finalForceExpandVolumeId || last.volumeId
         }
@@ -607,7 +618,7 @@ async function loadChapters(arg = false) {
     // 其次：恢复上次关闭时正在查看/编辑的章节（打开编辑框时优先定位到此）
     if (restoreLastChapter && volumes.length > 0) {
       try {
-        const last = await window.electronStore?.get(`lastChapter:${props.bookName}`)
+        const last = await getStoreValue(`lastChapter:${props.bookName}`, null)
         if (last?.volumeId && last?.chapterName) {
           const targetVolume = volumes.find((v) => getVolumeId(v) === last.volumeId)
           const targetChapter = targetVolume?.children?.find((c) => c.name === last.chapterName)
@@ -751,8 +762,7 @@ async function confirmEdit(node) {
     payload.chapter = editingNode.value.name
   }
   try {
-    const result = await window.electron.editNode(props.bookName, payload)
-    if (result.success) {
+    await editChapterNode(props.bookName, payload)
       ElMessage.success(t('noteChapter.editSuccess'))
 
       // 如果编辑的是“卷名”，卷 id 会变化（load-chapters 的卷 id = 卷目录名）
@@ -830,9 +840,6 @@ async function confirmEdit(node) {
           }
         }
       }
-    } else {
-      ElMessage.error(result.message || t('noteChapter.editFailed'))
-    }
   } catch (error) {
     console.error('Edit failed:', error)
     ElMessage.error(t('noteChapter.editFailed'))
@@ -862,8 +869,7 @@ async function deleteNode(node) {
         type: 'warning'
       }
     )
-    const result = await window.electron.deleteNode(props.bookName, payload)
-    if (result.success) {
+    await deleteChapterNode(props.bookName, payload)
       ElMessage.success(t('noteChapter.deleteSuccess'))
       // 删除卷时同步清理展开集合（避免残留）
       if (node.data.type === 'volume') {
@@ -882,9 +888,6 @@ async function deleteNode(node) {
           currentChapterNodeKey.value = currentSelectedKey
         }
       })
-    } else {
-      ElMessage.error(result.message || t('noteChapter.deleteFailed'))
-    }
   } catch {
     // 用户取消
   }
@@ -893,21 +896,19 @@ async function deleteNode(node) {
 // 排序按钮
 async function sortVolumes() {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
-  await window.electron.setSortOrder(props.bookName, sortOrder.value)
+  await setSortOrder(props.bookName, sortOrder.value)
   // 重新加载：按“创建顺序”执行正序/倒序展示
   await loadChapters(false)
 }
 
 // 创建笔记本
 async function createNotebook() {
-  const result = await window.electron.createNotebook(props.bookName)
-  if (result.success) {
+  try {
+    const result = await createNotebookDocument(props.bookName)
     ElMessage.success(t('noteChapter.createNotebookSuccess', { name: result.notebookName }))
-
-    // 重新加载笔记数据
     await loadNotesTree()
-  } else {
-    ElMessage.error(result.message || t('noteChapter.createNotebookFailed'))
+  } catch (error) {
+    ElMessage.error(error.message || t('noteChapter.createNotebookFailed'))
   }
 }
 
@@ -917,14 +918,12 @@ async function createNote(node) {
   if (node && node.data && node.data.type === 'folder') {
     notebookName = node.data.name
   }
-  const result = await window.electron.createNote(props.bookName, notebookName)
-  if (result.success) {
+  try {
+    await createNoteDocument(props.bookName, notebookName)
     ElMessage.success(t('noteChapter.createNoteSuccess'))
-
-    // 重新加载笔记数据
     await loadNotesTree()
-  } else {
-    ElMessage.error(result.message || t('noteChapter.createNoteFailed'))
+  } catch (error) {
+    ElMessage.error(error.message || t('noteChapter.createNoteFailed'))
   }
 }
 
@@ -951,14 +950,14 @@ async function confirmEditNote(node) {
       ElMessage.error(t('noteChapter.notebookNameExists'))
       return
     }
-    result = await window.electron.renameNotebook(
+    result = await renameNotebookDocument(
       props.bookName,
       editingNoteNode.value.name,
       newName
     )
   } else if (editingNoteNode.value.type === 'note') {
     // 需要父节点名
-    result = await window.electron.renameNote(
+    result = await renameNoteDocument(
       props.bookName,
       node.parent.data.name,
       editingNoteNode.value.name,
@@ -992,9 +991,9 @@ async function deleteNoteNode(node) {
     )
     let result
     if (node.data.type === 'folder') {
-      result = await window.electron.deleteNotebook(props.bookName, node.data.name)
+      result = await deleteNotebookDocument(props.bookName, node.data.name)
     } else if (node.data.type === 'note') {
-      result = await window.electron.deleteNote(
+      result = await deleteNoteDocument(
         props.bookName,
         node.parent.data.name,
         node.data.name
@@ -1019,7 +1018,7 @@ watch(
   async (newBookName) => {
     if (!newBookName) return
     try {
-      sortOrder.value = await window.electron.getSortOrder(newBookName)
+      sortOrder.value = await getSortOrder(newBookName)
       // 从子页面返回时 store 仍持有当前文件：只刷新树并同步侧栏，勿执行「恢复上次章节 / 最新章节」以免覆盖正在编辑的笔记
       const preserveOpenFile =
         !!editorStore.file && editorStore.currentBookName === newBookName
@@ -1055,12 +1054,7 @@ async function reloadNotes() {
 }
 
 async function loadNotesTree() {
-  const result = await window.electron.loadNotes(props.bookName)
-  const notes = Array.isArray(result) ? result : result?.notes
-  if (!Array.isArray(notes)) {
-    throw new Error(result?.message || '读取笔记失败：接口返回格式不正确')
-  }
-  notesTree.value = notes
+  notesTree.value = await listNoteTree(props.bookName)
 }
 
 // 打开章节设置弹框
@@ -1071,7 +1065,7 @@ function openChapterSettings() {
 // 加载章节设置
 async function loadChapterSettings() {
   try {
-    const settings = await window.electron.getChapterSettings(props.bookName)
+    const settings = await getChapterSettings(props.bookName)
     if (settings) {
       const targetValue = Number(settings.targetWords)
       chapterSettings.value = {
@@ -1156,7 +1150,7 @@ async function reformatChapterNumbers(volumeName, overrideSettings) {
       suffixType: overrideSettings?.suffixType || chapterSettings.value.suffixType || '章'
     }
 
-    const result = await window.electron.reformatChapterNumbers(
+    const result = await reformatChapterNumbersDocument(
       props.bookName,
       volumeName,
       cleanSettings

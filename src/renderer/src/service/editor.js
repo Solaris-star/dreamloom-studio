@@ -1224,8 +1224,22 @@ export async function getSortOrder(bookName) {
   if (!targetBookName) {
     throw new Error('读取章节排序失败：缺少作品名')
   }
-  const response = await requireElectronApi('getSortOrder', '章节排序接口')(targetBookName)
+  const response = await postJson('/api/sort-order/get', { bookName: targetBookName })
   return requireSortOrderValue(response)
+}
+
+export async function setSortOrder(bookName, order) {
+  const targetBookName = String(bookName || '').trim()
+  if (!targetBookName) {
+    throw new Error('保存章节排序失败：缺少作品名')
+  }
+  if (!['asc', 'desc'].includes(order)) {
+    throw new Error('保存章节排序失败：排序方式无效')
+  }
+  return requireSuccessResult(
+    await postJson('/api/sort-order/set', { bookName: targetBookName, order }),
+    '保存章节排序'
+  )
 }
 
 export async function getChapterSettings(bookName) {
@@ -1427,10 +1441,10 @@ export async function createChapterDocument(bookName, volumeName) {
   if (!targetVolumeName) {
     throw new Error('创建章节失败：缺少卷名')
   }
-  const response = await requireElectronApi('createChapter', '章节创建接口')(
-    targetBookName,
-    targetVolumeName
-  )
+  const response = await postJson('/api/chapters/create', {
+    bookName: targetBookName,
+    volumeId: targetVolumeName
+  })
   return requireCreatedChapterDocumentResult(response, {
     bookName: targetBookName,
     volumeName: targetVolumeName
@@ -1539,13 +1553,102 @@ export async function listChapterTree(bookName) {
   })
 }
 
+export async function createVolumeDocument(bookName) {
+  const targetBookName = String(bookName || '').trim()
+  if (!targetBookName) {
+    throw new Error('创建卷失败：缺少作品名')
+  }
+  return requireSuccessResult(
+    await postJson('/api/volumes/create', { bookName: targetBookName }),
+    '创建卷'
+  )
+}
+
+export async function editChapterNode(bookName, payload = {}) {
+  const targetBookName = String(bookName || '').trim()
+  if (!targetBookName) {
+    throw new Error('重命名节点失败：缺少作品名')
+  }
+  return requireSuccessResult(
+    await postJson('/api/nodes/edit', { bookName: targetBookName, ...payload }),
+    '重命名节点'
+  )
+}
+
+export async function deleteChapterNode(bookName, payload = {}) {
+  const targetBookName = String(bookName || '').trim()
+  if (!targetBookName) {
+    throw new Error('删除节点失败：缺少作品名')
+  }
+  return requireSuccessResult(
+    await postJson('/api/nodes/delete', { bookName: targetBookName, ...payload }),
+    '删除节点'
+  )
+}
+
 export async function listNoteTree(bookName) {
   const targetBookName = String(bookName || '').trim()
   if (!targetBookName) {
     throw new Error('读取笔记失败：缺少作品名')
   }
-  const response = await requireElectronApi('loadNotes', '笔记读取接口')(targetBookName)
+  const response = await postJson('/api/notes/load', { bookName: targetBookName })
   return requireNotesRowsResult(response)
+}
+
+export async function createNotebookDocument(bookName) {
+  const targetBookName = String(bookName || '').trim()
+  if (!targetBookName) {
+    throw new Error('创建笔记本失败：缺少作品名')
+  }
+  const response = await postJson('/api/notebooks/create', { bookName: targetBookName })
+  const notebookName = requireCreatedNotebookResult(response)
+  return { ...response, notebookName }
+}
+
+export async function createNoteDocument(bookName, notebookName, noteName = '') {
+  const targetBookName = String(bookName || '').trim()
+  const targetNotebookName = String(notebookName || '').trim()
+  if (!targetBookName) {
+    throw new Error('创建笔记失败：缺少作品名')
+  }
+  if (!targetNotebookName) {
+    throw new Error('创建笔记失败：缺少笔记本名称')
+  }
+  const response = await postJson('/api/notes/create', {
+    bookName: targetBookName,
+    notebookName: targetNotebookName,
+    ...(String(noteName || '').trim() ? { noteName: String(noteName).trim() } : {})
+  })
+  return requireSuccessResult(response, '创建笔记')
+}
+
+export async function renameNotebookDocument(bookName, oldName, newName) {
+  const response = await postJson('/api/notebooks/rename', { bookName, oldName, newName })
+  return requireSuccessResult(response, '重命名笔记本')
+}
+
+export async function renameNoteDocument(bookName, notebookName, oldName, newName) {
+  const response = await postJson('/api/notes/rename', {
+    bookName,
+    notebookName,
+    oldName,
+    newName
+  })
+  return requireSuccessResult(response, '重命名笔记')
+}
+
+export async function deleteNotebookDocument(bookName, notebookName) {
+  return requireSuccessResult(
+    await postJson('/api/notebooks/delete', { bookName, notebookName }),
+    '删除笔记本'
+  )
+}
+
+export async function deleteNoteDocument(bookName, notebookName, noteName) {
+  return requireSuccessResult(
+    await postJson('/api/notes/delete', { bookName, notebookName, noteName }),
+    '删除笔记'
+  )
 }
 
 export async function ensureNotebookDocument(bookName, notebookName) {
@@ -1624,11 +1727,11 @@ export async function readNoteDocument(bookName, notebookName, noteName) {
   if (!targetNoteName) {
     throw new Error('读取笔记失败：缺少笔记名称')
   }
-  const response = await requireElectronApi('readNote', '笔记读取接口')(
-    targetBookName,
-    targetNotebookName,
-    targetNoteName
-  )
+  const response = await postJson('/api/notes/read', {
+    bookName: targetBookName,
+    notebookName: targetNotebookName,
+    noteName: targetNoteName
+  })
   return requireReadNoteResult(response, {
     bookName: targetBookName,
     notebookName: targetNotebookName,
@@ -2342,11 +2445,11 @@ export async function reformatChapterNumbers(bookName, volumeName, settings = {}
     throw new Error('重新格式化章节编号失败：缺少卷名')
   }
   const cleanSettings = normalizeChapterReformatSettings(settings)
-  const response = await requireElectronApi('reformatChapterNumbers', '章节编号重排接口')(
-    targetBookName,
-    targetVolumeName,
-    cleanSettings
-  )
+  const response = await postJson('/api/chapter-numbers/reformat', {
+    bookName: targetBookName,
+    volumeName: targetVolumeName,
+    settings: cleanSettings
+  })
   return requireReformatChapterNumbersResult(response, {
     bookName: targetBookName,
     volumeName: targetVolumeName,

@@ -106,13 +106,24 @@ assert.doesNotMatch(
   /window\.electronStore\b/,
   '正文编辑面板不应再通过 Electron Store 保存界面设置'
 )
+const noteChapterSource = read('src/renderer/src/components/Editor/NoteChapter.vue')
+assert.doesNotMatch(
+  noteChapterSource,
+  /window\.electron(?:Store)?\b/,
+  '章节树与笔记面板必须直接使用 Web 服务'
+)
 const editorServiceSource = read('src/renderer/src/service/editor.js')
 for (const method of [
   'getChapterSettings',
+  'getSortOrder',
   'getBannedWords',
   'addBannedWord',
   'removeBannedWord',
-  'readCharacters'
+  'readCharacters',
+  'createChapter',
+  'loadNotes',
+  'readNote',
+  'reformatChapterNumbers'
 ]) {
   assert.doesNotMatch(
     editorServiceSource,
