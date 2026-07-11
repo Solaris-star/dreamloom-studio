@@ -1,3 +1,5 @@
+import { postJson } from './webHttpClient.js'
+
 const JOBS_KEY = 'creationStarter:jobs'
 const STORAGE_SOURCE_KEY = 'creationStarter:storageSource'
 
@@ -41,20 +43,17 @@ function requireStoredJobs(value) {
 }
 
 async function readJobs() {
-  if (!window.electronStore?.get) {
-    throw new Error('起笔任务存储接口不可用')
+  const result = await postJson('/api/store/get', { key: JOBS_KEY })
+  if (result?.success !== true || result.key !== JOBS_KEY) {
+    throw new Error('读取起笔任务失败：接口返回的设置项不匹配')
   }
-  const stored = await window.electronStore.get(JOBS_KEY)
-  return requireStoredJobs(stored)
+  return requireStoredJobs(result.value)
 }
 
 async function writeJobs(jobs) {
   const rows = jobs.map(normalizeJob).slice(0, 100)
-  if (!window.electronStore?.set) {
-    throw new Error('保存本地起笔任务失败：Electron 存储不可用')
-  }
   try {
-    const result = await window.electronStore.set(JOBS_KEY, rows)
+    const result = await postJson('/api/store/set', { key: JOBS_KEY, value: rows })
     if (result?.success !== true) {
       throw new Error(result?.message || '接口返回失败')
     }
@@ -62,7 +61,7 @@ async function writeJobs(jobs) {
       throw new Error('保存本地起笔任务失败：接口返回的设置项不匹配')
     }
   } catch (error) {
-    throw new Error(`保存本地起笔任务失败：Electron 存储不可用：${error?.message || '写入失败'}`)
+    throw new Error(`保存起笔任务失败：${error?.message || '写入失败'}`)
   }
   try {
     localStorage.setItem(JOBS_KEY, JSON.stringify(rows))

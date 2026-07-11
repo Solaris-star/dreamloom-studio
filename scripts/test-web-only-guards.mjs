@@ -274,6 +274,11 @@ assert.doesNotMatch(
   /window\.electron|ensureElectronApi/,
   'AI 工坊服务必须直接使用 Web API'
 )
+assert.doesNotMatch(
+  read('src/renderer/src/service/creationStarter.js'),
+  /window\.electron|window\.electronStore|ensureElectronApi|Electron 存储/,
+  '起笔任务服务必须直接使用 Web API'
+)
 for (const method of [
   'listPromptPresets:',
   'createPromptPreset:',

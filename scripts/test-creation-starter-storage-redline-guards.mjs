@@ -30,11 +30,10 @@ for (const expected of [
   "references: requireOptionalArrayField(raw, 'references', '手动参考素材')",
   "autoReferences: requireOptionalArrayField(raw, 'autoReferences', '自动参考素材')",
   'function requireStoredJobs',
-  "throw new Error('起笔任务存储接口不可用')",
   "throw new Error('起笔任务存储格式异常，已停止读取以免使用错误任务')",
-  'const stored = await window.electronStore.get(JOBS_KEY)',
-  'return requireStoredJobs(stored)',
-  'const result = await window.electronStore.set(JOBS_KEY, rows)',
+  "await postJson('/api/store/get', { key: JOBS_KEY })",
+  'return requireStoredJobs(result.value)',
+  "await postJson('/api/store/set', { key: JOBS_KEY, value: rows })",
   'result?.success !== true',
   'result.key !== JOBS_KEY',
   "throw new Error('保存本地起笔任务失败：接口返回的设置项不匹配')",
@@ -47,6 +46,9 @@ for (const forbidden of [
   "JSON.parse(localStorage.getItem(JOBS_KEY) || '[]')",
   'return Array.isArray(local) ? local.map(normalizeJob) : []',
   '[CreationStarter] Electron store read failed',
+  'window.electron',
+  'window.electronStore',
+  'Electron 存储不可用',
   'await window.electronStore.set(JOBS_KEY, rows)\n    wroteElectronStore = true',
   'references: Array.isArray(raw.references) ? raw.references : []',
   'autoReferences: Array.isArray(raw.autoReferences) ? raw.autoReferences : []'
@@ -153,19 +155,27 @@ const originalWarn = console.warn
 
 function installStorage({ storedValue = [], failGet = false, failSet = false, setResult } = {}) {
   const saved = []
-  globalThis.window = {
-    electronStore: {
-      get: async () => {
-        if (failGet) throw new Error('主存储读取失败')
-        return storedValue
-      },
-      set: async (_key, value) => {
-        if (failSet) throw new Error('主存储写入失败')
-        saved.push(value)
-        storedValue = value
-        return setResult === undefined ? { success: true, key: _key } : setResult
-      }
+  globalThis.fetch = async (url, options = {}) => {
+    const payload = options.body ? JSON.parse(options.body) : {}
+    if (url === '/api/store/get') {
+      if (failGet) throw new Error('主存储读取失败')
+      return new Response(
+        JSON.stringify({ success: true, key: payload.key, value: storedValue }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
     }
+    if (url === '/api/store/set') {
+      if (failSet) throw new Error('主存储写入失败')
+      saved.push(payload.value)
+      storedValue = payload.value
+      const body =
+        setResult === undefined ? { success: true, key: payload.key } : setResult
+      return new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+    throw new Error(`未处理的测试接口：${url}`)
   }
   const localRows = [
     {
@@ -237,21 +247,21 @@ installStorage({ storedValue: [], failSet: true })
 console.warn = () => {}
 await assertRejectsWithText(
   () => createCreationStarterJob({ prompt: '写入失败任务' }),
-  'Electron 存储不可用',
+  '主存储写入失败',
   'starter job writes should fail when main storage cannot persist'
 )
 
 installStorage({ storedValue: [], setResult: {} })
 await assertRejectsWithText(
   () => createCreationStarterJob({ prompt: '空返回任务' }),
-  'Electron 存储不可用',
+  '保存起笔任务失败',
   'starter job writes should fail when main storage returns an empty result'
 )
 
 installStorage({ storedValue: [], setResult: { success: true, key: 'wrong:key' } })
 await assertRejectsWithText(
   () => createCreationStarterJob({ prompt: '错 key 任务' }),
-  'Electron 存储不可用',
+  '设置项不匹配',
   'starter job writes should fail when main storage returns the wrong key'
 )
 console.warn = originalWarn
