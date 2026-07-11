@@ -30,6 +30,8 @@ import vectorService from './src/main/services/vectorService.js'
 import plotEvolutionAiService from './src/main/services/plotEvolutionAi.js'
 import settingTreeAiService from './src/main/services/settingTreeAi.js'
 import { sendChatMessage } from './src/main/services/aiChatService.js'
+import { requestWebAiProxy } from './src/main/services/webAiProxyService.js'
+import { getAgentTaskProgressServerInfo } from './src/main/services/agentTaskProgressWebSocket.js'
 import bookIdeaAiService from './src/main/services/bookIdeaAi.js'
 import outlineChapterAiService from './src/main/services/outlineChapterAi.js'
 import {
@@ -754,6 +756,11 @@ export function createWebServerPlugins() {
             } else if (path === '/api/ai/text-task') {
               const result = await runWebAiTextTask(webStoreAdapter(), body || {})
               sendJson(res, result, result.success ? 200 : 502)
+            } else if (path === '/api/ai-proxy') {
+              const result = await requestWebAiProxy(body || {})
+              sendJson(res, result, result.success ? 200 : 502)
+            } else if (path === '/api/editor-agent/progress-server') {
+              sendJson(res, getAgentTaskProgressServerInfo())
             } else if (path === '/api/ai/image-task') {
               const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
                 ensure: true

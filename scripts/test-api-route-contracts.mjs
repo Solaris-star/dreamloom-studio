@@ -23,10 +23,7 @@ const collectPaths = (source) =>
 
 const clientPaths = collectPaths(clientSources.join('\n'))
 const serverPaths = collectPaths(serverSource)
-const knownMissingPaths = new Set([
-  '/api/ai-proxy',
-  '/api/editor-agent/progress-server'
-])
+const knownMissingPaths = new Set()
 const ignoredProxyPaths = new Set(['/api/agent-tasks/queue/status'])
 const missing = [...clientPaths].filter(
   (apiPath) => !serverPaths.has(apiPath) && !ignoredProxyPaths.has(apiPath)
