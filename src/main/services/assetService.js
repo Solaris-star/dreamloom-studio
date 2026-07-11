@@ -163,6 +163,54 @@ function collectFiles(dirPath, predicate, result = []) {
   return result
 }
 
+function collectMatchingJsonPaths(value, candidates, jsonPath = '$', result = []) {
+  if (typeof value === 'string') {
+    const normalized = value.replaceAll('\\', '/')
+    if (candidates.has(normalized) || candidates.has(basename(normalized))) result.push(jsonPath)
+    return result
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item, index) =>
+      collectMatchingJsonPaths(item, candidates, `${jsonPath}[${index}]`, result)
+    )
+    return result
+  }
+  if (!value || typeof value !== 'object') return result
+  for (const [key, item] of Object.entries(value)) {
+    collectMatchingJsonPaths(item, candidates, `${jsonPath}.${key}`, result)
+  }
+  return result
+}
+
+export function findAssetReferences(booksDir, id) {
+  const filePath = getActiveAssetPath(booksDir, id)
+  const assetRelativePath = relative(booksDir, filePath).replaceAll('\\', '/')
+  const bookFolderName = assetRelativePath.split('/')[0]
+  const bookPath = resolve(booksDir, bookFolderName)
+  if (!isInside(booksDir, bookPath)) return []
+
+  const relativeToBook = relative(bookPath, filePath).replaceAll('\\', '/')
+  const candidates = new Set([assetRelativePath, relativeToBook, basename(filePath)])
+  const jsonFiles = collectFiles(bookPath, (target) => extname(target).toLowerCase() === '.json')
+  const references = []
+
+  for (const jsonFile of jsonFiles) {
+    let data
+    try {
+      data = JSON.parse(fs.readFileSync(jsonFile, 'utf-8'))
+    } catch {
+      continue
+    }
+    const paths = collectMatchingJsonPaths(data, candidates)
+    if (!paths.length) continue
+    references.push({
+      file: relative(bookPath, jsonFile).replaceAll('\\', '/'),
+      fields: [...new Set(paths)].slice(0, 10)
+    })
+  }
+  return references
+}
+
 function uniquePush(rows, seen, asset) {
   if (!asset || seen.has(asset.relativePath)) return
   seen.add(asset.relativePath)
@@ -402,6 +450,14 @@ export function importAsset(booksDir, input = {}) {
 
 export function deleteAsset(booksDir, id) {
   const filePath = getActiveAssetPath(booksDir, id)
+  const references = findAssetReferences(booksDir, id)
+  if (references.length) {
+    const locations = references
+      .slice(0, 5)
+      .map((item) => `${item.file}（${item.fields.join('、')}）`)
+      .join('；')
+    throw new Error(`该素材仍被引用，不能删除：${locations}`)
+  }
   const rel = relative(booksDir, filePath)
   const existing = listAssets(booksDir, {}).items.find((item) => item.id === id)
   const trashDir = getTrashDir(booksDir)
@@ -479,6 +535,7 @@ export default {
   listAssets,
   getAssetFile,
   importAsset,
+  findAssetReferences,
   deleteAsset,
   restoreAsset,
   attachToBook

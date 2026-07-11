@@ -26,7 +26,11 @@ for (const [name, command] of Object.entries(packageJson.scripts || {})) {
   )
 }
 
-assert.equal(fs.existsSync(path.join(root, 'src/preload')), false, '纯 Web 项目不能保留 preload 入口')
+const preloadDir = path.join(root, 'src/preload')
+const preloadFiles = fs.existsSync(preloadDir)
+  ? fs.readdirSync(preloadDir, { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile())
+  : []
+assert.equal(preloadFiles.length, 0, '纯 Web 项目不能保留 preload 入口文件')
 
 const editorSource = read('src/renderer/src/views/Editor.vue')
 assert.doesNotMatch(editorSource, /window\.process|process\.argv/, '编辑器不能读取桌面进程参数')

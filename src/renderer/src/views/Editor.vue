@@ -145,8 +145,8 @@ function handleAiTrigger(command, arg) {
 }
 
 onMounted(() => {
-  if (bookName) {
-    document.title = `${bookName} - 织梦工坊`
+  if (bookName.value) {
+    document.title = `${bookName.value} - 织梦工坊`
   }
   window.addEventListener('refresh-chapters-requested', refreshChapters)
   void nextTick(() => {
@@ -159,7 +159,9 @@ onDeactivated(() => {
 })
 
 const editorPanelRef = ref(null)
-const storageKey = `dreamloom:editor-layout:${encodeURIComponent(bookName || 'default')}`
+const storageKey = computed(
+  () => `dreamloom:editor-layout:${encodeURIComponent(bookName.value || 'default')}`
+)
 const defaultLayout = { left: 240, right: 180, lastLeft: 240, lastRight: 180, focus: false }
 const storedLayout = readStoredLayout()
 const leftPanelSize = ref(storedLayout.left)
@@ -189,14 +191,14 @@ const catalogDrawerSize = computed(() => (viewportWidth.value < 768 ? '100%' : '
 
 function readStoredLayout() {
   try {
-    return { ...defaultLayout, ...JSON.parse(localStorage.getItem(storageKey) || '{}') }
+    return { ...defaultLayout, ...JSON.parse(localStorage.getItem(storageKey.value) || '{}') }
   } catch {
     return { ...defaultLayout }
   }
 }
 
 function persistLayout() {
-  localStorage.setItem(storageKey, JSON.stringify({
+  localStorage.setItem(storageKey.value, JSON.stringify({
     left: leftPanelSize.value,
     right: rightPanelSize.value,
     lastLeft: lastLeftPanelSize.value,
