@@ -1,5 +1,6 @@
 import { getAiProviders, getActiveTextProvider } from './aiProvider.js'
 import { postJson } from './webHttpClient.js'
+import { getStoreValue, setStoreValue } from './webStore.js'
 
 function getElectronApi(name, label = '编辑器接口') {
   const api = globalThis.window?.electron?.[name]
@@ -1232,7 +1233,7 @@ export async function getChapterSettings(bookName) {
   if (!targetBookName) {
     throw new Error('读取章节设置失败：缺少作品名')
   }
-  const response = await requireElectronApi('getChapterSettings', '章节设置接口')(targetBookName)
+  const response = await postJson('/api/chapter-settings/get', { bookName: targetBookName })
   return requireChapterSettingsResult(response)
 }
 
@@ -1241,7 +1242,10 @@ export async function listBannedWords(bookName) {
   if (!targetBookName) {
     throw new Error('读取禁词失败：缺少作品名')
   }
-  const response = await requireElectronApi('getBannedWords', '禁词接口')(targetBookName)
+  const words = normalizeBannedWords(
+    await getStoreValue(`bannedWords:${targetBookName}`, { words: [] })
+  )
+  const response = { success: true, data: words, words }
   return requireBannedWordsResult(response, {
     bookName: targetBookName,
     label: '读取禁词'
@@ -1257,7 +1261,13 @@ export async function addBannedWord(bookName, word) {
   if (!targetWord) {
     throw new Error('添加禁词失败：缺少禁词')
   }
-  const response = await requireElectronApi('addBannedWord', '禁词接口')(targetBookName, targetWord)
+  const current = await listBannedWords(targetBookName)
+  if (current.words.includes(targetWord)) {
+    throw new Error('该禁词已存在')
+  }
+  const words = [targetWord, ...current.words]
+  await setStoreValue(`bannedWords:${targetBookName}`, { words })
+  const response = { success: true, data: words, words }
   return requireBannedWordsResult(response, {
     bookName: targetBookName,
     word: targetWord,
@@ -1274,10 +1284,13 @@ export async function removeBannedWord(bookName, word) {
   if (!targetWord) {
     throw new Error('删除禁词失败：缺少禁词')
   }
-  const response = await requireElectronApi('removeBannedWord', '禁词接口')(
-    targetBookName,
-    targetWord
-  )
+  const current = await listBannedWords(targetBookName)
+  if (!current.words.includes(targetWord)) {
+    throw new Error('禁词不存在')
+  }
+  const words = current.words.filter((item) => item !== targetWord)
+  await setStoreValue(`bannedWords:${targetBookName}`, { words })
+  const response = { success: true, data: words, words }
   return requireBannedWordsResult(response, {
     bookName: targetBookName,
     word: targetWord,
@@ -1298,11 +1311,11 @@ export async function readChapterContent(bookName, volumeName, chapterName) {
   if (!targetChapterName) {
     throw new Error('读取章节失败：缺少章节名')
   }
-  const response = await requireElectronApi('readChapter', '章节读取接口')(
-    targetBookName,
-    targetVolumeName,
-    targetChapterName
-  )
+  const response = await postJson('/api/chapters/read', {
+    bookName: targetBookName,
+    volumeName: targetVolumeName,
+    chapterName: targetChapterName
+  })
   return requireReadChapterContentResult(response, {
     bookName: targetBookName,
     volumeName: targetVolumeName,
@@ -1440,10 +1453,7 @@ export async function saveChapterDocument(payload = {}) {
   if (!targetChapterName) {
     throw new Error('保存章节失败：缺少章节名')
   }
-  const response = await requireElectronApi(
-    'saveChapter',
-    '章节写入接口'
-  )({
+  const response = await postJson('/api/chapters/save', {
     bookName: targetBookName,
     volumeName: targetVolumeName,
     chapterName: targetChapterName,
@@ -1523,7 +1533,7 @@ export async function listChapterTree(bookName) {
   if (!targetBookName) {
     throw new Error('读取章节目录失败：缺少作品名')
   }
-  const response = await requireElectronApi('loadChapters', '章节目录接口')(targetBookName)
+  const response = await postJson('/api/chapters/load', { bookName: targetBookName })
   return requireChapterTreeResult(response, {
     bookName: targetBookName
   })
@@ -1640,10 +1650,7 @@ export async function writeNoteDocument(payload = {}) {
   if (!targetNoteName) {
     throw new Error('写入笔记失败：缺少笔记名称')
   }
-  const response = await requireElectronApi(
-    'editNote',
-    '笔记写入接口'
-  )({
+  const response = await postJson('/api/notes/edit', {
     bookName: targetBookName,
     notebookName: targetNotebookName,
     noteName: targetNoteName,
@@ -1743,7 +1750,7 @@ export async function readCharactersDocument(bookName) {
   if (!targetBookName) {
     throw new Error('读取人物谱失败：缺少作品名')
   }
-  const response = await requireElectronApi('readCharacters', '人物谱读取接口')(targetBookName)
+  const response = await postJson('/api/studio/characters/read', { bookName: targetBookName })
   return requireCharactersRowsResult(response)
 }
 

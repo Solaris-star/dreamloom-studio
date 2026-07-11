@@ -256,9 +256,16 @@ import { createEditorSaveQueue } from '../../service/editorSaveQueue'
 import {
   createEditorSnapshot,
   deleteEditorSnapshot,
-  listEditorSnapshots
+  listBannedWords,
+  listChapterTree,
+  listEditorSnapshots,
+  readChapterContent,
+  readCharactersDocument,
+  saveChapterDocument,
+  writeNoteDocument
 } from '../../service/editor'
 import { cleanEditorText } from '../../service/editorTextCleanup'
+import { getStoreValue, setStoreValue } from '../../service/webStore'
 import { useI18n } from 'vue-i18n'
 import { useEditorStore } from '@renderer/stores/editor'
 import SearchPanel from '@renderer/components/Editor/SearchPanel.vue'
@@ -1071,13 +1078,13 @@ async function persistSaveSnapshot(snapshot) {
     content: snapshot.content
   }
   if (snapshot.file.type === 'note') {
-    return window.electron.editNote({
+    return writeNoteDocument({
       ...common,
       notebookName: snapshot.file.notebook,
       noteName: snapshot.file.name
     })
   }
-  const result = await window.electron.saveChapter({
+  const result = await saveChapterDocument({
     ...common,
     volumeName: snapshot.file.volume,
     chapterName: snapshot.file.name
@@ -1327,13 +1334,8 @@ async function getPreviousChapterContextInfo() {
   if (!props.bookName || !currentFile || currentFile.type !== 'chapter') {
     return { hasPrevious: false, contextText: '' }
   }
-  if (!window.electron?.loadChapters || !window.electron?.readChapter) {
-    return { hasPrevious: false, contextText: '' }
-  }
-
   try {
-    const chapterResult = await window.electron.loadChapters(props.bookName)
-    const chaptersTree = Array.isArray(chapterResult) ? chapterResult : chapterResult.chapters
+    const chaptersTree = await listChapterTree(props.bookName)
     if (!Array.isArray(chaptersTree) || chaptersTree.length === 0) {
       return { hasPrevious: false, contextText: '' }
     }
@@ -1365,7 +1367,7 @@ async function getPreviousChapterContextInfo() {
     }
 
     const previousChapter = flatChapters[currentIndex - 1]
-    const readRes = await window.electron.readChapter(
+    const readRes = await readChapterContent(
       props.bookName,
       previousChapter.volumeName,
       previousChapter.name
@@ -1824,7 +1826,7 @@ async function autoSaveContent() {
 async function loadCharacters() {
   if (!props.bookName) return
   try {
-    const data = await window.electron.readCharacters(props.bookName)
+    const data = await readCharactersDocument(props.bookName)
     characters.value = Array.isArray(data) ? data : []
   } catch (error) {
     console.error('加载人物数据失败:', error)
@@ -1863,7 +1865,7 @@ async function loadCharacterHighlightState(bookName) {
 
   try {
     const key = `characterHighlight_${bookName}`
-    const savedState = await window.electronStore.get(key)
+    const savedState = await getStoreValue(key, false)
     // 如果该书籍有保存的状态，使用保存的状态；否则默认关闭
     const newState = savedState === true
     characterHighlightEnabled.value = newState
@@ -1903,7 +1905,7 @@ async function saveCharacterHighlightState(bookName, enabled) {
 
   try {
     const key = `characterHighlight_${bookName}`
-    await window.electronStore.set(key, enabled)
+    await setStoreValue(key, enabled)
   } catch (error) {
     console.error('保存人物高亮状态失败:', error)
   }
@@ -1943,12 +1945,7 @@ function stopCharacterHighlightTimer() {
 async function loadBannedWords() {
   if (!props.bookName) return
   try {
-    const result = await window.electron.getBannedWords(props.bookName)
-    if (result.success) {
-      bannedWords.value = result.data || []
-    } else {
-      bannedWords.value = []
-    }
+    bannedWords.value = await listBannedWords(props.bookName)
   } catch (error) {
     console.error('加载禁词数据失败:', error)
     bannedWords.value = []
@@ -2001,7 +1998,7 @@ async function loadBannedWordsHintState(bookName) {
 
   try {
     const key = `bannedWordsHint_${bookName}`
-    const savedState = await window.electronStore.get(key)
+    const savedState = await getStoreValue(key, false)
     // 如果该书籍有保存的状态，使用保存的状态；否则默认关闭
     const newState = savedState === true
     bannedWordsHintEnabled.value = newState
@@ -2041,7 +2038,7 @@ async function saveBannedWordsHintState(bookName, enabled) {
 
   try {
     const key = `bannedWordsHint_${bookName}`
-    await window.electronStore.set(key, enabled)
+    await setStoreValue(key, enabled)
   } catch (error) {
     console.error('保存禁词提示状态失败:', error)
   }

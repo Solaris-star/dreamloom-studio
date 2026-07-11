@@ -81,6 +81,40 @@ for (const [file, label] of [
     `${label}必须直接使用 Web API`
   )
 }
+const editorPanelSource = read('src/renderer/src/components/Editor/EditorPanel.vue')
+for (const method of [
+  'editNote',
+  'saveChapter',
+  'loadChapters',
+  'readChapter',
+  'readCharacters',
+  'getBannedWords'
+]) {
+  assert.doesNotMatch(
+    editorPanelSource,
+    new RegExp(`window\\.electron(?:\\?\\.)?\\.${method}\\b`),
+    `正文编辑面板不应再通过 Electron 调用 ${method}`
+  )
+}
+assert.doesNotMatch(
+  editorPanelSource,
+  /window\.electronStore\b/,
+  '正文编辑面板不应再通过 Electron Store 保存界面设置'
+)
+const editorServiceSource = read('src/renderer/src/service/editor.js')
+for (const method of [
+  'getChapterSettings',
+  'getBannedWords',
+  'addBannedWord',
+  'removeBannedWord',
+  'readCharacters'
+]) {
+  assert.doesNotMatch(
+    editorServiceSource,
+    new RegExp(`requireElectronApi\\(['"]${method}['"]`),
+    `编辑器服务不应再通过 Electron 调用 ${method}`
+  )
+}
 const webShimSource = read('src/renderer/src/service/webElectronShim.js')
 for (const method of [
   'novelGetSources:',
