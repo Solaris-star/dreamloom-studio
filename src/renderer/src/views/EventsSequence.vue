@@ -280,6 +280,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
 import LayoutTool from '@renderer/components/LayoutTool.vue'
 import { useI18n } from 'vue-i18n'
+import {
+  readSequenceChartsDocument,
+  writeSequenceChartsDocument
+} from '@renderer/service/editor'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -847,7 +851,7 @@ const isChartCollapsed = (chartId) => {
 // —— 本地化存储：读/写 ——
 async function loadSequenceCharts() {
   try {
-    const data = await window.electron.readSequenceCharts(bookName.value)
+    const data = await readSequenceChartsDocument(bookName.value)
     if (Array.isArray(data) && data.length > 0) {
       sequenceCharts.value = data
     } else {
@@ -862,10 +866,7 @@ async function loadSequenceCharts() {
 async function saveSequenceCharts() {
   try {
     const payload = clonePlainData(toRaw(sequenceCharts.value))
-    const result = await window.electron.writeSequenceCharts(bookName.value, payload)
-    if (result && result.success === false) {
-      throw new Error(result.message || t('eventsSequence.saveFailed'))
-    }
+    await writeSequenceChartsDocument(bookName.value, payload)
   } catch (error) {
     console.error('保存事序图数据失败:', error)
     ElMessage.error(t('eventsSequence.saveFailed'))

@@ -112,6 +112,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { EditPen, Delete, Plus } from '@element-plus/icons-vue'
 import { genId } from '@renderer/utils/utils'
 import { useI18n } from 'vue-i18n'
+import { readTimelineDocument, writeTimelineDocument } from '@renderer/service/editor'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -135,7 +136,7 @@ function clonePlainData(value) {
 
 async function loadTimelines() {
   try {
-    const data = await window.electron.readTimeline(bookName)
+    const data = await readTimelineDocument(bookName)
     const rawTimelines = Array.isArray(data) ? data : []
     rawTimelines.forEach((timeline) => {
       if (timeline.nodes && Array.isArray(timeline.nodes)) {
@@ -157,10 +158,7 @@ async function saveTimelines() {
   try {
     // 彻底去除响应式
     const rawTimelines = clonePlainData(toRaw(timelines.value))
-    const result = await window.electron.writeTimeline(bookName, rawTimelines)
-    if (!result) {
-      throw new Error(t('timeline.saveFailed'))
-    }
+    await writeTimelineDocument(bookName, rawTimelines)
   } catch (error) {
     console.error('保存时间线失败:', error)
     ElMessage.error(t('timeline.saveFailed'))

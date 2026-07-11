@@ -104,4 +104,33 @@ await assert.rejects(
   /名称已存在/
 )
 
+response = { success: true, data: [{ name: '灵脉' }] }
+assert.equal((await service.readDictionaryDocument('作品')).length, 1)
+assert.deepEqual(request, {
+  url: '/api/studio/dictionary/read',
+  payload: { bookName: '作品' }
+})
+
+response = { success: true, data: [{ title: '主时间线' }] }
+assert.equal((await service.readTimelineDocument('作品')).length, 1)
+assert.equal(request.url, '/api/studio/timeline/read')
+
+response = { success: true, data: [{ title: '主线事件' }] }
+assert.equal((await service.readSequenceChartsDocument('作品')).length, 1)
+assert.equal(request.url, '/api/studio/sequences/read')
+
+response = { success: true, data: [{ name: '林青' }] }
+assert.equal((await service.readCharactersDocument('作品')).length, 1)
+assert.equal(request.url, '/api/studio/characters/read')
+
+response = {
+  success: true,
+  data: { mount: [], monster: [], spirit_beast: [], artifact: [] }
+}
+assert.deepEqual((await service.readEntityProfilesDocument('作品')).artifact, [])
+assert.equal(request.url, '/api/studio/entity-profiles/read')
+
+response = { success: true, data: null }
+await assert.rejects(() => service.readDictionaryDocument('作品'), /接口返回格式不正确/)
+
 console.log('Web 编辑器章节树与笔记服务测试通过')

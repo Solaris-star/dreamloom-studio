@@ -1705,7 +1705,7 @@ export async function readDictionaryDocument(bookName) {
   if (!targetBookName) {
     throw new Error('读取词典失败：缺少作品名')
   }
-  const response = await requireElectronApi('readDictionary', '词典读取接口')(targetBookName)
+  const response = await postJson('/api/studio/dictionary/read', { bookName: targetBookName })
   return requireDictionaryRowsResult(response)
 }
 
@@ -1714,7 +1714,7 @@ export async function readTimelineDocument(bookName) {
   if (!targetBookName) {
     throw new Error('读取时间线失败：缺少作品名')
   }
-  const response = await requireElectronApi('readTimeline', '时间线读取接口')(targetBookName)
+  const response = await postJson('/api/studio/timeline/read', { bookName: targetBookName })
   return requireTimelineRowsResult(response)
 }
 
@@ -1726,7 +1726,10 @@ export async function writeTimelineDocument(bookName, rows = []) {
   if (!Array.isArray(rows)) {
     throw new Error('保存时间线失败：时间线内容格式不正确')
   }
-  const response = await requireElectronApi('writeTimeline', '时间线写入接口')(targetBookName, rows)
+  const response = await postJson('/api/studio/timeline/write', {
+    bookName: targetBookName,
+    data: rows
+  })
   return requireTimelineDocumentWriteResult(response, rows)
 }
 
@@ -1735,7 +1738,7 @@ export async function readSequenceChartsDocument(bookName) {
   if (!targetBookName) {
     throw new Error('读取事序图失败：缺少作品名')
   }
-  const response = await requireElectronApi('readSequenceCharts', '事序图读取接口')(targetBookName)
+  const response = await postJson('/api/studio/sequences/read', { bookName: targetBookName })
   return requireSequenceChartsRowsResult(response)
 }
 
@@ -1747,10 +1750,10 @@ export async function writeSequenceChartsDocument(bookName, rows = []) {
   if (!Array.isArray(rows)) {
     throw new Error('保存事序图失败：事序图内容格式不正确')
   }
-  const response = await requireElectronApi('writeSequenceCharts', '事序图写入接口')(
-    targetBookName,
-    rows
-  )
+  const response = await postJson('/api/studio/sequences/write', {
+    bookName: targetBookName,
+    data: rows
+  })
   return requireSequenceChartsDocumentWriteResult(response, rows)
 }
 
@@ -1771,10 +1774,10 @@ export async function writeCharactersDocument(bookName, rows = []) {
   if (!Array.isArray(rows)) {
     throw new Error('保存人物谱失败：人物谱内容格式不正确')
   }
-  const response = await requireElectronApi('writeCharacters', '人物谱写入接口')(
-    targetBookName,
-    rows
-  )
+  const response = await postJson('/api/studio/characters/write', {
+    bookName: targetBookName,
+    data: rows
+  })
   return requireProfileDocumentWriteResult(response, {
     fileName: 'characters.json',
     documentType: 'characters',
@@ -2224,10 +2227,9 @@ export async function readEntityProfilesDocument(bookName) {
   if (!targetBookName) {
     throw new Error('读取扩展档案失败：缺少作品名')
   }
-  const response = await requireElectronApi(
-    'readEntityProfiles',
-    '扩展档案读取接口'
-  )(targetBookName)
+  const response = await postJson('/api/studio/entity-profiles/read', {
+    bookName: targetBookName
+  })
   return requireEntityProfilesResult(response)
 }
 
@@ -2243,11 +2245,11 @@ export async function writeEntityProfileCategoryDocument(bookName, category, row
   if (!Array.isArray(rows)) {
     throw new Error('保存扩展档案失败：档案内容格式不正确')
   }
-  const response = await requireElectronApi('writeEntityProfileCategory', '扩展档案写入接口')(
-    targetBookName,
-    targetCategory,
-    rows
-  )
+  const response = await postJson('/api/studio/entity-profiles/write-category', {
+    bookName: targetBookName,
+    category: targetCategory,
+    data: rows
+  })
   return requireProfileDocumentWriteResult(response, {
     fileName: 'entity_profiles.json',
     documentType: 'entity_profiles',
@@ -2263,7 +2265,10 @@ export async function writeDictionaryDocument(bookName, rows = []) {
   if (!Array.isArray(rows)) {
     throw new Error('保存词典失败：词条内容格式不正确')
   }
-  const response = await requireElectronApi('writeDictionary', '词典写入接口')(targetBookName, rows)
+  const response = await postJson('/api/studio/dictionary/write', {
+    bookName: targetBookName,
+    data: rows
+  })
   return requireDictionaryDocumentWriteResult(response, rows)
 }
 

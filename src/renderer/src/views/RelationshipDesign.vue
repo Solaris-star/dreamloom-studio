@@ -162,6 +162,7 @@ import { genId } from '@renderer/utils/utils'
 import { bookImageUrl } from '@renderer/utils/webImageUrl'
 import { selectBrowserImage } from '@renderer/service/browserImagePicker'
 import { useI18n } from 'vue-i18n'
+import { readCharactersDocument } from '@renderer/service/editor'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -222,7 +223,7 @@ const graphOptions = {
 // 加载人物数据
 const loadCharacters = async () => {
   try {
-    const data = await window.electron.readCharacters(bookName)
+    const data = await readCharactersDocument(bookName)
     characters.value = Array.isArray(data) ? data : []
     // 初始化过滤后的人物数据
     filteredCharacters.value = [...characters.value]

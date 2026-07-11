@@ -103,6 +103,7 @@ import { Plus } from '@element-plus/icons-vue'
 import { genId } from '@renderer/utils/utils'
 import Sortable from 'sortablejs'
 import { useI18n } from 'vue-i18n'
+import { readDictionaryDocument, writeDictionaryDocument } from '@renderer/service/editor'
 
 const { t } = useI18n()
 
@@ -144,7 +145,7 @@ const formRules = {
 // 加载词条数据
 async function loadDictionary() {
   try {
-    const data = await window.electron.readDictionary(bookName)
+    const data = await readDictionaryDocument(bookName)
     let loadedData = Array.isArray(data) ? data : []
 
     // 递归处理树形数据（确保 children 数组存在）
@@ -173,10 +174,7 @@ async function loadDictionary() {
 async function saveDictionary() {
   try {
     const rawDictionary = clonePlainData(toRaw(dictionary.value))
-    const result = await window.electron.writeDictionary(bookName, rawDictionary)
-    if (!result.success) {
-      throw new Error(result.message || '保存失败')
-    }
+    await writeDictionaryDocument(bookName, rawDictionary)
   } catch (error) {
     console.error('保存词条数据失败:', error)
     ElMessage.error('保存词条数据失败')

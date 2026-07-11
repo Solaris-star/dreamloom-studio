@@ -511,6 +511,13 @@ import { bookImageUrl } from '@renderer/utils/webImageUrl'
 import { selectBrowserImage } from '@renderer/service/browserImagePicker'
 import Sortable from 'sortablejs'
 import { useI18n } from 'vue-i18n'
+import {
+  readCharactersDocument,
+  readDictionaryDocument,
+  readEntityProfilesDocument,
+  writeCharactersDocument,
+  writeEntityProfileCategoryDocument
+} from '@renderer/service/editor'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -801,10 +808,7 @@ async function saveEntityCategory(category) {
       const { sort, ...rest } = item
       return rest
     })
-    const result = await window.electron.writeEntityProfileCategory(bookName, category, raw)
-    if (!result?.success) {
-      throw new Error(result?.message || t('characterProfile.saveFailed'))
-    }
+    await writeEntityProfileCategoryDocument(bookName, category, raw)
   } catch (error) {
     console.error('保存扩展档案失败:', error)
     ElMessage.error(t('characterProfile.saveExtendedFailed'))
@@ -931,7 +935,7 @@ const tagOptions = computed(() => {
 // 加载人物数据
 async function loadCharacters() {
   try {
-    const data = await window.electron.readCharacters(bookName)
+    const data = await readCharactersDocument(bookName)
     let loadedData = Array.isArray(data) ? data : []
 
     // 数据兼容：将旧的 introduction 字段迁移到 biography 字段
@@ -969,7 +973,7 @@ async function loadCharacters() {
 // 加载字典数据
 async function loadDictionary() {
   try {
-    const data = await window.electron.readDictionary(bookName)
+    const data = await readDictionaryDocument(bookName)
     dictionary.value = data || []
   } catch (error) {
     console.error('加载字典数据失败:', error)
@@ -996,7 +1000,7 @@ function normalizeProfileEntity(entity) {
 
 async function loadEntityProfiles() {
   try {
-    const data = await window.electron.readEntityProfiles(bookName)
+    const data = await readEntityProfilesDocument(bookName)
     mounts.value = (Array.isArray(data?.mount) ? data.mount : []).map(normalizeProfileEntity)
     monsters.value = (Array.isArray(data?.monster) ? data.monster : []).map(normalizeProfileEntity)
     spiritBeasts.value = (Array.isArray(data?.spirit_beast) ? data.spirit_beast : []).map(
@@ -1023,10 +1027,7 @@ async function saveCharacters() {
       const { sort, ...rest } = character
       return rest
     })
-    const result = await window.electron.writeCharacters(bookName, rawCharacters)
-    if (!result.success) {
-      throw new Error(result.message || t('characterProfile.saveFailed'))
-    }
+    await writeCharactersDocument(bookName, rawCharacters)
   } catch (error) {
     console.error('保存人物数据失败:', error)
     ElMessage.error(t('characterProfile.saveCharactersFailed'))

@@ -165,6 +165,41 @@ for (const method of [
   )
 }
 for (const method of [
+  'readDictionary',
+  'writeDictionary',
+  'readTimeline',
+  'writeTimeline',
+  'readSequenceCharts',
+  'writeSequenceCharts',
+  'readCharacters',
+  'writeCharacters',
+  'readEntityProfiles',
+  'writeEntityProfileCategory'
+]) {
+  assert.doesNotMatch(
+    editorServiceSource,
+    new RegExp(`requireElectronApi\\(['"]${method}['"]`),
+    `编辑器文档服务不应再通过 Electron 调用 ${method}`
+  )
+  assert.doesNotMatch(
+    webShimSource,
+    new RegExp(`\\b${method}:`),
+    `Web shim 不应保留已迁移的文档方法：${method}`
+  )
+}
+for (const file of [
+  'src/renderer/src/views/CharacterProfile.vue',
+  'src/renderer/src/views/Dictionary.vue',
+  'src/renderer/src/views/EventsSequence.vue',
+  'src/renderer/src/views/Timeline.vue'
+]) {
+  assert.doesNotMatch(
+    read(file),
+    /window\.electron(?:Store)?\b/,
+    `${file} 必须直接使用 Web 文档服务`
+  )
+}
+for (const method of [
   'showSaveDialog:',
   'writeExportFile:',
   'setBookshelfAuthenticated:',

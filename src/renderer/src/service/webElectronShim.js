@@ -809,8 +809,6 @@ function buildElectronShim() {
       }
     },
     // ----- 时间线 / 大纲 / 地图 / 人物 / 设定等扩展功能 -----
-    readTimeline: (bookName) => postJson('/api/studio/timeline/read', { bookName }),
-    writeTimeline: (bookName, data) => postJson('/api/studio/timeline/write', { bookName, data }),
     readOutlines: (bookName) => postJson('/api/studio/outlines/read', { bookName }),
     writeOutlines: (bookName, data) => postJson('/api/studio/outlines/write', { bookName, data }),
     readOutlineAiSessions: (bookName) =>
@@ -838,20 +836,8 @@ function buildElectronShim() {
       ),
     loadMapData: async (payload) =>
       unwrapResultData(await postJson('/api/studio/maps/data/load', payload), '读取地图数据失败'),
-    readCharacters: (bookName) => postJson('/api/studio/characters/read', { bookName }),
-    writeCharacters: (bookName, data) =>
-      postJson('/api/studio/characters/write', { bookName, data }),
-    readEntityProfiles: (bookName) => postJson('/api/studio/entity-profiles/read', { bookName }),
-    writeEntityProfileCategory: (bookName, category, data) =>
-      postJson('/api/studio/entity-profiles/write-category', { bookName, category, data }),
-    readDictionary: (bookName) => postJson('/api/studio/dictionary/read', { bookName }),
-    writeDictionary: (bookName, data) =>
-      postJson('/api/studio/dictionary/write', { bookName, data }),
     readSettings: (bookName) => postJson('/api/studio/settings/read', { bookName }),
     writeSettings: (bookName, data) => postJson('/api/studio/settings/write', { bookName, data }),
-    readSequenceCharts: (bookName) => postJson('/api/studio/sequences/read', { bookName }),
-    writeSequenceCharts: (bookName, data) =>
-      postJson('/api/studio/sequences/write', { bookName, data }),
     readRelationships: (bookName) => postJson('/api/studio/relationships/list', { bookName }),
     readRelationshipData: (bookName, relationshipName) =>
       postJson('/api/studio/relationships/read', { bookName, relationshipName }),
