@@ -87,6 +87,22 @@ for (const method of [
 ]) {
   assert.doesNotMatch(webShimSource, new RegExp(`\\b${method}`), `Web shim 不应保留导入导出方法：${method}`)
 }
+const extractionServiceSource = read('src/renderer/src/service/extraction.js')
+assert.doesNotMatch(
+  extractionServiceSource,
+  /window\.electron|ensureElectronApi/,
+  '拆书服务必须直接使用 Web API'
+)
+for (const method of [
+  'getExtractionDimensions:',
+  'createExtraction:',
+  'getExtractionProgress:',
+  'listExtractions:',
+  'getExtractionResultPage:',
+  'deleteExtraction:'
+]) {
+  assert.doesNotMatch(webShimSource, new RegExp(`\\b${method}`), `Web shim 不应保留拆书方法：${method}`)
+}
 
 const rendererRoot = path.join(root, 'src/renderer/src')
 const rendererSourceFiles = fs

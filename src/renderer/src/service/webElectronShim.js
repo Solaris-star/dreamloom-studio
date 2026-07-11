@@ -1974,28 +1974,8 @@ function buildElectronShim() {
       return await setStoredActiveAiProviderId('image', id)
     },
 
-    getExtractionDimensions: async () => {
-      return await fetchJson('/api/extraction/dimensions')
-    },
-    createExtraction: async (payload) => {
-      return await postJson('/api/extraction/create', payload)
-    },
-    getExtractionProgress: async (jobIdOrPayload) => {
-      const payload =
-        typeof jobIdOrPayload === 'object' ? jobIdOrPayload : { jobId: jobIdOrPayload }
-      return await postJson('/api/extraction/progress', payload)
-    },
-    listExtractions: async (bookPath) => {
-      return await postJson('/api/extraction/list', { bookPath })
-    },
     getExtraction: async (payload) => {
       return await postJson('/api/extraction/get', payload)
-    },
-    getExtractionResultPage: async (payload) => {
-      return await postJson('/api/extraction/result-page', payload)
-    },
-    deleteExtraction: async (payload) => {
-      return await postJson('/api/extraction/delete', payload)
     },
     searchKnowledge: async (payload) => {
       return await postJson('/api/extraction/search', payload)

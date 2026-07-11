@@ -1,10 +1,4 @@
-function ensureElectronApi(name) {
-  const api = globalThis.window?.electron?.[name]
-  if (typeof api !== 'function') {
-    throw new Error(`当前环境暂不支持拆书接口：${name}`)
-  }
-  return api
-}
+import { fetchJson, postJson } from './webHttpClient.js'
 
 function isPlainObject(value) {
   return value != null && typeof value === 'object' && !Array.isArray(value)
@@ -18,7 +12,7 @@ function requireSuccessResult(result, fallback = '拆书失败') {
 }
 
 export async function getExtractionDimensions() {
-  const result = await ensureElectronApi('getExtractionDimensions')()
+  const result = await fetchJson('/api/extraction/dimensions')
   if (!Array.isArray(result)) {
     throw new Error('读取拆书维度失败：接口返回格式不正确')
   }
@@ -31,12 +25,12 @@ export async function getExtractionDimensions() {
 }
 
 export async function createExtraction(payload = {}) {
-  const result = await ensureElectronApi('createExtraction')(payload)
+  const result = await postJson('/api/extraction/create', payload, { timeoutMs: 60_000 })
   return requireStartedExtractionResult(result)
 }
 
 export async function listExtractions(bookPath) {
-  const result = await ensureElectronApi('listExtractions')(bookPath)
+  const result = await postJson('/api/extraction/list', { bookPath })
   const ok = requireSuccessResult(result, '读取拆书任务失败')
   if (!Array.isArray(ok.extractions)) {
     throw new Error('读取拆书任务失败：接口返回格式不正确')
@@ -45,22 +39,26 @@ export async function listExtractions(bookPath) {
 }
 
 export async function getExtractionProgress(jobIdOrPayload) {
-  const result = await ensureElectronApi('getExtractionProgress')(jobIdOrPayload)
+  const payload =
+    jobIdOrPayload && typeof jobIdOrPayload === 'object'
+      ? jobIdOrPayload
+      : { jobId: jobIdOrPayload }
+  const result = await postJson('/api/extraction/progress', payload)
   return requireExtractionProgressResponse(result)
 }
 
 export async function getExtractionResultPage(payload = {}) {
-  const result = await ensureElectronApi('getExtractionResultPage')(payload)
+  const result = await postJson('/api/extraction/result-page', payload)
   return requireExtractionResultPageResult(result)
 }
 
 export async function deleteExtraction(payload = {}) {
-  const result = await ensureElectronApi('deleteExtraction')(payload)
+  const result = await postJson('/api/extraction/delete', payload)
   return requireSuccessResult(result, '删除拆书任务失败')
 }
 
 export function canReadExtractionProgress() {
-  return typeof globalThis.window?.electron?.getExtractionProgress === 'function'
+  return true
 }
 
 export function requireStartedExtractionResult(result, fallback = '拆书失败') {
