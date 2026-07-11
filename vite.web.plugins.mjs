@@ -30,6 +30,13 @@ import vectorService from './src/main/services/vectorService.js'
 import plotEvolutionAiService from './src/main/services/plotEvolutionAi.js'
 import settingTreeAiService from './src/main/services/settingTreeAi.js'
 import { sendChatMessage } from './src/main/services/aiChatService.js'
+import bookIdeaAiService from './src/main/services/bookIdeaAi.js'
+import outlineChapterAiService from './src/main/services/outlineChapterAi.js'
+import {
+  confirmWebAiImage,
+  discardWebAiImages,
+  saveGeneratedWebImage
+} from './src/main/services/webAiImageAssetService.js'
 
 export function createWebServerPlugins() {
   const booksDir = process.env.NOVEL_BOOKS_DIR || resolve('.booksDir')
@@ -493,34 +500,6 @@ export function createWebServerPlugins() {
 
   const finalExtractionStatuses = new Set(['completed', 'partial'])
 
-  // --- Confirmation / Discard handlers ---
-  function confirmWebAiCover(bookPath, chosenPath, finalPath) {
-    if (!isPathInside(bookPath, chosenPath)) {
-      throw new Error('非法的临时文件路径')
-    }
-    fs.copyFileSync(chosenPath, finalPath)
-    return { success: true, localPath: finalPath }
-  }
-
-  function discardWebAiCovers() {
-    return { success: true }
-  }
-
-  function confirmWebAiCharacterImage(bookPath, chosenPath, finalPath) {
-    fs.copyFileSync(chosenPath, finalPath)
-    confirmCharacterImageMetadata(chosenPath, finalPath)
-    const metadata = {}
-    return { success: true, metadata: characterImageMetadataPublicResult(metadata) }
-  }
-
-  function discardWebAiCharacterImages() {
-    return { success: true }
-  }
-
-  function confirmCharacterImageMetadata() {}
-  function characterImageMetadataPublicResult(m) {
-    return m
-  }
   function sanitizeText(t) {
     return String(t || '').trim()
   }
@@ -542,6 +521,21 @@ export function createWebServerPlugins() {
     if (lower.endsWith('.gif')) return 'image/gif'
     if (lower.endsWith('.avif')) return 'image/avif'
     return 'image/png'
+  }
+
+  function webBookImageUrl(bookPath, filePath) {
+    const root = getActiveBooksDir()
+    const bookName = relative(root, bookPath)
+    const fileName = relative(bookPath, filePath)
+    if (
+      !bookName ||
+      !fileName ||
+      !isPathInside(root, bookPath) ||
+      !isPathInside(bookPath, filePath)
+    ) {
+      throw new Error('图片路径不在书籍目录内')
+    }
+    return `/api/books/image?book=${encodeURIComponent(bookName)}&file=${encodeURIComponent(fileName)}`
   }
 
   function sendTransparentImage(res) {
@@ -650,13 +644,21 @@ export function createWebServerPlugins() {
         }
 
         try {
-          if (path === '/api/books/cover') {
+          if (path === '/api/books/cover' || path === '/api/books/image') {
               const url = new URL(req.url, 'http://localhost')
               const bookName = sanitizeText(url.searchParams.get('book'))
               const fileName = sanitizeText(url.searchParams.get('file'))
               const root = getActiveBooksDir()
-              const target = resolve(root, bookName, fileName)
-              if (bookName && fileName && isPathInside(root, target) && fs.existsSync(target)) {
+              const bookPath = resolve(root, bookName)
+              const target = resolve(bookPath, fileName)
+              if (
+                bookName &&
+                fileName &&
+                isPathInside(root, bookPath) &&
+                isPathInside(bookPath, target) &&
+                fs.existsSync(target) &&
+                fs.statSync(target).isFile()
+              ) {
                 res.statusCode = 200
                 res.setHeader('Content-Type', contentTypeFromFileName(fileName))
                 res.end(fs.readFileSync(target))
@@ -753,8 +755,81 @@ export function createWebServerPlugins() {
               const result = await runWebAiTextTask(webStoreAdapter(), body || {})
               sendJson(res, result, result.success ? 200 : 502)
             } else if (path === '/api/ai/image-task') {
-              generateImageResultByProvider(webStoreAdapter(), body || {})
-              sendJson(res, { success: true })
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              const imageResult = await generateImageResultByProvider(
+                webStoreAdapter(),
+                body || {}
+              )
+              const saved = saveGeneratedWebImage(bookPath, body || {}, imageResult)
+              sendJson(res, {
+                ...saved,
+                imageUrl: webBookImageUrl(bookPath, saved.localPath)
+              })
+            } else if (path === '/api/ai/book-ideas') {
+              const provider = createTextProvider(webStoreAdapter(), body || {})
+              sendJson(
+                res,
+                await bookIdeaAiService.generateBookIdeas(body || {}, provider.service)
+              )
+            } else if (path === '/api/ai/generate-chapter-from-outline') {
+              const provider = createTextProvider(webStoreAdapter(), body || {})
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              const result = await outlineChapterAiService.generateChapterFromOutline(
+                { ...body, bookPath },
+                provider.service
+              )
+              sendJson(res, {
+                success: true,
+                content: result.content,
+                targetWords: Number(body.targetWords) || 2000
+              })
+            } else if (path === '/api/ai/cover/confirm') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              const confirmed = confirmWebAiImage(bookPath, {
+                ...body,
+                feature: 'ai_cover'
+              })
+              sendJson(res, {
+                ...confirmed,
+                imageUrl: webBookImageUrl(bookPath, confirmed.localPath)
+              })
+            } else if (path === '/api/ai/cover/discard') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              sendJson(
+                res,
+                discardWebAiImages(bookPath, { ...body, feature: 'ai_cover' })
+              )
+            } else if (path === '/api/ai/character/confirm') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              const confirmed = confirmWebAiImage(bookPath, {
+                ...body,
+                feature: 'ai_character_image'
+              })
+              sendJson(res, {
+                ...confirmed,
+                imageUrl: webBookImageUrl(bookPath, confirmed.localPath)
+              })
+            } else if (path === '/api/ai/character/discard') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              sendJson(
+                res,
+                discardWebAiImages(bookPath, {
+                  ...body,
+                  feature: 'ai_character_image'
+                })
+              )
             } else if (path === '/api/extraction/dimensions') {
               sendJson(
                 res,

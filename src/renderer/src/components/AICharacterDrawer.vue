@@ -438,8 +438,8 @@ async function handleGenerate() {
       negativePrompt: (form.value.negativePrompt || '').trim() || undefined,
       imageProvider: selectedProvider.value
     })
-    if (res?.success && res.localPath) {
-      const previewUrl = `file://${res.localPath}`
+    if (res?.success && res.localPath && res.imageUrl) {
+      const previewUrl = res.imageUrl
       generatedList.value.push({ localPath: res.localPath, previewUrl })
       selectedPath.value = res.localPath
       ElMessage.success(t('aiCharacter.generatedSelectOrContinue'))

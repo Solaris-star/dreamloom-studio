@@ -25,12 +25,6 @@ const clientPaths = collectPaths(clientSources.join('\n'))
 const serverPaths = collectPaths(serverSource)
 const knownMissingPaths = new Set([
   '/api/ai-proxy',
-  '/api/ai/book-ideas',
-  '/api/ai/generate-chapter-from-outline',
-  '/api/ai/cover/confirm',
-  '/api/ai/cover/discard',
-  '/api/ai/character/confirm',
-  '/api/ai/character/discard',
   '/api/editor-agent/progress-server'
 ])
 const ignoredProxyPaths = new Set(['/api/agent-tasks/queue/status'])

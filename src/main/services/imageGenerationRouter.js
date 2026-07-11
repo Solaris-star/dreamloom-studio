@@ -275,6 +275,7 @@ export async function generateImageResult(store, options = {}) {
   const dims = validateGeneratedImageSize(buffer, options.size)
   return {
     providerId: config.providerId,
+    model: config.model || '',
     buffer,
     dimensions: dims
   }
