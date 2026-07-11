@@ -1857,42 +1857,6 @@ function buildElectronShim() {
     searchKnowledge: async (payload) => {
       return await postJson('/api/extraction/search', payload)
     },
-    listMarketHotspots: (filter) => postJson('/api/market/hotspots', filter || {}),
-    createMarketHotspot: (input) => postJson('/api/market/hotspots/create', input || {}),
-    updateMarketHotspot: (id, patch) => postJson('/api/market/hotspots/update', { id, patch }),
-    saveMarketHotspotToKnowledge: (id) =>
-      postJson('/api/market/hotspots/save-to-knowledge', { id }),
-    createTopicCardFromMarketHotspot: (id) =>
-      postJson('/api/market/hotspots/create-topic-card', { id }),
-    listMarketActivities: (filter) => postJson('/api/market/activities', filter || {}),
-    createMarketActivity: (input) => postJson('/api/market/activities/create', input || {}),
-    updateMarketActivity: (id, patch) => postJson('/api/market/activities/update', { id, patch }),
-    saveMarketActivityToKnowledge: (id) =>
-      postJson('/api/market/activities/save-to-knowledge', { id }),
-    createTopicCardFromMarketActivity: (id) =>
-      postJson('/api/market/activities/create-topic-card', { id }),
-    refreshMarketTrends: (payload = {}) => postJson('/api/market/refresh', payload || {}),
-    listMarketHotTopics: (filter = {}) => postJson('/api/market/hot-topics', filter || {}),
-    getMarketTrend: (keyword) => postJson('/api/market/trends', { keyword }),
-    listMarketTrends: (filter = {}) => postJson('/api/market/trends', filter || {}),
-    listMarketSourceStatus: () => postJson('/api/market/source-status', {}),
-    listMarketOpportunities: (payload = {}) => postJson('/api/market/opportunities', payload || {}),
-    getMarketDashboard: (payload = {}) => postJson('/api/market/dashboard', payload || {}),
-    getMarketOverview: (payload = {}) => postJson('/api/market/overview', payload || {}),
-    getMarketHotRank: (payload = {}) => postJson('/api/market/hot-rank', payload || {}),
-    getMarketKeywordCloud: (payload = {}) => postJson('/api/market/keyword-cloud', payload || {}),
-    getMarketKeywordCombination: (payload = {}) =>
-      postJson('/api/market/keyword-combination', payload || {}),
-    getMarketActivitiesBoard: (payload = {}) =>
-      postJson('/api/market/activities-board', payload || {}),
-    saveMarketInspiration: (payload = {}) =>
-      postJson('/api/market/save-inspiration', payload || {}),
-    generateMarketOutline: (payload = {}) =>
-      postJson('/api/market/generate-outline', payload || {}),
-    applyMarketInsightToCurrentBook: (payload = {}) =>
-      postJson('/api/market/apply-to-current-book', payload || {}),
-    createBookFromMarketInsight: (payload = {}) =>
-      postJson('/api/market/create-book-from-insight', payload || {}),
     getAnalyticsOverview: async (payload = {}) =>
       postJson('/api/analytics/overview', payload || {}),
     getAnalyticsDailyWords: async (payload = {}) =>
