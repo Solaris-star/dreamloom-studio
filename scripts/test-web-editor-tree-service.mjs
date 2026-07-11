@@ -51,6 +51,42 @@ response = { success: true, notes: [{ type: 'folder', name: '资料', children: 
 assert.equal((await service.listNoteTree('作品')).length, 1)
 assert.equal(request.url, '/api/notes/load')
 
+response = { success: true, settings: { targetWords: 2500 } }
+await service.setChapterTargetWords(' 作品 ', 2500.4)
+assert.deepEqual(request, {
+  url: '/api/chapter-settings/target-words',
+  payload: { bookName: '作品', targetWords: 2500 }
+})
+await assert.rejects(() => service.setChapterTargetWords('作品', 0), /目标字数无效/)
+
+response = {
+  success: true,
+  bookName: '作品',
+  totalRenamed: 3,
+  settings: {
+    chapterFormat: 'hanzi',
+    suffixType: '回',
+    targetWords: 3000
+  }
+}
+const updatedSettings = await service.updateChapterFormat('作品', {
+  chapterFormat: 'hanzi',
+  suffixType: '回',
+  targetWords: 3000
+})
+assert.equal(updatedSettings.totalRenamed, 3)
+assert.deepEqual(request, {
+  url: '/api/chapter-format/update',
+  payload: {
+    bookName: '作品',
+    settings: {
+      chapterFormat: 'hanzi',
+      suffixType: '回',
+      targetWords: 3000
+    }
+  }
+})
+
 response = { success: true, notebookName: '笔记本1' }
 assert.equal((await service.createNotebookDocument('作品')).notebookName, '笔记本1')
 assert.equal(request.url, '/api/notebooks/create')

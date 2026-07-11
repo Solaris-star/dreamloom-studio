@@ -2269,17 +2269,18 @@ export async function writeDictionaryDocument(bookName, rows = []) {
 
 export async function setChapterTargetWords(bookName, targetWords) {
   const numeric = Number(targetWords)
-  if (!String(bookName || '').trim()) {
+  const targetBookName = String(bookName || '').trim()
+  if (!targetBookName) {
     throw new Error('保存章节目标字数失败：缺少作品名')
   }
   if (!Number.isFinite(numeric) || numeric <= 0) {
     throw new Error('保存章节目标字数失败：目标字数无效')
   }
   const expectedTargetWords = Math.round(numeric)
-  const response = await requireElectronApi('setChapterTargetWords', '章节目标字数接口')(
-    bookName,
-    expectedTargetWords
-  )
+  const response = await postJson('/api/chapter-settings/target-words', {
+    bookName: targetBookName,
+    targetWords: expectedTargetWords
+  })
   return requireChapterTargetWordsResult(response, expectedTargetWords)
 }
 
@@ -2289,10 +2290,10 @@ export async function updateChapterFormat(bookName, settings = {}) {
     throw new Error('保存章节格式失败：缺少作品名')
   }
   const cleanSettings = normalizeChapterSettings(settings)
-  const response = await requireElectronApi('updateChapterFormat', '章节格式接口')(
-    targetBookName,
-    cleanSettings
-  )
+  const response = await postJson('/api/chapter-format/update', {
+    bookName: targetBookName,
+    settings: cleanSettings
+  })
   return requireChapterSettingsUpdateResult(response, {
     bookName: targetBookName,
     settings: cleanSettings

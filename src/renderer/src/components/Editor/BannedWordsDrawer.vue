@@ -42,6 +42,11 @@
 import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import {
+  addBannedWord,
+  listBannedWords,
+  removeBannedWord
+} from '@renderer/service/editor'
 
 const props = defineProps({
   bookName: {
@@ -65,12 +70,10 @@ const open = () => {
 const loadBannedWords = async () => {
   if (!props.bookName) return
   try {
-    const result = await window.electron.getBannedWords(props.bookName)
-    if (result.success) {
-      bannedWords.value = result.data || []
-    }
+    bannedWords.value = await listBannedWords(props.bookName)
   } catch (error) {
     console.error('加载禁词失败:', error)
+    ElMessage.error(error.message || t('bannedWords.loadFailed'))
   }
 }
 
@@ -91,36 +94,23 @@ const handleAddWord = async () => {
   }
 
   try {
-    const result = await window.electron.addBannedWord(props.bookName, word)
-    if (result.success) {
-      bannedWords.value.unshift(word)
-      newWord.value = ''
-      ElMessage.success(t('bannedWords.addSuccess'))
-    } else {
-      ElMessage.error(result.message || t('bannedWords.addFailed'))
-    }
+    bannedWords.value = await addBannedWord(props.bookName, word)
+    newWord.value = ''
+    ElMessage.success(t('bannedWords.addSuccess'))
   } catch (error) {
     console.error('添加禁词失败:', error)
-    ElMessage.error(t('bannedWords.addFailed'))
+    ElMessage.error(error.message || t('bannedWords.addFailed'))
   }
 }
 
 // 删除禁词
 const handleDeleteWord = async (word) => {
   try {
-    const result = await window.electron.removeBannedWord(props.bookName, word)
-    if (result.success) {
-      const index = bannedWords.value.indexOf(word)
-      if (index > -1) {
-        bannedWords.value.splice(index, 1)
-      }
-      ElMessage.success(t('bannedWords.deleteSuccess'))
-    } else {
-      ElMessage.error(result.message || t('bannedWords.deleteFailed'))
-    }
+    bannedWords.value = await removeBannedWord(props.bookName, word)
+    ElMessage.success(t('bannedWords.deleteSuccess'))
   } catch (error) {
     console.error('删除禁词失败:', error)
-    ElMessage.error(t('bannedWords.deleteFailed'))
+    ElMessage.error(error.message || t('bannedWords.deleteFailed'))
   }
 }
 

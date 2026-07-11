@@ -118,6 +118,17 @@ assert.doesNotMatch(
   /window\.electron(?:Store)?\b|showSaveDialog|writeExportFile/,
   '编辑器菜单栏必须使用浏览器下载'
 )
+for (const [file, label] of [
+  ['src/renderer/src/components/Editor/BannedWordsDrawer.vue', '禁词抽屉'],
+  ['src/renderer/src/components/Editor/ChapterSettingsDialog.vue', '章节设置对话框'],
+  ['src/renderer/src/components/Editor/EditorProgress.vue', '章节目标进度']
+]) {
+  assert.doesNotMatch(
+    read(file),
+    /window\.electron(?:Store)?\b|ensureElectronApi/,
+    `${label}必须直接使用 Web 服务`
+  )
+}
 const editorServiceSource = read('src/renderer/src/service/editor.js')
 const webShimSource = read('src/renderer/src/service/webElectronShim.js')
 for (const method of [
@@ -126,6 +137,8 @@ for (const method of [
   'getBannedWords',
   'addBannedWord',
   'removeBannedWord',
+  'setChapterTargetWords',
+  'updateChapterFormat',
   'readCharacters',
   'createChapter',
   'loadNotes',

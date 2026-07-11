@@ -41,6 +41,7 @@ import { ElMessage } from 'element-plus'
 import { ArrowDown, Check } from '@element-plus/icons-vue'
 import { useEditorStore } from '@renderer/stores/editor'
 import { useI18n } from 'vue-i18n'
+import { setChapterTargetWords } from '@renderer/service/editor'
 
 const props = defineProps({
   currentWords: {
@@ -113,10 +114,7 @@ async function handleTargetSelect(option) {
     editorStore.setChapterTargetWords(numeric)
     const bookName = resolvedBookName.value
     if (bookName) {
-      const result = await window.electron.setChapterTargetWords(bookName, numeric)
-      if (!result?.success) {
-        throw new Error(result?.message || t('editorProgress.setFailed'))
-      }
+      await setChapterTargetWords(bookName, numeric)
     }
   } catch (error) {
     const fallback = previousTargetWords.value ?? 2000

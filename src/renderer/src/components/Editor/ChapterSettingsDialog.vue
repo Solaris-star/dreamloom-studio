@@ -101,6 +101,7 @@
 import { ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import { updateChapterFormat } from '@renderer/service/editor'
 
 const props = defineProps({
   visible: {
@@ -225,8 +226,6 @@ async function handleConfirm() {
 
     loading.value = true
 
-    // 调用主进程修改章节名称格式
-    // 确保传递的是纯对象，避免序列化问题
     const targetWordsValue = Number(settings.value.targetWords)
     const cleanSettings = {
       chapterFormat: settings.value.chapterFormat,
@@ -235,16 +234,11 @@ async function handleConfirm() {
         Number.isFinite(targetWordsValue) && targetWordsValue > 0 ? targetWordsValue : 2000
     }
 
-    const result = await window.electron.updateChapterFormat(props.bookName, cleanSettings)
-
-    if (result.success) {
-      ElMessage.success(t('chapterSettings.modifySuccess'))
-      settings.value.targetWords = cleanSettings.targetWords
-      emit('settings-changed', { ...settings.value })
-      emit('update:visible', false)
-    } else {
-      ElMessage.error(result.message || t('chapterSettings.modifyFailed'))
-    }
+    const result = await updateChapterFormat(props.bookName, cleanSettings)
+    ElMessage.success(t('chapterSettings.modifySuccess'))
+    settings.value = { ...result.settings }
+    emit('settings-changed', { ...result.settings })
+    emit('update:visible', false)
   } catch (error) {
     if (error !== 'cancel') {
       console.error('设置修改失败:', error)
