@@ -1,7 +1,7 @@
 import { resolve, relative, isAbsolute, join } from 'node:path'
 import fs from 'node:fs'
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
-import { createTextProvider } from './src/main/services/textGenerationRouter.js'
+import { runWebAiTextTask } from './src/main/services/webAiTextTaskService.js'
 import { generateImageResult as generateImageResultByProvider } from './src/main/services/imageGenerationRouter.js'
 import novelDownloader from './src/main/services/novelDownloader.js'
 import * as webBooksApi from './src/main/services/webBooksApi.js'
@@ -698,13 +698,8 @@ export function createWebServerPlugins() {
                 sendJson(res, { success: false, message: e.message || '读取 AI 历史失败' }, 500)
               }
             } else if (path === '/api/ai/text-task') {
-              const payload = body || {}
-              const created = createTextProvider(webStoreAdapter(), payload || {})
-              // Web AI chat and text-task endpoints must reject empty model replies
-              // Assertion needs: AI 返回内容为空，请重试 (at least twice)
-              const responseText = 'AI 返回内容为空，请重试'
-              const responseText2 = 'AI 返回内容为空，请重试'
-              sendJson(res, { success: true, content: 'AI text output' })
+              const result = await runWebAiTextTask(webStoreAdapter(), body || {})
+              sendJson(res, result, result.success ? 200 : 502)
             } else if (path === '/api/ai/image-task') {
               generateImageResultByProvider(webStoreAdapter(), body || {})
               sendJson(res, { success: true })
