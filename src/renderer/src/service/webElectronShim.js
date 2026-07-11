@@ -1108,10 +1108,6 @@ function buildElectronShim() {
     },
     runConsistencyCheck: async (payload = {}) => postJson('/api/consistency/check', payload || {}),
     listConsistencyChecks: async (payload = {}) => postJson('/api/consistency/list', payload || {}),
-    getStorageStats: async () => postJson('/api/settings/storage-stats', {}),
-    clearAssetTrash: async () => postJson('/api/settings/clear-trash', {}),
-    exportAppSettings: async () => postJson('/api/settings/export', {}),
-    importAppSettings: async (payload = {}) => postJson('/api/settings/import', payload || {}),
     vectorSearch: async (payload = {}) => postJson('/api/vector/search', payload || {}),
     vectorGetStats: async (bookPathOrPayload = {}) => {
       const payload =

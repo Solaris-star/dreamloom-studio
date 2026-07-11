@@ -171,7 +171,11 @@ for (const method of [
   'getBookshelfAuthenticated:',
   'getBookshelfAuthStatus:',
   'authenticateBookshelf:',
-  'getAppVersion:'
+  'getAppVersion:',
+  'getStorageStats:',
+  'clearAssetTrash:',
+  'exportAppSettings:',
+  'importAppSettings:'
 ]) {
   assert.doesNotMatch(
     webShimSource,
@@ -181,8 +185,8 @@ for (const method of [
 }
 assert.doesNotMatch(
   read('src/renderer/src/views/SystemSettings.vue'),
-  /window\.electron(?:\?\.)?\.getAppVersion\b/,
-  '系统设置页必须直接读取 Web 构建版本'
+  /window\.(?:electron|electronStore)\b/,
+  '系统设置页必须只使用 Web 服务'
 )
 for (const method of [
   'novelGetSources:',

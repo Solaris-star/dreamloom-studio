@@ -322,6 +322,15 @@ import brandLogoUrl from '@renderer/assets/images/logo_big.png'
 
 import { useThemeStore } from '@renderer/stores/theme'
 import { getCurrentLocale, setLocale } from '@renderer/i18n'
+import { getBookDir, setBookDir } from '@renderer/service/books'
+import { getBookshelfAuthStatus } from '@renderer/service/bookshelfAuth'
+import { getStoreValue, setStoreValue } from '@renderer/service/webStore'
+import {
+  clearAssetTrash,
+  exportAppSettings,
+  getStorageStats,
+  importAppSettings
+} from '@renderer/service/systemSettings'
 
 const route = useRoute()
 const router = useRouter()
@@ -442,10 +451,11 @@ watch(
 )
 
 onMounted(async () => {
-  const dir = window.electronStore
-    ? await window.electronStore.get('booksDir')
-    : localStorage.getItem('booksDir')
-  bookDir.value = dir || ''
+  try {
+    bookDir.value = await getBookDir()
+  } catch (error) {
+    showSettingsError(error, '读取书库目录失败')
+  }
   selectedLocale.value = getCurrentLocale()
   currentVersion.value = import.meta.env.VITE_APP_VERSION || 'web'
   await loadSettingsForms()
@@ -456,34 +466,28 @@ onMounted(async () => {
 async function loadSettingsForms() {
   profileForm.value = {
     ...profileForm.value,
-    ...((await window.electronStore?.get('profileSettings')) || {})
+    ...((await getStoreValue('profileSettings', {})) || {})
   }
   editorForm.value = {
     ...editorForm.value,
-    ...((await window.electronStore?.get('editorSettings')) || {})
+    ...((await getStoreValue('editorSettings', {})) || {})
   }
   privacyForm.value = {
     ...privacyForm.value,
-    ...((await window.electronStore?.get('privacySettings')) || {})
+    ...((await getStoreValue('privacySettings', {})) || {})
   }
   notificationForm.value = {
     ...notificationForm.value,
-    ...((await window.electronStore?.get('notificationSettings')) || {})
+    ...((await getStoreValue('notificationSettings', {})) || {})
   }
 }
 
 async function requireStoreSet(key, value, fallback = '保存失败') {
-  if (typeof window.electronStore?.set !== 'function') {
-    throw new Error('当前环境不支持保存设置')
+  try {
+    return await setStoreValue(key, value)
+  } catch (error) {
+    throw new Error(error?.message || fallback)
   }
-  const result = await window.electronStore.set(key, value)
-  if (result?.success !== true) {
-    throw new Error(result?.message || fallback)
-  }
-  if (result.key !== key) {
-    throw new Error(`${fallback}：接口返回的设置项不匹配`)
-  }
-  return result
 }
 
 function showSettingsError(error, fallback = '保存失败') {
@@ -500,37 +504,23 @@ function openSettingsTab(item) {
 }
 
 async function loadPasswordStatus() {
-  const pwd = await window.electronStore?.get('bookshelfPassword')
-  hasPassword.value = !!pwd
+  try {
+    const status = await getBookshelfAuthStatus()
+    hasPassword.value = status.passwordConfigured
+  } catch (error) {
+    hasPassword.value = false
+    showSettingsError(error, '读取书架密码状态失败')
+  }
 }
 
 async function handleChooseDir() {
-  if (!window.electron?.selectBooksDir) {
-    showDirSelector.value = true
-    return
-  }
-  savingBooksDir.value = true
-  try {
-    const result = await window.electron.selectBooksDir()
-    if (result?.filePaths?.[0]) {
-      bookDir.value = result.filePaths[0]
-      await requireStoreSet('booksDir', bookDir.value, '保存目录失败')
-      ElMessage.success('保存目录成功')
-      await loadStorageStats()
-    }
-  } catch (error) {
-    showSettingsError(error, '保存目录失败')
-  } finally {
-    savingBooksDir.value = false
-  }
+  showDirSelector.value = true
 }
 
 async function handleDirSelected(path) {
   savingBooksDir.value = true
   try {
-    await requireStoreSet('booksDir', path, '保存目录失败')
-    bookDir.value = path
-    localStorage.setItem('booksDir', path)
+    bookDir.value = await setBookDir(path)
     ElMessage.success('保存目录成功')
     await loadStorageStats()
   } catch (error) {
@@ -606,8 +596,7 @@ async function loadStorageStats() {
   if (loadingStorageStats.value) return
   loadingStorageStats.value = true
   try {
-    const result = await window.electron?.getStorageStats?.()
-    storageStats.value = { ...storageStats.value, ...requireStorageStatsResult(result) }
+    storageStats.value = { ...storageStats.value, ...(await getStorageStats()) }
   } catch (error) {
     showSettingsError(error, '读取存储统计失败')
   } finally {
@@ -619,17 +608,11 @@ async function handleClearTrash() {
   if (clearingTrash.value) return
   clearingTrash.value = true
   try {
-    const result = await window.electron?.clearAssetTrash?.()
-    if (
-      result?.success === true &&
-      typeof result.bytesBefore === 'number' &&
-      typeof result.bytesAfter === 'number'
-    ) {
-      ElMessage.success('回收站已清理')
-      await loadStorageStats()
-    } else {
-      ElMessage.error(result?.message || '清理失败')
-    }
+    await clearAssetTrash()
+    ElMessage.success('回收站已清理')
+    await loadStorageStats()
+  } catch (error) {
+    showSettingsError(error, '清理回收站失败')
   } finally {
     clearingTrash.value = false
   }
@@ -638,10 +621,9 @@ async function handleClearTrash() {
 async function handleExportSettings() {
   if (exportingSettings.value) return
   exportingSettings.value = true
-  const result = await window.electron?.exportAppSettings?.()
   let exportPayload
   try {
-    exportPayload = requireSettingsExportResult(result)
+    exportPayload = await exportAppSettings()
   } catch (error) {
     ElMessage.error(error?.message || '导出设置失败')
     exportingSettings.value = false
@@ -668,8 +650,7 @@ async function handleImportSettingsFile(event) {
   importingSettings.value = true
   try {
     const content = await file.text()
-    const result = await window.electron?.importAppSettings?.({ jsonString: content })
-    const imported = requireSettingsImportResult(result)
+    const imported = await importAppSettings(content)
     ElMessage.success(`已导入 ${imported.count} 项设置`)
     await loadSettingsForms()
     await loadStorageStats()
@@ -679,59 +660,6 @@ async function handleImportSettingsFile(event) {
     importingSettings.value = false
     event.target.value = ''
   }
-}
-
-function requireSettingsExportResult(result) {
-  if (result?.success !== true) {
-    throw new Error(result?.message || '导出设置失败')
-  }
-  if (typeof result.fileName !== 'string' || !result.fileName.endsWith('.json')) {
-    throw new Error('导出设置失败：接口没有返回 JSON 文件名')
-  }
-  if (typeof result.content !== 'string' || !result.content.trim()) {
-    throw new Error('导出设置失败：接口没有返回设置内容')
-  }
-  let parsed
-  try {
-    parsed = JSON.parse(result.content)
-  } catch {
-    throw new Error('导出设置失败：接口返回内容不是 JSON')
-  }
-  if (
-    !parsed ||
-    typeof parsed !== 'object' ||
-    Array.isArray(parsed) ||
-    !parsed.settings ||
-    typeof parsed.settings !== 'object'
-  ) {
-    throw new Error('导出设置失败：接口返回备份格式不正确')
-  }
-  return result
-}
-
-function requireSettingsImportResult(result) {
-  if (result?.success !== true) {
-    throw new Error(result?.message || '导入设置失败')
-  }
-  if (typeof result.count !== 'number' || result.count < 0) {
-    throw new Error('导入设置失败：接口没有返回导入数量')
-  }
-  return result
-}
-
-function requireStorageStatsResult(result) {
-  if (result?.success !== true) {
-    throw new Error(result?.message || '读取存储统计失败')
-  }
-  for (const field of ['booksSize', 'storeSize', 'trashSize']) {
-    if (typeof result[field] !== 'number') {
-      throw new Error('读取存储统计失败：接口返回格式不正确')
-    }
-  }
-  if (result.booksDir != null && typeof result.booksDir !== 'string') {
-    throw new Error('读取存储统计失败：书库目录格式不正确')
-  }
-  return result
 }
 
 function formatSize(size) {
