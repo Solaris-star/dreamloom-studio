@@ -252,38 +252,6 @@ function requireChapterSettingsResult(response) {
   return normalizeChapterSettings(settings)
 }
 
-function validateExportChapterRows(rows) {
-  for (const row of rows) {
-    if (!row || typeof row !== 'object' || Array.isArray(row)) {
-      throw new Error('读取导出章节目录失败：接口返回格式不正确')
-    }
-    if (typeof row.name !== 'string' || !row.name.trim() || typeof row.type !== 'string') {
-      throw new Error('读取导出章节目录失败：接口返回格式不正确')
-    }
-    if (row.type === 'volume') {
-      if (!Array.isArray(row.children)) {
-        throw new Error('读取导出章节目录失败：接口返回格式不正确')
-      }
-      validateExportChapterRows(row.children)
-    } else if (row.type !== 'chapter') {
-      throw new Error('读取导出章节目录失败：接口返回格式不正确')
-    }
-  }
-}
-
-function requireExportChapterTreeResult(response, expected = {}) {
-  const result = requireSuccessResult(response, '读取导出章节目录')
-  const expectedBookName = String(expected.bookName || '').trim()
-  if (expectedBookName && result.bookName && result.bookName !== expectedBookName) {
-    throw new Error('读取导出章节目录失败：接口返回的作品不匹配')
-  }
-  if (!Array.isArray(result.chapters)) {
-    throw new Error('读取导出章节目录失败：接口返回格式不正确')
-  }
-  validateExportChapterRows(result.chapters)
-  return result.chapters
-}
-
 function validateChapterTreeRows(rows, label) {
   for (const row of rows) {
     if (!row || typeof row !== 'object' || Array.isArray(row)) {
@@ -939,68 +907,6 @@ function requireSavedChapterDocumentResult(response, expected = {}) {
     throw new Error('保存章节失败：数据库记录的章节不匹配')
   }
   return { ...result, chapterName }
-}
-
-function fileNameFromPath(path = '') {
-  const normalized = normalizeReadPath(path)
-  const parts = normalized.split('/').filter(Boolean)
-  return parts[parts.length - 1] || ''
-}
-
-function fileExtensionFromName(name = '') {
-  const fileName = String(name || '').trim()
-  const dotIndex = fileName.lastIndexOf('.')
-  if (dotIndex < 0 || dotIndex === fileName.length - 1) return ''
-  return fileName.slice(dotIndex + 1).toLowerCase()
-}
-
-function requireExportFileWriteResult(response, expected = {}) {
-  const result = requireSuccessResult(response, '写入导出文件')
-  const expectedFilePath = String(expected.filePath || '').trim()
-  const expectedChars = String(expected.content || '').length
-  const resultFilePath = String(result.filePath || result.path || '').trim()
-  if (!resultFilePath) {
-    throw new Error('写入导出文件失败：接口返回格式不正确')
-  }
-  if (expectedFilePath && resultFilePath !== expectedFilePath) {
-    throw new Error('写入导出文件失败：接口返回的文件不匹配')
-  }
-  const expectedFileName = fileNameFromPath(expectedFilePath)
-  if (expectedFileName && result.fileName && result.fileName !== expectedFileName) {
-    throw new Error('写入导出文件失败：接口返回的文件名不匹配')
-  }
-  if (!Number.isFinite(Number(result.bytes)) || Number(result.bytes) <= 0) {
-    throw new Error('写入导出文件失败：接口返回格式不正确')
-  }
-  if (!Number.isFinite(Number(result.chars)) || Number(result.chars) !== expectedChars) {
-    throw new Error('写入导出文件失败：接口返回的字符数不匹配')
-  }
-  return result
-}
-
-function requireExportSaveDialogResult(response, expected = {}) {
-  if (response == null || response.canceled === true || response.cancelled === true) return null
-  if (!response || typeof response !== 'object' || Array.isArray(response)) {
-    throw new Error('选择导出路径失败：接口返回格式不正确')
-  }
-  const filePath = String(response.filePath || response.path || '').trim()
-  if (!filePath) {
-    throw new Error('选择导出路径失败：接口返回格式不正确')
-  }
-  const fileName = fileNameFromPath(filePath)
-  const resultFileName = String(response.fileName || '').trim()
-  if (resultFileName && resultFileName !== fileName) {
-    throw new Error('选择导出路径失败：接口返回的文件名不匹配')
-  }
-  const expectedExtension = fileExtensionFromName(expected.defaultPath)
-  if (expectedExtension && fileExtensionFromName(fileName) !== expectedExtension) {
-    throw new Error('选择导出路径失败：接口返回的文件类型不匹配')
-  }
-  return {
-    ...response,
-    filePath,
-    fileName: resultFileName || fileName
-  }
 }
 
 function normalizeBannedWords(words) {
@@ -2359,48 +2265,6 @@ export async function writeDictionaryDocument(bookName, rows = []) {
   }
   const response = await requireElectronApi('writeDictionary', '词典写入接口')(targetBookName, rows)
   return requireDictionaryDocumentWriteResult(response, rows)
-}
-
-export async function listExportChapters(bookName) {
-  const targetBookName = String(bookName || '').trim()
-  if (!targetBookName) {
-    throw new Error('读取导出章节目录失败：缺少作品名')
-  }
-  const response = await requireElectronApi('loadChapters', '章节目录接口')(targetBookName)
-  return requireExportChapterTreeResult(response, {
-    bookName: targetBookName
-  })
-}
-
-export async function chooseExportFilePath(options = {}) {
-  const defaultPath = String(options.defaultPath || '').trim()
-  if (!defaultPath) {
-    throw new Error('选择导出路径失败：缺少默认文件名')
-  }
-  const response = await requireElectronApi('showSaveDialog', '导出路径选择接口')(options)
-  return requireExportSaveDialogResult(response, { defaultPath })
-}
-
-export async function writeExportFile(filePath, content) {
-  const targetFilePath = String(filePath || '').trim()
-  if (!targetFilePath) {
-    throw new Error('写入导出文件失败：缺少文件路径')
-  }
-  const text = String(content || '')
-  if (!text.trim()) {
-    throw new Error('写入导出文件失败：导出内容为空')
-  }
-  const response = await requireElectronApi(
-    'writeExportFile',
-    '导出文件写入接口'
-  )({
-    filePath: targetFilePath,
-    content: text
-  })
-  return requireExportFileWriteResult(response, {
-    filePath: targetFilePath,
-    content: text
-  })
 }
 
 export async function setChapterTargetWords(bookName, targetWords) {

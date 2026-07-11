@@ -256,6 +256,7 @@ import { Redo, Undo, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightO
 import dayjs from 'dayjs'
 import { useEditorStore } from '@renderer/stores/editor'
 import SvgIcon from '@renderer/components/SvgIcon.vue'
+import { buildBookTextExport, downloadBookTextExport } from '@renderer/service/editorExport'
 
 const TOOLTIP_SHOW_AFTER = 2000
 const { t } = useI18n()
@@ -757,19 +758,6 @@ async function handleExport() {
     // 生成时间戳：YYMMDDHHmm（例如：2511041729 表示 2025年11月04日17点29分）
     const timestamp = dayjs().format('YYMMDDHHmm')
 
-    // 用户确认后，显示保存文件对话框
-    const saveResult = await window.electron.showSaveDialog({
-      title: t('editorMenubar.exportChapter'),
-      defaultPath: `${props.bookName}_${timestamp}.txt`,
-      filters: [{ name: t('editorMenubar.textFile'), extensions: ['txt'] }],
-      buttonLabel: t('common.save')
-    })
-
-    if (!saveResult || !saveResult.filePath) {
-      // 用户取消了保存
-      return
-    }
-
     // 显示加载提示
     const loadingMessage = ElMessage({
       message: t('editorMenubar.exporting'),
@@ -779,57 +767,7 @@ async function handleExport() {
     })
 
     try {
-      // 加载所有章节数据
-      const chapterResult = await window.electron.loadChapters(props.bookName)
-      const chapters = Array.isArray(chapterResult) ? chapterResult : chapterResult.chapters
-
-      if (!chapters || chapters.length === 0) {
-        loadingMessage.close()
-        ElMessage.warning(t('editorMenubar.noChaptersFound'))
-        return
-      }
-
-      // 收集所有章节内容
-      const allContent = []
-      let totalChapters = 0
-
-      // 遍历所有卷和章节
-      for (const volume of chapters) {
-        if (volume.type === 'volume' && volume.children && volume.children.length > 0) {
-          // 添加卷标题
-          allContent.push(`\n${'='.repeat(50)}`)
-          allContent.push(`【${volume.name}】`)
-          allContent.push(`${'='.repeat(50)}\n`)
-
-          // 遍历该卷下的所有章节
-          for (const chapter of volume.children) {
-            if (chapter.type === 'chapter') {
-              try {
-                // 读取章节内容
-                const result = await window.electron.readChapter(
-                  props.bookName,
-                  volume.name,
-                  chapter.name
-                )
-
-                if (result.success && result.content) {
-                  // 添加章节标题
-                  allContent.push(`\n${'-'.repeat(40)}`)
-                  allContent.push(`${chapter.name}`)
-                  allContent.push(`${'-'.repeat(40)}\n`)
-                  // 添加章节内容
-                  allContent.push(result.content)
-                  allContent.push('\n')
-                  totalChapters++
-                }
-              } catch (error) {
-                console.error(`读取章节 ${chapter.name} 失败:`, error)
-                // 继续处理其他章节
-              }
-            }
-          }
-        }
-      }
+      const { content, totalChapters, failedChapters } = await buildBookTextExport(props.bookName)
 
       if (totalChapters === 0) {
         loadingMessage.close()
@@ -837,24 +775,15 @@ async function handleExport() {
         return
       }
 
-      // 合并所有内容
-      const finalContent = allContent.join('\n')
-
-      // 写入文件（通过 IPC 调用主进程写入）
-      const writeResult = await window.electron.writeExportFile({
-        filePath: saveResult.filePath,
-        content: finalContent
-      })
-
-      if (!writeResult || !writeResult.success) {
-        loadingMessage.close()
-        ElMessage.error(writeResult?.message || t('editorMenubar.writeFileFailed'))
-        return
-      }
+      downloadBookTextExport(props.bookName, timestamp, content)
 
       loadingMessage.close()
-      ElMessage.success(t('editorMenubar.exportSuccess', { count: totalChapters }))
-      emit('export', { success: true, totalChapters })
+      if (failedChapters.length > 0) {
+        ElMessage.warning(`已导出 ${totalChapters} 章，另有 ${failedChapters.length} 章读取失败`)
+      } else {
+        ElMessage.success(t('editorMenubar.exportSuccess', { count: totalChapters }))
+      }
+      emit('export', { success: true, totalChapters, failedChapters })
     } catch (error) {
       loadingMessage.close()
       console.error('导出失败:', error)

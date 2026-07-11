@@ -112,7 +112,14 @@ assert.doesNotMatch(
   /window\.electron(?:Store)?\b/,
   '章节树与笔记面板必须直接使用 Web 服务'
 )
+const editorMenubarSource = read('src/renderer/src/components/Editor/EditorMenubar.vue')
+assert.doesNotMatch(
+  editorMenubarSource,
+  /window\.electron(?:Store)?\b|showSaveDialog|writeExportFile/,
+  '编辑器菜单栏必须使用浏览器下载'
+)
 const editorServiceSource = read('src/renderer/src/service/editor.js')
+const webShimSource = read('src/renderer/src/service/webElectronShim.js')
 for (const method of [
   'getChapterSettings',
   'getSortOrder',
@@ -131,7 +138,13 @@ for (const method of [
     `编辑器服务不应再通过 Electron 调用 ${method}`
   )
 }
-const webShimSource = read('src/renderer/src/service/webElectronShim.js')
+for (const method of ['showSaveDialog:', 'writeExportFile:']) {
+  assert.doesNotMatch(
+    webShimSource,
+    new RegExp(`\\b${method}`),
+    `Web shim 不应保留桌面文件导出方法：${method}`
+  )
+}
 for (const method of [
   'novelGetSources:',
   'novelSearch:',

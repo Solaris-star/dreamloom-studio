@@ -132,67 +132,6 @@ async function testImageProviderByProxy({ baseUrl, apiKey, modelName = '' } = {}
   }
 }
 
-function fileNameFromPath(filePath, fallback = 'download.txt') {
-  const raw = String(filePath || fallback)
-  return raw.split(/[\\/]/).filter(Boolean).pop() || fallback
-}
-
-function mimeTypeFromFileName(fileName) {
-  const lower = String(fileName || '').toLowerCase()
-  if (lower.endsWith('.md') || lower.endsWith('.markdown')) return 'text/markdown;charset=utf-8'
-  if (lower.endsWith('.json')) return 'application/json;charset=utf-8'
-  if (lower.endsWith('.html')) return 'text/html;charset=utf-8'
-  return 'text/plain;charset=utf-8'
-}
-
-function downloadBlob(fileName, blob) {
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = fileName || 'download.txt'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
-}
-
-function webDownloadFilePath(fileName) {
-  return `web-download://${encodeURIComponent(fileName || 'download.txt')}`
-}
-
-function fileNameFromWebDownloadPath(filePath) {
-  const raw = String(filePath || '')
-  if (!raw.startsWith('web-download://')) return fileNameFromPath(raw)
-  try {
-    return decodeURIComponent(raw.replace('web-download://', '')) || 'download.txt'
-  } catch {
-    return 'download.txt'
-  }
-}
-
-async function showBrowserSaveDialog(options = {}) {
-  const fileName = fileNameFromPath(options.defaultPath, 'download.txt')
-  return {
-    filePath: webDownloadFilePath(fileName),
-    fileName
-  }
-}
-
-async function writeBrowserExportFile({ filePath, fileName, content, mimeType } = {}) {
-  const targetName = fileName || fileNameFromWebDownloadPath(filePath)
-  downloadBlob(
-    targetName,
-    new Blob([content || ''], { type: mimeType || mimeTypeFromFileName(targetName) })
-  )
-  return {
-    success: true,
-    filePath: webDownloadFilePath(targetName),
-    fileName: targetName,
-    bytes: new Blob([content || '']).size,
-    chars: String(content || '').length
-  }
-}
-
 function selectBrowserImage() {
   return new Promise((resolve) => {
     const input = document.createElement('input')
@@ -874,8 +813,6 @@ function buildElectronShim() {
     // selectBooksDir: undefined
     // validateBooksDir: undefined
     selectImage: selectBrowserImage,
-    showSaveDialog: showBrowserSaveDialog,
-    writeExportFile: writeBrowserExportFile,
     readWorkbenchDatabaseSnapshot: (payload) =>
       postJson('/api/workbench-database/snapshot', payload || {}),
     queryWorkbenchDatabase: (payload) => postJson('/api/workbench-database/query', payload || {}),
