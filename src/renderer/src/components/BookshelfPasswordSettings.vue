@@ -100,6 +100,11 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import {
+  deleteStoreValue,
+  getStoreValue,
+  setStoreValue
+} from '@renderer/service/webStore'
 
 const props = defineProps({
   modelValue: {
@@ -224,7 +229,7 @@ const maskedPassword = computed(() => {
 
 // 加载密码数据
 async function loadPassword() {
-  const password = await window.electronStore?.get('bookshelfPassword')
+  const password = await getStoreValue('bookshelfPassword', '')
   if (password) {
     storedPassword.value = password
     hasPassword.value = true
@@ -270,7 +275,7 @@ async function handleSetPassword() {
     if (valid) {
       passwordLoading.value = true
       try {
-        await window.electronStore?.set('bookshelfPassword', passwordForm.value.password)
+        await setStoreValue('bookshelfPassword', passwordForm.value.password)
         storedPassword.value = passwordForm.value.password
         hasPassword.value = true
         ElMessage.success(t('bookshelfPassword.setSuccess'))
@@ -309,13 +314,13 @@ async function handleModifyPassword() {
         const newPassword = modifyPasswordForm.value.newPassword?.trim()
         if (!newPassword) {
           // 新密码为空，表示取消密码
-          await window.electronStore?.delete('bookshelfPassword')
+          await deleteStoreValue('bookshelfPassword')
           storedPassword.value = ''
           hasPassword.value = false
           ElMessage.success(t('bookshelfPassword.cancelSuccess'))
         } else {
           // 设置新密码
-          await window.electronStore?.set('bookshelfPassword', newPassword)
+          await setStoreValue('bookshelfPassword', newPassword)
           storedPassword.value = newPassword
           hasPassword.value = true
           ElMessage.success(t('bookshelfPassword.modifySuccess'))

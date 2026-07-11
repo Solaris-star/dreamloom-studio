@@ -53,6 +53,19 @@ for (const relativePath of forbiddenDesktopArtifacts) {
 const editorSource = read('src/renderer/src/views/Editor.vue')
 assert.doesNotMatch(editorSource, /window\.process|process\.argv/, '编辑器不能读取桌面进程参数')
 
+for (const [file, label] of [
+  ['src/renderer/src/views/Auth.vue', '书架认证页面'],
+  ['src/renderer/src/router/index.js', '前端路由认证'],
+  ['src/renderer/src/components/BookshelfPasswordSettings.vue', '书架密码设置'],
+  ['src/renderer/src/layouts/AppLayout.vue', '应用布局']
+]) {
+  assert.doesNotMatch(
+    read(file),
+    /window\.electron(?:Store)?\b|ensureElectronApi|主进程/,
+    `${label}必须直接使用 Web 服务`
+  )
+}
+
 const userGuideSource = read('src/renderer/src/views/UserGuide.vue')
 assert.doesNotMatch(
   userGuideSource,

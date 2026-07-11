@@ -1,6 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 
 import { APP_TITLE } from '@renderer/constants/brand'
+import { getBookshelfAuthStatus } from '@renderer/service/bookshelfAuth'
 
 const APP_BRAND_TITLE = APP_TITLE
 
@@ -476,36 +477,14 @@ router.beforeEach(async (to, from, next) => {
     return
   }
 
-  if (typeof window.electron?.getBookshelfAuthStatus === 'function') {
-    try {
-      const status = await window.electron.getBookshelfAuthStatus()
-      if (!status.passwordConfigured || status.authenticated) {
-        next()
-        return
-      }
-      next({ name: 'Auth' })
-    } catch {
-      next({ name: 'Auth' })
+  try {
+    const status = await getBookshelfAuthStatus()
+    if (!status.passwordConfigured || status.authenticated) {
+      next()
+      return
     }
-    return
-  }
-
-  const password = await window.electronStore?.get('bookshelfPassword')
-  if (!password) {
-    next()
-    return
-  }
-
-  const sessionAuthenticated = sessionStorage.getItem('bookshelfAuthenticated') === 'true'
-  if (sessionAuthenticated) {
-    next()
-    return
-  }
-
-  const mainProcessAuthenticated = await window.electron?.getBookshelfAuthenticated?.()
-  if (mainProcessAuthenticated) {
-    sessionStorage.setItem('bookshelfAuthenticated', 'true')
-    next()
+  } catch {
+    next({ name: 'Auth' })
     return
   }
 

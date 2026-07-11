@@ -104,7 +104,7 @@
 </template>
 
 <script setup>
-import { computed, markRaw, onMounted, ref } from 'vue'
+import { computed, markRaw, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   BarChart2,
@@ -120,12 +120,13 @@ import {
 } from 'lucide-vue-next'
 import { ElMessage } from 'element-plus'
 import { readBooksDir } from '@renderer/service/books'
+import { getStoreValue, setStoreValue } from '@renderer/service/webStore'
 import { pageBeforeEnter, pageEnter, pageLeave } from '@renderer/composables/useMotion'
 import brandLogoUrl from '@renderer/assets/images/logo_big.png'
 
 const route = useRoute()
 const router = useRouter()
-const currentVersion = ref('')
+const currentVersion = ref(import.meta.env.VITE_APP_VERSION || 'web')
 const iconProps = { size: 20, strokeWidth: 2 }
 const cachedRouteNames = ['Editor']
 
@@ -213,15 +214,6 @@ const isKnowledgeLibraryRoute = computed(
 const isStudioRoute = computed(() => route.path === '/editor' || route.path.startsWith('/editor/'))
 
 const isMapDesignRoute = computed(() => route.path === '/map-design')
-
-onMounted(async () => {
-  try {
-    const result = await window.electron?.getAppVersion?.()
-    currentVersion.value = result?.version || result || 'web'
-  } catch {
-    currentVersion.value = 'web'
-  }
-})
 
 function isActive(item) {
   if (item.key === 'editor' && isStudioRoute.value) return true
@@ -354,11 +346,7 @@ function buildBookQuery(book = {}) {
 
 async function readLastActiveBookId() {
   try {
-    return String(
-      (await window.electronStore?.get?.('lastActiveBookId')) ||
-        localStorage.getItem('lastActiveBookId') ||
-        ''
-    )
+    return String(await getStoreValue('lastActiveBookId', localStorage.getItem('lastActiveBookId')))
   } catch {
     return localStorage.getItem('lastActiveBookId') || ''
   }
@@ -369,7 +357,7 @@ async function writeLastActiveBookId(id) {
   if (!value) return
   localStorage.setItem('lastActiveBookId', value)
   try {
-    await window.electronStore?.set?.('lastActiveBookId', value)
+    await setStoreValue('lastActiveBookId', value)
   } catch {
     // localStorage 已保存
   }

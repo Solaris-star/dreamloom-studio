@@ -38,47 +38,33 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import {
+  authenticateBookshelf,
+  getBookshelfAuthStatus
+} from '@renderer/service/bookshelfAuth'
 
 const router = useRouter()
 const { t } = useI18n()
 const authPassword = ref('')
 const authLoading = ref(false)
 const showPasswordHint = ref(false)
-const storedPassword = ref('')
-
-// 计算缩略密码
-const maskedPassword = computed(() => {
-  if (!storedPassword.value) return ''
-  const pwd = storedPassword.value
-  if (pwd.length <= 4) {
-    return '****'
-  }
-  const start = pwd.substring(0, 2)
-  const end = pwd.substring(pwd.length - 2)
-  return `${start}****${end}`
-})
+const maskedPassword = ref('')
 
 // 加载密码
 onMounted(async () => {
-  if (typeof window.electron?.getBookshelfAuthStatus === 'function') {
-    const status = await window.electron.getBookshelfAuthStatus()
+  try {
+    const status = await getBookshelfAuthStatus()
     if (!status.passwordConfigured || status.authenticated) {
       router.push('/')
       return
     }
-    storedPassword.value = status.hint || '****'
-    return
-  }
-  const password = await window.electronStore?.get('bookshelfPassword')
-  if (password) {
-    storedPassword.value = password
-  } else {
-    // 如果没有密码，直接跳转到首页
-    router.push('/')
+    maskedPassword.value = status.hint || '****'
+  } catch (error) {
+    ElMessage.error(error.message || t('auth.statusFailed'))
   }
 })
 
@@ -90,22 +76,8 @@ async function handleAuthSubmit() {
   }
   authLoading.value = true
   try {
-    if (typeof window.electron?.authenticateBookshelf === 'function') {
-      await window.electron.authenticateBookshelf(authPassword.value)
-      sessionStorage.setItem('bookshelfAuthenticated', 'true')
-      router.push('/')
-      return
-    }
-    if (authPassword.value === storedPassword.value) {
-      // 认证成功：同时更新本窗口 sessionStorage 和主进程内存状态（供其他窗口共享）
-      sessionStorage.setItem('bookshelfAuthenticated', 'true')
-      await window.electron?.setBookshelfAuthenticated?.()
-      // 跳转到首页
-      router.push('/')
-    } else {
-      ElMessage.error(t('auth.wrongPassword'))
-      authPassword.value = ''
-    }
+    await authenticateBookshelf(authPassword.value)
+    router.push('/')
   } catch {
     ElMessage.error(t('auth.wrongPassword'))
     authPassword.value = ''
