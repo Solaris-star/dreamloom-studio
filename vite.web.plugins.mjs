@@ -1194,6 +1194,11 @@ export function createWebServerPlugins() {
               sendJson(res, assetService.listAssets(getActiveBooksDir(), body || {}))
             } else if (path === '/api/assets/import') {
               sendJson(res, assetService.importAsset(getActiveBooksDir(), body || {}))
+            } else if (path === '/api/assets/references') {
+              sendJson(res, {
+                success: true,
+                references: assetService.findAssetReferences(getActiveBooksDir(), body.id)
+              })
             } else if (path === '/api/assets/delete') {
               sendJson(res, assetService.deleteAsset(getActiveBooksDir(), body.id))
             } else if (path === '/api/assets/restore') {

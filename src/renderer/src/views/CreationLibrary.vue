@@ -1035,6 +1035,7 @@ import { listChapterTree } from '@renderer/service/editor'
 import {
   attachAssetToBook,
   deleteAsset,
+  findAssetReferences,
   getAssetUrl,
   imageSelectionToImportInput,
   importAsset,
@@ -2310,6 +2311,11 @@ function readFileAsDataUrl(file) {
 
 async function deleteImage(asset) {
   try {
+    const references = await findAssetReferences(asset.id)
+    if (references.length) {
+      ElMessage.error(`该图片仍被引用，不能删除：${formatAssetReferences(references)}`)
+      return
+    }
     await ElMessageBox.confirm(`确定删除「${asset.name}」吗？`, '删除图片', {
       type: 'warning',
       confirmButtonText: '删除',
@@ -2322,6 +2328,13 @@ async function deleteImage(asset) {
   } catch (error) {
     if (error !== 'cancel') ElMessage.error(error?.message || '删除失败')
   }
+}
+
+function formatAssetReferences(references) {
+  return references
+    .slice(0, 5)
+    .map((item) => `${item.file}（${(item.fields || []).join('、')}）`)
+    .join('；')
 }
 
 function openPromptDialog(preset = null) {

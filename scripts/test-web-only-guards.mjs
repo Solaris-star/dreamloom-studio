@@ -60,6 +60,17 @@ assert.doesNotMatch(
   '正式用户指南不能引用旧客户端或二维码内容'
 )
 
+const assetServiceSource = read('src/renderer/src/service/assets.js')
+assert.doesNotMatch(
+  assetServiceSource,
+  /window\.electron|ensureElectronApi/,
+  '素材服务必须直接使用 Web API'
+)
+const webShimSource = read('src/renderer/src/service/webElectronShim.js')
+for (const method of ['listAssets:', 'importAsset:', 'deleteAsset:', 'restoreAsset:', 'attachAssetToBook:']) {
+  assert.doesNotMatch(webShimSource, new RegExp(`\\b${method}`), `Web shim 不应保留素材方法：${method}`)
+}
+
 const rendererRoot = path.join(root, 'src/renderer/src')
 const rendererSourceFiles = fs
   .readdirSync(rendererRoot, { recursive: true, withFileTypes: true })

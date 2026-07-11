@@ -2072,12 +2072,6 @@ function buildElectronShim() {
     createWritingGoal: async (payload = {}) => postJson('/api/goals/create', payload || {}),
     updateWritingGoal: async (id, patch = {}) => postJson('/api/goals/update', { id, patch }),
     deleteWritingGoal: async (id) => postJson('/api/goals/delete', { id }),
-    listAssets: async (payload = {}) => postJson('/api/assets/list', payload || {}),
-    importAsset: async (payload = {}) => postJson('/api/assets/import', payload || {}),
-    deleteAsset: async (id) => postJson('/api/assets/delete', { id }),
-    restoreAsset: async (id) => postJson('/api/assets/restore', { id }),
-    attachAssetToBook: async (payload = {}) =>
-      postJson('/api/assets/attach-to-book', payload || {}),
     previewImportBook: async (payload = {}) => postJson('/api/import/preview', payload || {}),
     importBookFromFile: async (payload = {}) => postJson('/api/import/book', payload || {}),
     exportBookFile: async (payload = {}) => postJson('/api/export/book', payload || {}),

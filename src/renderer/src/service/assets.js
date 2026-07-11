@@ -1,10 +1,4 @@
-function ensureElectronApi(name) {
-  const api = globalThis.window?.electron?.[name]
-  if (typeof api !== 'function') {
-    throw new Error(`当前环境暂不支持资产接口：${name}`)
-  }
-  return api
-}
+import { postJson } from './webHttpClient.js'
 
 function isPlainObject(value) {
   return value != null && typeof value === 'object' && !Array.isArray(value)
@@ -62,31 +56,42 @@ function requireAssetItemResult(
 }
 
 export async function listAssets(filter = {}) {
-  const result = await ensureElectronApi('listAssets')(filter)
+  const result = await postJson('/api/assets/list', filter)
   return requireAssetListResult(result)
 }
 
+export async function findAssetReferences(id) {
+  const result = requireAssetSuccess(
+    await postJson('/api/assets/references', { id }),
+    '读取素材引用失败'
+  )
+  if (!Array.isArray(result.references)) {
+    throw new Error('读取素材引用失败：接口返回格式不正确')
+  }
+  return result.references
+}
+
 export async function deleteAsset(id) {
-  const result = await ensureElectronApi('deleteAsset')(id)
+  const result = await postJson('/api/assets/delete', { id })
   return requireAssetItemResult(result, '移入回收站失败')
 }
 
 export async function restoreAsset(id) {
-  const result = await ensureElectronApi('restoreAsset')(id)
+  const result = await postJson('/api/assets/restore', { id })
   return requireAssetItemResult(result, '恢复素材失败', {
     requiredFields: ['restoredPath', 'originalRelativePath', 'trashRelativePath', 'restoredId']
   })
 }
 
 export async function attachAssetToBook(payload = {}) {
-  const result = await ensureElectronApi('attachAssetToBook')(payload)
+  const result = await postJson('/api/assets/attach-to-book', payload)
   return requireAssetItemResult(result, '关联素材失败', {
     expectedBookName: payload.bookName || ''
   })
 }
 
 export async function importAsset(payload = {}) {
-  const result = await ensureElectronApi('importAsset')(payload)
+  const result = await postJson('/api/assets/import', payload)
   return requireAssetItemResult(result, '导入素材失败', {
     expectedBookName: payload.bookName || ''
   })

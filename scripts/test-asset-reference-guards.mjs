@@ -19,19 +19,58 @@ try {
   fs.writeFileSync(imagePath, Buffer.from([0x89, 0x50, 0x4e, 0x47]))
   fs.writeFileSync(
     path.join(bookDir, 'characters.json'),
-    JSON.stringify([{ name: '林溪', imagePath: 'character_images/林溪.png' }])
+    JSON.stringify([
+      {
+        name: '林溪',
+        imagePath: 'character_images/林溪.png',
+        gallery: ['test-book\\character_images\\林溪.png']
+      }
+    ])
+  )
+  fs.mkdirSync(path.join(bookDir, 'scene_images'), { recursive: true })
+  const scenePath = path.join(bookDir, 'scene_images', '雨夜.png')
+  fs.writeFileSync(scenePath, Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+  fs.writeFileSync(
+    path.join(bookDir, 'scenes.json'),
+    JSON.stringify([{ name: '雨夜', image: '雨夜.png' }])
+  )
+  const coverPath = path.join(bookDir, 'cover.png')
+  fs.writeFileSync(coverPath, Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+  fs.writeFileSync(
+    path.join(bookDir, 'mazi.json'),
+    JSON.stringify({
+      id: 'book-1',
+      name: '测试书',
+      coverUrl: 'test-book/cover.png',
+      alternateCover: 'cover.png'
+    })
   )
 
-  const asset = listAssets(root).items.find((item) => item.name === '林溪.png')
-  assert.ok(asset)
-  assert.deepEqual(findAssetReferences(root, asset.id), [
-    { file: 'characters.json', fields: ['$[0].imagePath'] }
+  const assets = listAssets(root).items
+  const characterAsset = assets.find((item) => item.name === '林溪.png')
+  const sceneAsset = assets.find((item) => item.name === '雨夜.png')
+  const coverAsset = assets.find((item) => item.name === 'cover.png')
+  assert.ok(characterAsset)
+  assert.ok(sceneAsset)
+  assert.ok(coverAsset)
+  assert.deepEqual(findAssetReferences(root, characterAsset.id), [
+    { file: 'characters.json', fields: ['$[0].imagePath', '$[0].gallery[0]'] }
   ])
-  assert.throws(() => deleteAsset(root, asset.id), /characters\.json.*imagePath/)
+  assert.deepEqual(findAssetReferences(root, sceneAsset.id), [
+    { file: 'scenes.json', fields: ['$[0].image'] }
+  ])
+  assert.deepEqual(findAssetReferences(root, coverAsset.id), [
+    { file: 'mazi.json', fields: ['$.coverUrl', '$.alternateCover'] }
+  ])
+  assert.throws(() => deleteAsset(root, characterAsset.id), /characters\.json.*imagePath/)
+  assert.throws(() => deleteAsset(root, sceneAsset.id), /scenes\.json.*image/)
+  assert.throws(() => deleteAsset(root, coverAsset.id), /mazi\.json.*coverUrl/)
   assert.equal(fs.existsSync(imagePath), true, '有引用的素材必须保留在原位置')
+  assert.equal(fs.existsSync(scenePath), true, '场景引用存在时必须保留素材')
+  assert.equal(fs.existsSync(coverPath), true, '封面引用存在时必须保留素材')
 
   fs.writeFileSync(path.join(bookDir, 'characters.json'), JSON.stringify([{ name: '林溪' }]))
-  const result = deleteAsset(root, asset.id)
+  const result = deleteAsset(root, characterAsset.id)
   assert.equal(result.success, true)
   assert.equal(fs.existsSync(imagePath), false)
   assert.equal(fs.existsSync(path.join(root, result.item.trashRelativePath)), true)

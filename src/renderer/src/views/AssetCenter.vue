@@ -177,6 +177,7 @@ import {
 import {
   attachAssetToBook,
   deleteAsset,
+  findAssetReferences,
   getAssetUrl,
   listAssets,
   restoreAsset
@@ -356,6 +357,11 @@ function normalizeAssetSummary(value, rows) {
 
 async function handleDelete(asset) {
   try {
+    const references = await findAssetReferences(asset.id)
+    if (references.length) {
+      ElMessage.error(`该素材仍被引用，不能删除：${formatAssetReferences(references)}`)
+      return
+    }
     await ElMessageBox.confirm(`确定将「${asset.name}」移入回收站吗？`, '移入回收站', {
       type: 'warning',
       confirmButtonText: '移入回收站',
@@ -368,6 +374,13 @@ async function handleDelete(asset) {
   } catch (error) {
     if (error !== 'cancel') ElMessage.error(error?.message || '删除失败')
   }
+}
+
+function formatAssetReferences(references) {
+  return references
+    .slice(0, 5)
+    .map((item) => `${item.file}（${(item.fields || []).join('、')}）`)
+    .join('；')
 }
 
 async function handleRestore(asset) {
