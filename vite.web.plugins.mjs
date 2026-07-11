@@ -12,6 +12,11 @@ import { generateImageResult as generateImageResultByProvider } from './src/main
 import novelDownloader from './src/main/services/novelDownloader.js'
 import * as webBooksApi from './src/main/services/webBooksApi.js'
 import knowledgeBaseService from './src/main/services/knowledgeBaseService.js'
+import knowledgeTopicAiService from './src/main/services/knowledgeTopicAi.js'
+import {
+  runConsistencyCheck,
+  listConsistencyChecks
+} from './src/main/services/consistencyCheckService.js'
 import marketService from './src/main/services/marketService.js'
 import analyticsService from './src/main/services/analyticsService.js'
 import * as promptPresetService from './src/main/services/promptPresetService.js'
@@ -781,6 +786,42 @@ export function createWebServerPlugins() {
                 body.embeddingConfig || null
               )
               sendJson(res, { success: true, items })
+            } else if (path === '/api/knowledge/ai-task') {
+              const provider = createTextProvider(webStoreAdapter(), body || {})
+              sendJson(res, await knowledgeTopicAiService.runTask(body || {}, provider.service))
+            } else if (path === '/api/knowledge/create-topic-from-ai') {
+              const sourceItem =
+                body.sourceItem && typeof body.sourceItem === 'object' ? body.sourceItem : {}
+              const aiResult =
+                body.aiResult && typeof body.aiResult === 'object' ? body.aiResult : {}
+              sendJson(
+                res,
+                knowledgeBaseService.createTopicCardFromAiResult(
+                  getActiveBooksDir(),
+                  sourceItem,
+                  aiResult,
+                  sanitizeText(body.rawOutput)
+                )
+              )
+            } else if (path === '/api/consistency/check') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              const wantsLlm =
+                body.useLlm === true || body.aiCheck === true || body.enableLlm === true
+              const provider = wantsLlm ? createTextProvider(webStoreAdapter(), body || {}) : null
+              sendJson(
+                res,
+                await runConsistencyCheck(
+                  { ...body, bookPath },
+                  { textProvider: provider?.service }
+                )
+              )
+            } else if (path === '/api/consistency/list') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              sendJson(res, listConsistencyChecks({ ...body, bookPath }))
             } else if (path === '/api/editor-agent/queue-status') {
               try {
                 sendJson(res, await agentTaskQueueService.getAgentTaskQueueStatus(body || {}))
