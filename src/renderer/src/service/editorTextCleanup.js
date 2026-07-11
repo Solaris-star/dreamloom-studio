@@ -1,3 +1,8 @@
+import { postJson } from './webHttpClient.js'
+
+const CLEANUP_INSTRUCTION =
+  '请清理这段小说文本中的防盗版乱码、生僻符号和无逻辑字符组合。必须保留正常剧情、描写和对白，不得概括、续写或调整文风。只返回清理后的正文，不要解释。'
+
 function splitParagraphs(text) {
   return String(text || '')
     .split(/\n{2,}/)
@@ -41,18 +46,95 @@ export function buildParagraphDiff(originalText, resultText) {
   return changes
 }
 
-export async function cleanEditorText(text) {
+function splitModelBindingId(modelId = '') {
+  const [providerId, ...modelParts] = String(modelId || '').trim().split('::')
+  return {
+    providerId: String(providerId || '').trim(),
+    modelName: modelParts.join('::').trim()
+  }
+}
+
+async function readStoreValue(key, fallback = '') {
+  const result = await postJson('/api/store/get', { key })
+  if (result?.success !== true || result.key !== key) {
+    throw new Error(result?.message || '读取 AI 模型设置失败')
+  }
+  return result.value ?? fallback
+}
+
+async function resolveCleanupModel() {
+  const defaults = await readStoreValue('editorModelDefaults', {})
+  if (defaults == null || typeof defaults !== 'object' || Array.isArray(defaults)) {
+    throw new Error('AI 模型设置格式不正确')
+  }
+  const modelId = defaults.writing || defaults.summary || defaults.chat || ''
+  const parsed = splitModelBindingId(modelId)
+  const providerId =
+    parsed.providerId || (await readStoreValue('aiProviders.activeTextId', ''))
+  return {
+    modelId,
+    providerId: String(providerId || ''),
+    modelName: parsed.modelName
+  }
+}
+
+function requireCleanupResponse(response) {
+  if (response?.success !== true) {
+    throw new Error(response?.message || response?.error || 'AI 清理失败')
+  }
+  const content = String(response.content ?? response.result ?? response.text ?? '').trim()
+  if (!content) throw new Error('AI 返回空内容，已保留原文')
+  return content
+}
+
+export async function requestEditorTextCleanup({
+  text,
+  bookId = '',
+  chapterId = '',
+  selection = null,
+  editVersion = '',
+  modelId = '',
+  providerId = '',
+  modelName = ''
+}) {
   const content = String(text || '').trim()
   if (!content) throw new Error('待清理内容不能为空')
-  const api = globalThis.window?.electron?.cleanGarbageTextWithAI
-  if (typeof api !== 'function') throw new Error('当前环境不支持 AI 清理乱码')
-  const result = await api({ text: content })
-  if (result?.success !== true) throw new Error(result?.message || 'AI 清理失败')
-  const cleaned = String(result.content || '').trim()
-  if (!cleaned) throw new Error('AI 返回空内容，已保留原文')
+  const configuredModel =
+    modelId || providerId || modelName
+      ? { modelId, providerId, modelName }
+      : await resolveCleanupModel()
+  const response = await postJson('/api/ai/text-task', {
+    task: 'clean_garbage',
+    feature: 'ai_polish',
+    title: '编辑器 AI 清理乱码',
+    content,
+    instruction: CLEANUP_INSTRUCTION,
+    bookId,
+    chapterId,
+    selection,
+    editVersion,
+    ...configuredModel
+  })
+  const cleaned = requireCleanupResponse(response)
+  return {
+    success: true,
+    content: cleaned,
+    usage: response.usage || {},
+    model: response.model || configuredModel.modelName,
+    providerId: response.providerId || configuredModel.providerId
+  }
+}
+
+export async function cleanEditorText(text, context = {}) {
+  const content = String(text || '').trim()
+  const result = await requestEditorTextCleanup({ text: content, ...context })
+  const cleaned = result.content
+  const removedRatio = content.length > 0 ? Math.max(0, 1 - cleaned.length / content.length) : 0
   return {
     ...result,
     content: cleaned,
-    diff: buildParagraphDiff(content, cleaned)
+    diff: buildParagraphDiff(content, cleaned),
+    warnings: removedRatio >= 0.3 ? ['AI 结果比原文短 30% 以上，可能误删正常内容'] : [],
+    removedRatio
   }
 }

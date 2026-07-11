@@ -417,6 +417,7 @@ const cleanupTaskState = ref({
   selection: 'idle',
   chapter: 'idle'
 })
+let cleanupRequestSequence = 0
 const polishSourceDocument = ref('')
 const polishSourceFilePath = ref('')
 
@@ -1395,17 +1396,34 @@ async function getPreviousChapterContextInfo() {
       ElMessage.warning('选中的内容太短')
       return
     }
+    const requestId = ++cleanupRequestSequence
+    const sourceDocument = editor.value.getText()
+    const sourceFilePath = editorStore.file?.path || ''
     cleanupTaskState.value.selection = 'running'
     try {
-      const res = await cleanEditorText(text)
+      const res = await cleanEditorText(text, {
+        bookId: props.bookName,
+        chapterId: sourceFilePath,
+        selection: { from, to },
+        editVersion: sourceDocument
+      })
+      if (
+        requestId !== cleanupRequestSequence ||
+        editorStore.file?.path !== sourceFilePath ||
+        editor.value?.getText() !== sourceDocument
+      ) {
+        cleanupTaskState.value.selection = 'idle'
+        ElMessage.warning('正文在 AI 处理期间已经变化，本次结果未应用')
+        return
+      }
       polishMode.value = 'selection'
       polishOriginalText.value = text
       polishResultText.value = res.content || ''
       cleanupDiff.value = res.diff
       polishReplaceFrom.value = from
       polishReplaceTo.value = to
-      polishSourceDocument.value = editor.value.getText()
-      polishSourceFilePath.value = editorStore.file?.path || ''
+      polishSourceDocument.value = sourceDocument
+      polishSourceFilePath.value = sourceFilePath
       polishDialogVisible.value = true
       cleanupTaskState.value.selection = 'success'
     } catch (e) {
@@ -1425,15 +1443,30 @@ async function getPreviousChapterContextInfo() {
       ElMessage.warning('本章内容太少')
       return
     }
+    const requestId = ++cleanupRequestSequence
+    const sourceFilePath = editorStore.file?.path || ''
     cleanupTaskState.value.chapter = 'running'
     try {
-      const res = await cleanEditorText(fullText)
+      const res = await cleanEditorText(fullText, {
+        bookId: props.bookName,
+        chapterId: sourceFilePath,
+        editVersion: fullText
+      })
+      if (
+        requestId !== cleanupRequestSequence ||
+        editorStore.file?.path !== sourceFilePath ||
+        editor.value?.getText() !== fullText
+      ) {
+        cleanupTaskState.value.chapter = 'idle'
+        ElMessage.warning('正文在 AI 处理期间已经变化，本次结果未应用')
+        return
+      }
       polishMode.value = 'chapter'
       polishOriginalText.value = fullText
       polishResultText.value = res.content || ''
       cleanupDiff.value = res.diff
       polishSourceDocument.value = fullText
-      polishSourceFilePath.value = editorStore.file?.path || ''
+      polishSourceFilePath.value = sourceFilePath
       polishDialogVisible.value = true
       cleanupTaskState.value.chapter = 'success'
     } catch (e) {

@@ -1,4 +1,5 @@
 import { fetchJson, postJson } from './webHttpClient.js'
+import { requestEditorTextCleanup } from './editorTextCleanup.js'
 
 /**
  * Web 版 window.electron / window.electronStore 兼容层
@@ -1424,39 +1425,11 @@ function buildElectronShim() {
         providerId: meta.providerId
       }
     },
-    cleanGarbageTextWithAI: async (input) => {
-      const payload = normalizeTextAiPayload(input)
-      const content = String(payload.text || payload.content || '').trim()
-      if (!content) {
-        return { success: false, message: '请先输入或选择需要清理的正文', content: '' }
-      }
-      const modelPayload = await resolveTextModelPayload('writing')
-      const aiModelPayload = resolveTextAiModelPayload(payload, modelPayload)
-      const response = await postJson('/api/ai/text-task', {
-        task: 'clean_garbage',
-        feature: 'ai_polish',
-        title: '编辑器 AI 清理乱码',
-        content,
-        instruction:
-          '请帮我清理这段小说文本中的防盗版乱码（如各种生僻字、特殊符号、无逻辑组合等）。要求：绝对忠于原文，不得改变、总结或删减任何正常的剧情描写和对白，仅作乱码剔除处理。只返回清理后的正文，不要解释。',
-        ...aiModelPayload
-      })
-      const aiResult = requireWebAiTextTaskResponse(response, 'AI 清理失败')
-      if (aiResult.success !== true) {
-        return { success: false, message: aiResult.message || 'AI 清理失败', content: '' }
-      }
-      const resultText = aiResult.content
-      const meta = resolveResponseProviderMeta(response, aiModelPayload)
-      return {
-        success: true,
-        content: resultText,
-        inputWordCount: countWebTextWords(content),
-        wordCount: countWebTextWords(resultText),
-        usage: response?.usage || {},
-        model: meta.model,
-        providerId: meta.providerId
-      }
-    },
+    cleanGarbageTextWithAI: (input = {}) =>
+      requestEditorTextCleanup({
+        ...input,
+        text: input.text || input.content || ''
+      }),
     refineSettingWithAI: refineWebSettingWithAI,
     runOutlineAiTask: runWebOutlineAiTask,
     generateChapterFromOutline: (payload) =>
