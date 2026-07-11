@@ -789,22 +789,6 @@ function buildElectronShim() {
     readWorkbenchDatabaseSnapshot: (payload) =>
       postJson('/api/workbench-database/snapshot', payload || {}),
     queryWorkbenchDatabase: (payload) => postJson('/api/workbench-database/query', payload || {}),
-    openBookEditorWindow: async (_id, name) => {
-      const url = `/#/editor?name=${encodeURIComponent(name || '')}`
-      let opened = false
-      if (typeof window !== 'undefined' && name) {
-        const child = window.open(url, '_blank')
-        opened = Boolean(child)
-      }
-      return {
-        success: Boolean(name),
-        bookId: _id,
-        bookName: name || '',
-        url,
-        opened,
-        target: '_blank'
-      }
-    },
     // ----- 卷与章节 -----
     createVolume: (bookName) => postJson('/api/volumes/create', { bookName }),
     createChapter: (bookName, volumeId) => postJson('/api/chapters/create', { bookName, volumeId }),

@@ -175,7 +175,8 @@ for (const method of [
   'getStorageStats:',
   'clearAssetTrash:',
   'exportAppSettings:',
-  'importAppSettings:'
+  'importAppSettings:',
+  'openBookEditorWindow:'
 ]) {
   assert.doesNotMatch(
     webShimSource,
@@ -188,6 +189,16 @@ assert.doesNotMatch(
   /window\.(?:electron|electronStore)\b/,
   '系统设置页必须只使用 Web 服务'
 )
+for (const file of [
+  'src/renderer/src/components/Bookshelf.vue',
+  'src/renderer/src/views/CreationStarterResult.vue'
+]) {
+  assert.doesNotMatch(
+    read(file),
+    /window\.(?:electron|electronStore)\b/,
+    `${file} 必须只使用 Web 服务和路由`
+  )
+}
 for (const method of [
   'novelGetSources:',
   'novelSearch:',

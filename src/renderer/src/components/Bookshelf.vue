@@ -125,7 +125,8 @@ const bookTypeCascaderOptions = BOOK_TYPE_GROUPS.map((g) => ({
   children: g.options.map((o) => ({ label: o.label, value: o.value }))
 }))
 import { readBooksDir, createBook, deleteBook, updateBook } from '@renderer/service/books'
-import { bookImageUrl, selectedBrowserImageUrl } from '@renderer/utils/webImageUrl'
+import { bookImageUrl } from '@renderer/utils/webImageUrl'
+import { selectBrowserImage } from '@renderer/service/browserImagePicker'
 import AICoverDrawer from '@renderer/components/AICoverDrawer.vue'
 import BookFormDrawer from '@renderer/components/BookFormDrawer.vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
@@ -234,14 +235,10 @@ function onOpen(book) {
 // 执行打开书籍操作（使用实际目录名 folderName 定位书籍文件夹）
 function executeOpenBook(book) {
   const folderName = book.folderName || book.name
-  if (window.electron && window.electron.openBookEditorWindow) {
-    window.electron.openBookEditorWindow(book.id, folderName)
-  } else {
-    router.push({
-      path: '/editor',
-      query: { name: folderName }
-    })
-  }
+  router.push({
+    path: '/editor',
+    query: { name: folderName }
+  })
 }
 
 // 右键菜单相关
@@ -430,11 +427,10 @@ function handleNewBook() {
 // 选择封面图片
 async function handleSelectCoverImage() {
   try {
-    const result = await window.electron.selectImage()
-    if (result?.success) {
-      form.value.coverImagePath = result.filePath
-      form.value.coverImagePreview = selectedBrowserImageUrl(result)
-    }
+    const result = await selectBrowserImage()
+    if (!result) return
+    form.value.coverImagePath = result.dataUrl
+    form.value.coverImagePreview = result.dataUrl
   } catch (error) {
     console.error('Failed to select cover image:', error)
     ElMessage.error(t('bookshelf.selectImageFailed'))

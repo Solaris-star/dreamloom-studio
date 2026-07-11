@@ -844,10 +844,6 @@ function toWorldText() {
 }
 
 function openBook(bookData) {
-  if (window.electron?.openBookEditorWindow) {
-    window.electron.openBookEditorWindow(bookData.id, bookData.name)
-    return
-  }
   router.push({ path: '/editor', query: { name: bookData.name } })
 }
 
