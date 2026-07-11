@@ -447,8 +447,7 @@ onMounted(async () => {
     : localStorage.getItem('booksDir')
   bookDir.value = dir || ''
   selectedLocale.value = getCurrentLocale()
-  const verResult = await window.electron?.getAppVersion()
-  currentVersion.value = verResult?.version || verResult || 'web'
+  currentVersion.value = import.meta.env.VITE_APP_VERSION || 'web'
   await loadSettingsForms()
   await loadStorageStats()
   await loadPasswordStatus()

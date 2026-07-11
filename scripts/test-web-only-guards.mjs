@@ -164,13 +164,26 @@ for (const method of [
     `编辑器服务不应再通过 Electron 调用 ${method}`
   )
 }
-for (const method of ['showSaveDialog:', 'writeExportFile:']) {
+for (const method of [
+  'showSaveDialog:',
+  'writeExportFile:',
+  'setBookshelfAuthenticated:',
+  'getBookshelfAuthenticated:',
+  'getBookshelfAuthStatus:',
+  'authenticateBookshelf:',
+  'getAppVersion:'
+]) {
   assert.doesNotMatch(
     webShimSource,
     new RegExp(`\\b${method}`),
-    `Web shim 不应保留桌面文件导出方法：${method}`
+    `Web shim 不应保留已迁移的兼容方法：${method}`
   )
 }
+assert.doesNotMatch(
+  read('src/renderer/src/views/SystemSettings.vue'),
+  /window\.electron(?:\?\.)?\.getAppVersion\b/,
+  '系统设置页必须直接读取 Web 构建版本'
+)
 for (const method of [
   'novelGetSources:',
   'novelSearch:',

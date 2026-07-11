@@ -10,36 +10,9 @@ import { requestEditorTextCleanup } from './editorTextCleanup.js'
  */
 
 const NOT_SUPPORTED_MESSAGE = 'Web 端暂不支持该功能'
-const BOOKSHELF_AUTH_SESSION_KEY = 'bookshelfAuthenticated'
 
 function isElectronEnv() {
   return typeof window !== 'undefined' && !!window.electron
-}
-
-function setWebBookshelfAuthenticated() {
-  if (typeof window !== 'undefined') {
-    window.sessionStorage.setItem(BOOKSHELF_AUTH_SESSION_KEY, 'true')
-  }
-  return true
-}
-
-async function getWebBookshelfAuthStatus() {
-  const status = await fetchJson('/api/auth/status')
-  if (status?.success !== true) {
-    throw new Error(status?.message || '读取书架认证状态失败')
-  }
-  if (status.authenticated) setWebBookshelfAuthenticated()
-  else window.sessionStorage.removeItem(BOOKSHELF_AUTH_SESSION_KEY)
-  return status
-}
-
-async function authenticateWebBookshelf(password) {
-  const result = await postJson('/api/auth/login', { password })
-  if (result?.success !== true || result?.authenticated !== true) {
-    throw new Error(result?.message || '书架认证失败')
-  }
-  setWebBookshelfAuthenticated()
-  return result
 }
 
 function notSupportedSilent(method) {
@@ -832,14 +805,6 @@ function buildElectronShim() {
         target: '_blank'
       }
     },
-    setBookshelfAuthenticated: async () => setWebBookshelfAuthenticated(),
-    getBookshelfAuthenticated: async () => {
-      const status = await getWebBookshelfAuthStatus()
-      return status.authenticated === true
-    },
-    getBookshelfAuthStatus: getWebBookshelfAuthStatus,
-    authenticateBookshelf: authenticateWebBookshelf,
-
     // ----- 卷与章节 -----
     createVolume: (bookName) => postJson('/api/volumes/create', { bookName }),
     createChapter: (bookName, volumeId) => postJson('/api/chapters/create', { bookName, volumeId }),
@@ -1002,8 +967,6 @@ function buildElectronShim() {
     getBannedWords: getWebBannedWords,
     addBannedWord: addWebBannedWord,
     removeBannedWord: removeWebBannedWord,
-
-    getAppVersion: async () => 'web',
 
     // ----- AI 系列 -----
     generateBookIdeasWithAI: async (payload = {}) => {
