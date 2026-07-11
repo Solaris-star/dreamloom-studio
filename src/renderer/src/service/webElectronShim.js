@@ -1188,21 +1188,6 @@ function buildElectronShim() {
     getAppVersion: async () => 'web',
 
     // ----- AI 系列 -----
-    setDeepSeekApiKey: async (apiKey) => {
-      const savedApiKey = normalizeWebSecret(apiKey)
-      await setStoreValue('deepseek.apiKey', savedApiKey)
-      return { success: true, ...secretSavedMeta(savedApiKey) }
-    },
-    getDeepSeekApiKey: async () => {
-      const apiKey = await getStoreValue('deepseek.apiKey', '')
-      return {
-        success: true,
-        apiKey,
-        configured: Boolean(String(apiKey || '').trim()),
-        source: apiKey ? 'store' : ''
-      }
-    },
-    generateNamesWithAI: generateWebNamesWithAI,
     generateBookIdeasWithAI: async (payload = {}) => {
       const modelPayload = await resolveTextModelPayload('writing')
       const aiModelPayload = resolveTextAiModelPayload(payload, modelPayload)
@@ -1211,103 +1196,11 @@ function buildElectronShim() {
         ...aiModelPayload
       })
     },
-    validateDeepSeekApiKey: async () => {
-      const apiKey = await getStoreValue('deepseek.apiKey', '')
-      if (!apiKey) {
-        return {
-          success: false,
-          valid: false,
-          isValid: false,
-          message: '请先保存 API Key'
-        }
-      }
-
-      try {
-        const proxyResult = await postJson('/api/ai-proxy', {
-          targetUrl: 'https://api.deepseek.com/v1/models',
-          apiKey,
-          method: 'GET'
-        })
-        if (proxyResult.success) {
-          const models = Array.isArray(proxyResult.data?.data)
-            ? proxyResult.data.data.map((item) => item.id).filter(Boolean)
-            : []
-          return {
-            success: true,
-            valid: true,
-            isValid: true,
-            models,
-            message: 'API Key 验证通过'
-          }
-        }
-
-        const status = Number(proxyResult.status || 0)
-        const apiMessage = proxyResult.data?.error?.message || proxyResult.message || ''
-        const messageMap = {
-          401: 'API Key 无效或已过期',
-          402: '账户余额不足，请前往 DeepSeek 控制台检查余额',
-          403: 'API Key 无权限访问'
-        }
-        return {
-          success: false,
-          valid: false,
-          isValid: false,
-          message: messageMap[status] || apiMessage || `验证失败: ${status || '未知错误'}`
-        }
-      } catch (error) {
-        return {
-          success: false,
-          valid: false,
-          isValid: false,
-          message: error?.message || '验证失败'
-        }
-      }
-    },
     cleanGarbageTextWithAI: (input = {}) =>
       requestEditorTextCleanup({
         ...input,
         text: input.text || input.content || ''
       }),
-    refineSceneVisualPromptWithAI: async (input) => {
-      const payload = normalizeTextAiPayload(input)
-      const content = String(payload.text || payload.content || '').trim()
-      if (!content) {
-        return { success: false, message: '节选内容为空，无法提炼', content: '' }
-      }
-      const modelPayload = await resolveTextModelPayload('writing')
-      const aiModelPayload = resolveTextAiModelPayload(payload, modelPayload)
-      const response = await postJson('/api/ai/text-task', {
-        task: 'custom',
-        feature: 'scene_visual_prompt',
-        title: '场景图画面描述',
-        content,
-        instruction: [
-          '请把这段小说正文提炼为一段中文文生图画面描述。',
-          '只写可见的场景、人物外观与动作、环境、光线和氛围。',
-          '不要写旁白评价、书名、章节号，不要分点，不要加标题或引号。',
-          '长度控制在 200 字以内。'
-        ].join('\n'),
-        ...aiModelPayload,
-        temperature: 0.4,
-        maxTokens: 512
-      })
-      const aiResult = requireWebAiTextTaskResponse(response, '场景图画面描述失败')
-      if (aiResult.success !== true) {
-        return { success: false, message: aiResult.message || '场景图画面描述失败', content: '' }
-      }
-      const resultText = aiResult.content.replace(/^(画面描述|描述)[:：]\s*/i, '').trim()
-      if (!resultText) {
-        return { success: false, message: 'AI 返回结果为空，请重试', content: '' }
-      }
-      const meta = resolveResponseProviderMeta(response, aiModelPayload)
-      return {
-        success: true,
-        content: resultText,
-        usage: response?.usage || {},
-        model: meta.model,
-        providerId: meta.providerId
-      }
-    },
     setCustomTextApiConfig: async (config = {}) => {
       const savedConfig = {
         apiType: config.apiType || 'openai',

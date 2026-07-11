@@ -450,10 +450,6 @@ async function handleRefinePrompt() {
     ElMessage.warning(t('aiSceneImage.excerptEmpty'))
     return
   }
-  if (!window.electron?.refineSceneVisualPromptWithAI) {
-    ElMessage.error(t('aiSceneImage.refineUnsupported'))
-    return
-  }
   refining.value = true
   refineError.value = ''
   try {

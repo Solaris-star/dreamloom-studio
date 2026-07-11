@@ -235,6 +235,24 @@ for (const [file, label] of [
   )
 }
 assert.doesNotMatch(
+  read('src/renderer/src/service/deepseek.js'),
+  /window\.electron|ensureElectronApi/,
+  'DeepSeek 服务必须直接使用 Web API'
+)
+for (const method of [
+  'setDeepSeekApiKey:',
+  'getDeepSeekApiKey:',
+  'generateNamesWithAI:',
+  'validateDeepSeekApiKey:',
+  'refineSceneVisualPromptWithAI:'
+]) {
+  assert.doesNotMatch(
+    webShimSource,
+    new RegExp(`\\b${method}`),
+    `Web shim 不应保留 DeepSeek 方法：${method}`
+  )
+}
+assert.doesNotMatch(
   read('src/renderer/src/components/Editor/AISceneImageDialog.vue'),
   /window\.electron\?\.generateAISceneImage/,
   '场景图生成不能依赖 Electron 接口探测'
