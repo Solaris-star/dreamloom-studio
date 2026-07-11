@@ -82,6 +82,11 @@ for (const [file, label] of [
   )
 }
 const editorPanelSource = read('src/renderer/src/components/Editor/EditorPanel.vue')
+assert.doesNotMatch(
+  editorPanelSource,
+  /window\.electron(?:Store)?\b/,
+  '正文编辑面板不应依赖 Electron'
+)
 for (const method of [
   'editNote',
   'saveChapter',

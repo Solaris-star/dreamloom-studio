@@ -265,6 +265,7 @@ import {
   writeNoteDocument
 } from '../../service/editor'
 import { cleanEditorText } from '../../service/editorTextCleanup'
+import { continueWriteWithAI, polishTextWithAI } from '../../service/editorText'
 import { getStoreValue, setStoreValue } from '../../service/webStore'
 import { useI18n } from 'vue-i18n'
 import { useEditorStore } from '@renderer/stores/editor'
@@ -1520,11 +1521,6 @@ async function confirmContinuePrompt() {
   }
   const fullText = ed.getText() || ''
   const currentWords = getPlainTextWordCount(fullText)
-  if (!window.electron?.continueWriteWithAI) {
-    ElMessage.error(t('editorPanel.aiContinueUnsupported'))
-    return
-  }
-
   const previousInfo = await getPreviousChapterContextInfo()
   if (!previousInfo.hasPrevious && currentWords < MIN_CONTINUE_WORDS_WITHOUT_PREVIOUS) {
     ElMessage.warning(
@@ -1553,7 +1549,7 @@ async function confirmContinuePrompt() {
   }
   continueLoading.value = true
   try {
-    const res = await window.electron.continueWriteWithAI({
+    const res = await continueWriteWithAI({
       text: sourceText,
       prompt: continuePromptText.value,
       maxAddWords
@@ -1632,13 +1628,9 @@ async function handlePolishSelection() {
     ElMessage.warning(t('editorPanel.selectedTextEmpty'))
     return
   }
-  if (!window.electron?.polishTextWithAI) {
-    ElMessage.error(t('editorPanel.aiPolishUnsupported'))
-    return
-  }
   polishLoading.value = true
   try {
-    const res = await window.electron.polishTextWithAI(text)
+    const res = await polishTextWithAI(text)
     if (!res.success) {
       ElMessage.error(res.message || t('editorPanel.polishFailed'))
       return
@@ -1709,13 +1701,9 @@ async function handlePolishChapter() {
     ElMessage.warning(t('editorPanel.chapterContentEmptyCannotPolish'))
     return
   }
-  if (!window.electron?.polishTextWithAI) {
-    ElMessage.error(t('editorPanel.aiPolishUnsupported'))
-    return
-  }
   polishLoading.value = true
   try {
-    const res = await window.electron.polishTextWithAI(fullText)
+    const res = await polishTextWithAI(fullText)
     if (!res.success) {
       ElMessage.error(res.message || t('editorPanel.polishFailed'))
       return
