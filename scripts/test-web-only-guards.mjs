@@ -488,8 +488,14 @@ const rendererSourceFiles = fs
   )
 for (const entry of rendererSourceFiles) {
   const absolutePath = path.join(entry.parentPath || entry.path, entry.name)
+  const source = fs.readFileSync(absolutePath, 'utf8')
   assert.doesNotMatch(
-    fs.readFileSync(absolutePath, 'utf8'),
+    source,
+    /window\.electronStore\b/,
+    `纯 Web 运行代码不能依赖 Electron Store：${path.relative(root, absolutePath)}`
+  )
+  assert.doesNotMatch(
+    source,
     /file:\/\//i,
     `纯 Web 运行代码不能生成本地文件协议：${path.relative(root, absolutePath)}`
   )

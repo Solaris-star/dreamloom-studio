@@ -1,4 +1,4 @@
-// Web 端兼容：注入 window.electron / window.electronStore 兼容层
+// Web 端兼容：临时注入尚未迁移完成的 window.electron 接口
 import { installWebElectronShim } from './service/webElectronShim.js'
 installWebElectronShim()
 

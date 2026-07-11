@@ -13,6 +13,7 @@
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import EncourageToast from '@renderer/components/EncourageToast.vue'
 import { useI18n } from 'vue-i18n'
+import { getStoreValue, setStoreValue } from '@renderer/service/webStore'
 
 defineProps({
   duration: { type: Number, default: 10000 }
@@ -130,24 +131,22 @@ function scheduleNextCheck(targetAt) {
 
 async function getState() {
   const now = Date.now()
-  const store = window.electronStore
-  if (!store?.get || !store?.set) return null
 
-  let firstRunAt = await store.get(ENCOURAGE_KEYS.firstRunAt)
+  let firstRunAt = await getStoreValue(ENCOURAGE_KEYS.firstRunAt)
   if (!firstRunAt) {
     firstRunAt = now
-    await store.set(ENCOURAGE_KEYS.firstRunAt, firstRunAt)
+    await setStoreValue(ENCOURAGE_KEYS.firstRunAt, firstRunAt)
   }
 
   const startAt = firstRunAt + 2 * DAY_MS
 
-  let nextAt = await store.get(ENCOURAGE_KEYS.nextAt)
+  let nextAt = await getStoreValue(ENCOURAGE_KEYS.nextAt)
   if (!nextAt) {
     nextAt = startAt
-    await store.set(ENCOURAGE_KEYS.nextAt, nextAt)
+    await setStoreValue(ENCOURAGE_KEYS.nextAt, nextAt)
   }
 
-  const lastShownDate = (await store.get(ENCOURAGE_KEYS.lastShownDate)) || ''
+  const lastShownDate = await getStoreValue(ENCOURAGE_KEYS.lastShownDate, '')
   return { now, startAt, nextAt, lastShownDate }
 }
 
@@ -181,12 +180,11 @@ async function checkAndMaybeShow() {
     message.value = pickRandom(encouragePresets.value)
     visible.value = true
 
-    const store = window.electronStore
-    await store.set(ENCOURAGE_KEYS.lastShownDate, today)
+    await setStoreValue(ENCOURAGE_KEYS.lastShownDate, today)
 
     const days = randomInt(2, 7)
     const newNextAt = now + days * DAY_MS
-    await store.set(ENCOURAGE_KEYS.nextAt, newNextAt)
+    await setStoreValue(ENCOURAGE_KEYS.nextAt, newNextAt)
 
     scheduleNextCheck(newNextAt)
   } catch (error) {

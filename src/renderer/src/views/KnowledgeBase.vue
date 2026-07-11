@@ -778,7 +778,7 @@ import {
   normalizeDownloadedChapters,
   searchNovel
 } from '@renderer/service/novel'
-import { readBooksDir } from '@renderer/service/books'
+import { getBookDir, readBooksDir } from '@renderer/service/books'
 import { getActiveTextProvider, getAiProviders } from '@renderer/service/aiProvider'
 import {
   canReadExtractionProgress,
@@ -1212,9 +1212,7 @@ function toggleCreateDimensionGroup(group = {}) {
 }
 
 async function getBooksDir() {
-  const configBooksDir = await window.electronStore?.get('config.booksDir')
-  if (configBooksDir) return configBooksDir
-  return (await window.electronStore?.get('booksDir')) || ''
+  return getBookDir()
 }
 
 async function loadItems() {

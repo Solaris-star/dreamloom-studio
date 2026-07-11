@@ -874,6 +874,7 @@ import {
   Wand2
 } from 'lucide-vue-next'
 import { readBooksDir } from '@renderer/service/books'
+import { getStoreValue } from '@renderer/service/webStore'
 import { createKnowledgeItem } from '@renderer/service/knowledgeBase'
 import {
   appendAgentMessage,
@@ -1385,7 +1386,7 @@ async function loadWritingSkills() {
 async function resolveRecentlySuccessfulModel() {
   let directDefaults = null
   try {
-    directDefaults = (await window.electronStore?.get?.('editorModelDefaults')) ?? null
+    directDefaults = await getStoreValue('editorModelDefaults', null)
   } catch (error) {
     throw new Error(error?.message || '读取编辑器模型默认设置失败')
   }
@@ -1399,7 +1400,7 @@ async function resolveRecentlySuccessfulModel() {
   if (defaultId) return defaultId
   let logs = []
   try {
-    logs = (await window.electronStore?.get?.('stats:ai_logs')) ?? []
+    logs = await getStoreValue('stats:ai_logs', [])
   } catch (error) {
     throw new Error(error?.message || '读取最近成功模型失败')
   }

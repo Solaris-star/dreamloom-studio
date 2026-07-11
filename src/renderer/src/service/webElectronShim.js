@@ -2,7 +2,7 @@ import { fetchJson, postJson } from './webHttpClient.js'
 import { requestEditorTextCleanup } from './editorTextCleanup.js'
 
 /**
- * Web 版 window.electron / window.electronStore 兼容层
+ * Web 版 window.electron 临时兼容层
  *
  * 在浏览器环境下挂载等价方法，通过 Vite dev server 暴露的
  * HTTP 端点完成本地服务能做的事情。仅覆盖编辑器实际依赖的接口；未实现的
@@ -584,26 +584,6 @@ async function setStoreValue(key, value) {
   }
   if (result.key !== key) {
     throw new Error('保存本地设置失败：接口返回的设置项不匹配')
-  }
-  return result
-}
-
-async function getWebBooksDir() {
-  try {
-    const data = await fetchJson('/api/books/dir')
-    return data?.booksDir || ''
-  } catch {
-    return ''
-  }
-}
-
-async function setWebBooksDir(dir) {
-  const result = await postJson('/api/books/set-dir', { dir })
-  if (result?.success !== true) {
-    throw new Error(result?.message || '保存书架目录失败')
-  }
-  if (result.booksDir !== dir) {
-    throw new Error('保存书架目录失败：返回目录不一致')
   }
   return result
 }
@@ -1274,49 +1254,8 @@ function buildElectronShim() {
   }
 }
 
-function buildElectronStoreShim() {
-  return {
-    async get(key) {
-      const data = await postJson('/api/store/get', { key })
-      if (data?.success !== true) {
-        throw new Error(data?.message || '读取本地设置失败')
-      }
-      if (data.key !== key) {
-        throw new Error('读取本地设置失败：接口返回的设置项不匹配')
-      }
-      if (key === 'booksDir') {
-        return (await getWebBooksDir()) || data?.value || null
-      }
-      return data?.value ?? null
-    },
-    async set(key, value) {
-      const result = await postJson('/api/store/set', { key, value })
-      if (result?.success !== true) {
-        throw new Error(result.message || '保存本地设置失败')
-      }
-      if (result.key !== key) {
-        throw new Error('保存本地设置失败：接口返回的设置项不匹配')
-      }
-      if (key === 'booksDir') {
-        await setWebBooksDir(value)
-      }
-      return result
-    },
-    async delete(key) {
-      const result = await postJson('/api/store/delete', { key })
-      if (result?.success !== true) {
-        throw new Error(result.message || '删除本地设置失败')
-      }
-      if (result.key !== key) {
-        throw new Error('删除本地设置失败：接口返回的设置项不匹配')
-      }
-      return result
-    }
-  }
-}
-
 /**
- * 在浏览器环境下注入 `window.electron` 与 `window.electronStore` 兼容接口。
+ * 在浏览器环境下注入尚未迁移完成的 `window.electron` 兼容接口。
  * 多次调用是幂等的。
  */
 export function installWebElectronShim() {
@@ -1324,8 +1263,5 @@ export function installWebElectronShim() {
   if (isElectronEnv()) return
   if (!window.electron) {
     window.electron = buildElectronShim()
-  }
-  if (!window.electronStore) {
-    window.electronStore = buildElectronStoreShim()
   }
 }

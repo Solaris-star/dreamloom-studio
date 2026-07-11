@@ -390,6 +390,7 @@ import {
   Zap
 } from 'lucide-vue-next'
 import { readBooksDir } from '@renderer/service/books'
+import { setStoreValue } from '@renderer/service/webStore'
 import {
   createPromptPreset,
   listAiHistory,
@@ -1991,24 +1992,12 @@ async function handleSecondaryAction(command) {
 
 async function saveInputDraft() {
   const key = `aiWorkshop:draft:${activeTool.value.key}`
-  if (typeof window.electronStore?.set !== 'function') {
-    ElMessage.error('当前环境不支持保存输入')
-    return
-  }
   try {
-    const result = await window.electronStore.set(key, {
+    await setStoreValue(key, {
       input: mainInput.value,
       requirement: extraRequirement.value,
       updatedAt: new Date().toISOString()
     })
-    if (result?.success !== true) {
-      ElMessage.error(result?.message || '保存失败')
-      return
-    }
-    if (result.key !== key) {
-      ElMessage.error('保存失败：返回的草稿键不匹配')
-      return
-    }
     ElMessage.success('输入已保存')
   } catch (error) {
     ElMessage.error(error?.message || '保存失败')
