@@ -619,6 +619,27 @@ export function createWebServerPlugins() {
               } catch {
                 sendTransparentImage(res)
               }
+            } else if (path === '/api/fs/list') {
+              const requestedDir = sanitizeText(body.dir)
+              if (!requestedDir || !isAbsolute(requestedDir)) {
+                throw Object.assign(new Error('目录路径必须是绝对路径'), { statusCode: 400 })
+              }
+              let realDir
+              try {
+                realDir = fs.realpathSync(requestedDir)
+              } catch {
+                throw Object.assign(new Error('目录不存在或无法访问'), { statusCode: 404 })
+              }
+              const stat = fs.statSync(realDir)
+              if (!stat.isDirectory()) {
+                throw Object.assign(new Error('所选路径不是目录'), { statusCode: 400 })
+              }
+              const dirs = fs
+                .readdirSync(realDir, { withFileTypes: true })
+                .filter((entry) => entry.isDirectory())
+                .map((entry) => ({ name: entry.name }))
+                .sort((left, right) => left.name.localeCompare(right.name, 'zh-CN'))
+              sendJson(res, { success: true, path: realDir, dirs })
             } else if (path === '/api/store/get') {
               const { key } = body
               try {
@@ -1251,7 +1272,7 @@ export function createWebServerPlugins() {
               sendJson(res, { success: false, message: 'Not Found' }, 404)
             }
         } catch (error) {
-          sendJson(res, { success: false, message: error.message }, 500)
+          sendJson(res, { success: false, message: error.message }, error.statusCode || 500)
         }
       })
     }

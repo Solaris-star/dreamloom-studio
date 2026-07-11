@@ -5,11 +5,17 @@ import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
-const serviceDir = path.join(root, 'src/renderer/src/service')
-const clientSources = fs
-  .readdirSync(serviceDir)
-  .filter((name) => name.endsWith('.js'))
-  .map((name) => read(`src/renderer/src/service/${name}`))
+function collectSourceFiles(dirPath, result = []) {
+  for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
+    const target = path.join(dirPath, entry.name)
+    if (entry.isDirectory()) collectSourceFiles(target, result)
+    else if (/\.(?:js|vue)$/.test(entry.name)) result.push(target)
+  }
+  return result
+}
+
+const rendererDir = path.join(root, 'src/renderer/src')
+const clientSources = collectSourceFiles(rendererDir).map((file) => fs.readFileSync(file, 'utf8'))
 const serverSource = read('vite.web.plugins.mjs')
 
 const collectPaths = (source) =>
@@ -17,13 +23,92 @@ const collectPaths = (source) =>
 
 const clientPaths = collectPaths(clientSources.join('\n'))
 const serverPaths = collectPaths(serverSource)
+const knownMissingPaths = new Set([
+  '/api/ai-proxy',
+  '/api/studio/timeline/read',
+  '/api/studio/timeline/write',
+  '/api/studio/outlines/read',
+  '/api/studio/outlines/write',
+  '/api/studio/outline-ai-sessions/read',
+  '/api/studio/outline-ai-sessions/write',
+  '/api/studio/characters/read',
+  '/api/studio/characters/write',
+  '/api/studio/entity-profiles/read',
+  '/api/studio/entity-profiles/write-category',
+  '/api/studio/dictionary/read',
+  '/api/studio/dictionary/write',
+  '/api/studio/settings/read',
+  '/api/studio/settings/write',
+  '/api/studio/sequences/read',
+  '/api/studio/sequences/write',
+  '/api/studio/relationships/list',
+  '/api/studio/relationships/read',
+  '/api/studio/relationships/create',
+  '/api/studio/relationships/write',
+  '/api/studio/relationships/thumbnail',
+  '/api/studio/relationships/delete',
+  '/api/studio/relationships/image',
+  '/api/studio/organizations/list',
+  '/api/studio/organizations/read',
+  '/api/studio/organizations/create',
+  '/api/studio/organizations/write',
+  '/api/studio/organizations/thumbnail',
+  '/api/studio/organizations/image',
+  '/api/studio/organizations/delete',
+  '/api/ai/book-ideas',
+  '/api/ai/generate-chapter-from-outline',
+  '/api/ai/cover/confirm',
+  '/api/ai/cover/discard',
+  '/api/ai/character/confirm',
+  '/api/ai/character/discard',
+  '/api/extraction/dimensions',
+  '/api/extraction/create',
+  '/api/extraction/progress',
+  '/api/extraction/list',
+  '/api/extraction/get',
+  '/api/extraction/result-page',
+  '/api/extraction/delete',
+  '/api/extraction/search',
+  '/api/knowledge/ai-task',
+  '/api/knowledge/create-topic-from-ai',
+  '/api/market/refresh',
+  '/api/consistency/check',
+  '/api/consistency/list',
+  '/api/vector/search',
+  '/api/vector/stats',
+  '/api/vector/delete-source',
+  '/api/plot-evolution/evolve',
+  '/api/plot-evolution/regenerate',
+  '/api/setting-snapshots/list',
+  '/api/setting-snapshots/create',
+  '/api/setting-snapshots/restore',
+  '/api/setting-snapshots/delete',
+  '/api/setting-snapshots/diff',
+  '/api/setting-tree/generate',
+  '/api/setting-tree/regenerate-node',
+  '/api/ai/chat',
+  '/api/editor-agent/progress-server'
+])
 const ignoredProxyPaths = new Set(['/api/agent-tasks/queue/status'])
 const missing = [...clientPaths].filter(
   (apiPath) => !serverPaths.has(apiPath) && !ignoredProxyPaths.has(apiPath)
 )
+const unexpectedMissing = missing.filter((apiPath) => !knownMissingPaths.has(apiPath))
+const resolvedBaselinePaths = [...knownMissingPaths].filter((apiPath) => !missing.includes(apiPath))
 
-assert.deepEqual(missing, [], `前端存在未实现的静态 API 路径：${missing.join('、')}`)
+assert.deepEqual(
+  unexpectedMissing,
+  [],
+  `前端新增了未实现的静态 API 路径：${unexpectedMissing.join('、')}`
+)
+assert.deepEqual(
+  resolvedBaselinePaths,
+  [],
+  `以下 API 已有实现，请从已知缺失清单移除：${resolvedBaselinePaths.join('、')}`
+)
 assert.ok(serverPaths.has('/api/workbench-database/snapshot'))
 assert.ok(serverPaths.has('/api/workbench-database/query'))
 
-console.log(`API 路由检查通过，共检查 ${clientPaths.size} 个前端静态路径`)
+console.log(
+  `API 路由检查通过：检查 ${clientPaths.size} 个静态路径，仍有 ${missing.length} 个已知缺失接口`
+)

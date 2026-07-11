@@ -12,7 +12,7 @@
     "dev": "vite --config vite.web.config.mjs",
     "build": "vite --config vite.web.config.mjs build",
     "test:unit": "node scripts/test-editor-save-queue.mjs && node scripts/test-editor-text-cleanup.mjs && node scripts/test-text-hint-decorations.mjs && node scripts/test-local-book-import-parser.mjs && node scripts/test-asset-reference-guards.mjs && node scripts/test-web-http-client.mjs",
-    "test:api": "node scripts/test-api-route-contracts.mjs",
+    "test:api": "node scripts/test-api-route-contracts.mjs && node scripts/test-workbench-database-service.mjs",
     "test:web": "node scripts/test-web-only-guards.mjs"
   },
   "dependencies": {
