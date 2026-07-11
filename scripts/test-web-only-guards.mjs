@@ -239,6 +239,26 @@ assert.doesNotMatch(
   /window\.electron|ensureElectronApi/,
   'DeepSeek 服务必须直接使用 Web API'
 )
+assert.doesNotMatch(
+  read('src/renderer/src/service/aiProvider.js'),
+  /window\.electron|ensureElectronApi/,
+  'AI Provider 服务必须直接使用 Web API'
+)
+for (const method of [
+  'listEmbeddingProviders:',
+  'addEmbeddingProvider:',
+  'deleteEmbeddingProvider:',
+  'setActiveEmbeddingProvider:',
+  'getActiveEmbeddingProvider:',
+  'validateEmbeddingProvider:',
+  'listEmbeddingProviderModels:'
+]) {
+  assert.doesNotMatch(
+    webShimSource,
+    new RegExp(`\\b${method}`),
+    `Web shim 不应保留 Embedding Provider 方法：${method}`
+  )
+}
 for (const method of [
   'setDeepSeekApiKey:',
   'getDeepSeekApiKey:',

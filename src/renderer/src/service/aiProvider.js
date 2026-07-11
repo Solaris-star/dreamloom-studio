@@ -1,13 +1,5 @@
 import { postJson } from './webHttpClient.js'
 
-function requireEmbeddingApi(name) {
-  const api = globalThis.window?.electron?.[name]
-  if (typeof api !== 'function') {
-    throw new Error(`当前环境暂不支持 Embedding Provider 接口：${name}`)
-  }
-  return api
-}
-
 async function getStoreValue(key, fallback = null) {
   const result = await postJson('/api/store/get', { key })
   if (result?.success !== true || result.key !== key) {
@@ -72,6 +64,41 @@ async function saveActiveProvider(category, providerId) {
   const key = category === 'image' ? 'aiProviders.activeImageId' : 'aiProviders.activeTextId'
   await setStoreValue(key, id)
   return { success: true, providerId: id }
+}
+
+function normalizeEmbeddingProvider(provider = {}) {
+  const modelName = String(provider.modelName || provider.model || '').trim()
+  const dimension = Number(provider.dimension ?? provider.dimensions)
+  const normalized = {
+    ...provider,
+    id: provider.id || crypto.randomUUID(),
+    name: String(provider.name || '').trim(),
+    baseUrl: String(provider.baseUrl || '').trim(),
+    apiKey: String(provider.apiKey || '').trim(),
+    model: modelName,
+    modelName,
+    active: Boolean(provider.active)
+  }
+  if (Number.isFinite(dimension) && dimension > 0) {
+    normalized.dimension = dimension
+    normalized.dimensions = dimension
+  }
+  return normalized
+}
+
+async function storedEmbeddingProviders() {
+  const providers = await getStoreValue('embeddingProviders', [])
+  if (!Array.isArray(providers)) {
+    throw new Error('读取 Embedding Provider 失败：接口返回格式不正确')
+  }
+  return providers.map(normalizeEmbeddingProvider)
+}
+
+function requireEmbeddingConfig(provider, requireName = false) {
+  if (requireName && !provider.name) throw new Error('请填写 Provider 名称')
+  if (!provider.baseUrl) throw new Error('请填写 Embedding API 地址')
+  if (!provider.apiKey) throw new Error('请填写 Embedding API Key')
+  if (!provider.modelName) throw new Error('请填写 Embedding 模型名称')
 }
 
 function requireAiProviderSuccess(result, fallback = '操作失败') {
@@ -252,40 +279,66 @@ export async function setActiveImageProvider(providerId) {
 }
 
 export async function listEmbeddingProviders() {
-  return requireEmbeddingProviderListResult(await requireEmbeddingApi('listEmbeddingProviders')())
+  return { success: true, providers: await storedEmbeddingProviders() }
 }
 
 export async function addEmbeddingProvider(provider) {
-  return requireEmbeddingProviderListResult(
-    await requireEmbeddingApi('addEmbeddingProvider')(provider),
-    '保存 Embedding Provider 失败'
-  )
+  const providers = await storedEmbeddingProviders()
+  const saved = normalizeEmbeddingProvider(provider)
+  requireEmbeddingConfig(saved, true)
+  const next = providers.filter((item) => item.id !== saved.id)
+  next.push(saved)
+  await setStoreValue('embeddingProviders', next)
+  return { success: true, providers: next }
 }
 
 export async function setActiveEmbeddingProvider(providerId, active) {
-  return requireEmbeddingProviderListResult(
-    await requireEmbeddingApi('setActiveEmbeddingProvider')({ id: providerId, active }),
-    '设置 Embedding Provider 失败'
-  )
+  const providers = await storedEmbeddingProviders()
+  if (!providerId || !providers.some((item) => item.id === providerId)) {
+    throw new Error('未找到 Embedding Provider')
+  }
+  const next = providers.map((item) => ({
+    ...item,
+    active: active ? item.id === providerId : false
+  }))
+  await setStoreValue('embeddingProviders', next)
+  return { success: true, providers: next }
 }
 
 export async function deleteEmbeddingProvider(providerId) {
-  return requireEmbeddingProviderListResult(
-    await requireEmbeddingApi('deleteEmbeddingProvider')({ id: providerId }),
-    '删除 Embedding Provider 失败'
-  )
+  const providers = await storedEmbeddingProviders()
+  if (!providerId || !providers.some((item) => item.id === providerId)) {
+    throw new Error('未找到 Embedding Provider')
+  }
+  const next = providers.filter((item) => item.id !== providerId)
+  await setStoreValue('embeddingProviders', next)
+  return { success: true, providers: next }
 }
 
 export async function validateEmbeddingProvider(provider) {
-  return requireEmbeddingProviderValidationResult(
-    await requireEmbeddingApi('validateEmbeddingProvider')(provider),
-    '验证 Embedding Provider 失败'
-  )
+  const target = normalizeEmbeddingProvider(provider)
+  requireEmbeddingConfig(target)
+  const body = { model: target.modelName, input: 'test' }
+  if (target.dimensions) body.dimensions = target.dimensions
+  await postJson('/api/ai-proxy', {
+    targetUrl: `${target.baseUrl.replace(/\/$/, '')}/v1/embeddings`,
+    apiKey: target.apiKey,
+    method: 'POST',
+    body
+  })
+  return { success: true, isValid: true }
 }
 
 export async function listEmbeddingProviderModels(provider) {
-  return requireEmbeddingProviderModelsResult(
-    await requireEmbeddingApi('listEmbeddingProviderModels')(provider),
-    '读取 Embedding 模型列表失败'
-  )
+  const target = normalizeEmbeddingProvider(provider)
+  if (!target.baseUrl || !target.apiKey) throw new Error('请先填写 API 地址和 Key')
+  const result = await postJson('/api/ai-proxy', {
+    targetUrl: `${target.baseUrl.replace(/\/$/, '')}/v1/models`,
+    apiKey: target.apiKey,
+    method: 'GET'
+  })
+  const models = Array.isArray(result?.data?.data)
+    ? result.data.data.map((item) => item.id).filter(Boolean)
+    : []
+  return { success: true, models }
 }

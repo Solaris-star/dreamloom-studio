@@ -66,4 +66,41 @@ assert.equal(added.provider.id, 'text-b')
 await service.deleteAiProvider('text-b')
 await assert.rejects(() => service.deleteAiProvider('missing'), /Provider not found/)
 
+await service.addEmbeddingProvider({
+  id: 'embedding-a',
+  name: '向量服务',
+  baseUrl: 'https://embedding.example.com',
+  apiKey: 'embedding-secret',
+  model: 'embedding-model',
+  dimension: 1024
+})
+assert.equal((await service.listEmbeddingProviders()).providers[0].dimensions, 1024)
+await service.setActiveEmbeddingProvider('embedding-a', true)
+assert.equal((await service.listEmbeddingProviders()).providers[0].active, true)
+
+await service.validateEmbeddingProvider(
+  (await service.listEmbeddingProviders()).providers[0]
+)
+assert.equal(requests.at(-1).payload.targetUrl, 'https://embedding.example.com/v1/embeddings')
+assert.equal(requests.at(-1).payload.body.dimensions, 1024)
+
+assert.deepEqual(
+  (
+    await service.listEmbeddingProviderModels({
+      baseUrl: 'https://embedding.example.com',
+      apiKey: 'embedding-secret'
+    })
+  ).models,
+  ['model-a']
+)
+await service.deleteEmbeddingProvider('embedding-a')
+await assert.rejects(
+  () => service.setActiveEmbeddingProvider('embedding-a', true),
+  /未找到 Embedding Provider/
+)
+await assert.rejects(
+  () => service.addEmbeddingProvider({ name: '配置不完整' }),
+  /Embedding API 地址/
+)
+
 console.log('Web AI Provider 服务测试通过')
