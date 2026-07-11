@@ -120,7 +120,8 @@ for (const [file, label] of [
   ['src/renderer/src/service/settingAi.js', '设定 AI'],
   ['src/renderer/src/service/editorText.js', '编辑器 AI'],
   ['src/renderer/src/service/outlineAiTask.js', '大纲 AI'],
-  ['src/renderer/src/service/knowledgeBase.js', '知识库']
+  ['src/renderer/src/service/knowledgeBase.js', '知识库'],
+  ['src/renderer/src/service/market.js', '市场灵感']
 ]) {
   assert.doesNotMatch(
     read(file),

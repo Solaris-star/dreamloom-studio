@@ -1,8 +1,45 @@
-function ensureElectronApi(name) {
-  const api = globalThis.window?.electron?.[name]
-  if (typeof api !== 'function') {
-    throw new Error(`当前环境暂不支持市场灵感接口：${name}`)
-  }
+import { postJson } from './webHttpClient.js'
+
+const marketApi = {
+  listMarketHotspots: (filter) => postJson('/api/market/hotspots', filter),
+  createMarketHotspot: (input) => postJson('/api/market/hotspots/create', input),
+  updateMarketHotspot: (id, patch) => postJson('/api/market/hotspots/update', { id, patch }),
+  saveMarketHotspotToKnowledge: (id) =>
+    postJson('/api/market/hotspots/save-to-knowledge', { id }),
+  createTopicCardFromMarketHotspot: (id) =>
+    postJson('/api/market/hotspots/create-topic-card', { id }),
+  listMarketActivities: (filter) => postJson('/api/market/activities', filter),
+  createMarketActivity: (input) => postJson('/api/market/activities/create', input),
+  updateMarketActivity: (id, patch) => postJson('/api/market/activities/update', { id, patch }),
+  saveMarketActivityToKnowledge: (id) =>
+    postJson('/api/market/activities/save-to-knowledge', { id }),
+  createTopicCardFromMarketActivity: (id) =>
+    postJson('/api/market/activities/create-topic-card', { id }),
+  refreshMarketTrends: (payload) =>
+    postJson('/api/market/refresh', payload, { timeoutMs: 120_000 }),
+  listMarketHotTopics: (filter) => postJson('/api/market/hot-topics', filter),
+  getMarketTrend: (keyword) => postJson('/api/market/trends', { keyword }),
+  listMarketTrends: (filter) => postJson('/api/market/trends', filter),
+  listMarketSourceStatus: () => postJson('/api/market/source-status', {}),
+  listMarketOpportunities: (payload) => postJson('/api/market/opportunities', payload),
+  getMarketDashboard: (payload) => postJson('/api/market/dashboard', payload),
+  getMarketOverview: (payload) => postJson('/api/market/overview', payload),
+  getMarketHotRank: (payload) => postJson('/api/market/hot-rank', payload),
+  getMarketKeywordCloud: (payload) => postJson('/api/market/keyword-cloud', payload),
+  getMarketKeywordCombination: (payload) =>
+    postJson('/api/market/keyword-combination', payload),
+  getMarketActivitiesBoard: (payload) => postJson('/api/market/activities-board', payload),
+  saveMarketInspiration: (payload) => postJson('/api/market/save-inspiration', payload),
+  generateMarketOutline: (payload) => postJson('/api/market/generate-outline', payload),
+  applyMarketInsightToCurrentBook: (payload) =>
+    postJson('/api/market/apply-to-current-book', payload),
+  createBookFromMarketInsight: (payload) =>
+    postJson('/api/market/create-book-from-insight', payload)
+}
+
+function getMarketApi(name) {
+  const api = marketApi[name]
+  if (typeof api !== 'function') throw new Error(`市场灵感接口不存在：${name}`)
   return api
 }
 
@@ -143,128 +180,128 @@ function requireBookResult(result) {
 }
 
 export async function listMarketHotspots(filter = {}) {
-  return requireListResult(await ensureElectronApi('listMarketHotspots')(filter), '热点读取失败')
+  return requireListResult(await getMarketApi('listMarketHotspots')(filter), '热点读取失败')
 }
 
 export async function createMarketHotspot(input = {}) {
-  return requireItemResult(await ensureElectronApi('createMarketHotspot')(input), '创建热点失败')
+  return requireItemResult(await getMarketApi('createMarketHotspot')(input), '创建热点失败')
 }
 
 export async function updateMarketHotspot(id, patch = {}) {
   return requireItemResult(
-    await ensureElectronApi('updateMarketHotspot')(id, patch),
+    await getMarketApi('updateMarketHotspot')(id, patch),
     '更新热点失败'
   )
 }
 
 export async function saveMarketHotspotToKnowledge(id) {
   return requireKnowledgeResult(
-    await ensureElectronApi('saveMarketHotspotToKnowledge')(id),
+    await getMarketApi('saveMarketHotspotToKnowledge')(id),
     '保存失败'
   )
 }
 
 export async function createTopicCardFromMarketHotspot(id) {
-  return requireTopicCardResult(await ensureElectronApi('createTopicCardFromMarketHotspot')(id))
+  return requireTopicCardResult(await getMarketApi('createTopicCardFromMarketHotspot')(id))
 }
 
 export async function listMarketActivities(filter = {}) {
-  return requireListResult(await ensureElectronApi('listMarketActivities')(filter), '活动读取失败')
+  return requireListResult(await getMarketApi('listMarketActivities')(filter), '活动读取失败')
 }
 
 export async function createMarketActivity(input = {}) {
-  return requireItemResult(await ensureElectronApi('createMarketActivity')(input), '创建活动失败')
+  return requireItemResult(await getMarketApi('createMarketActivity')(input), '创建活动失败')
 }
 
 export async function updateMarketActivity(id, patch = {}) {
   return requireItemResult(
-    await ensureElectronApi('updateMarketActivity')(id, patch),
+    await getMarketApi('updateMarketActivity')(id, patch),
     '更新活动失败'
   )
 }
 
 export async function saveMarketActivityToKnowledge(id) {
   return requireKnowledgeResult(
-    await ensureElectronApi('saveMarketActivityToKnowledge')(id),
+    await getMarketApi('saveMarketActivityToKnowledge')(id),
     '保存失败'
   )
 }
 
 export async function createTopicCardFromMarketActivity(id) {
-  return requireTopicCardResult(await ensureElectronApi('createTopicCardFromMarketActivity')(id))
+  return requireTopicCardResult(await getMarketApi('createTopicCardFromMarketActivity')(id))
 }
 
 export async function refreshMarketTrends(payload = {}) {
-  return requireRefreshResult(await ensureElectronApi('refreshMarketTrends')(payload))
+  return requireRefreshResult(await getMarketApi('refreshMarketTrends')(payload))
 }
 
 export async function listMarketHotTopics(filter = {}) {
-  return requireListResult(await ensureElectronApi('listMarketHotTopics')(filter), '热词读取失败')
+  return requireListResult(await getMarketApi('listMarketHotTopics')(filter), '热词读取失败')
 }
 
 export async function getMarketTrend(keyword) {
-  return requireTrendRecordResult(await ensureElectronApi('getMarketTrend')(keyword))
+  return requireTrendRecordResult(await getMarketApi('getMarketTrend')(keyword))
 }
 
 export async function listMarketTrends(filter = {}) {
-  return requireListResult(await ensureElectronApi('listMarketTrends')(filter), '趋势读取失败')
+  return requireListResult(await getMarketApi('listMarketTrends')(filter), '趋势读取失败')
 }
 
 export async function listMarketSourceStatus() {
-  return requireListResult(await ensureElectronApi('listMarketSourceStatus')(), '来源状态读取失败')
+  return requireListResult(await getMarketApi('listMarketSourceStatus')(), '来源状态读取失败')
 }
 
 export async function listMarketOpportunities(payload = {}) {
   return requireListResult(
-    await ensureElectronApi('listMarketOpportunities')(payload),
+    await getMarketApi('listMarketOpportunities')(payload),
     '机会建议读取失败'
   )
 }
 
 export async function getMarketDashboard(payload = {}) {
-  return requireDashboardResult(await ensureElectronApi('getMarketDashboard')(payload))
+  return requireDashboardResult(await getMarketApi('getMarketDashboard')(payload))
 }
 
 export async function getMarketOverview(payload = {}) {
-  return requireOverviewResult(await ensureElectronApi('getMarketOverview')(payload))
+  return requireOverviewResult(await getMarketApi('getMarketOverview')(payload))
 }
 
 export async function getMarketHotRank(payload = {}) {
-  return requireHotRankResult(await ensureElectronApi('getMarketHotRank')(payload))
+  return requireHotRankResult(await getMarketApi('getMarketHotRank')(payload))
 }
 
 export async function getMarketKeywordCloud(payload = {}) {
-  return requireKeywordCloudResult(await ensureElectronApi('getMarketKeywordCloud')(payload))
+  return requireKeywordCloudResult(await getMarketApi('getMarketKeywordCloud')(payload))
 }
 
 export async function getMarketKeywordCombination(payload = {}) {
   return requireKeywordCombinationResult(
-    await ensureElectronApi('getMarketKeywordCombination')(payload)
+    await getMarketApi('getMarketKeywordCombination')(payload)
   )
 }
 
 export async function getMarketActivitiesBoard(payload = {}) {
-  return requireActivitiesBoardResult(await ensureElectronApi('getMarketActivitiesBoard')(payload))
+  return requireActivitiesBoardResult(await getMarketApi('getMarketActivitiesBoard')(payload))
 }
 
 export async function saveMarketInspiration(payload = {}) {
   return requireKnowledgeResult(
-    await ensureElectronApi('saveMarketInspiration')(payload),
+    await getMarketApi('saveMarketInspiration')(payload),
     '保存失败'
   )
 }
 
 export async function generateMarketOutline(payload = {}) {
-  return requireOutlineResult(await ensureElectronApi('generateMarketOutline')(payload))
+  return requireOutlineResult(await getMarketApi('generateMarketOutline')(payload))
 }
 
 export async function applyMarketInsightToCurrentBook(payload = {}) {
   return requireKnowledgeResult(
-    await ensureElectronApi('applyMarketInsightToCurrentBook')(payload),
+    await getMarketApi('applyMarketInsightToCurrentBook')(payload),
     '带入失败'
   )
 }
 
 export async function createBookFromMarketInsight(payload = {}) {
-  return requireBookResult(await ensureElectronApi('createBookFromMarketInsight')(payload))
+  return requireBookResult(await getMarketApi('createBookFromMarketInsight')(payload))
 }
