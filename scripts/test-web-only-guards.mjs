@@ -32,6 +32,24 @@ const preloadFiles = fs.existsSync(preloadDir)
   : []
 assert.equal(preloadFiles.length, 0, '纯 Web 项目不能保留 preload 入口文件')
 
+const forbiddenDesktopArtifacts = [
+  'blog',
+  'build',
+  'resources/icon.png',
+  'scripts/update-icon.sh',
+  'src/renderer/src/assets/electron.svg',
+  'static/QQQRCode.png',
+  'static/AliPayQRCode.png',
+  'static/WeChatPayQRCode.png'
+]
+for (const relativePath of forbiddenDesktopArtifacts) {
+  assert.equal(
+    fs.existsSync(path.join(root, relativePath)),
+    false,
+    `纯 Web 项目不能保留旧桌面资产：${relativePath}`
+  )
+}
+
 const editorSource = read('src/renderer/src/views/Editor.vue')
 assert.doesNotMatch(editorSource, /window\.process|process\.argv/, '编辑器不能读取桌面进程参数')
 
