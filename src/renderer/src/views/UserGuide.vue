@@ -98,13 +98,6 @@
                     {{ officialWebsite }}
                   </a>
                 </div>
-                <div class="support-item">
-                  <div class="support-title">{{ supportContent.qqTitle }}</div>
-                  <div class="support-qrcode">
-                    <img :src="qqGroupQrcode" :alt="supportContent.qqAlt" />
-                    <div class="support-qrcode-tip">{{ supportContent.qqTip }}</div>
-                  </div>
-                </div>
               </div>
             </div>
           </section>
@@ -132,7 +125,6 @@ const goBack = () => {
 }
 
 const issueTrackerUrl = 'https://github.com/Solaris-star/dreamloom-studio/issues'
-const qqGroupQrcode = new URL('../../../../static/QQQRCode.png', import.meta.url).href
 const officialWebsite = 'https://github.com/Solaris-star/dreamloom-studio'
 
 const labels = computed(() =>
@@ -285,9 +277,6 @@ const guideData = {
       issueTitle: '问题反馈',
       issueLinkLabel: 'GitHub Issues',
       siteTitle: '官网（宣传网站）',
-      qqTitle: 'QQ 群（交流反馈）',
-      qqAlt: '织梦工坊 QQ 群二维码',
-      qqTip: '扫码加入 QQ 群'
     }
   },
   'en-US': {
@@ -453,9 +442,6 @@ const guideData = {
       issueTitle: 'Issue Tracker',
       issueLinkLabel: 'GitHub Issues',
       siteTitle: 'Official Website',
-      qqTitle: 'QQ Group',
-      qqAlt: 'Dreamloom Studio QQ group QR code',
-      qqTip: 'Scan to join QQ group'
     }
   }
 }

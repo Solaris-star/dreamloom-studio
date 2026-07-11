@@ -93,13 +93,10 @@
         :show-after="TOOLTIP_SHOW_AFTER"
       >
         <el-select v-model="pageWidth" class="toolbar-item" size="small" style="width: 105px">
+          <el-option label="自适应 (极宽)" value="100%" />
           <el-option label="自适应 (宽)" value="90%" />
           <el-option label="自适应 (中)" value="80%" />
           <el-option label="自适应 (窄)" value="70%" />
-          <el-option label="固定 (较宽)" value="1000px" />
-          <el-option label="固定 (中等)" value="800px" />
-          <el-option label="固定 (较窄)" value="600px" />
-          <el-option label="撑满 (100%)" value="100%" />
         </el-select>
       </el-tooltip>
       <el-tooltip
@@ -388,7 +385,7 @@ const paragraphSpacing = computed({
 })
 
 const pageWidth = computed({
-  get: () => props.modelValue.pageWidth ?? '800px',
+  get: () => props.modelValue.pageWidth ?? '80%',
   set: (val) => {
     emit('update:modelValue', { ...props.modelValue, pageWidth: val })
     emit('update-style')

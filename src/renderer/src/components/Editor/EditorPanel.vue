@@ -345,7 +345,7 @@ const menubarState = ref({
   fontSize: '16px',
   lineHeight: '1.6',
   paragraphSpacing: '0.5em', // 段落之间间距
-  pageWidth: '800px', // 页边距/页宽
+  pageWidth: '80%', // 页边距/页宽
   isBold: false,
   isItalic: false
 })
@@ -496,7 +496,7 @@ function updateEditorStyle() {
       menubarState.value.paragraphSpacing ?? '0',
       'important'
     )
-    editorElement.style.setProperty('max-width', menubarState.value.pageWidth ?? '800px', 'important')
+    editorElement.style.setProperty('max-width', menubarState.value.pageWidth ?? '80%', 'important')
     editorElement.style.setProperty('margin', '0 auto', 'important')
     // 根据文件类型设置首行缩进（章节：2em；笔记：0）
     const isChapter = editorStore.file?.type === 'chapter'
@@ -760,7 +760,7 @@ async function initEditor() {
       pageWidth:
         settings.pageWidth !== undefined && settings.pageWidth !== null
           ? settings.pageWidth
-          : '800px',
+          : '80%',
       isBold: settings.globalBoldMode !== undefined ? settings.globalBoldMode : false,
       isItalic: settings.globalItalicMode !== undefined ? settings.globalItalicMode : false
     }

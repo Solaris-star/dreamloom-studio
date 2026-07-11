@@ -10,7 +10,9 @@
     "lint": "eslint --cache .",
     "start": "vite preview --config vite.web.config.mjs",
     "dev": "vite --config vite.web.config.mjs",
-    "build": "vite --config vite.web.config.mjs build"
+    "build": "vite --config vite.web.config.mjs build",
+    "test:unit": "node scripts/test-editor-save-queue.mjs && node scripts/test-editor-text-cleanup.mjs && node scripts/test-text-hint-decorations.mjs && node scripts/test-local-book-import-parser.mjs",
+    "test:web": "node scripts/test-web-only-guards.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",

@@ -129,18 +129,7 @@ import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 const route = useRoute()
 const router = useRouter()
 
-// 解析新窗口参数
-let bookName = null
-if (window.process && window.process.argv) {
-  // Electron 传递的 additionalArguments
-  for (const arg of window.process.argv) {
-    if (arg.startsWith('bookName=')) bookName = decodeURIComponent(arg.replace('bookName=', ''))
-  }
-}
-if (!bookName) {
-  // 回退到 hash/query
-  bookName = route.query.name
-}
+const bookName = computed(() => String(route.query.name || route.params.bookId || '').trim())
 
 // keep-alive 下用 activated/deactivated 绑定窗口事件，避免停用页仍监听刷新
 function handleAiTrigger(command, arg) {
