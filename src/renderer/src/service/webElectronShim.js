@@ -572,53 +572,6 @@ function parseWebOutlineSplitResult(rawText) {
   }
 }
 
-function buildWebSettingRefineInstruction(payload = {}) {
-  const name = sanitizeWebText(payload.settingName) || '未命名设定'
-  const instruction = sanitizeWebText(payload.userInstruction)
-
-  return [
-    '你是一名资深中文小说设定编辑。',
-    '请在不偏离原意的前提下完善设定内容，补齐因果、细节、限制与可写信息。',
-    '只输出最终设定正文，不要输出标题、说明、分析、分点标签、Markdown 或代码块。',
-    '',
-    `设定名称：${name}`,
-    instruction ? `完善要求：${instruction}` : '完善要求：无（请自行补足内容）',
-    '',
-    '请直接输出“完善后的设定正文”。'
-  ].join('\n')
-}
-
-async function refineWebSettingWithAI(payload = {}) {
-  const sourceContent = sanitizeWebText(payload.sourceContent)
-  const modelPayload = await resolveTextModelPayload('writing')
-  const aiModelPayload = resolveTextAiModelPayload(payload, modelPayload)
-  const response = await postJson('/api/ai/text-task', {
-    task: 'custom',
-    feature: 'setting_refine',
-    title: 'AI 完善设定',
-    content: sourceContent || '（空）',
-    instruction: buildWebSettingRefineInstruction(payload),
-    temperature: 0.6,
-    maxTokens: 5000,
-    ...aiModelPayload
-  })
-
-  const aiResult = requireWebAiTextTaskResponse(response, 'AI 完善设定失败')
-  if (aiResult.success !== true) {
-    return { success: false, message: aiResult.message || 'AI 完善设定失败', content: '' }
-  }
-
-  return {
-    success: true,
-    content: aiResult.content,
-    images: [],
-    usage: response?.usage || {},
-    model: response?.model || '',
-    providerId: response?.providerId || '',
-    error: ''
-  }
-}
-
 function buildWebOutlineRefineInstruction(payload = {}) {
   const title = sanitizeWebText(payload.nodeTitle) || '未命名大纲'
   const previousDraft = sanitizeWebText(payload.previousDraft)
@@ -1392,85 +1345,12 @@ function buildElectronShim() {
         }
       }
     },
-    polishTextWithAI: async (input) => {
-      const payload = normalizeTextAiPayload(input)
-      const content = String(payload.text || payload.content || '').trim()
-      if (!content) {
-        return { success: false, message: '请先输入或选择需要润色的正文', content: '' }
-      }
-      const modelPayload = await resolveTextModelPayload('writing')
-      const aiModelPayload = resolveTextAiModelPayload(payload, modelPayload)
-      const response = await postJson('/api/ai/text-task', {
-        task: 'polish',
-        feature: 'ai_polish',
-        title: '编辑器 AI 润色',
-        content,
-        instruction:
-          '请在保留剧情、人物语气和原有信息的前提下润色这段小说正文。只返回润色后的正文，不要解释。',
-        ...aiModelPayload
-      })
-      const aiResult = requireWebAiTextTaskResponse(response, 'AI 润色失败')
-      if (aiResult.success !== true) {
-        return { success: false, message: aiResult.message || 'AI 润色失败', content: '' }
-      }
-      const resultText = aiResult.content
-      const meta = resolveResponseProviderMeta(response, aiModelPayload)
-      return {
-        success: true,
-        content: resultText,
-        inputWordCount: countWebTextWords(content),
-        wordCount: countWebTextWords(resultText),
-        usage: response?.usage || {},
-        model: meta.model,
-        providerId: meta.providerId
-      }
-    },
     cleanGarbageTextWithAI: (input = {}) =>
       requestEditorTextCleanup({
         ...input,
         text: input.text || input.content || ''
       }),
-    refineSettingWithAI: refineWebSettingWithAI,
     runOutlineAiTask: runWebOutlineAiTask,
-    continueWriteWithAI: async (input = {}) => {
-      const payload = normalizeTextAiPayload(input)
-      const { text = '', prompt = '', maxAddWords = 0 } = payload
-      const sourceText = String(text || '').trim()
-      if (!sourceText) {
-        return { success: false, message: '请先写一些正文，或打开已有章节后再续写', content: '' }
-      }
-      const limit = Number(maxAddWords) > 0 ? Math.floor(Number(maxAddWords)) : 800
-      const modelPayload = await resolveTextModelPayload('writing')
-      const aiModelPayload = resolveTextAiModelPayload(payload, modelPayload)
-      const response = await postJson('/api/ai/text-task', {
-        task: 'continue',
-        feature: 'ai_continue',
-        title: '编辑器 AI 续写',
-        content: sourceText,
-        instruction: [
-          String(prompt || '').trim() || '承接当前章节继续写。',
-          `只输出新增正文，不要重复原文。新增内容控制在 ${limit} 字以内。`
-        ].join('\n'),
-        ...aiModelPayload,
-        maxTokens: Math.min(Math.max(limit * 2, 800), 3200)
-      })
-      const aiResult = requireWebAiTextTaskResponse(response, 'AI 续写失败')
-      if (aiResult.success !== true) {
-        return { success: false, message: aiResult.message || 'AI 续写失败', content: '' }
-      }
-      const resultText = aiResult.content
-      const meta = resolveResponseProviderMeta(response, aiModelPayload)
-      return {
-        success: true,
-        content: resultText,
-        inputWordCount: countWebTextWords(sourceText),
-        wordCount: countWebTextWords(resultText),
-        maxAddWords: limit,
-        usage: response?.usage || {},
-        model: meta.model,
-        providerId: meta.providerId
-      }
-    },
     refineSceneVisualPromptWithAI: async (input) => {
       const payload = normalizeTextAiPayload(input)
       const content = String(payload.text || payload.content || '').trim()

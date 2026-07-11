@@ -116,7 +116,9 @@ assert.doesNotMatch(
 )
 for (const [file, label] of [
   ['src/renderer/src/service/settingTree.js', '设定树'],
-  ['src/renderer/src/service/plotEvolution.js', '剧情演化']
+  ['src/renderer/src/service/plotEvolution.js', '剧情演化'],
+  ['src/renderer/src/service/settingAi.js', '设定 AI'],
+  ['src/renderer/src/service/editorText.js', '编辑器 AI']
 ]) {
   assert.doesNotMatch(
     read(file),
@@ -129,7 +131,10 @@ for (const method of [
   'regenerateSettingNode:',
   'applySettingTree:',
   'plotEvolutionEvolve:',
-  'plotEvolutionRegenerate:'
+  'plotEvolutionRegenerate:',
+  'refineSettingWithAI:',
+  'continueWriteWithAI:',
+  'polishTextWithAI:'
 ]) {
   assert.doesNotMatch(webShimSource, new RegExp(`\\b${method}`), `Web shim 不应保留 AI 方法：${method}`)
 }
