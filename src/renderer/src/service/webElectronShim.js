@@ -1492,16 +1492,6 @@ function buildElectronShim() {
       postJson('/api/setting-snapshots/delete', payload || {}),
     diffSettingSnapshots: async (payload = {}) =>
       postJson('/api/setting-snapshots/diff', payload || {}),
-    listPromptPresets: async (payload = {}) => postJson('/api/prompts/list', payload || {}),
-    createPromptPreset: async (payload = {}) => postJson('/api/prompts/create', payload || {}),
-    updatePromptPreset: async (payload = {}) => postJson('/api/prompts/update', payload || {}),
-    deletePromptPreset: async (payload = {}) => postJson('/api/prompts/delete', payload || {}),
-    exportPromptPresets: async (payload = {}) => postJson('/api/prompts/export', payload || {}),
-    importPromptPresets: async (payload = {}) => postJson('/api/prompts/import', payload || {}),
-    aiChatSend: async (payload = {}) => postJson('/api/ai/chat', payload || {}),
-    runAiTextTask: async (payload = {}) => postJson('/api/ai/text-task', payload || {}),
-    runAiImageTask: async (payload = {}) => postJson('/api/ai/image-task', payload || {}),
-    listAiHistory: async (payload = {}) => postJson('/api/ai/history', payload || {}),
     listEditorModelBindings: async () => {
       const providers = requireStoredAiProviders(
         await getStoreValue('aiProviders', []),

@@ -244,6 +244,29 @@ assert.doesNotMatch(
   /window\.electron|ensureElectronApi/,
   'AI Provider 服务必须直接使用 Web API'
 )
+assert.doesNotMatch(
+  read('src/renderer/src/service/aiWorkshop.js'),
+  /window\.electron|ensureElectronApi/,
+  'AI 工坊服务必须直接使用 Web API'
+)
+for (const method of [
+  'listPromptPresets:',
+  'createPromptPreset:',
+  'updatePromptPreset:',
+  'deletePromptPreset:',
+  'exportPromptPresets:',
+  'importPromptPresets:',
+  'aiChatSend:',
+  'runAiTextTask:',
+  'runAiImageTask:',
+  'listAiHistory:'
+]) {
+  assert.doesNotMatch(
+    webShimSource,
+    new RegExp(`\\b${method}`),
+    `Web shim 不应保留 AI 工坊方法：${method}`
+  )
+}
 for (const method of [
   'listEmbeddingProviders:',
   'addEmbeddingProvider:',

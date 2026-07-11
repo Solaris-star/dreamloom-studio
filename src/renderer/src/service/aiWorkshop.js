@@ -1,10 +1,4 @@
-function ensureElectronApi(name) {
-  const api = globalThis.window?.electron?.[name]
-  if (typeof api !== 'function') {
-    throw new Error(`当前环境暂不支持 AI 工坊接口：${name}`)
-  }
-  return api
-}
+import { postJson } from './webHttpClient.js'
 
 function requireAiWorkshopSuccess(result, fallback = '操作失败') {
   if (result?.success !== true) {
@@ -88,19 +82,19 @@ function requirePromptPresetExportResult(result, fallback = '导出 Prompt 模�
 }
 
 export async function runAiTextTask(payload = {}) {
-  return requireAiTextTaskResult(await ensureElectronApi('runAiTextTask')(payload))
+  return requireAiTextTaskResult(await postJson('/api/ai/text-task', payload))
 }
 
 export async function runAiImageTask(payload = {}) {
-  return requireAiImageTaskResult(await ensureElectronApi('runAiImageTask')(payload))
+  return requireAiImageTaskResult(await postJson('/api/ai/image-task', payload))
 }
 
 export async function sendAiChat(payload = {}) {
-  return requireAiChatResult(await ensureElectronApi('aiChatSend')(payload))
+  return requireAiChatResult(await postJson('/api/ai/chat', payload))
 }
 
 export async function listAiHistory(filter = {}) {
-  const result = await ensureElectronApi('listAiHistory')(filter)
+  const result = await postJson('/api/ai/history', filter)
   if (result?.success !== true) {
     throw new Error(result?.message || '读取生成历史失败')
   }
@@ -111,32 +105,32 @@ export async function listAiHistory(filter = {}) {
 }
 
 export async function listPromptPresets(payload = {}) {
-  return requirePromptPresetListResult(await ensureElectronApi('listPromptPresets')(payload))
+  return requirePromptPresetListResult(await postJson('/api/prompts/list', payload))
 }
 
 export async function createPromptPreset(payload = {}) {
-  return requirePromptPresetResult(await ensureElectronApi('createPromptPreset')(payload))
+  return requirePromptPresetResult(await postJson('/api/prompts/create', payload))
 }
 
 export async function updatePromptPreset(payload = {}) {
   return requirePromptPresetResult(
-    await ensureElectronApi('updatePromptPreset')(payload),
+    await postJson('/api/prompts/update', payload),
     '更新 Prompt 模板失败'
   )
 }
 
 export async function deletePromptPreset(payload = {}) {
   return requirePromptPresetDeleteResult(
-    await ensureElectronApi('deletePromptPreset')(payload),
+    await postJson('/api/prompts/delete', payload),
     payload?.presetId || payload?.id || '',
     '删除 Prompt 模板失败'
   )
 }
 
 export async function importPromptPresets(payload = {}) {
-  return requirePromptPresetImportResult(await ensureElectronApi('importPromptPresets')(payload))
+  return requirePromptPresetImportResult(await postJson('/api/prompts/import', payload))
 }
 
 export async function exportPromptPresets(payload = {}) {
-  return requirePromptPresetExportResult(await ensureElectronApi('exportPromptPresets')(payload))
+  return requirePromptPresetExportResult(await postJson('/api/prompts/export', payload))
 }
