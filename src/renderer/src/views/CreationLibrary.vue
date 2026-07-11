@@ -3040,11 +3040,7 @@ function bookUpdatedAt(book = {}) {
 
 function webCoverUrl(book = {}) {
   if (!book.coverUrl) return ''
-  if (
-    book.coverUrl.startsWith('file://') ||
-    book.coverUrl.startsWith('http://') ||
-    book.coverUrl.startsWith('https://')
-  )
+  if (book.coverUrl.startsWith('http://') || book.coverUrl.startsWith('https://'))
     return book.coverUrl
   const params = new URLSearchParams({
     book: book.folderName || book.name || '',

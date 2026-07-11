@@ -507,6 +507,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Delete, Grid, List, Edit, MagicStick } from '@element-plus/icons-vue'
 import AICharacterDrawer from '@renderer/components/AICharacterDrawer.vue'
 import { genId } from '@renderer/utils/utils'
+import { bookImageUrl, selectedBrowserImageUrl } from '@renderer/utils/webImageUrl'
 import Sortable from 'sortablejs'
 import { useI18n } from 'vue-i18n'
 
@@ -1250,9 +1251,8 @@ function getCharacterImages(character) {
 }
 
 // AI 生成人物图确认使用后，追加到人物图列表
-function onAICharacterImageGenerated({ localPath }) {
-  const path = localPath.startsWith('file://') ? localPath : `file://${localPath}`
-  characterForm.characterImages.push(path)
+function onAICharacterImageGenerated({ imageUrl }) {
+  if (imageUrl) characterForm.characterImages.push(imageUrl)
 }
 
 // 预览表单人物图列表（从某张开始）
@@ -1288,8 +1288,10 @@ function removeCharacterImage(index) {
 async function selectLocalImageForCharacterImage() {
   try {
     const result = await window.electron.selectImage()
-    if (result && result.filePath) {
-      characterForm.characterImages.push(`file://${result.filePath}`)
+    if (result?.success) {
+      const imageUrl = selectedBrowserImageUrl(result)
+      if (!imageUrl) throw new Error('浏览器无法读取所选图片')
+      characterForm.characterImages.push(imageUrl)
       ElMessage.success(t('characterProfile.addedToGallery'))
     }
   } catch (error) {
@@ -1302,9 +1304,10 @@ async function selectLocalImageForCharacterImage() {
 async function selectLocalImage() {
   try {
     const result = await window.electron.selectImage()
-    if (result && result.filePath) {
-      // 将本地文件路径转换为 file:// 协议，以便在浏览器中正确显示
-      characterForm.avatar = `file://${result.filePath}`
+    if (result?.success) {
+      const imageUrl = selectedBrowserImageUrl(result)
+      if (!imageUrl) throw new Error('浏览器无法读取所选图片')
+      characterForm.avatar = imageUrl
       ElMessage.success(t('characterProfile.selectImageSuccess'))
     }
   } catch (error) {
@@ -1317,18 +1320,7 @@ async function selectLocalImage() {
 function getAvatarSrc(avatarPath) {
   if (!avatarPath) return ''
 
-  // 如果已经是完整的URL（包含协议），直接返回
-  if (
-    avatarPath.startsWith('http://') ||
-    avatarPath.startsWith('https://') ||
-    avatarPath.startsWith('file://') ||
-    avatarPath.startsWith('data:')
-  ) {
-    return avatarPath
-  }
-
-  // 如果是本地文件路径，添加 file:// 协议
-  return `file://${avatarPath}`
+  return bookImageUrl(bookName, avatarPath)
 }
 
 // 组件挂载时加载数据并初始化拖拽

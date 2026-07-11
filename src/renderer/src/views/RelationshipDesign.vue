@@ -159,6 +159,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import RelationGraph from 'relation-graph-vue3'
 import RadialMenu from '@renderer/components/RadialMenu.vue'
 import { genId } from '@renderer/utils/utils'
+import { bookImageUrl, selectedBrowserImageUrl } from '@renderer/utils/webImageUrl'
 import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
@@ -464,7 +465,7 @@ function handleNodeInfo() {
     : ''
   customColor.value = !infoForm.color ? selectedNode.value.color || '' : ''
   infoForm.description = selectedNode.value.data?.description || ''
-  // 如果有头像路径，转换为 file:// 协议以便预览
+  // 旧头像路径由 Web 图片接口转换为浏览器可访问地址。
   const avatarPath = selectedNode.value.data?.avatar || ''
   infoForm.avatar = getAvatarSrc(avatarPath)
 
@@ -777,9 +778,10 @@ function selectPresetColor(color) {
 async function selectLocalImage() {
   try {
     const result = await window.electron.selectImage()
-    if (result && result.filePath) {
-      // 将本地文件路径转换为 file:// 协议，以便在浏览器中正确显示
-      infoForm.avatar = `file://${result.filePath}`
+    if (result?.success) {
+      const imageUrl = selectedBrowserImageUrl(result)
+      if (!imageUrl) throw new Error('浏览器无法读取所选图片')
+      infoForm.avatar = imageUrl
       ElMessage.success(t('characterProfile.selectImageSuccess'))
     }
   } catch (error) {
@@ -1116,18 +1118,7 @@ function getNodeStyle(node) {
 function getAvatarSrc(avatarPath) {
   if (!avatarPath) return ''
 
-  // 如果已经是完整的URL（包含协议），直接返回
-  if (
-    avatarPath.startsWith('http://') ||
-    avatarPath.startsWith('https://') ||
-    avatarPath.startsWith('file://') ||
-    avatarPath.startsWith('data:')
-  ) {
-    return avatarPath
-  }
-
-  // 如果是本地文件路径，添加 file:// 协议
-  return `file://${avatarPath}`
+  return bookImageUrl(bookName, avatarPath)
 }
 
 onMounted(async () => {

@@ -4081,11 +4081,7 @@ function bookCoverStyle(targetBook = {}) {
 
 function webCoverUrl(targetBook = {}) {
   if (!targetBook.coverUrl) return ''
-  if (
-    targetBook.coverUrl.startsWith('file://') ||
-    targetBook.coverUrl.startsWith('http://') ||
-    targetBook.coverUrl.startsWith('https://')
-  )
+  if (targetBook.coverUrl.startsWith('http://') || targetBook.coverUrl.startsWith('https://'))
     return targetBook.coverUrl
   const params = new URLSearchParams({
     book: targetBook.folderName || targetBook.name || '',

@@ -56,7 +56,7 @@ import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { Edit, Delete } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 import { useI18n } from 'vue-i18n'
-import { joinedPathToFileUrl } from '@renderer/utils/localFileUrl'
+import { bookImageUrl } from '@renderer/utils/webImageUrl'
 
 const emit = defineEmits(['onOpen', 'onEdit', 'onDelete'])
 const props = defineProps({
@@ -113,8 +113,7 @@ async function loadCoverImage() {
     return
   }
   try {
-    const booksDir = await window.electronStore.get('booksDir')
-    const base = joinedPathToFileUrl(booksDir, pathName, props.coverUrl)
+    const base = bookImageUrl(pathName, props.coverUrl)
     if (!base) {
       coverImageUrl.value = ''
       return
@@ -128,7 +127,7 @@ async function loadCoverImage() {
         // 解析失败则用当前时间戳
       }
     }
-    const url = `${base}?t=${timestamp}`
+    const url = base.startsWith('/api/') ? `${base}${base.includes('?') ? '&' : '?'}t=${timestamp}` : base
     // 先通过 Image 探测是否可加载，避免路径错误时仍显示“有封面”导致只看到蓝底且书名被隐藏
     const img = new Image()
     img.onload = () => {

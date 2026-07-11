@@ -322,7 +322,7 @@ import {
   getAiProvidersByCategory,
   setActiveTextProvider
 } from '@renderer/service/aiProvider'
-import { joinedPathToFileUrl } from '@renderer/utils/localFileUrl'
+import { bookImageUrl } from '@renderer/utils/webImageUrl'
 
 const router = useRouter()
 const mainStore = useMainStore()
@@ -816,12 +816,7 @@ function bookKey(book) {
 function coverSrc(book) {
   if (!book?.coverUrl) return ''
   if (book.coverUrl.startsWith('http')) return book.coverUrl
-  if (book.coverUrl.startsWith('file:')) {
-    return window.electron?.process?.platform === 'web' ? '' : book.coverUrl
-  }
-  if (!booksDir.value) return ''
-  if (window.electron?.process?.platform === 'web') return ''
-  return joinedPathToFileUrl(booksDir.value, book.folderName || book.name, book.coverUrl)
+  return bookImageUrl(book.folderName || book.name, book.coverUrl)
 }
 
 function wabiCoverColor(color) {

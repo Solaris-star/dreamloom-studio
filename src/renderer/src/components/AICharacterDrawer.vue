@@ -472,8 +472,8 @@ async function handleConfirmUse() {
       bookName,
       chosenPath: selectedPath.value
     })
-    if (res?.success && res.localPath) {
-      emit('character-image-generated', { localPath: res.localPath })
+    if (res?.success && res.localPath && res.imageUrl) {
+      emit('character-image-generated', { localPath: res.localPath, imageUrl: res.imageUrl })
       emit('update:modelValue', false)
       ElMessage.success(resolvedConfirmSuccessMessage.value)
     } else {

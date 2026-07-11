@@ -125,7 +125,7 @@ const bookTypeCascaderOptions = BOOK_TYPE_GROUPS.map((g) => ({
   children: g.options.map((o) => ({ label: o.label, value: o.value }))
 }))
 import { readBooksDir, createBook, deleteBook, updateBook } from '@renderer/service/books'
-import { joinedPathToFileUrl, pathToLocalFileUrl } from '@renderer/utils/localFileUrl'
+import { bookImageUrl, selectedBrowserImageUrl } from '@renderer/utils/webImageUrl'
 import AICoverDrawer from '@renderer/components/AICoverDrawer.vue'
 import BookFormDrawer from '@renderer/components/BookFormDrawer.vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
@@ -431,10 +431,9 @@ function handleNewBook() {
 async function handleSelectCoverImage() {
   try {
     const result = await window.electron.selectImage()
-    if (result && result.filePath) {
-      // 保存原始路径用于后续复制
+    if (result?.success) {
       form.value.coverImagePath = result.filePath
-      form.value.coverImagePreview = pathToLocalFileUrl(result.filePath)
+      form.value.coverImagePreview = selectedBrowserImageUrl(result)
     }
   } catch (error) {
     console.error('Failed to select cover image:', error)
@@ -451,14 +450,7 @@ function handleRemoveCoverImage() {
 // 加载封面图片预览（编辑时使用）
 async function loadCoverImagePreview(bookName, coverUrl) {
   try {
-    // coverUrl 可能是相对路径（如 cover.jpg）或绝对路径
-    // 如果是相对路径，需要构建完整路径
-    if (coverUrl && !coverUrl.startsWith('file://') && !coverUrl.startsWith('http')) {
-      const booksDir = await window.electronStore.get('booksDir')
-      form.value.coverImagePreview = joinedPathToFileUrl(booksDir, bookName, coverUrl)
-    } else {
-      form.value.coverImagePreview = coverUrl
-    }
+    form.value.coverImagePreview = bookImageUrl(bookName, coverUrl)
   } catch (error) {
     console.error('Failed to load cover preview:', error)
     form.value.coverImagePreview = ''
@@ -475,9 +467,9 @@ function handleOpenAICoverDialog() {
 }
 
 // AI 封面确认成功：回填编辑表单，并对已存在书籍立即同步 mazi.json 与书架封面
-async function handleAICoverGenerated({ localPath }) {
+async function handleAICoverGenerated({ localPath, imageUrl }) {
   form.value.coverImagePath = localPath
-  form.value.coverImagePreview = pathToLocalFileUrl(localPath)
+  form.value.coverImagePreview = imageUrl || ''
 
   if (!isEdit.value || !editBookId.value) {
     await readBooksDir()

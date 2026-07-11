@@ -60,4 +60,22 @@ assert.doesNotMatch(
   '正式用户指南不能引用旧客户端或二维码内容'
 )
 
+const rendererRoot = path.join(root, 'src/renderer/src')
+const rendererSourceFiles = fs
+  .readdirSync(rendererRoot, { recursive: true, withFileTypes: true })
+  .filter(
+    (entry) =>
+      entry.isFile() &&
+      ['.js', '.ts', '.vue'].includes(path.extname(entry.name)) &&
+      entry.name !== 'webImageUrl.js'
+  )
+for (const entry of rendererSourceFiles) {
+  const absolutePath = path.join(entry.parentPath || entry.path, entry.name)
+  assert.doesNotMatch(
+    fs.readFileSync(absolutePath, 'utf8'),
+    /file:\/\//i,
+    `纯 Web 运行代码不能生成本地文件协议：${path.relative(root, absolutePath)}`
+  )
+}
+
 console.log('纯 Web 防回归检查通过')
