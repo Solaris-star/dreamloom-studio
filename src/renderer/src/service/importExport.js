@@ -1,10 +1,4 @@
-function ensureElectronApi(name) {
-  const api = globalThis.window?.electron?.[name]
-  if (typeof api !== 'function') {
-    throw new Error(`当前环境暂不支持导入导出接口：${name}`)
-  }
-  return api
-}
+import { postJson } from './webHttpClient.js'
 
 function isObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -27,23 +21,6 @@ function requireStringField(result, fieldName, fallback) {
   }
 }
 
-function requireDatabaseSyncResult(result, fallback) {
-  if (result.databaseSync?.success !== true) {
-    throw new Error(`${fallback}：${result.databaseSync?.message || '数据库没有记录本次结果'}`)
-  }
-  return result
-}
-
-function requireExportRecordResult(result, fallback) {
-  if (result.databaseSync?.success === false) {
-    throw new Error(`${fallback}：${result.databaseSync?.message || '数据库没有记录导出结果'}`)
-  }
-  if (!isNonEmptyString(result.exportRecordId) && !isObject(result.exportRecord)) {
-    throw new Error(`${fallback}：数据库没有记录导出结果`)
-  }
-  return result
-}
-
 export function requirePreviewResult(result) {
   const ok = requireImportExportSuccess(result, '预览失败')
   if (!isObject(ok.preview) || !Array.isArray(ok.preview.chapters)) {
@@ -56,7 +33,10 @@ export function requireImportedBookResult(result) {
   const ok = requireImportExportSuccess(result, '导入失败')
   requireStringField(ok, 'bookName', '导入失败')
   requireStringField(ok, 'bookPath', '导入失败')
-  return requireDatabaseSyncResult(ok, '导入失败')
+  if (!isObject(ok.task) || ok.task.type !== 'import') {
+    throw new Error('导入失败：接口没有返回导入任务记录')
+  }
+  return ok
 }
 
 export function requireDownloadResult(result, fallback = '导出失败') {
@@ -65,14 +45,20 @@ export function requireDownloadResult(result, fallback = '导出失败') {
   if (!isNonEmptyString(ok.downloadBase64) && typeof ok.content !== 'string') {
     throw new Error(`${fallback}：接口没有返回可下载内容`)
   }
-  return requireExportRecordResult(ok, fallback)
+  if (!isObject(ok.task) || ok.task.type !== 'export') {
+    throw new Error(`${fallback}：接口没有返回导出任务记录`)
+  }
+  return ok
 }
 
 export function requireBackupResult(result) {
   const ok = requireImportExportSuccess(result, '备份失败')
   requireStringField(ok, 'fileName', '备份失败')
   requireStringField(ok, 'downloadBase64', '备份失败')
-  return requireDatabaseSyncResult(ok, '备份失败')
+  if (!isObject(ok.task) || ok.task.type !== 'backup') {
+    throw new Error('备份失败：接口没有返回备份任务记录')
+  }
+  return ok
 }
 
 export function requireInspectResult(result) {
@@ -92,7 +78,10 @@ export function requireRestoreResult(result) {
   } else if (!isNonEmptyString(ok.targetDir)) {
     throw new Error('恢复失败：接口没有返回恢复目录')
   }
-  return requireDatabaseSyncResult(ok, '恢复失败')
+  if (!isObject(ok.task) || ok.task.type !== 'restore') {
+    throw new Error('恢复失败：接口没有返回恢复任务记录')
+  }
+  return ok
 }
 
 export function requireTaskListResult(result) {
@@ -104,31 +93,38 @@ export function requireTaskListResult(result) {
 }
 
 export async function previewImportBook(payload = {}) {
-  return requirePreviewResult(await ensureElectronApi('previewImportBook')(payload))
+  return requirePreviewResult(await postJson('/api/import/preview', payload))
 }
 
 export async function importBookFromFile(payload = {}) {
-  return requireImportedBookResult(await ensureElectronApi('importBookFromFile')(payload))
+  return requireImportedBookResult(await postJson('/api/import/book', payload, { timeoutMs: 60_000 }))
 }
 
 export async function exportBookFile(payload = {}) {
-  return requireDownloadResult(await ensureElectronApi('exportBookFile')(payload), '导出失败')
+  return requireDownloadResult(
+    await postJson('/api/export/book', payload, { timeoutMs: 60_000 }),
+    '导出失败'
+  )
 }
 
 export async function createLibraryBackup(payload = {}) {
-  return requireBackupResult(await ensureElectronApi('createLibraryBackup')(payload))
+  return requireBackupResult(await postJson('/api/backup/create', payload, { timeoutMs: 120_000 }))
 }
 
 export async function inspectLibraryBackup(payload = {}) {
-  return requireInspectResult(await ensureElectronApi('inspectLibraryBackup')(payload))
+  return requireInspectResult(
+    await postJson('/api/backup/inspect', payload, { timeoutMs: 60_000 })
+  )
 }
 
 export async function restoreLibraryBackup(payload = {}) {
-  return requireRestoreResult(await ensureElectronApi('restoreLibraryBackup')(payload))
+  return requireRestoreResult(
+    await postJson('/api/backup/restore', payload, { timeoutMs: 120_000 })
+  )
 }
 
 export async function listImportExportTasks() {
-  return requireTaskListResult(await ensureElectronApi('listImportExportTasks')())
+  return requireTaskListResult(await postJson('/api/import-export/tasks', {}))
 }
 
 export function downloadTextFile(fileName, content, mimeType = 'text/plain;charset=utf-8') {

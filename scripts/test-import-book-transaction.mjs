@@ -32,6 +32,29 @@ try {
   assert.equal(duplicate.bookName, '长夜灯火_1')
   assert.equal(fs.existsSync(path.join(root, '长夜灯火_1', 'mazi.json')), true)
 
+  const prepared = importBook(root, {
+    fileName: '自定义标题.docx',
+    format: 'docx',
+    bookName: '自定义标题',
+    chapters: [
+      { title: '楔子', content: '这是楔子的正文。' },
+      { title: '雨停以后', content: '这是下一章正文。' }
+    ]
+  })
+  assert.equal(prepared.chapterCount, 2)
+  assert.deepEqual(
+    fs.readdirSync(path.join(root, '自定义标题', '正文', '正文')).sort(),
+    ['楔子.txt', '雨停以后.txt']
+  )
+  assert.throws(
+    () => importBook(root, { bookName: '空书', chapters: [] }),
+    /导入章节不能为空/
+  )
+  assert.throws(
+    () => importBook(root, { bookName: '坏正文', chapters: [{ title: '第一章', content: 1 }] }),
+    /正文格式无效/
+  )
+
   const failedRoot = path.join(root, 'failed-library')
   fs.mkdirSync(path.join(failedRoot, '.import-export', 'tasks.json'), { recursive: true })
   assert.throws(() => importBook(failedRoot, importPayload('回滚测试')), /EISDIR|EPERM|directory/i)

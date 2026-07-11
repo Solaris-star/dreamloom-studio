@@ -516,7 +516,44 @@ function countWords(text) {
   return cn + en
 }
 
+function buildPreparedImportPreview(input = {}) {
+  if (!Array.isArray(input.chapters) || input.chapters.length === 0) {
+    throw new Error('导入章节不能为空')
+  }
+  if (input.chapters.length > 10000) throw new Error('导入章节数量不能超过 10000')
+
+  const chapters = input.chapters.map((chapter, index) => {
+    if (!chapter || typeof chapter !== 'object' || Array.isArray(chapter)) {
+      throw new Error(`第 ${index + 1} 章格式无效`)
+    }
+    if (typeof chapter.content !== 'string') {
+      throw new Error(`第 ${index + 1} 章正文格式无效`)
+    }
+    return {
+      title: normalizeChapterTitle(chapter.title, index),
+      content: chapter.content
+    }
+  })
+  const bookName = safeName(input.bookName || '导入书籍', '导入书籍')
+  const wordCount = chapters.reduce((sum, chapter) => sum + countWords(chapter.content), 0)
+  return {
+    fileName: safeName(input.fileName || `${bookName}.txt`, `${bookName}.txt`),
+    format: getFormat(input, input.fileName),
+    bookName,
+    chapterCount: chapters.length,
+    wordCount,
+    chapters: chapters.map((chapter, index) => ({
+      index: index + 1,
+      title: chapter.title,
+      wordCount: countWords(chapter.content),
+      preview: chapter.content.slice(0, 160)
+    })),
+    rawChapters: chapters
+  }
+}
+
 function buildImportPreview(input = {}) {
+  if (Array.isArray(input.chapters)) return buildPreparedImportPreview(input)
   const parsed = readImportText(input)
   const bookName = inferBookName(parsed.text, parsed.fileName, parsed.format)
   const chapterText = stripLeadingBookTitle(parsed.text, bookName, parsed.format)

@@ -93,14 +93,11 @@
 import { computed, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { AlertCircle, CheckCircle2, FileText, Upload } from 'lucide-vue-next'
-import { BOOK_TYPES } from '@renderer/constants/config'
-import { createBook, readBooksDir } from '@renderer/service/books'
-import { upsertChapterDocument } from '@renderer/service/editor'
+import { readBooksDir } from '@renderer/service/books'
+import { importBookFromFile } from '@renderer/service/importExport'
 import {
-  countWords,
   getLocalBookFileExtension,
   isSupportedLocalBookFile,
-  makeUniqueChapterTitle,
   parseLocalBookFile,
   uniqueLocalBookName
 } from '@renderer/service/localBookImport'
@@ -227,61 +224,22 @@ async function createImportedBook(row) {
   const parsed = row.parsed
   const existingBooks = await readBooksDir()
   const bookName = uniqueLocalBookName(parsed.title, existingBooks)
-  const bookId = Date.now().toString() + Math.floor(Math.random() * 10000).toString()
-  const type = 'xuanhua'
-  const typeName = BOOK_TYPES.find((item) => item.value === type)?.label || '玄幻'
-  const totalWords = parsed.chapters.reduce((sum, chapter) => sum + countWords(chapter.content), 0)
-  const result = await createBook({
-    id: bookId,
-    name: bookName,
-    type,
-    typeName,
-    targetCount: 0,
-    totalWords,
-    totalChapterCount: parsed.chapters.length,
+  const result = await importBookFromFile({
+    fileName: row.fileName,
+    format: row.extension,
+    bookName,
+    chapters: parsed.chapters,
     intro: `从本地 ${row.extension.toUpperCase()} 文件导入，可阅读或作为参考资料使用。`,
-    sourceType: 'file_import',
-    importedFrom: 'file',
-    bookRole: 'reference',
-    sourceName: '本地文件',
-    sourcePlatform: row.extension.toUpperCase(),
-    originalFileName: row.fileName,
-    password: null,
-    coverColor: '#8a735d',
-    coverUrl: null,
-    coverImagePath: null
+    type: 'reference',
+    typeName: '参考资料',
+    coverColor: '#8a735d'
   })
-  requireImportedBookCreateResult(result, bookName)
-  await saveImportedChapters(bookName, parsed.chapters)
   await readBooksDir()
-  return { id: bookId, name: bookName, source: 'file', extension: row.extension }
-}
-
-function requireImportedBookCreateResult(result, expectedBookName) {
-  if (result?.success !== true) {
-    throw new Error(result?.message || '创建本地书籍失败')
-  }
-  if (typeof result.bookName === 'string' && result.bookName !== expectedBookName) {
-    throw new Error('创建本地书籍失败：返回作品名不一致')
-  }
-  if (result.databaseSync && result.databaseSync.success !== true) {
-    throw new Error('创建本地书籍失败：数据库写入未确认')
-  }
-  return result
-}
-
-async function saveImportedChapters(bookName, chapters) {
-  const usedTitles = new Set()
-  for (let index = 0; index < chapters.length; index += 1) {
-    const chapter = chapters[index] || { title: '', content: '' }
-    const targetName = makeUniqueChapterTitle(chapter.title, usedTitles, `第${index + 1}章`)
-    await upsertChapterDocument({
-      bookName,
-      volumeName: '正文',
-      chapterName: targetName,
-      content: chapter.content,
-      overwrite: true
-    })
+  return {
+    id: result.task?.id || result.bookName,
+    name: result.bookName,
+    source: 'file',
+    extension: row.extension
   }
 }
 
