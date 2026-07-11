@@ -1,10 +1,4 @@
-function ensureElectronApi(name) {
-  const api = globalThis.window?.electron?.[name]
-  if (typeof api !== 'function') {
-    throw new Error(`当前环境暂不支持知识库接口：${name}`)
-  }
-  return api
-}
+import { postJson } from './webHttpClient.js'
 
 function isObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -77,69 +71,73 @@ export function requireKnowledgeAiTaskResult(result, fallback = 'AI 生成失败
 
 export async function listKnowledgeItems(filter = {}) {
   return requireKnowledgeListResult(
-    await ensureElectronApi('listKnowledgeItems')(filter),
+    await postJson('/api/knowledge/list', filter),
     '加载创作库失败'
   )
 }
 
 export async function getKnowledgeItem(id) {
-  return requireKnowledgeItemResult(await ensureElectronApi('getKnowledgeItem')(id), '读取素材失败')
+  return requireKnowledgeItemResult(await postJson('/api/knowledge/get', { id }), '读取素材失败')
 }
 
 export async function runKnowledgeAiTask(payload) {
-  return requireKnowledgeAiTaskResult(await ensureElectronApi('runKnowledgeAiTask')(payload))
+  return requireKnowledgeAiTaskResult(
+    await postJson('/api/knowledge/ai-task', payload, { timeoutMs: 120_000 })
+  )
 }
 
 export async function createKnowledgeItem(input) {
   return requireKnowledgeItemResult(
-    await ensureElectronApi('createKnowledgeItem')(input),
+    await postJson('/api/knowledge/create', input),
     '保存失败'
   )
 }
 
 export async function updateKnowledgeItem(id, patch) {
   return requireKnowledgeItemResult(
-    await ensureElectronApi('updateKnowledgeItem')(id, patch),
+    await postJson('/api/knowledge/update', { id, patch }),
     '保存失败'
   )
 }
 
 export async function deleteKnowledgeItem(id) {
-  return requireKnowledgeDeleteResult(await ensureElectronApi('deleteKnowledgeItem')(id), id)
+  return requireKnowledgeDeleteResult(await postJson('/api/knowledge/delete', { id }), id)
 }
 
 export async function searchKnowledgeItems(keyword, filter = {}) {
   return requireKnowledgeListResult(
-    await ensureElectronApi('searchKnowledgeItems')(keyword, filter),
+    await postJson('/api/knowledge/search', { keyword, filter }),
     '搜索素材失败'
   )
 }
 
 export async function favoriteKnowledgeItem(id, favorite) {
   return requireKnowledgeItemResult(
-    await ensureElectronApi('favoriteKnowledgeItem')(id, favorite),
+    await postJson('/api/knowledge/favorite', { id, favorite }),
     '更新收藏失败'
   )
 }
 
 export async function archiveKnowledgeItem(id) {
-  return requireKnowledgeItemResult(await ensureElectronApi('archiveKnowledgeItem')(id), '归档失败')
+  return requireKnowledgeItemResult(await postJson('/api/knowledge/archive', { id }), '归档失败')
 }
 
 export async function linkKnowledgeItems(sourceId, targetIds) {
   return requireKnowledgeItemResult(
-    await ensureElectronApi('linkKnowledgeItems')(sourceId, targetIds),
+    await postJson('/api/knowledge/link', { sourceId, targetIds }),
     '关联素材失败'
   )
 }
 
 export async function convertTopicCardToBook(topicCardId) {
-  return requireTopicCardBookResult(await ensureElectronApi('convertTopicCardToBook')(topicCardId))
+  return requireTopicCardBookResult(
+    await postJson('/api/knowledge/convert-topic-to-book', { topicCardId })
+  )
 }
 
 export async function createTopicCardFromAi(payload) {
   return requireKnowledgeItemResult(
-    await ensureElectronApi('createTopicCardFromAi')(payload),
+    await postJson('/api/knowledge/create-topic-from-ai', payload, { timeoutMs: 120_000 }),
     '保存选题卡失败'
   )
 }

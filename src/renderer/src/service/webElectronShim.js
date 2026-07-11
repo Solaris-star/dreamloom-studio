@@ -1857,22 +1857,6 @@ function buildElectronShim() {
     searchKnowledge: async (payload) => {
       return await postJson('/api/extraction/search', payload)
     },
-    listKnowledgeItems: (filter) => postJson('/api/knowledge/list', filter || {}),
-    getKnowledgeItem: (id) => postJson('/api/knowledge/get', { id }),
-    createKnowledgeItem: (input) => postJson('/api/knowledge/create', input || {}),
-    updateKnowledgeItem: (id, patch) => postJson('/api/knowledge/update', { id, patch }),
-    deleteKnowledgeItem: (id) => postJson('/api/knowledge/delete', { id }),
-    searchKnowledgeItems: (keyword, filter) =>
-      postJson('/api/knowledge/search', { keyword, filter: filter || {} }),
-    favoriteKnowledgeItem: (id, favorite) => postJson('/api/knowledge/favorite', { id, favorite }),
-    archiveKnowledgeItem: (id) => postJson('/api/knowledge/archive', { id }),
-    linkKnowledgeItems: async (sourceId, targetIds) =>
-      postJson('/api/knowledge/link', { sourceId, targetIds: targetIds || [] }),
-    convertTopicCardToBook: (topicCardId) =>
-      postJson('/api/knowledge/convert-topic-to-book', { topicCardId }),
-    runKnowledgeAiTask: (payload) => postJson('/api/knowledge/ai-task', payload || {}),
-    createTopicCardFromAi: (payload) =>
-      postJson('/api/knowledge/create-topic-from-ai', payload || {}),
     listMarketHotspots: (filter) => postJson('/api/market/hotspots', filter || {}),
     createMarketHotspot: (input) => postJson('/api/market/hotspots/create', input || {}),
     updateMarketHotspot: (id, patch) => postJson('/api/market/hotspots/update', { id, patch }),

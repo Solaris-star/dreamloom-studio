@@ -119,7 +119,8 @@ for (const [file, label] of [
   ['src/renderer/src/service/plotEvolution.js', '剧情演化'],
   ['src/renderer/src/service/settingAi.js', '设定 AI'],
   ['src/renderer/src/service/editorText.js', '编辑器 AI'],
-  ['src/renderer/src/service/outlineAiTask.js', '大纲 AI']
+  ['src/renderer/src/service/outlineAiTask.js', '大纲 AI'],
+  ['src/renderer/src/service/knowledgeBase.js', '知识库']
 ]) {
   assert.doesNotMatch(
     read(file),
@@ -136,7 +137,19 @@ for (const method of [
   'refineSettingWithAI:',
   'continueWriteWithAI:',
   'polishTextWithAI:',
-  'runOutlineAiTask:'
+  'runOutlineAiTask:',
+  'listKnowledgeItems:',
+  'getKnowledgeItem:',
+  'createKnowledgeItem:',
+  'updateKnowledgeItem:',
+  'deleteKnowledgeItem:',
+  'searchKnowledgeItems:',
+  'favoriteKnowledgeItem:',
+  'archiveKnowledgeItem:',
+  'linkKnowledgeItems:',
+  'convertTopicCardToBook:',
+  'runKnowledgeAiTask:',
+  'createTopicCardFromAi:'
 ]) {
   assert.doesNotMatch(webShimSource, new RegExp(`\\b${method}`), `Web shim 不应保留 AI 方法：${method}`)
 }
