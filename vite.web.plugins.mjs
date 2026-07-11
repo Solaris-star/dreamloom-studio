@@ -2,6 +2,12 @@ import { resolve, relative, isAbsolute, join } from 'node:path'
 import fs from 'node:fs'
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { runWebAiTextTask } from './src/main/services/webAiTextTaskService.js'
+import { createTextProvider } from './src/main/services/textGenerationRouter.js'
+import extractionAiService, {
+  EXTRACTION_DIMENSIONS,
+  EXTRACTION_DIMENSION_LABELS
+} from './src/main/services/extractionAi.js'
+import { WebExtractionTaskService } from './src/main/services/webExtractionTaskService.js'
 import { generateImageResult as generateImageResultByProvider } from './src/main/services/imageGenerationRouter.js'
 import novelDownloader from './src/main/services/novelDownloader.js'
 import * as webBooksApi from './src/main/services/webBooksApi.js'
@@ -21,6 +27,10 @@ export function createWebServerPlugins() {
   const booksDir = process.env.NOVEL_BOOKS_DIR || resolve('.booksDir')
   const maxRequestBodyBytes = Number(process.env.NOVEL_MAX_REQUEST_BODY_BYTES) || 16 * 1024 * 1024
   const authSessions = new Map()
+  const webExtractionTasks = new WebExtractionTaskService({
+    extractionService: extractionAiService,
+    createTextProvider
+  })
 
   function passwordDigest(password) {
     return createHash('sha256').update(String(password || '')).digest()
@@ -703,6 +713,74 @@ export function createWebServerPlugins() {
             } else if (path === '/api/ai/image-task') {
               generateImageResultByProvider(webStoreAdapter(), body || {})
               sendJson(res, { success: true })
+            } else if (path === '/api/extraction/dimensions') {
+              sendJson(
+                res,
+                EXTRACTION_DIMENSIONS.map((key) => ({
+                  key,
+                  label: EXTRACTION_DIMENSION_LABELS[key] || key
+                }))
+              )
+            } else if (path === '/api/extraction/create') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir())
+              const result = webExtractionTasks.create(webStoreAdapter(), { ...body, bookPath })
+              sendJson(res, result, result.success ? 202 : 409)
+            } else if (path === '/api/extraction/progress') {
+              sendJson(res, webExtractionTasks.progress(body.jobId))
+            } else if (path === '/api/extraction/list') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              sendJson(res, extractionAiService.listExtractions(bookPath))
+            } else if (path === '/api/extraction/get') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              sendJson(
+                res,
+                extractionAiService.getExtraction(bookPath, body.extractionId || body.id, body)
+              )
+            } else if (path === '/api/extraction/result-page') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              sendJson(
+                res,
+                extractionAiService.getExtractionResultPage(
+                  bookPath,
+                  body.extractionId || body.id,
+                  body
+                )
+              )
+            } else if (path === '/api/extraction/delete') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              sendJson(
+                res,
+                await extractionAiService.deleteExtraction(
+                  bookPath,
+                  body.extractionId || body.id
+                )
+              )
+            } else if (path === '/api/extraction/search') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              const query = sanitizeText(body.query || body.keyword)
+              if (!query) {
+                throw Object.assign(new Error('搜索内容不能为空'), { statusCode: 400 })
+              }
+              const items = await extractionAiService.searchKnowledge(
+                bookPath,
+                {
+                  query,
+                  dimensions: body.dimensions,
+                  topK: body.topK
+                },
+                body.embeddingConfig || null
+              )
+              sendJson(res, { success: true, items })
             } else if (path === '/api/editor-agent/queue-status') {
               try {
                 sendJson(res, await agentTaskQueueService.getAgentTaskQueueStatus(body || {}))
