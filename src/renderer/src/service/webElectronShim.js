@@ -922,18 +922,6 @@ async function removeWebBannedWord(bookName, word) {
   return { success: true, data: nextWords, words: nextWords }
 }
 
-async function readBooksDirForWeb() {
-  const res = await fetch('/api/books/list', { method: 'POST' })
-  const data = await res.json().catch(() => null)
-  if (!res.ok) {
-    throw new Error(data?.message || data?.error || `读取书籍目录失败 (${res.status})`)
-  }
-  if (!Array.isArray(data)) {
-    throw new Error('读取书籍目录失败：接口返回格式不正确')
-  }
-  return data
-}
-
 function localDateKey(value = new Date()) {
   const date = value instanceof Date ? value : new Date(value)
   if (Number.isNaN(date.getTime())) return ''
@@ -994,13 +982,9 @@ function buildElectronShim() {
     selectImage: selectBrowserImage,
     showSaveDialog: showBrowserSaveDialog,
     writeExportFile: writeBrowserExportFile,
-    createBook: (bookInfo) => postJson('/api/books/create', bookInfo),
-    readBooksDir: readBooksDirForWeb,
     readWorkbenchDatabaseSnapshot: (payload) =>
       postJson('/api/workbench-database/snapshot', payload || {}),
     queryWorkbenchDatabase: (payload) => postJson('/api/workbench-database/query', payload || {}),
-    deleteBook: (name) => postJson('/api/books/delete', { name }),
-    editBook: (bookInfo) => postJson('/api/books/edit', bookInfo || {}),
     openBookEditorWindow: async (_id, name) => {
       const url = `/#/editor?name=${encodeURIComponent(name || '')}`
       let opened = false

@@ -189,7 +189,11 @@ for (const method of [
   'listWritingGoals:',
   'createWritingGoal:',
   'updateWritingGoal:',
-  'deleteWritingGoal:'
+  'deleteWritingGoal:',
+  'createBook:',
+  'readBooksDir:',
+  'deleteBook:',
+  'editBook:'
 ]) {
   assert.doesNotMatch(webShimSource, new RegExp(`\\b${method}`), `Web shim 不应保留 AI 方法：${method}`)
 }

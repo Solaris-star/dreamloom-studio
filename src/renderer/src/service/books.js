@@ -1,13 +1,32 @@
 // 书籍相关操作服务
 
-import { useMainStore } from '../stores'
+import { useMainStore } from '../stores/index.js'
+import { fetchJson, postJson } from './webHttpClient.js'
+
+function requireBookList(result) {
+  if (!Array.isArray(result)) {
+    throw new Error('书籍列表接口返回格式不正确')
+  }
+  return result
+}
+
+function requireBookWriteResult(result, fallback) {
+  if (result?.success !== true) {
+    throw new Error(result?.message || fallback)
+  }
+  return result
+}
 
 /**
  * 获取全局书籍目录 bookDir
  * @returns {Promise<string>}
  */
 export async function getBookDir() {
-  return await window.electronStore.get('booksDir')
+  const result = await fetchJson('/api/books/dir')
+  if (result?.success !== true || typeof result.booksDir !== 'string') {
+    throw new Error('书库目录接口返回格式不正确')
+  }
+  return result.booksDir
 }
 
 /**
@@ -16,7 +35,9 @@ export async function getBookDir() {
  * @returns {Promise<any>}
  */
 export function createBook(bookInfo) {
-  return window.electron.createBook(bookInfo)
+  return postJson('/api/books/create', bookInfo).then((result) =>
+    requireBookWriteResult(result, '创建作品失败')
+  )
 }
 
 /**
@@ -25,7 +46,9 @@ export function createBook(bookInfo) {
  * @returns {Promise<any>}
  */
 export function updateBook(bookInfo) {
-  return window.electron.editBook(bookInfo)
+  return postJson('/api/books/edit', bookInfo).then((result) =>
+    requireBookWriteResult(result, '更新作品失败')
+  )
 }
 
 /**
@@ -35,13 +58,12 @@ export function updateBook(bookInfo) {
 export async function readBooksDir() {
   const mainStore = useMainStore()
   try {
-    const books = await window.electron.readBooksDir()
+    const books = requireBookList(await postJson('/api/books/list', {}))
     mainStore.setBooks(books)
     return books
   } catch (error) {
-    console.error('Failed to read books directory:', error)
     mainStore.setBooks([])
-    return []
+    throw error
   }
 }
 
@@ -51,5 +73,6 @@ export async function readBooksDir() {
  * @returns {Promise<any>}
  */
 export async function deleteBook(name) {
-  return window.electron.deleteBook(name)
+  const result = await postJson('/api/books/delete', { name })
+  return requireBookWriteResult(result, '删除作品失败')
 }
