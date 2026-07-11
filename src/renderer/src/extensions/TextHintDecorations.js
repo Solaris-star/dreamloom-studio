@@ -21,6 +21,24 @@ export function findTextRanges(source, target) {
   return ranges
 }
 
+function normalizeHintItems(items) {
+  const seen = new Set()
+  return (Array.isArray(items) ? items : []).filter((item) => {
+    const text = String(item?.text ?? item ?? '').trim()
+    const key = text.toLocaleLowerCase()
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+export function normalizeHintColor(value) {
+  const color = String(value || '').trim()
+  return /^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\)|hsla?\([\d\s.,%deg]+\))$/i.test(color)
+    ? color
+    : '#fff3a3'
+}
+
 function findMatches(doc, items, createAttrs) {
   const decorations = []
   doc.descendants((node, pos) => {
@@ -38,13 +56,17 @@ function findMatches(doc, items, createAttrs) {
   return decorations
 }
 
-function createDecorations(doc, config) {
-  const characterDecorations = findMatches(doc, config.characters, (item) => ({
+export function createTextHintDecorations(doc, config = {}) {
+  const characters = normalizeHintItems(config.characters)
+  const bannedWords = normalizeHintItems(config.bannedWords).map((item) =>
+    typeof item === 'string' ? { text: item } : item
+  )
+  const characterDecorations = findMatches(doc, characters, (item) => ({
     class: 'character-hint-decoration',
-    style: `background-color: ${item.color};`,
+    style: `background-color: ${normalizeHintColor(item.color)};`,
     'data-text-hint': 'character'
   }))
-  const bannedWordDecorations = findMatches(doc, config.bannedWords, () => ({
+  const bannedWordDecorations = findMatches(doc, bannedWords, () => ({
     class: 'banned-word-decoration',
     'data-text-hint': 'banned-word'
   }))
@@ -83,7 +105,7 @@ export const TextHintDecorations = Extension.create({
                   bannedWords: Array.isArray(nextConfig.bannedWords) ? nextConfig.bannedWords : []
                 }
               : value.config
-            return { config, decorations: createDecorations(tr.doc, config) }
+            return { config, decorations: createTextHintDecorations(tr.doc, config) }
           }
         },
         props: {

@@ -7,6 +7,7 @@ import Highlight from '@tiptap/extension-highlight'
 import { createDocument, Extension } from '@tiptap/core'
 import { Collapsible } from '@renderer/extensions/Collapsible'
 import { TextHintDecorations } from '@renderer/extensions/TextHintDecorations'
+import { plainTextToEditorParagraphs } from '@renderer/service/editorTextFormat'
 
 const props = defineProps({
   editorStore: {
@@ -51,20 +52,7 @@ const TabInsert = Extension.create({
 
 // 将纯文本转换为 HTML（用于章节模式）
 function plainTextToHtml(text) {
-  if (!text) return ''
-  // 1. 按行分割
-  const lines = text.split('\n')
-  // 2. 每行处理缩进和空格
-  const htmlLines = lines.map((line) => {
-    // 替换Tab为8个&nbsp;
-    let html = line.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;')
-    // 替换连续空格为 &nbsp;
-    html = html.replace(/ {2,}/g, (match) => '&nbsp;'.repeat(match.length))
-    // 包裹为<p>
-    return html ? `<p>${html}</p>` : ''
-  })
-  // 3. 拼接
-  return htmlLines.join('')
+  return plainTextToEditorParagraphs(text)
 }
 
 // 获取章节编辑器的扩展配置
