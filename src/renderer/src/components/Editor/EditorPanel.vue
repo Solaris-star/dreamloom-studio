@@ -425,7 +425,7 @@ const polishSourceFilePath = ref('')
 const continueLoading = ref(false)
 const versionDrawerVisible = ref(false)
 const versionSnapshots = ref([])
-let lastAutoSnapshotContent = ''
+const lastAutoSnapshotContentByChapter = new Map()
 const saveStatusText = computed(() => {
   const labels = {
     idle: '',
@@ -1082,8 +1082,11 @@ async function persistSaveSnapshot(snapshot) {
     volumeName: snapshot.file.volume,
     chapterName: snapshot.file.name
   })
-  if (result?.success && snapshot.content !== lastAutoSnapshotContent) {
-    lastAutoSnapshotContent = snapshot.content
+  const snapshotKey = `${snapshot.bookName}\n${snapshot.filePath}`
+  if (
+    result?.success &&
+    snapshot.content !== lastAutoSnapshotContentByChapter.get(snapshotKey)
+  ) {
     try {
       await createEditorSnapshot({
         bookId: snapshot.bookName,
@@ -1092,6 +1095,7 @@ async function persistSaveSnapshot(snapshot) {
         contentBefore: snapshot.content,
         reason: 'auto_save'
       })
+      lastAutoSnapshotContentByChapter.set(snapshotKey, snapshot.content)
     } catch (error) {
       console.error('创建章节自动快照失败:', error)
     }
@@ -1176,7 +1180,10 @@ async function removeVersion(item) {
     await ElMessageBox.confirm('确定删除这个历史版本吗？', '删除版本', {
       type: 'warning'
     })
-    await deleteEditorSnapshot(item.id)
+    await deleteEditorSnapshot(item.id, {
+      bookId: props.bookName,
+      chapterId: editorStore.file.path
+    })
     await loadVersionSnapshots()
   } catch (error) {
     if (error !== 'cancel' && error !== 'close') {

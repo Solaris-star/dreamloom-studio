@@ -2312,56 +2312,6 @@ function buildElectronShim() {
         items: generations.filter((item) => !bookId || item.bookId === bookId)
       }
     },
-    createEditorSnapshot: async (payload = {}) => {
-      const snapshots = requireStoreArray(
-        await getStoreValue('editorSnapshots', []),
-        '读取编辑器快照失败'
-      )
-      const snapshot = {
-        id: crypto.randomUUID(),
-        bookId: payload.bookId || payload.bookName || '',
-        chapterId: payload.chapterId || payload.chapterName || '',
-        chapterName: payload.chapterName || '',
-        name: String(payload.name || '').trim(),
-        contentBefore: payload.contentBefore || payload.content || '',
-        contentAfter: payload.contentAfter || '',
-        reason: payload.reason || 'ai_apply',
-        generationId: payload.generationId || '',
-        createdAt: new Date().toISOString()
-      }
-      await setStoreValue('editorSnapshots', [snapshot, ...snapshots].slice(0, 300))
-      return { success: true, snapshot }
-    },
-    listEditorSnapshots: async ({ bookId = '', chapterId = '' } = {}) => {
-      const snapshots = requireStoreArray(
-        await getStoreValue('editorSnapshots', []),
-        '读取编辑器快照失败'
-      )
-      return {
-        success: true,
-        snapshots: snapshots.filter((item) => {
-          if (bookId && item.bookId !== bookId) return false
-          if (chapterId && item.chapterId !== chapterId) return false
-          return true
-        })
-      }
-    },
-    deleteEditorSnapshot: async (snapshotId = '') => {
-      const id = String(snapshotId || '').trim()
-      if (!id) return { success: false, message: '缺少快照 ID' }
-      const snapshots = requireStoreArray(
-        await getStoreValue('editorSnapshots', []),
-        '读取编辑器快照失败'
-      )
-      if (!snapshots.some((item) => item.id === id)) {
-        return { success: false, message: '未找到指定快照' }
-      }
-      await setStoreValue(
-        'editorSnapshots',
-        snapshots.filter((item) => item.id !== id)
-      )
-      return { success: true, snapshotId: id }
-    },
     saveEditorMaterial: async (payload = {}) => {
       const materials = requireStoreArray(
         await getStoreValue('editorMaterials', []),

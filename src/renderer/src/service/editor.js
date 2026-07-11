@@ -1,4 +1,5 @@
 import { getAiProviders, getActiveTextProvider } from './aiProvider.js'
+import { postJson } from './webHttpClient.js'
 
 function getElectronApi(name, label = '编辑器接口') {
   const api = globalThis.window?.electron?.[name]
@@ -2580,19 +2581,17 @@ export async function getAgentProgressServer() {
 }
 
 export async function createEditorSnapshot(payload = {}) {
-  const response = await requireElectronApi('createEditorSnapshot', '编辑器快照接口')(payload)
+  const response = await postJson('/api/editor-snapshots/create', payload)
   return requireObjectResult(response, 'snapshot', '保存编辑器快照')
 }
 
 export async function listEditorSnapshots(filter = {}) {
-  const response = await requireElectronApi('listEditorSnapshots', '编辑器快照接口')(filter)
+  const response = await postJson('/api/editor-snapshots/list', filter)
   return requireArrayResult(response, 'snapshots', '读取编辑器快照')
 }
 
-export async function deleteEditorSnapshot(snapshotId) {
-  const response = await requireElectronApi('deleteEditorSnapshot', '编辑器快照接口')(
-    snapshotId
-  )
+export async function deleteEditorSnapshot(snapshotId, filter = {}) {
+  const response = await postJson('/api/editor-snapshots/delete', { ...filter, snapshotId })
   if (response?.success !== true || response.snapshotId !== snapshotId) {
     throw new Error(response?.message || '删除编辑器快照失败')
   }

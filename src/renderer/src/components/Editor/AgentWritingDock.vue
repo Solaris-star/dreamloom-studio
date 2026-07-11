@@ -2680,6 +2680,7 @@ async function applyResult(message, action) {
     if (isChapterApplyAction(action)) {
       await createEditorSnapshot({
         bookName: props.bookName,
+        chapterId: context.path || context.chapterId || chapterName.value,
         chapterName: chapterName.value,
         contentBefore: context.content || '',
         reason: 'ai_apply',

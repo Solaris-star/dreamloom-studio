@@ -26,6 +26,7 @@ import * as importExportService from './src/main/services/importExportService.js
 import * as agentTaskQueueService from './src/main/services/agentTaskQueueService.js'
 import * as workbenchDatabaseService from './src/main/services/workbenchDatabaseService.js'
 import * as settingSnapshotService from './src/main/services/settingSnapshotService.js'
+import * as chapterVersionService from './src/main/services/chapterVersionService.js'
 import vectorService from './src/main/services/vectorService.js'
 import plotEvolutionAiService from './src/main/services/plotEvolutionAi.js'
 import settingTreeAiService from './src/main/services/settingTreeAi.js'
@@ -1539,6 +1540,39 @@ export function createWebServerPlugins() {
               sendJson(
                 res,
                 diff ? { success: true, diff } : { success: false, message: '设定快照不存在' }
+              )
+            } else if (path === '/api/editor-snapshots/create') {
+              const bookPath = resolveBookPathForWebPayload(
+                { ...body, bookName: body.bookName || body.bookId },
+                getActiveBooksDir(),
+                { ensure: true }
+              )
+              sendJson(res, {
+                success: true,
+                snapshot: chapterVersionService.createChapterVersion(bookPath, body)
+              })
+            } else if (path === '/api/editor-snapshots/list') {
+              const bookPath = resolveBookPathForWebPayload(
+                { ...body, bookName: body.bookName || body.bookId },
+                getActiveBooksDir(),
+                { ensure: true }
+              )
+              sendJson(res, {
+                success: true,
+                snapshots: chapterVersionService.listChapterVersions(bookPath, body.chapterId)
+              })
+            } else if (path === '/api/editor-snapshots/delete') {
+              const bookPath = resolveBookPathForWebPayload(
+                { ...body, bookName: body.bookName || body.bookId },
+                getActiveBooksDir(),
+                { ensure: true }
+              )
+              const deleted = chapterVersionService.deleteChapterVersion(bookPath, body)
+              sendJson(
+                res,
+                deleted
+                  ? { success: true, snapshotId: body.snapshotId }
+                  : { success: false, message: '章节版本不存在' }
               )
             } else if (path === '/api/analytics/overview') {
               sendJson(res, {
