@@ -14,6 +14,8 @@ import * as goalService from './src/main/services/goalService.js'
 import * as importExportService from './src/main/services/importExportService.js'
 import * as agentTaskQueueService from './src/main/services/agentTaskQueueService.js'
 import * as workbenchDatabaseService from './src/main/services/workbenchDatabaseService.js'
+import * as settingSnapshotService from './src/main/services/settingSnapshotService.js'
+import vectorService from './src/main/services/vectorService.js'
 
 export function createWebServerPlugins() {
   const booksDir = process.env.NOVEL_BOOKS_DIR || resolve('.booksDir')
@@ -134,9 +136,16 @@ export function createWebServerPlugins() {
   // Helper functions matching assertions
   function resolveBookPathForWebPayload(payload = {}, booksDir = '', { ensure = false } = {}) {
     const root = resolve(booksDir)
-    const bookPath = resolve(root, payload.bookName || '')
+    const candidate = sanitizeText(payload.bookPath || payload.bookName)
+    if (!candidate) {
+      throw Object.assign(new Error('缺少书籍目录'), { statusCode: 400 })
+    }
+    const bookPath = isAbsolute(candidate) ? resolve(candidate) : resolve(root, candidate)
     if (!isPathInside(root, bookPath)) {
-      throw new Error('书籍目录不在当前书库内')
+      throw Object.assign(new Error('书籍目录不在当前书库内'), { statusCode: 403 })
+    }
+    if (ensure && (!fs.existsSync(bookPath) || !fs.statSync(bookPath).isDirectory())) {
+      throw Object.assign(new Error('书籍目录不存在'), { statusCode: 404 })
     }
     return bookPath
   }
@@ -431,10 +440,6 @@ export function createWebServerPlugins() {
   }
 
   const finalExtractionStatuses = new Set(['completed', 'partial'])
-
-  function normalizeSettingSnapshot(snapshot) {
-    return snapshot || {}
-  }
 
   // --- Confirmation / Discard handlers ---
   function confirmWebAiCover(bookPath, chosenPath, finalPath) {
@@ -752,16 +757,9 @@ export function createWebServerPlugins() {
                 sendJson(res, { success: false, message: queueUnavailableMessage(error) })
               }
             } else if (path === '/api/setting-tree/apply') {
-              // Web setting-tree apply assertions
-              const bookPath = resolveBookPathForWebPayload(body, booksDir)
-              const settingsPath = join(bookPath, 'settings.json')
-              const next = readWebBookContextSettings(bookPath) || { categories: [] }
-              const snapshot = {}
               sendJson(res, {
-                success: true,
-                settingsPath,
-                categoryCount: Array.isArray(next.categories) ? next.categories.length : 0,
-                snapshot: normalizeSettingSnapshot(snapshot)
+                success: false,
+                message: '设定树应用尚未提供安全的 Web 实现'
               })
             } else if (path === '/api/settings/storage-stats') {
               sendJson(res, getStorageStats())
@@ -1060,6 +1058,8 @@ export function createWebServerPlugins() {
               )
             } else if (path === '/api/market/activities/save-to-knowledge') {
               sendJson(res, marketService.saveActivityToKnowledge(getActiveBooksDir(), body.id))
+            } else if (path === '/api/market/refresh') {
+              sendJson(res, await marketService.refreshMarketTrends(getActiveBooksDir(), body || {}))
             } else if (path === '/api/market/activities/create-topic-card') {
               sendJson(res, marketService.createTopicCardFromActivity(getActiveBooksDir(), body.id))
             } else if (path === '/api/market/hot-topics') {
@@ -1130,6 +1130,95 @@ export function createWebServerPlugins() {
               sendJson(res, marketService.applyInsightToBook(getActiveBooksDir(), body || {}))
             } else if (path === '/api/market/create-book-from-insight') {
               sendJson(res, marketService.createBookFromInsight(getActiveBooksDir(), body || {}))
+            } else if (path === '/api/vector/search') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              const query = sanitizeText(body.query || body.queryText)
+              if (!query) {
+                throw Object.assign(new Error('搜索内容不能为空'), { statusCode: 400 })
+              }
+              if (!body.embeddingConfig || typeof body.embeddingConfig !== 'object') {
+                throw Object.assign(new Error('缺少 Embedding 配置'), { statusCode: 400 })
+              }
+              sendJson(res, {
+                success: true,
+                items: await vectorService.search(bookPath, query, body.embeddingConfig, {
+                  limit: Number(body.limit) || 5,
+                  filter: body.filter
+                })
+              })
+            } else if (path === '/api/vector/stats') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              sendJson(res, {
+                success: true,
+                ...(await vectorService.getStats(bookPath))
+              })
+            } else if (path === '/api/vector/delete-source') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              const sourceExtractionId = sanitizeText(body.sourceExtractionId)
+              if (!sourceExtractionId) {
+                throw Object.assign(new Error('缺少来源 ID'), { statusCode: 400 })
+              }
+              sendJson(res, {
+                success: true,
+                ...(await vectorService.deleteBySource(bookPath, sourceExtractionId))
+              })
+            } else if (path === '/api/setting-snapshots/list') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              sendJson(res, {
+                success: true,
+                snapshots: settingSnapshotService.listSnapshots(bookPath)
+              })
+            } else if (path === '/api/setting-snapshots/create') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              sendJson(res, {
+                success: true,
+                snapshot: settingSnapshotService.createSnapshot(bookPath, body || {})
+              })
+            } else if (path === '/api/setting-snapshots/restore') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              const snapshot = settingSnapshotService.restoreSnapshot(bookPath, body.snapshotId)
+              sendJson(
+                res,
+                snapshot
+                  ? { success: true, snapshot }
+                  : { success: false, message: '设定快照不存在' }
+              )
+            } else if (path === '/api/setting-snapshots/delete') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              const deleted = settingSnapshotService.deleteSnapshot(bookPath, body.snapshotId)
+              sendJson(
+                res,
+                deleted
+                  ? { success: true, deletedId: body.snapshotId }
+                  : { success: false, message: '设定快照不存在' }
+              )
+            } else if (path === '/api/setting-snapshots/diff') {
+              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
+                ensure: true
+              })
+              const diff = settingSnapshotService.diffSnapshots(
+                bookPath,
+                body.snapshotIdA,
+                body.snapshotIdB
+              )
+              sendJson(
+                res,
+                diff ? { success: true, diff } : { success: false, message: '设定快照不存在' }
+              )
             } else if (path === '/api/analytics/overview') {
               sendJson(res, {
                 success: true,
