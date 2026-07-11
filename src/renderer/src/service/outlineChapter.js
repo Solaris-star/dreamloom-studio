@@ -1,10 +1,4 @@
-function ensureElectronApi(name) {
-  const api = globalThis.window?.electron?.[name]
-  if (typeof api !== 'function') {
-    throw new Error(`当前环境暂不支持章节生成接口：${name}`)
-  }
-  return api
-}
+import { postJson } from './webHttpClient.js'
 
 function requireGeneratedChapterResult(result, expected = {}) {
   if (result?.success !== true) {
@@ -29,7 +23,7 @@ function requireGeneratedChapterResult(result, expected = {}) {
 
 export async function generateChapterFromOutline(payload, expected = {}) {
   return requireGeneratedChapterResult(
-    await ensureElectronApi('generateChapterFromOutline')(payload),
+    await postJson('/api/ai/generate-chapter-from-outline', payload, { timeoutMs: 120_000 }),
     expected
   )
 }

@@ -1432,8 +1432,6 @@ function buildElectronShim() {
       }),
     refineSettingWithAI: refineWebSettingWithAI,
     runOutlineAiTask: runWebOutlineAiTask,
-    generateChapterFromOutline: (payload) =>
-      postJson('/api/ai/generate-chapter-from-outline', payload),
     continueWriteWithAI: async (input = {}) => {
       const payload = normalizeTextAiPayload(input)
       const { text = '', prompt = '', maxAddWords = 0 } = payload

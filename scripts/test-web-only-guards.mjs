@@ -103,6 +103,17 @@ for (const method of [
 ]) {
   assert.doesNotMatch(webShimSource, new RegExp(`\\b${method}`), `Web shim 不应保留拆书方法：${method}`)
 }
+const outlineChapterServiceSource = read('src/renderer/src/service/outlineChapter.js')
+assert.doesNotMatch(
+  outlineChapterServiceSource,
+  /window\.electron|ensureElectronApi/,
+  '章节生成服务必须直接使用 Web API'
+)
+assert.doesNotMatch(
+  webShimSource,
+  /\bgenerateChapterFromOutline:/,
+  'Web shim 不应保留章节生成方法'
+)
 
 const rendererRoot = path.join(root, 'src/renderer/src')
 const rendererSourceFiles = fs
