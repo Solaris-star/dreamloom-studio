@@ -1,29 +1,4 @@
-/**
- * 小说下载相关接口。
- * 当前统一通过 window.electron 暴露的兼容接口访问，Web 版由 webElectronShim 转到 HTTP 端点。
- */
-
-function getNovelElectronApi(name) {
-  if (typeof window === 'undefined' || !window.electron) return null
-  const api = window.electron[name]
-  return typeof api === 'function' ? api : null
-}
-
-function requireNovelElectronApi(name) {
-  const api = getNovelElectronApi(name)
-  if (!api) {
-    throw new Error(`当前环境暂不支持小说下载接口：${name}`)
-  }
-  return api
-}
-
-async function fetchNovelSourcesFallback() {
-  const res = await fetch('/api/novel/sources', { method: 'POST' })
-  if (!res.ok) {
-    throw new Error(`读取小说书源失败 (${res.status})`)
-  }
-  return await res.json()
-}
+import { postJson } from './webHttpClient.js'
 
 function requirePlainObject(result, fallback) {
   if (!result || typeof result !== 'object' || Array.isArray(result)) {
@@ -147,14 +122,7 @@ function normalizeExistingBookNames(books = []) {
  * @returns {Promise<Array<{ id: string, name: string }>>}
  */
 export async function getNovelSources() {
-  const novelGetSources = getNovelElectronApi('novelGetSources')
-  let result
-  if (novelGetSources) {
-    result = await novelGetSources()
-  } else {
-    result = await fetchNovelSourcesFallback()
-  }
-  return requireNovelSourcesResult(result)
+  return requireNovelSourcesResult(await postJson('/api/novel/sources', {}))
 }
 
 /**
@@ -164,9 +132,7 @@ export async function getNovelSources() {
  * @returns {Promise<{ success: boolean, list: Array, sourceErrors: Array<string>, message?: string }>}
  */
 export async function searchNovel(keyword, sourceId) {
-  const novelSearch = getNovelElectronApi('novelSearch')
-  if (!novelSearch) requireNovelElectronApi('novelSearch')
-  const result = await novelSearch({ keyword, sourceId })
+  const result = await postJson('/api/novel/search', { keyword, sourceId })
   return requireNovelSearchResult(result)
 }
 
@@ -177,9 +143,7 @@ export async function searchNovel(keyword, sourceId) {
  * @returns {Promise<{ success: boolean, chapters: Array<{ title: string, url: string }>, message?: string }>}
  */
 export async function getNovelChapterList(bookUrl, sourceId) {
-  const novelGetChapterList = getNovelElectronApi('novelGetChapterList')
-  if (!novelGetChapterList) requireNovelElectronApi('novelGetChapterList')
-  const result = await novelGetChapterList({ bookUrl, sourceId })
+  const result = await postJson('/api/novel/chapters', { bookUrl, sourceId })
   return requireNovelChapterListResult(result)
 }
 
@@ -190,9 +154,7 @@ export async function getNovelChapterList(bookUrl, sourceId) {
  * @returns {Promise<{ success: boolean, info: Record<string, unknown>, message?: string }>}
  */
 export async function getNovelBookInfo(bookUrl, sourceId) {
-  const novelGetBookInfo = getNovelElectronApi('novelGetBookInfo')
-  if (!novelGetBookInfo) requireNovelElectronApi('novelGetBookInfo')
-  const result = await novelGetBookInfo({ bookUrl, sourceId })
+  const result = await postJson('/api/novel/book-info', { bookUrl, sourceId })
   return requireNovelBookInfoResult(result)
 }
 
@@ -225,9 +187,7 @@ export async function downloadNovelChapters(chapterList, sourceId) {
     title: String(chapter?.title || `第${index + 1}章`),
     url: String(chapter?.url || '')
   }))
-  const novelDownloadChapters = getNovelElectronApi('novelDownloadChapters')
-  if (!novelDownloadChapters) requireNovelElectronApi('novelDownloadChapters')
-  const result = await novelDownloadChapters({ chapterList: plainList, sourceId })
+  const result = await postJson('/api/novel/download', { chapterList: plainList, sourceId })
   return requireNovelChaptersDownloadResult(result)
 }
 
@@ -270,22 +230,25 @@ export function uniqueDownloadedBookName(title, existingBooks = []) {
  * @returns {Promise<object | null>}
  */
 export async function exportDownloadedNovelTextFile(options = {}) {
-  const showSaveDialog = requireNovelElectronApi('showSaveDialog')
-  const writeExportFile = requireNovelElectronApi('writeExportFile')
   const title = sanitizeBookName(options.title || '下载小说')
-  const saveResult = await showSaveDialog({
-    title: options.dialogTitle || '保存 TXT',
-    defaultPath: `${title}.txt`,
-    filters: [{ name: options.textFileLabel || '文本文件', extensions: ['txt'] }]
-  })
-  if (!saveResult?.filePath) return null
-  const writeResult = await writeExportFile({
-    filePath: saveResult.filePath,
-    fileName: saveResult.fileName || `${title}.txt`,
-    content: String(options.content || '')
-  })
-  if (writeResult?.success !== true) {
-    throw new Error(writeResult?.message || '导出 TXT 失败')
+  if (
+    typeof document === 'undefined' ||
+    typeof URL === 'undefined' ||
+    typeof URL.createObjectURL !== 'function'
+  ) {
+    throw new Error('当前浏览器不支持文件下载')
   }
-  return writeResult
+  const fileName = `${title}.txt`
+  const objectUrl = URL.createObjectURL(
+    new Blob([String(options.content || '')], { type: 'text/plain;charset=utf-8' })
+  )
+  const anchor = document.createElement('a')
+  anchor.href = objectUrl
+  anchor.download = fileName
+  anchor.style.display = 'none'
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
+  return { success: true, fileName }
 }

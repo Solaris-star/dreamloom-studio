@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { postJson } from '../service/webHttpClient.js'
+import { getStoreValue, setStoreValue } from '../service/webStore.js'
 
 // 编辑器相关全局状态管理
 export const useEditorStore = defineStore('editor', () => {
@@ -197,7 +199,7 @@ export const useEditorStore = defineStore('editor', () => {
   // 加载编辑器设置
   async function loadEditorSettings() {
     try {
-      const settings = await window.electronStore.get('editorSettings')
+      const settings = await getStoreValue('editorSettings', null)
       if (settings) {
         editorSettings.value = { ...editorSettings.value, ...settings }
       }
@@ -208,22 +210,17 @@ export const useEditorStore = defineStore('editor', () => {
 
   // 保存编辑器设置
   async function saveEditorSettings(settings) {
-    try {
-      editorSettings.value = { ...editorSettings.value, ...settings }
-      // 转换为纯对象，避免响应式代理导致的序列化问题
-      const plainSettings = {
-        fontFamily: editorSettings.value.fontFamily,
-        fontSize: editorSettings.value.fontSize,
-        lineHeight: editorSettings.value.lineHeight,
-        paragraphSpacing: editorSettings.value.paragraphSpacing,
-        pageWidth: editorSettings.value.pageWidth,
-        globalBoldMode: editorSettings.value.globalBoldMode,
-        globalItalicMode: editorSettings.value.globalItalicMode
-      }
-      await window.electronStore.set('editorSettings', plainSettings)
-    } catch (error) {
-      console.error('保存编辑器设置失败:', error)
+    editorSettings.value = { ...editorSettings.value, ...settings }
+    const plainSettings = {
+      fontFamily: editorSettings.value.fontFamily,
+      fontSize: editorSettings.value.fontSize,
+      lineHeight: editorSettings.value.lineHeight,
+      paragraphSpacing: editorSettings.value.paragraphSpacing,
+      pageWidth: editorSettings.value.pageWidth,
+      globalBoldMode: editorSettings.value.globalBoldMode,
+      globalItalicMode: editorSettings.value.globalItalicMode
     }
+    await setStoreValue('editorSettings', plainSettings)
   }
 
   function setBookTotalWords(total) {
@@ -276,18 +273,27 @@ export const useEditorStore = defineStore('editor', () => {
     }
 
     try {
-      let totalWords
-      if (window?.electron?.getBookWordCount) {
-        totalWords = await window.electron.getBookWordCount(normalizedName)
+      const result = await postJson('/api/analytics/overview', {
+        bookId: normalizedName,
+        bookName: normalizedName
+      })
+      if (result?.success !== true || !result.data || typeof result.data !== 'object') {
+        throw new Error('书籍字数接口返回格式不正确')
       }
-
-      if (totalWords === undefined && window?.electron?.readBooksDir) {
-        const books = await window.electron.readBooksDir()
-        if (Array.isArray(books)) {
-          const target = books.find((item) => item.name === normalizedName)
-          if (target && target.totalWords !== undefined) {
-            totalWords = target.totalWords
-          }
+      let totalWords = result.data.totalWords
+      if (totalWords === undefined) {
+        const books = await postJson('/api/books/list', {})
+        if (!Array.isArray(books)) {
+          throw new Error('书籍列表接口返回格式不正确')
+        }
+        const target = books.find(
+          (item) =>
+            item?.name === normalizedName ||
+            item?.folderName === normalizedName ||
+            item?.id === normalizedName
+        )
+        if (target?.totalWords !== undefined) {
+          totalWords = target.totalWords
         }
       }
 

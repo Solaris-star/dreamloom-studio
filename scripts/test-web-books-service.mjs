@@ -29,6 +29,18 @@ assert.deepEqual(requests.at(-1), {
   payload: undefined
 })
 
+responses.set('/api/books/set-dir', { success: true, booksDir: 'D:/new-books' })
+assert.equal(await booksService.setBookDir('D:/new-books'), 'D:/new-books')
+assert.deepEqual(requests.at(-1), {
+  url: '/api/books/set-dir',
+  method: 'POST',
+  payload: { dir: 'D:/new-books' }
+})
+await assert.rejects(() => booksService.setBookDir(''), /书库目录不能为空/)
+
+responses.set('/api/books/set-dir', { success: true, booksDir: 'D:/wrong' })
+await assert.rejects(() => booksService.setBookDir('D:/new-books'), /接口返回格式不正确/)
+
 const books = [{ id: 'book-1', name: '第一本书', folderName: '第一本书' }]
 responses.set('/api/books/list', books)
 assert.deepEqual(await booksService.readBooksDir(), books)

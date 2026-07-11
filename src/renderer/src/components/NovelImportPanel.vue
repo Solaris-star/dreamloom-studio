@@ -118,13 +118,12 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { BOOK_TYPES } from '@renderer/constants/config'
-import { createBook, readBooksDir } from '@renderer/service/books'
+import { createBook, getBookDir, readBooksDir, setBookDir } from '@renderer/service/books'
 import { createChapterDocument, saveChapterDocument } from '@renderer/service/editor'
 import {
-  downloadNovelChapter,
   downloadNovelChapters,
   exportDownloadedNovelTextFile,
   getNovelBookInfo,
@@ -174,42 +173,11 @@ const selectedChapterList = computed(() => {
 const selectedChapterCount = computed(() => selectedChapterList.value.length)
 
 async function getBooksDir() {
-  if (window.electronStore) return window.electronStore.get('booksDir')
-  const res = await fetch('/api/books/dir')
-  const data = await res.json()
-  return data.booksDir || localStorage.getItem('booksDir') || ''
-}
-
-function requireBooksDirStoreResult(result, dir) {
-  if (result?.success !== true) {
-    throw new Error(result?.message || '保存书架目录失败')
-  }
-  if (result.key !== 'booksDir') {
-    throw new Error('保存书架目录失败：返回设置项不一致')
-  }
-  localStorage.setItem('booksDir', dir)
-  return result
+  return getBookDir()
 }
 
 async function setBooksDir(dir) {
-  if (window.electronStore) {
-    const result = await window.electronStore.set('booksDir', dir)
-    return requireBooksDirStoreResult(result, dir)
-  }
-  const res = await fetch('/api/books/set-dir', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ dir })
-  })
-  const data = await res.json().catch(() => null)
-  if (!res.ok || data?.success !== true) {
-    throw new Error(data?.message || data?.error || `保存书架目录失败 (${res.status})`)
-  }
-  if (data.booksDir !== dir) {
-    throw new Error('保存书架目录失败：返回目录不一致')
-  }
-  localStorage.setItem('booksDir', dir)
-  return data
+  return setBookDir(dir)
 }
 
 async function loadSources() {
@@ -421,12 +389,6 @@ function requireImportedBookVisible(books, expected = {}) {
   return true
 }
 
-function onDownloadProgress(event) {
-  if (event.detail) {
-    downloadProgress.value = { current: event.detail.current, total: event.detail.total }
-  }
-}
-
 async function handleDownloadToBookshelf() {
   const book = selectedBook.value
   const targetChapters = selectedChapterList.value
@@ -495,36 +457,11 @@ async function handleDownloadToBookshelf() {
 
 async function downloadChapters(book, chaptersToDownload = selectedChapterList.value) {
   const targetChapters = chaptersToDownload || []
-  if (window.electron?.novelDownloadChapters) {
-    const result = requireDownloadedChaptersResult(
-      await downloadNovelChapters(targetChapters, book.sourceId)
-    )
-    return result.chapters
-  }
-  const rows = []
-  for (let index = 0; index < targetChapters.length; index++) {
-    const chapter = targetChapters[index]
-    downloadProgress.value = { current: index + 1, total: targetChapters.length }
-    try {
-      const result = requireDownloadedChapterContentResult(
-        await downloadNovelChapter(chapter.url, book.sourceId)
-      )
-      rows.push({
-        title: chapter.title,
-        content: result.content,
-        failed: false,
-        error: ''
-      })
-    } catch (error) {
-      rows.push({
-        title: chapter.title,
-        content: '',
-        failed: true,
-        error: error?.message || '下载失败'
-      })
-    }
-  }
-  return rows
+  const result = requireDownloadedChaptersResult(
+    await downloadNovelChapters(targetChapters, book.sourceId)
+  )
+  downloadProgress.value = { current: targetChapters.length, total: targetChapters.length }
+  return result.chapters
 }
 
 async function createDownloadedBook(book, chapters) {
@@ -656,12 +593,8 @@ function applyDefaultChapterLimit(total) {
 
 onMounted(() => {
   loadSources()
-  window.addEventListener('novel-download-progress', onDownloadProgress)
 })
 
-onUnmounted(() => {
-  window.removeEventListener('novel-download-progress', onDownloadProgress)
-})
 </script>
 
 <style lang="scss" scoped>

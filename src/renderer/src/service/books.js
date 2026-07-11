@@ -29,6 +29,16 @@ export async function getBookDir() {
   return result.booksDir
 }
 
+export async function setBookDir(dir) {
+  const booksDir = String(dir || '').trim()
+  if (!booksDir) throw new Error('书库目录不能为空')
+  const result = await postJson('/api/books/set-dir', { dir: booksDir })
+  if (result?.success !== true || result.booksDir !== booksDir) {
+    throw new Error(result?.message || '保存书库目录失败：接口返回格式不正确')
+  }
+  return result.booksDir
+}
+
 /**
  * 创建书籍
  * @param {Object} bookInfo

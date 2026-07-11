@@ -176,12 +176,14 @@ import { ArrowLeft, Search, FolderOpened, Document, Reading } from '@element-plu
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import {
+  exportDownloadedNovelTextFile,
   getNovelSources,
   searchNovel,
   getNovelChapterList,
   downloadNovelChapters
 } from '@renderer/service/novel'
-import { createBook, readBooksDir } from '@renderer/service/books'
+import { createBook, getBookDir, readBooksDir } from '@renderer/service/books'
+import { createChapter, saveChapter } from '@renderer/service/chapters'
 import { BOOK_TYPES } from '@renderer/constants/config'
 
 const router = useRouter()
@@ -285,7 +287,7 @@ async function handleDownloadToBookshelf() {
   const book = selectedBook.value
   if (!book || chapterList.value.length === 0) return
 
-  const booksDir = await window.electronStore.get('booksDir')
+  const booksDir = await getBookDir().catch(() => '')
   if (!booksDir) {
     ElMessage.warning(t('novelDownload.pleaseSetBooksDirFirst'))
     return
@@ -339,7 +341,7 @@ async function handleDownloadToBookshelf() {
 
     const chapters = res.chapters
     const firstContent = `${chapters[0].title}\n\n${chapters[0].content}`
-    await window.electron.saveChapter({
+    await saveChapter({
       bookName: safeName,
       volumeName: '正文',
       chapterName: '第1章',
@@ -348,9 +350,9 @@ async function handleDownloadToBookshelf() {
     })
 
     for (let i = 1; i < chapters.length; i++) {
-      const { chapterName } = await window.electron.createChapter(safeName, '正文')
+      const { chapterName } = await createChapter(safeName, '正文')
       const content = `${chapters[i].title}\n\n${chapters[i].content}`
-      await window.electron.saveChapter({
+      await saveChapter({
         bookName: safeName,
         volumeName: '正文',
         chapterName,
@@ -406,18 +408,8 @@ async function handleExportTxt() {
     }
     const content = lines.join('')
 
-    const saveResult = await window.electron.showSaveDialog({
-      title: t('novelDownload.saveDialogTitle'),
-      defaultPath: `${book.title}.txt`,
-      filters: [{ name: t('novelDownload.textFile'), extensions: ['txt'] }]
-    })
-    if (!saveResult?.filePath) {
-      downloading.value = false
-      return
-    }
-
-    await window.electron.writeExportFile({
-      filePath: saveResult.filePath,
+    await exportDownloadedNovelTextFile({
+      title: book.title,
       content
     })
     ElMessage.success(t('novelDownload.exportSuccess'))

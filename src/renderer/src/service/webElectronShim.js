@@ -969,19 +969,6 @@ function buildElectronShim() {
     exportOrganizationToNote: (payload) =>
       postJson('/api/organizations/export-note', payload || {}),
 
-    // ----- 小说下载（沿用现有 /api/novel/*） -----
-    novelGetSources: async () => {
-      const res = await fetch('/api/novel/sources', { method: 'POST' })
-      if (!res.ok) {
-        throw new Error(`读取小说书源失败 (${res.status})`)
-      }
-      return await res.json()
-    },
-    novelSearch: (payload) => postJson('/api/novel/search', payload || {}),
-    novelGetChapterList: (payload) => postJson('/api/novel/chapters', payload || {}),
-    novelGetBookInfo: (payload) => postJson('/api/novel/book-info', payload || {}),
-    novelDownloadChapters: (payload) => postJson('/api/novel/download', payload || {}),
-
     // ----- 统计 / 字数 -----
     getBookWordCount: async (bookName) => {
       const result = await postJson('/api/analytics/overview', { bookId: bookName, bookName })

@@ -68,8 +68,12 @@ assert.doesNotMatch(
 )
 for (const [file, label] of [
   ['src/renderer/src/stores/theme.js', '主题设置'],
+  ['src/renderer/src/stores/editor.js', '编辑器状态'],
   ['src/renderer/src/i18n/index.js', '语言设置'],
-  ['src/renderer/src/composables/useAICoverFormHistory.js', 'AI 封面表单历史']
+  ['src/renderer/src/composables/useAICoverFormHistory.js', 'AI 封面表单历史'],
+  ['src/renderer/src/service/novel.js', '小说下载服务'],
+  ['src/renderer/src/components/NovelImportPanel.vue', '小说导入面板'],
+  ['src/renderer/src/views/NovelDownload.vue', '小说下载页面']
 ]) {
   assert.doesNotMatch(
     read(file),
@@ -78,6 +82,19 @@ for (const [file, label] of [
   )
 }
 const webShimSource = read('src/renderer/src/service/webElectronShim.js')
+for (const method of [
+  'novelGetSources:',
+  'novelSearch:',
+  'novelGetChapterList:',
+  'novelGetBookInfo:',
+  'novelDownloadChapters:'
+]) {
+  assert.doesNotMatch(
+    webShimSource,
+    new RegExp(`\\b${method}`),
+    `Web shim 不应保留小说下载方法：${method}`
+  )
+}
 for (const method of ['listAssets:', 'importAsset:', 'deleteAsset:', 'restoreAsset:', 'attachAssetToBook:']) {
   assert.doesNotMatch(webShimSource, new RegExp(`\\b${method}`), `Web shim 不应保留素材方法：${method}`)
 }
