@@ -34,9 +34,13 @@ export default defineConfig({
   ],
   server: {
     port: 5173,
-    open: true
+    open: true,
+    watch: {
+      ignored: ['**/.booksDir/**']
+    }
   },
   build: {
-    outDir: resolve('dist-web')
+    outDir: resolve('dist-web'),
+    emptyOutDir: true
   }
 })
