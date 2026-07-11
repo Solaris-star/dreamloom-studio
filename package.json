@@ -11,7 +11,7 @@
     "start": "vite preview --config vite.web.config.mjs",
     "dev": "vite --config vite.web.config.mjs",
     "build": "vite --config vite.web.config.mjs build",
-    "test:unit": "node scripts/test-editor-save-queue.mjs && node scripts/test-editor-text-cleanup.mjs && node scripts/test-text-hint-decorations.mjs && node scripts/test-local-book-import-parser.mjs && node scripts/test-asset-reference-guards.mjs && node scripts/test-web-http-client.mjs && node scripts/test-setting-snapshot-service.mjs",
+    "test:unit": "node scripts/test-editor-save-queue.mjs && node scripts/test-editor-text-cleanup.mjs && node scripts/test-text-hint-decorations.mjs && node scripts/test-editor-layout.mjs && node scripts/test-local-book-import-parser.mjs && node scripts/test-asset-reference-guards.mjs && node scripts/test-web-http-client.mjs && node scripts/test-setting-snapshot-service.mjs",
     "test:api": "node scripts/test-api-route-contracts.mjs && node scripts/test-workbench-database-service.mjs",
     "test:web": "node scripts/test-web-only-guards.mjs"
   },

@@ -39,24 +39,6 @@
       </el-splitter-panel>
     </el-splitter>
 
-    <!-- 左侧面板折叠快捷按钮 -->
-    <div 
-      class="panel-edge-toggle left-toggle" 
-      :style="{ left: leftPanelSize > 0 ? `calc(${leftPanelSize}px - 12px)` : '0' }"
-      @click="toggleLeftPanel"
-    >
-      <el-icon><component :is="leftPanelSize > 0 ? ArrowLeft : ArrowRight" /></el-icon>
-    </div>
-
-    <!-- 右侧面板折叠快捷按钮 -->
-    <div 
-      class="panel-edge-toggle right-toggle" 
-      :style="{ right: rightPanelSize > 0 ? `calc(${rightPanelSize}px - 12px)` : '0' }"
-      @click="toggleRightPanel"
-    >
-      <el-icon><component :is="rightPanelSize > 0 ? ArrowRight : ArrowLeft" /></el-icon>
-    </div>
-
     <FloatingQuickActions 
       class="editor-quick-actions"
       :focus-mode="focusMode"
@@ -65,6 +47,7 @@
       @prev-chapter="handlePrevChapter" 
       @next-chapter="handleNextChapter"
       @reading-settings="readingSettingsVisible = true"
+      @tools="mobileToolsVisible = true"
       @toggle-focus="toggleFocusMode"
     />
 
@@ -92,6 +75,16 @@
         </section>
       </div>
       <el-empty v-else description="暂无章节" />
+    </el-drawer>
+
+    <el-drawer
+      v-model="mobileToolsVisible"
+      class="mobile-tools-drawer"
+      title="创作工具"
+      direction="btt"
+      size="100%"
+    >
+      <EditorToolbar @trigger-ai="handleMobileAiTrigger" />
     </el-drawer>
 
     <el-dialog v-model="readingSettingsVisible" title="阅读设置" width="min(420px, 92vw)">
@@ -124,7 +117,12 @@ import NoteChapter from '@renderer/components/Editor/NoteChapter.vue'
 import EditorPanel from '@renderer/components/Editor/EditorPanel.vue'
 import EditorToolbar from '@renderer/components/Editor/EditorToolbar.vue'
 import FloatingQuickActions from '@renderer/components/Editor/FloatingQuickActions.vue'
-import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
+import {
+  createEditorLayoutKey,
+  getEditorDevice,
+  normalizeEditorLayout,
+  readEditorLayout
+} from '@renderer/service/editorLayout'
 
 const route = useRoute()
 const router = useRouter()
@@ -144,6 +142,11 @@ function handleAiTrigger(command, arg) {
   }
 }
 
+function handleMobileAiTrigger(command, arg) {
+  mobileToolsVisible.value = false
+  nextTick(() => handleAiTrigger(command, arg))
+}
+
 onMounted(() => {
   if (bookName.value) {
     document.title = `${bookName.value} - 织梦工坊`
@@ -159,10 +162,12 @@ onDeactivated(() => {
 })
 
 const editorPanelRef = ref(null)
-const storageKey = computed(
+const viewportWidth = ref(window.innerWidth)
+const editorDevice = computed(() => getEditorDevice(viewportWidth.value))
+const storageKey = computed(() => createEditorLayoutKey(bookName.value, editorDevice.value))
+const legacyStorageKey = computed(
   () => `dreamloom:editor-layout:${encodeURIComponent(bookName.value || 'default')}`
 )
-const defaultLayout = { left: 240, right: 180, lastLeft: 240, lastRight: 180, focus: false }
 const leftPanelSize = ref(240)
 const rightPanelSize = ref(180)
 const lastLeftPanelSize = ref(240)
@@ -170,8 +175,8 @@ const lastRightPanelSize = ref(180)
 const focusMode = ref(false)
 const catalogVisible = ref(false)
 const readingSettingsVisible = ref(false)
+const mobileToolsVisible = ref(false)
 const chapterOutline = ref([])
-const viewportWidth = ref(window.innerWidth)
 const readingSettings = ref({
   fontSize: 18,
   lineHeight: 1.8,
@@ -189,28 +194,21 @@ let isLoadingLayout = false
 
 function loadLayout() {
   isLoadingLayout = true
-  const stored = localStorage.getItem(storageKey.value)
-  if (stored) {
-    try {
-      const data = JSON.parse(stored)
-      leftPanelSize.value = data.left !== undefined ? data.left : 240
-      rightPanelSize.value = data.right !== undefined ? data.right : 180
-      lastLeftPanelSize.value = data.lastLeft !== undefined ? data.lastLeft : 240
-      lastRightPanelSize.value = data.lastRight !== undefined ? data.lastRight : 180
-      focusMode.value = data.focus !== undefined ? !!data.focus : false
-      if (data.fontSize) readingSettings.value.fontSize = Number(data.fontSize)
-      if (data.lineHeight) readingSettings.value.lineHeight = Number(data.lineHeight)
-      if (data.contentWidth) readingSettings.value.contentWidth = Number(data.contentWidth)
-    } catch (e) {
-      console.error('解析编辑器布局失败:', e)
-    }
-  } else {
-    leftPanelSize.value = 240
-    rightPanelSize.value = 180
-    lastLeftPanelSize.value = 240
-    lastRightPanelSize.value = 180
-    focusMode.value = false
-    readingSettings.value = { fontSize: 18, lineHeight: 1.8, contentWidth: 760 }
+  const data = readEditorLayout(
+    localStorage,
+    storageKey.value,
+    editorDevice.value,
+    editorDevice.value === 'desktop' ? legacyStorageKey.value : ''
+  )
+  leftPanelSize.value = data.left
+  rightPanelSize.value = data.right
+  lastLeftPanelSize.value = data.lastLeft
+  lastRightPanelSize.value = data.lastRight
+  focusMode.value = data.focus
+  readingSettings.value = {
+    fontSize: data.fontSize,
+    lineHeight: data.lineHeight,
+    contentWidth: data.contentWidth
   }
   nextTick(() => {
     isLoadingLayout = false
@@ -224,14 +222,18 @@ watch(storageKey, () => {
 
 function persistLayout() {
   if (isLoadingLayout || !bookName.value) return
-  localStorage.setItem(storageKey.value, JSON.stringify({
-    left: leftPanelSize.value,
-    right: rightPanelSize.value,
-    lastLeft: lastLeftPanelSize.value,
-    lastRight: lastRightPanelSize.value,
-    focus: focusMode.value,
-    ...readingSettings.value
-  }))
+  const layout = normalizeEditorLayout(
+    {
+      left: leftPanelSize.value,
+      right: rightPanelSize.value,
+      lastLeft: lastLeftPanelSize.value,
+      lastRight: lastRightPanelSize.value,
+      focus: focusMode.value,
+      ...readingSettings.value
+    },
+    editorDevice.value
+  )
+  localStorage.setItem(storageKey.value, JSON.stringify(layout))
 }
 
 function toggleLeftPanel() {
@@ -305,10 +307,6 @@ function resetReadingSettings() {
 
 function handleViewportResize() {
   viewportWidth.value = window.innerWidth
-  if (viewportWidth.value < 768) {
-    leftPanelSize.value = 0
-    rightPanelSize.value = 60
-  }
 }
 
 watch(
@@ -410,30 +408,6 @@ onBeforeUnmount(() => {
   display: none !important;
 }
 
-.panel-edge-toggle {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
-  background: var(--bg-primary, #ffffff);
-  border: 1px solid var(--wabi-line, #e6e1da);
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  z-index: 101;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  color: var(--text-gray, #666666);
-  transition: background-color 0.2s, color 0.2s, border-color 0.2s, left 0.3s, right 0.3s;
-
-  &:hover {
-    color: var(--primary-color, #409eff);
-    border-color: var(--primary-color, #409eff);
-  }
-}
-
 @media (min-width: 768px) {
   .editor-container:not(.is-focus-mode) .editor-quick-actions {
     right: calc(v-bind(rightPanelSize) * 1px + 20px);
@@ -450,10 +424,6 @@ onBeforeUnmount(() => {
     right: 0;
     bottom: 0;
     left: 0;
-  }
-
-  .panel-edge-toggle {
-    display: none;
   }
 
   :deep(.editor-left-panel),
@@ -479,6 +449,10 @@ onBeforeUnmount(() => {
     grid-template-columns: 1fr;
     gap: 4px;
     margin-bottom: 12px;
+  }
+
+  :global(.mobile-tools-drawer .el-drawer__body) {
+    padding: 0;
   }
 }
 </style>

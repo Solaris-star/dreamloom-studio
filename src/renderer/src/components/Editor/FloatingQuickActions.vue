@@ -16,6 +16,15 @@
       <Type :size="18" />
     </button>
     <button
+      class="action-btn mobile-only"
+      type="button"
+      title="创作工具"
+      aria-label="创作工具"
+      @click="emit('tools')"
+    >
+      <WandSparkles :size="18" />
+    </button>
+    <button
       class="action-btn"
       :class="{ active: focusMode }"
       type="button"
@@ -38,7 +47,8 @@ import {
   ListTree,
   Maximize2,
   Minimize2,
-  Type
+  Type,
+  WandSparkles
 } from 'lucide-vue-next'
 
 defineProps({
@@ -54,6 +64,7 @@ const emit = defineEmits([
   'prev-chapter',
   'next-chapter',
   'reading-settings',
+  'tools',
   'toggle-focus'
 ])
 </script>
@@ -93,6 +104,10 @@ const emit = defineEmits([
   outline: none;
 }
 
+.mobile-only {
+  display: none;
+}
+
 @media (max-width: 767px) {
   .floating-quick-actions {
     flex-direction: row;
@@ -104,6 +119,10 @@ const emit = defineEmits([
     border-radius: 0;
     box-shadow: 0 -4px 14px rgba(34, 30, 24, 0.08);
     box-sizing: border-box;
+  }
+
+  .mobile-only {
+    display: flex;
   }
 }
 </style>
