@@ -25,42 +25,37 @@
       </button>
     </nav>
 
-    <section v-if="activeSection === 'bookshelf'" class="bookshelf-page">
+    <section
+      v-if="activeSection === 'bookshelf'"
+      class="bookshelf-page"
+      @dragover.prevent
+      @drop.prevent="handleBookshelfDrop"
+    >
       <div class="bookshelf-toolbar">
-        <div class="search-mode">
-          <button type="button" :class="{ active: searchMode === 'shelf' }" title="搜索书架" @click="switchSearchMode('shelf')">
-            <BookOpen :size="16" />
-            <span>书架</span>
-          </button>
-          <button type="button" :class="{ active: searchMode === 'source' }" title="搜索服务器书源" @click="switchSearchMode('source')">
-            <SearchIcon :size="16" />
-            <span>服务器</span>
-          </button>
-          <button type="button" :class="{ active: searchMode === 'local' }" title="导入本地书籍" @click="switchSearchMode('local')">
-            <FileText :size="16" />
-            <span>本地</span>
-          </button>
-        </div>
-
-        <el-select
-          v-if="searchMode === 'source'"
-          v-model="toolbarSourceId"
-          placeholder="全部书源"
-          class="toolbar-source-select"
-          :disabled="!novelImportRef"
+        <el-input
+          v-model="keyword"
+          clearable
+          :placeholder="searchPlaceholder"
+          @keyup.enter.prevent="handleUnifiedSearch"
         >
-          <el-option v-for="source in novelSources" :key="source.id" :label="source.name" :value="source.id" />
-        </el-select>
-
-        <el-input v-model="keyword" clearable :placeholder="searchPlaceholder" @keyup.enter.prevent="handleUnifiedSearch">
           <template #prefix>
             <el-icon><Search /></el-icon>
           </template>
         </el-input>
 
-        <el-popover placement="bottom-end" trigger="click" width="220" popper-class="bookshelf-filter-popover">
+        <el-popover
+          placement="bottom-end"
+          trigger="click"
+          width="220"
+          popper-class="bookshelf-filter-popover"
+        >
           <template #reference>
-            <button type="button" class="icon-filter-button" :class="{ active: bookFilter !== 'all' }" title="筛选书架">
+            <button
+              type="button"
+              class="icon-filter-button"
+              :class="{ active: bookFilter !== 'all' }"
+              title="筛选书架"
+            >
               <SlidersHorizontal :size="17" />
               <span>{{ currentBookFilterLabel }}</span>
             </button>
@@ -78,18 +73,7 @@
             </button>
           </div>
         </el-popover>
-
-        <el-button v-motion-feedback type="primary" :loading="searchMode === 'source' && novelSearching" @click="handleUnifiedSearch">
-          {{ searchActionLabel }}
-        </el-button>
       </div>
-
-      <section v-if="searchMode === 'source'" class="bookshelf-import-card">
-        <NovelImportPanel ref="novelImportRef" @imported="handleNovelImported" />
-      </section>
-      <section v-else-if="searchMode === 'local'" class="bookshelf-import-card">
-        <LocalBookImportPanel ref="localBookImportRef" @imported="handleLocalBookImported" />
-      </section>
 
       <main class="bookshelf-layout" :class="{ 'has-preview': selectedBook }">
         <section class="shelf-card">
@@ -118,15 +102,28 @@
             <button v-motion-feedback type="button" @click="loadLibrary">重试</button>
           </div>
           <div
-            v-else-if="filteredBooks.length"
+            v-else
             v-motion-list="{ selector: '.book-card', key: bookListMotionKey }"
             class="book-grid"
           >
+            <!-- 添加书籍卡片 -->
+            <article class="book-card add-book-card" @click="openAddBookDialog">
+              <div class="add-book-icon">
+                <Plus :size="28" />
+              </div>
+              <div class="add-book-info">
+                <h3>添加书籍</h3>
+                <p>下载服务器书源或导入本地文本</p>
+              </div>
+            </article>
             <article
               v-for="book in pagedBooks"
               :key="bookKey(book)"
               class="book-card"
-              :class="{ selected: selectedBookKey === bookKey(book), checked: isBookSelected(book) }"
+              :class="{
+                selected: selectedBookKey === bookKey(book),
+                checked: isBookSelected(book)
+              }"
               @click="selectBook(book)"
               @dblclick="openAssetStudio(book)"
             >
@@ -139,7 +136,11 @@
                 />
                 <span>选择</span>
               </label>
-              <div class="book-cover" :class="{ placeholder: !hasBookCover(book) }" :style="bookCoverStyle(book)">
+              <div
+                class="book-cover"
+                :class="{ placeholder: !hasBookCover(book) }"
+                :style="bookCoverStyle(book)"
+              >
                 <span v-if="!hasBookCover(book)" class="book-mark"></span>
               </div>
               <div class="book-info">
@@ -165,12 +166,19 @@
                 </div>
               </div>
               <div class="quick-actions">
-                <button v-motion-feedback type="button" @click.stop="openStudio(book)">打开创作台</button>
-                <button v-motion-feedback type="button" @click.stop="openAssetStudio(book)">进入资产台</button>
+                <button v-motion-feedback type="button" @click.stop="openStudio(book)">
+                  打开创作台
+                </button>
+                <button v-motion-feedback type="button" @click.stop="openAssetStudio(book)">
+                  进入资产台
+                </button>
               </div>
             </article>
           </div>
-          <div v-if="shouldShowPagination('books', filteredBooks.length)" class="library-pagination">
+          <div
+            v-if="shouldShowPagination('books', filteredBooks.length)"
+            class="library-pagination"
+          >
             <span>{{ paginationSummary('books', filteredBooks.length) }}</span>
             <el-pagination
               layout="prev, pager, next, sizes, total"
@@ -184,13 +192,23 @@
           </div>
           <div v-else-if="!filteredBooks.length" class="soft-empty">
             <strong>{{ keyword ? '书架里没有找到这本书' : '书架暂无内容' }}</strong>
-            <span>{{ keyword ? '可以直接去书源搜索并下载到书架。' : '搜索书源并下载后，会在这里统一管理下载书籍。' }}</span>
-            <button v-motion-feedback type="button" @click="handleUnifiedSearch">{{ keyword ? '搜索书源' : '去下载小说' }}</button>
+            <span>{{
+              keyword
+                ? '可以直接去书源搜索并下载到书架。'
+                : '搜索书源并下载后，会在这里统一管理下载书籍。'
+            }}</span>
+            <button v-motion-feedback type="button" @click="handleUnifiedSearch">
+              {{ keyword ? '搜索书源' : '去下载小说' }}
+            </button>
           </div>
         </section>
 
         <aside v-if="selectedBook" class="preview-card">
-          <div class="preview-cover" :class="{ placeholder: !hasBookCover(selectedBook) }" :style="bookCoverStyle(selectedBook)">
+          <div
+            class="preview-cover"
+            :class="{ placeholder: !hasBookCover(selectedBook) }"
+            :style="bookCoverStyle(selectedBook)"
+          >
             <span v-if="!hasBookCover(selectedBook)" class="book-mark"></span>
           </div>
           <div class="preview-main">
@@ -238,13 +256,26 @@
             <p>{{ recentActionText(selectedBook) }}</p>
           </section>
           <div class="preview-actions">
-            <el-button v-motion-feedback type="primary" @click="openAssetStudio(selectedBook)">进入资产台</el-button>
+            <el-button v-motion-feedback type="primary" @click="openAssetStudio(selectedBook)"
+              >进入资产台</el-button
+            >
             <el-button v-motion-feedback @click="openStudio(selectedBook)">打开创作台</el-button>
-            <el-button v-if="isDownloadedBook(selectedBook)" v-motion-feedback @click="openStudio(selectedBook, 'read')">阅读模式</el-button>
-            <el-button v-if="shouldShowSplitAction(selectedBook)" v-motion-feedback @click="openSplitDialog(selectedBook)">
+            <el-button
+              v-if="isDownloadedBook(selectedBook)"
+              v-motion-feedback
+              @click="openStudio(selectedBook, 'read')"
+              >阅读模式</el-button
+            >
+            <el-button
+              v-if="shouldShowSplitAction(selectedBook)"
+              v-motion-feedback
+              @click="openSplitDialog(selectedBook)"
+            >
               {{ splitActionLabel(selectedBook) }}
             </el-button>
-            <el-button v-motion-feedback @click="router.push('/knowledge/images')">管理图片</el-button>
+            <el-button v-motion-feedback @click="router.push('/knowledge/images')"
+              >管理图片</el-button
+            >
             <el-button
               v-motion-feedback
               type="danger"
@@ -298,7 +329,9 @@
           >
             本书：{{ materialBookFilterLabel }}
           </el-tag>
-          <el-button v-motion-feedback type="primary" @click="openMaterialDialog()">新增素材</el-button>
+          <el-button v-motion-feedback type="primary" @click="openMaterialDialog()"
+            >新增素材</el-button
+          >
         </div>
         <div v-if="materialsLoadError" class="read-error-card">
           <strong>素材读取失败</strong>
@@ -314,7 +347,10 @@
             v-for="item in pagedMaterials"
             :key="item.id"
             class="material-card"
-            :class="{ selected: selectedMaterial?.id === item.id, checked: selectedMaterialIds.includes(item.id) }"
+            :class="{
+              selected: selectedMaterial?.id === item.id,
+              checked: selectedMaterialIds.includes(item.id)
+            }"
             @click="selectedMaterialId = item.id"
           >
             <label class="material-select" @click.stop>
@@ -338,7 +374,10 @@
             </div>
           </article>
         </div>
-        <div v-if="shouldShowPagination('materials', filteredMaterials.length)" class="library-pagination">
+        <div
+          v-if="shouldShowPagination('materials', filteredMaterials.length)"
+          class="library-pagination"
+        >
           <span>{{ paginationSummary('materials', filteredMaterials.length) }}</span>
           <el-pagination
             layout="prev, pager, next, sizes, total"
@@ -381,10 +420,20 @@
             </div>
           </dl>
           <div class="detail-actions">
-            <el-button v-motion-feedback type="primary" @click="openBindDialog(selectedMaterial)">绑定到作品</el-button>
-            <el-button v-motion-feedback @click="openMaterialDialog(selectedMaterial)">编辑</el-button>
-            <el-button v-motion-feedback @click="convertMaterial(selectedMaterial, 'character_setting')">转成角色设定</el-button>
-            <el-button v-motion-feedback @click="convertMaterial(selectedMaterial, 'world_setting')">转成世界观</el-button>
+            <el-button v-motion-feedback type="primary" @click="openBindDialog(selectedMaterial)"
+              >绑定到作品</el-button
+            >
+            <el-button v-motion-feedback @click="openMaterialDialog(selectedMaterial)"
+              >编辑</el-button
+            >
+            <el-button
+              v-motion-feedback
+              @click="convertMaterial(selectedMaterial, 'character_setting')"
+              >转成角色设定</el-button
+            >
+            <el-button v-motion-feedback @click="convertMaterial(selectedMaterial, 'world_setting')"
+              >转成世界观</el-button
+            >
             <el-button v-motion-feedback @click="archiveMaterial(selectedMaterial)">删除</el-button>
           </div>
         </template>
@@ -392,7 +441,15 @@
       </aside>
     </section>
 
-    <section v-else-if="activeSection === 'images'" class="manager-grid images-grid">
+    <section v-else-if="activeSection === 'images'" class="manager-grid images-grid" @dragover.prevent="handleImageDragOver" @dragleave.prevent="handleImageDragLeave" @drop.prevent="handleImageDrop">
+      <!-- Drag upload overlay -->
+      <div v-if="isDraggingImage" class="image-drag-overlay">
+        <div class="overlay-content">
+          <UploadCloud :size="48" />
+          <h3>释放以导入图片到图库</h3>
+          <p>支持 PNG, JPG, JPEG, WEBP 等常见格式</p>
+        </div>
+      </div>
       <aside class="side-filter card-panel">
         <button
           v-for="item in imageFilters"
@@ -413,7 +470,9 @@
               <el-icon><Search /></el-icon>
             </template>
           </el-input>
-          <el-button v-motion-feedback type="primary" @click="handleUploadImage">上传图片</el-button>
+          <el-button v-motion-feedback type="primary" @click="handleUploadImage"
+            >上传图片</el-button
+          >
         </div>
         <div v-if="imagesLoadError" class="read-error-card">
           <strong>图片读取失败</strong>
@@ -431,16 +490,32 @@
             class="image-card"
             :class="{ selected: selectedImage?.id === asset.id }"
             @click="selectedImageId = asset.id"
+            @dblclick="openImageLightbox(asset)"
           >
             <div class="image-preview">
               <img v-if="asset.isImage" :src="assetUrl(asset)" :alt="asset.name" loading="lazy" />
               <FileImage v-else :size="34" />
+              <!-- Quick actions overlay -->
+              <div class="image-actions-overlay">
+                <button type="button" class="action-btn" title="查看大图" @click.stop="openImageLightbox(asset)">
+                  <Eye :size="16" />
+                </button>
+                <button type="button" class="action-btn" title="下载图片" @click.stop="downloadImage(asset)">
+                  <Download :size="16" />
+                </button>
+                <button type="button" class="action-btn delete" title="删除图片" @click.stop="deleteImage(asset)">
+                  <Trash2 :size="16" />
+                </button>
+              </div>
             </div>
             <h3>{{ asset.name }}</h3>
             <p>{{ asset.bookName || '未绑定作品' }} · {{ imageTypeLabel(asset) }}</p>
           </article>
         </div>
-        <div v-if="shouldShowPagination('images', filteredImages.length)" class="library-pagination">
+        <div
+          v-if="shouldShowPagination('images', filteredImages.length)"
+          class="library-pagination"
+        >
           <span>{{ paginationSummary('images', filteredImages.length) }}</span>
           <el-pagination
             layout="prev, pager, next, sizes, total"
@@ -461,7 +536,11 @@
       <aside class="detail-card card-panel">
         <template v-if="selectedImage">
           <div class="large-image-preview">
-            <img v-if="selectedImage.isImage" :src="assetUrl(selectedImage)" :alt="selectedImage.name" />
+            <img
+              v-if="selectedImage.isImage"
+              :src="assetUrl(selectedImage)"
+              :alt="selectedImage.name"
+            />
             <FileImage v-else :size="42" />
           </div>
           <h2>{{ selectedImage.name }}</h2>
@@ -484,10 +563,16 @@
             </div>
           </dl>
           <div class="detail-actions">
-            <el-button v-motion-feedback type="primary" @click="openImageBindDialog(selectedImage)">绑定到作品</el-button>
-            <el-button v-motion-feedback @click="openImageBindDialog(selectedImage, 'cover')">设为封面</el-button>
+            <el-button v-motion-feedback type="primary" @click="openImageBindDialog(selectedImage)"
+              >绑定到作品</el-button
+            >
+            <el-button v-motion-feedback @click="openImageBindDialog(selectedImage, 'cover')"
+              >设为封面</el-button
+            >
             <el-button v-motion-feedback @click="downloadImage(selectedImage)">下载</el-button>
-            <el-button v-motion-feedback type="danger" plain @click="deleteImage(selectedImage)">删除</el-button>
+            <el-button v-motion-feedback type="danger" plain @click="deleteImage(selectedImage)"
+              >删除</el-button
+            >
           </div>
         </template>
         <el-empty v-else description="选择图片后在这里查看和绑定" />
@@ -515,7 +600,9 @@
               <el-icon><Search /></el-icon>
             </template>
           </el-input>
-          <el-button v-motion-feedback type="primary" @click="openPromptDialog()">新增提示词</el-button>
+          <el-button v-motion-feedback type="primary" @click="openPromptDialog()"
+            >新增提示词</el-button
+          >
         </div>
         <div v-if="promptsLoadError" class="read-error-card">
           <strong>提示词读取失败</strong>
@@ -544,7 +631,10 @@
             </div>
           </article>
         </div>
-        <div v-if="shouldShowPagination('prompts', filteredPrompts.length)" class="library-pagination">
+        <div
+          v-if="shouldShowPagination('prompts', filteredPrompts.length)"
+          class="library-pagination"
+        >
           <span>{{ paginationSummary('prompts', filteredPrompts.length) }}</span>
           <el-pagination
             layout="prev, pager, next, sizes, total"
@@ -590,11 +680,22 @@
             </div>
           </dl>
           <div class="detail-actions">
-            <el-button v-motion-feedback type="primary" @click="usePrompt(selectedPrompt)">使用</el-button>
+            <el-button v-motion-feedback type="primary" @click="usePrompt(selectedPrompt)"
+              >使用</el-button
+            >
             <el-button v-motion-feedback @click="openPromptDialog(selectedPrompt)">编辑</el-button>
             <el-button v-motion-feedback @click="duplicatePrompt(selectedPrompt)">复制</el-button>
-            <el-button v-motion-feedback @click="openPromptBindDialog(selectedPrompt)">绑定到作品</el-button>
-            <el-button v-if="!selectedPrompt.isBuiltin" v-motion-feedback type="danger" plain @click="deletePrompt(selectedPrompt)">删除</el-button>
+            <el-button v-motion-feedback @click="openPromptBindDialog(selectedPrompt)"
+              >绑定到作品</el-button
+            >
+            <el-button
+              v-if="!selectedPrompt.isBuiltin"
+              v-motion-feedback
+              type="danger"
+              plain
+              @click="deletePrompt(selectedPrompt)"
+              >删除</el-button
+            >
           </div>
         </template>
         <el-empty v-else description="选择提示词后在这里查看内容和使用记录" />
@@ -642,7 +743,10 @@
           >
             <span class="type-pill">{{ item.typeLabel }}</span>
             <h3>{{ item.title }}</h3>
-            <p>{{ item.owner || '未记录所属作品' }} · {{ formatDate(item.deletedAt || item.updatedAt) }}</p>
+            <p>
+              {{ item.owner || '未记录所属作品' }} ·
+              {{ formatDate(item.deletedAt || item.updatedAt) }}
+            </p>
           </article>
         </div>
         <div v-if="shouldShowPagination('trash', filteredTrash.length)" class="library-pagination">
@@ -687,15 +791,27 @@
           </dl>
           <p>{{ selectedTrash.summary || '暂无详情' }}</p>
           <div class="detail-actions">
-            <el-button v-motion-feedback type="success" :disabled="!selectedTrash.restorable" @click="restoreTrashItem(selectedTrash)">恢复</el-button>
-            <el-button v-motion-feedback type="danger" plain @click="deleteTrashItem(selectedTrash)">永久删除</el-button>
+            <el-button
+              v-motion-feedback
+              type="success"
+              :disabled="!selectedTrash.restorable"
+              @click="restoreTrashItem(selectedTrash)"
+              >恢复</el-button
+            >
+            <el-button v-motion-feedback type="danger" plain @click="deleteTrashItem(selectedTrash)"
+              >永久删除</el-button
+            >
           </div>
         </template>
         <el-empty v-else description="选择删除项查看详情" />
       </aside>
     </section>
 
-    <el-dialog v-model="showMaterialDialog" :title="materialForm.id ? '编辑素材' : '新增素材'" width="560px">
+    <el-dialog
+      v-model="showMaterialDialog"
+      :title="materialForm.id ? '编辑素材' : '新增素材'"
+      width="560px"
+    >
       <el-form label-position="top">
         <el-form-item label="标题">
           <el-input v-model="materialForm.title" />
@@ -729,7 +845,12 @@
       <el-form label-position="top">
         <el-form-item label="选择作品">
           <el-select v-model="bindForm.bookId" filterable style="width: 100%">
-            <el-option v-for="book in books" :key="bookKey(book)" :label="bookTitle(book)" :value="bookKey(book)" />
+            <el-option
+              v-for="book in books"
+              :key="bookKey(book)"
+              :label="bookTitle(book)"
+              :value="bookKey(book)"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="资产类型">
@@ -757,7 +878,12 @@
       <el-form label-position="top">
         <el-form-item label="目标作品">
           <el-select v-model="imageBindForm.bookName" filterable style="width: 100%">
-            <el-option v-for="book in books" :key="bookKey(book)" :label="bookTitle(book)" :value="book.folderName || book.name" />
+            <el-option
+              v-for="book in books"
+              :key="bookKey(book)"
+              :label="bookTitle(book)"
+              :value="book.folderName || book.name"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="用途">
@@ -776,14 +902,23 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="showPromptDialog" :title="promptForm.id ? '编辑提示词' : '新增提示词'" width="620px">
+    <el-dialog
+      v-model="showPromptDialog"
+      :title="promptForm.id ? '编辑提示词' : '新增提示词'"
+      width="620px"
+    >
       <el-form label-position="top">
         <el-form-item label="标题">
           <el-input v-model="promptForm.name" />
         </el-form-item>
         <el-form-item label="分类">
           <el-select v-model="promptForm.category" style="width: 100%">
-            <el-option v-for="item in promptFilters.filter((row) => row.key !== 'all')" :key="item.key" :label="item.label" :value="item.key" />
+            <el-option
+              v-for="item in promptFilters.filter((row) => row.key !== 'all')"
+              :key="item.key"
+              :label="item.label"
+              :value="item.key"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="适用范围">
@@ -794,7 +929,12 @@
         </el-form-item>
         <el-form-item v-if="promptForm.scope === 'book'" label="选择作品">
           <el-select v-model="promptForm.bookId" filterable style="width: 100%">
-            <el-option v-for="book in books" :key="bookKey(book)" :label="bookTitle(book)" :value="bookKey(book)" />
+            <el-option
+              v-for="book in books"
+              :key="bookKey(book)"
+              :label="bookTitle(book)"
+              :value="bookKey(book)"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="系统指令">
@@ -814,7 +954,12 @@
       <el-form label-position="top">
         <el-form-item label="选择作品">
           <el-select v-model="promptBindForm.bookId" filterable style="width: 100%">
-            <el-option v-for="book in books" :key="bookKey(book)" :label="bookTitle(book)" :value="bookKey(book)" />
+            <el-option
+              v-for="book in books"
+              :key="bookKey(book)"
+              :label="bookTitle(book)"
+              :value="bookKey(book)"
+            />
           </el-select>
         </el-form-item>
       </el-form>
@@ -823,22 +968,85 @@
         <el-button type="primary" @click="savePromptBinding">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 添加书籍弹窗 -->
+    <el-dialog
+      v-model="addBookDialogVisible"
+      title="添加书籍"
+      width="700px"
+      destroy-on-close
+      align-center
+    >
+      <el-tabs v-model="activeImportTab" class="add-book-tabs">
+        <el-tab-pane label="服务器书源" name="server">
+          <NovelImportPanel ref="novelImportRef" @imported="handleNovelImported" />
+        </el-tab-pane>
+        <el-tab-pane label="本地文件导入" name="local">
+          <LocalBookImportPanel ref="localBookImportRef" @imported="handleLocalBookImported" />
+        </el-tab-pane>
+      </el-tabs>
+    </el-dialog>
+
+    <!-- 图片大图预览弹窗 -->
+    <el-dialog v-model="imagePreviewVisible" title="图片预览" width="800px" destroy-on-close align-center popper-class="image-lightbox-dialog">
+      <div class="lightbox-wrapper">
+        <div class="lightbox-image-container">
+          <img :src="previewImageUrl" :alt="previewImageName" />
+        </div>
+        <div class="lightbox-meta">
+          <div>
+            <h3>{{ previewImageName }}</h3>
+            <p v-if="previewImageBook">所属作品: {{ previewImageBook }}</p>
+          </div>
+          <div class="lightbox-actions">
+            <el-button v-motion-feedback type="primary" @click="downloadImage(selectedImage || { id: previewImageId, isImage: true, relativePath: previewImageUrl })">下载原图</el-button>
+            <el-button v-motion-feedback @click="imagePreviewVisible = false">关闭</el-button>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
   </section>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
-import { Archive, BookOpen, Bookmark, Download, FileImage, FileText, Search as SearchIcon, SlidersHorizontal, Trash2 } from 'lucide-vue-next'
+import {
+  Archive,
+  BookOpen,
+  Bookmark,
+  Download,
+  FileImage,
+  FileText,
+  Search as SearchIcon,
+  SlidersHorizontal,
+  Trash2,
+  Plus,
+  Eye,
+  UploadCloud
+} from 'lucide-vue-next'
 import LocalBookImportPanel from '@renderer/components/LocalBookImportPanel.vue'
 import NovelImportPanel from '@renderer/components/NovelImportPanel.vue'
 import { useMainStore } from '@renderer/stores'
 import { deleteBook, readBooksDir } from '@renderer/service/books'
 import { listChapterTree } from '@renderer/service/editor'
-import { attachAssetToBook, deleteAsset, getAssetUrl, imageSelectionToImportInput, importAsset, listAssets, restoreAsset } from '@renderer/service/assets'
-import { createPromptPreset, deletePromptPreset, listPromptPresets, updatePromptPreset } from '@renderer/service/aiWorkshop'
+import {
+  attachAssetToBook,
+  deleteAsset,
+  getAssetUrl,
+  imageSelectionToImportInput,
+  importAsset,
+  listAssets,
+  restoreAsset
+} from '@renderer/service/assets'
+import {
+  createPromptPreset,
+  deletePromptPreset,
+  listPromptPresets,
+  updatePromptPreset
+} from '@renderer/service/aiWorkshop'
 import {
   archiveKnowledgeItem,
   createKnowledgeItem,
@@ -859,6 +1067,12 @@ const router = useRouter()
 const mainStore = useMainStore()
 
 const loading = ref(false)
+const isDraggingImage = ref(false)
+const imagePreviewVisible = ref(false)
+const previewImageUrl = ref('')
+const previewImageName = ref('')
+const previewImageBook = ref('')
+const previewImageId = ref('')
 const keyword = ref('')
 const searchMode = ref('shelf')
 const bookFilter = ref('all')
@@ -903,6 +1117,8 @@ const chapterCountMap = ref({})
 const wordCountMap = ref({})
 const novelImportRef = ref(null)
 const localBookImportRef = ref(null)
+const addBookDialogVisible = ref(false)
+const activeImportTab = ref('server')
 const toolbarSourceId = computed({
   get: () => novelImportRef.value?.currentSourceId || '',
   set: (value) => {
@@ -1068,7 +1284,9 @@ const books = computed(() => mainStore.books || [])
 const materialsLoadError = computed(() => libraryLoadErrors.knowledge)
 const imagesLoadError = computed(() => libraryLoadErrors.assets)
 const promptsLoadError = computed(() => libraryLoadErrors.prompts)
-const trashLoadError = computed(() => [libraryLoadErrors.knowledge, libraryLoadErrors.assets].filter(Boolean).join('；'))
+const trashLoadError = computed(() =>
+  [libraryLoadErrors.knowledge, libraryLoadErrors.assets].filter(Boolean).join('；')
+)
 const novelSources = computed(() => novelImportRef.value?.sources || [])
 const novelSearching = computed(() => Boolean(novelImportRef.value?.searching))
 const searchPlaceholder = computed(() => {
@@ -1081,18 +1299,42 @@ const searchActionLabel = computed(() => {
   if (searchMode.value === 'local') return '选择文件'
   return '搜书源'
 })
-const currentBookFilterLabel = computed(() => bookFilters.find((item) => item.key === bookFilter.value)?.label || '筛选')
+const currentBookFilterLabel = computed(
+  () => bookFilters.find((item) => item.key === bookFilter.value)?.label || '筛选'
+)
 const materialBookFilterBook = computed(() => findBookByKey(materialBookKey.value))
 const materialBookFilterLabel = computed(() => {
   const book = materialBookFilterBook.value
   return book ? bookTitle(book) : String(materialBookKey.value || '').trim()
 })
 
-const selectedBook = computed(() => books.value.find((book) => bookKey(book) === selectedBookKey.value) || null)
-const selectedMaterial = computed(() => filteredMaterials.value.find((item) => item.id === selectedMaterialId.value) || pagedMaterials.value[0] || null)
-const selectedImage = computed(() => filteredImages.value.find((item) => item.id === selectedImageId.value) || pagedImages.value[0] || null)
-const selectedPrompt = computed(() => filteredPrompts.value.find((item) => item.id === selectedPromptId.value) || pagedPrompts.value[0] || null)
-const selectedTrash = computed(() => filteredTrash.value.find((item) => item.key === selectedTrashKey.value) || pagedTrash.value[0] || null)
+const selectedBook = computed(
+  () => books.value.find((book) => bookKey(book) === selectedBookKey.value) || null
+)
+const selectedMaterial = computed(
+  () =>
+    filteredMaterials.value.find((item) => item.id === selectedMaterialId.value) ||
+    pagedMaterials.value[0] ||
+    null
+)
+const selectedImage = computed(
+  () =>
+    filteredImages.value.find((item) => item.id === selectedImageId.value) ||
+    pagedImages.value[0] ||
+    null
+)
+const selectedPrompt = computed(
+  () =>
+    filteredPrompts.value.find((item) => item.id === selectedPromptId.value) ||
+    pagedPrompts.value[0] ||
+    null
+)
+const selectedTrash = computed(
+  () =>
+    filteredTrash.value.find((item) => item.key === selectedTrashKey.value) ||
+    pagedTrash.value[0] ||
+    null
+)
 
 const filteredBooks = computed(() => {
   const q = normalizedKeyword()
@@ -1170,7 +1412,11 @@ const filteredTrash = computed(() => {
   const q = normalizedKeyword()
   return trashRows.value
     .filter((item) => trashFilter.value === 'all' || item.kind === trashFilter.value)
-    .filter((item) => !q || [item.title, item.typeLabel, item.owner, item.summary].join(' ').toLowerCase().includes(q))
+    .filter(
+      (item) =>
+        !q ||
+        [item.title, item.typeLabel, item.owner, item.summary].join(' ').toLowerCase().includes(q)
+    )
     .sort((a, b) => dateValue(b.deletedAt || b.updatedAt) - dateValue(a.deletedAt || a.updatedAt))
 })
 
@@ -1179,11 +1425,36 @@ const pagedMaterials = computed(() => paginateRows(filteredMaterials.value, 'mat
 const pagedImages = computed(() => paginateRows(filteredImages.value, 'images'))
 const pagedPrompts = computed(() => paginateRows(filteredPrompts.value, 'prompts'))
 const pagedTrash = computed(() => paginateRows(filteredTrash.value, 'trash'))
-const bookListMotionKey = computed(() => rowsMotionKey('books', pagedBooks.value.map((book) => bookKey(book))))
-const materialListMotionKey = computed(() => rowsMotionKey('materials', pagedMaterials.value.map((item) => item.id)))
-const imageListMotionKey = computed(() => rowsMotionKey('images', pagedImages.value.map((asset) => asset.id)))
-const promptListMotionKey = computed(() => rowsMotionKey('prompts', pagedPrompts.value.map((preset) => preset.id)))
-const trashListMotionKey = computed(() => rowsMotionKey('trash', pagedTrash.value.map((item) => item.key)))
+const bookListMotionKey = computed(() =>
+  rowsMotionKey(
+    'books',
+    pagedBooks.value.map((book) => bookKey(book))
+  )
+)
+const materialListMotionKey = computed(() =>
+  rowsMotionKey(
+    'materials',
+    pagedMaterials.value.map((item) => item.id)
+  )
+)
+const imageListMotionKey = computed(() =>
+  rowsMotionKey(
+    'images',
+    pagedImages.value.map((asset) => asset.id)
+  )
+)
+const promptListMotionKey = computed(() =>
+  rowsMotionKey(
+    'prompts',
+    pagedPrompts.value.map((preset) => preset.id)
+  )
+)
+const trashListMotionKey = computed(() =>
+  rowsMotionKey(
+    'trash',
+    pagedTrash.value.map((item) => item.key)
+  )
+)
 
 watch(activeSection, (section) => {
   if (section === 'materials' && hasMaterialRouteFocus()) {
@@ -1369,7 +1640,11 @@ async function loadChapterCounts(rows) {
     rows.map(async (book) => {
       const tree = await listChapterTree(book.folderName || book.name)
       const chapters = flattenChapters(tree || [])
-      const words = chapters.reduce((sum, chapter) => sum + Number(chapter.wordCount || chapter.words || chapter.totalWords || 0), 0)
+      const words = chapters.reduce(
+        (sum, chapter) =>
+          sum + Number(chapter.wordCount || chapter.words || chapter.totalWords || 0),
+        0
+      )
       return [bookKey(book), chapters.length, words]
     })
   )
@@ -1447,7 +1722,32 @@ function shouldShowPagination(key, total) {
   return Number(total || 0) > Number(listPageSize[key] || 24)
 }
 
+function openAddBookDialog() {
+  addBookDialogVisible.value = true
+  activeImportTab.value = 'server'
+}
+
+function handleBookshelfDrop(event) {
+  const files = Array.from(event.dataTransfer?.files || [])
+  const supported = files.filter((f) => {
+    const ext = f.name.split('.').pop()?.toLowerCase()
+    return ['txt', 'md', 'markdown', 'docx'].includes(ext)
+  })
+  if (supported.length > 0) {
+    addBookDialogVisible.value = true
+    activeImportTab.value = 'local'
+    nextTick(() => {
+      if (localBookImportRef.value) {
+        localBookImportRef.value.parseFiles(supported)
+      }
+    })
+  } else {
+    ElMessage.warning('拖入文件格式不支持，仅支持 TXT, MD, DOCX 文本格式')
+  }
+}
+
 async function handleNovelImported(book) {
+  addBookDialogVisible.value = false
   bookFilter.value = 'downloaded'
   searchMode.value = 'shelf'
   await loadLibrary()
@@ -1457,6 +1757,7 @@ async function handleNovelImported(book) {
 }
 
 async function handleLocalBookImported(book) {
+  addBookDialogVisible.value = false
   bookFilter.value = 'imported'
   searchMode.value = 'shelf'
   await loadLibrary()
@@ -1503,7 +1804,9 @@ function waitForImportPanel() {
 
 function scrollToNovelImport() {
   setTimeout(() => {
-    document.querySelector('.bookshelf-import-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    document
+      .querySelector('.bookshelf-import-card')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, 80)
 }
 
@@ -1568,7 +1871,9 @@ async function deleteShelfBooks(targets = [], options = {}) {
   const booksToDelete = targets.filter(Boolean)
   if (!booksToDelete.length || deletingBookKey.value) return
   const isBatch = options.batch === true || booksToDelete.length > 1
-  const title = isBatch ? `选中的 ${booksToDelete.length} 本书籍` : `「${bookTitle(booksToDelete[0])}」`
+  const title = isBatch
+    ? `选中的 ${booksToDelete.length} 本书籍`
+    : `「${bookTitle(booksToDelete[0])}」`
   try {
     await ElMessageBox.confirm(
       `确定移除${title}吗？这会删除本地书籍目录，无法在回收站恢复。`,
@@ -1594,9 +1899,7 @@ async function deleteShelfBooks(targets = [], options = {}) {
       })
     )
     const succeededKeys = new Set(
-      results
-        .filter((item) => item.status === 'fulfilled')
-        .map((item) => item.value.key)
+      results.filter((item) => item.status === 'fulfilled').map((item) => item.value.key)
     )
     const failed = results.filter((item) => item.status === 'rejected')
     selectedBookKeys.value = selectedBookKeys.value.filter((key) => !succeededKeys.has(key))
@@ -1607,7 +1910,9 @@ async function deleteShelfBooks(targets = [], options = {}) {
     if (failed.length) {
       const firstReason = failed[0]?.reason?.message || '部分书籍移除失败'
       if (succeededKeys.size > 0) {
-        ElMessage.warning(`已移除 ${succeededKeys.size} 本，${failed.length} 本失败：${firstReason}`)
+        ElMessage.warning(
+          `已移除 ${succeededKeys.size} 本，${failed.length} 本失败：${firstReason}`
+        )
       } else {
         ElMessage.error(firstReason)
       }
@@ -1717,7 +2022,10 @@ async function saveMaterial() {
 
 function openBindDialog(item) {
   activeMaterialForBinding.value = item
-  bindForm.bookId = item.relatedBookIds?.[0] || selectedBookKey.value || (books.value[0] ? bookKey(books.value[0]) : '')
+  bindForm.bookId =
+    item.relatedBookIds?.[0] ||
+    selectedBookKey.value ||
+    (books.value[0] ? bookKey(books.value[0]) : '')
   bindForm.assetType = item.type || 'chapter_inspiration'
   bindForm.tagsText = (item.tags || []).join('，')
   showBindDialog.value = true
@@ -1785,22 +2093,20 @@ async function deleteSelectedMaterials() {
   const ids = Array.from(new Set(selectedMaterialIds.value.filter(Boolean)))
   if (!ids.length || batchDeletingMaterials.value) return
   try {
-    await ElMessageBox.confirm(
-      `确定把选中的 ${ids.length} 条素材移入回收站吗？`,
-      '确认批量删除',
-      {
-        confirmButtonText: '移入回收站',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
+    await ElMessageBox.confirm(`确定把选中的 ${ids.length} 条素材移入回收站吗？`, '确认批量删除', {
+      confirmButtonText: '移入回收站',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
   } catch {
     return
   }
   batchDeletingMaterials.value = true
   try {
     const results = await Promise.allSettled(ids.map((id) => archiveKnowledgeItem(id)))
-    const failed = results.filter((item) => item.status === 'rejected' || item.value?.success !== true || !item.value?.item)
+    const failed = results.filter(
+      (item) => item.status === 'rejected' || item.value?.success !== true || !item.value?.item
+    )
     selectedMaterialIds.value = []
     if (ids.includes(selectedMaterialId.value)) selectedMaterialId.value = ''
     await loadLibrary()
@@ -1829,11 +2135,18 @@ async function handleUploadImage() {
     const result = await window.electron.selectImage()
     const imageInput = imageSelectionToImportInput(result)
     if (!imageInput) return
-    requireAssetItemResult(await importAsset({
-      ...imageInput,
-      bookName: selectedBook.value?.folderName || selectedBook.value?.name || books.value[0].folderName || books.value[0].name,
-      type: 'attachment'
-    }), '上传图片失败')
+    requireAssetItemResult(
+      await importAsset({
+        ...imageInput,
+        bookName:
+          selectedBook.value?.folderName ||
+          selectedBook.value?.name ||
+          books.value[0].folderName ||
+          books.value[0].name,
+        type: 'attachment'
+      }),
+      '上传图片失败'
+    )
     ElMessage.success('图片已上传')
     await loadLibrary()
   } catch (error) {
@@ -1845,7 +2158,12 @@ function openImageBindDialog(asset, type = '') {
   activeImageForBinding.value = asset
   Object.assign(imageBindForm, {
     id: asset.id,
-    bookName: asset.bookFolderName || asset.bookName || selectedBook.value?.folderName || selectedBook.value?.name || '',
+    bookName:
+      asset.bookFolderName ||
+      asset.bookName ||
+      selectedBook.value?.folderName ||
+      selectedBook.value?.name ||
+      '',
     type: type || normalizeImageType(asset.type)
   })
   showImageBindDialog.value = true
@@ -1856,7 +2174,9 @@ async function saveImageBinding() {
     ElMessage.warning('请选择目标作品')
     return
   }
-  const targetBook = books.value.find((book) => [bookKey(book), book.name, book.folderName].includes(imageBindForm.bookName))
+  const targetBook = books.value.find((book) =>
+    [bookKey(book), book.name, book.folderName].includes(imageBindForm.bookName)
+  )
   if (!targetBook) {
     ElMessage.warning('没有找到目标作品')
     return
@@ -1866,11 +2186,14 @@ async function saveImageBinding() {
     return
   }
   try {
-    requireAssetItemResult(await attachAssetToBook({
-      id: activeImageForBinding.value.id,
-      bookName: imageBindForm.bookName,
-      type: imageBindForm.type
-    }), '绑定图片失败')
+    requireAssetItemResult(
+      await attachAssetToBook({
+        id: activeImageForBinding.value.id,
+        bookName: imageBindForm.bookName,
+        type: imageBindForm.type
+      }),
+      '绑定图片失败'
+    )
     ElMessage.success('图片已绑定')
     showImageBindDialog.value = false
     await loadLibrary()
@@ -1882,6 +2205,69 @@ async function saveImageBinding() {
 function downloadImage(asset) {
   if (!asset) return
   window.open(assetUrl(asset), '_blank')
+}
+
+function openImageLightbox(asset) {
+  if (!asset) return
+  previewImageUrl.value = assetUrl(asset)
+  previewImageName.value = asset.name
+  previewImageBook.value = asset.bookName || '未绑定作品'
+  previewImageId.value = asset.id
+  imagePreviewVisible.value = true
+}
+
+function handleImageDragOver(event) {
+  const items = event.dataTransfer?.items || []
+  const hasImage = Array.from(items).some(item => item.kind === 'file' && item.type.startsWith('image/'))
+  if (hasImage) {
+    isDraggingImage.value = true
+  }
+}
+
+function handleImageDragLeave() {
+  isDraggingImage.value = false
+}
+
+async function handleImageDrop(event) {
+  isDraggingImage.value = false
+  const files = Array.from(event.dataTransfer?.files || [])
+  const imageFiles = files.filter(f => f.type.startsWith('image/'))
+  if (!imageFiles.length) {
+    ElMessage.warning('仅支持拖拽上传图片文件')
+    return
+  }
+
+  if (!books.value.length) {
+    ElMessage.warning('请先创建或导入一本书，再上传图片')
+    return
+  }
+
+  let successCount = 0
+  let failCount = 0
+
+  for (const file of imageFiles) {
+    const reader = new FileReader()
+    reader.onload = async () => {
+      const dataUrl = String(reader.result || '')
+      try {
+        await importAsset({
+          dataUrl,
+          fileName: file.name,
+          bookName: selectedBook.value?.folderName || selectedBook.value?.name || books.value[0].folderName || books.value[0].name,
+          type: 'attachment'
+        })
+        successCount++
+        if (successCount + failCount === imageFiles.length) {
+          ElMessage.success(`成功上传 ${successCount} 张图片`)
+          await loadLibrary()
+        }
+      } catch (error) {
+        failCount++
+        ElMessage.error(`图片 ${file.name} 上传失败: ` + error.message)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
 }
 
 async function deleteImage(asset) {
@@ -1909,7 +2295,9 @@ function openPromptDialog(preset = null) {
       name: preset.name || '',
       category: normalizePromptCategory(preset.category),
       scope,
-      bookId: book ? bookKey(book) : (preset.bookId || preset.bookFolderName || preset.bookName || ''),
+      bookId: book
+        ? bookKey(book)
+        : preset.bookId || preset.bookFolderName || preset.bookName || '',
       originalScopeKey: promptScopeKey(preset),
       sourcePresetId: preset.sourcePresetId || preset.id || '',
       isBuiltin: Boolean(preset.isBuiltin),
@@ -1943,9 +2331,10 @@ async function savePrompt() {
       ElMessage.warning('请选择作品')
       return
     }
-    const scopePayload = promptForm.scope === 'book'
-      ? promptScopePayloadForBookValue(promptForm.bookId)
-      : { scope: 'global' }
+    const scopePayload =
+      promptForm.scope === 'book'
+        ? promptScopePayloadForBookValue(promptForm.bookId)
+        : { scope: 'global' }
     const targetScopeKey = promptForm.scope === 'book' ? `book:${promptForm.bookId}` : 'global'
     const originalPreset = promptPresets.value.find((preset) => preset.id === promptForm.id)
     const payload = {
@@ -1958,13 +2347,25 @@ async function savePrompt() {
       userPromptTemplate: promptForm.userPromptTemplate,
       modelParams: { temperature: 0.7, maxTokens: 2400, topP: 0.9 }
     }
-    const shouldCreateCopy = !promptForm.id || promptForm.isBuiltin || promptForm.originalScopeKey !== targetScopeKey
+    const shouldCreateCopy =
+      !promptForm.id || promptForm.isBuiltin || promptForm.originalScopeKey !== targetScopeKey
     const result = shouldCreateCopy
-      ? await createPromptPreset({ ...scopePayload, preset: { ...payload, id: '', isBuiltin: false } })
+      ? await createPromptPreset({
+          ...scopePayload,
+          preset: { ...payload, id: '', isBuiltin: false }
+        })
       : await updatePromptPreset({ ...scopePayload, preset: payload, id: promptForm.id })
     requirePromptResult(result, '保存提示词失败')
-    if (shouldCreateCopy && originalPreset && !originalPreset.isBuiltin && promptForm.originalScopeKey !== targetScopeKey) {
-      const deleteResult = await deletePromptPreset({ id: originalPreset.id, ...promptScopePayloadForPreset(originalPreset) })
+    if (
+      shouldCreateCopy &&
+      originalPreset &&
+      !originalPreset.isBuiltin &&
+      promptForm.originalScopeKey !== targetScopeKey
+    ) {
+      const deleteResult = await deletePromptPreset({
+        id: originalPreset.id,
+        ...promptScopePayloadForPreset(originalPreset)
+      })
       requireDeletedPromptResult(deleteResult, originalPreset.id, '删除旧提示词失败')
     }
     ElMessage.success('提示词已保存')
@@ -2017,9 +2418,10 @@ async function savePromptBinding() {
     return
   }
   const sourcePresetId = preset.sourcePresetId || preset.id
-  const existing = promptPresets.value.find((item) =>
-    isPromptRelatedToBook(item, targetBook) &&
-    ((item.sourcePresetId && item.sourcePresetId === sourcePresetId) || item.id === preset.id)
+  const existing = promptPresets.value.find(
+    (item) =>
+      isPromptRelatedToBook(item, targetBook) &&
+      ((item.sourcePresetId && item.sourcePresetId === sourcePresetId) || item.id === preset.id)
   )
   if (existing) {
     selectedPromptId.value = existing.id
@@ -2060,7 +2462,10 @@ async function deletePrompt(preset) {
       confirmButtonText: '删除',
       cancelButtonText: '取消'
     })
-    const result = await deletePromptPreset({ id: preset.id, ...promptScopePayloadForPreset(preset) })
+    const result = await deletePromptPreset({
+      id: preset.id,
+      ...promptScopePayloadForPreset(preset)
+    })
     requireSuccessfulResult(result, '删除失败')
     ElMessage.success('已删除')
     await loadLibrary()
@@ -2074,7 +2479,10 @@ async function restoreTrashItem(item) {
     if (item.key.startsWith('image:')) {
       requireAssetRestoreResult(await restoreAsset(item.raw.id), '恢复失败')
     } else {
-      requireKnowledgeItemResult(await updateKnowledgeItem(item.raw.id, { status: 'active' }), '恢复失败')
+      requireKnowledgeItemResult(
+        await updateKnowledgeItem(item.raw.id, { status: 'active' }),
+        '恢复失败'
+      )
     }
     ElMessage.success('已恢复')
     await loadLibrary()
@@ -2130,7 +2538,11 @@ function firstQueryValue(value) {
 }
 
 function hasMaterialRouteFocus() {
-  return Boolean(firstQueryValue(route.query.q) || firstQueryValue(route.query.bookId) || firstQueryValue(route.query.name))
+  return Boolean(
+    firstQueryValue(route.query.q) ||
+      firstQueryValue(route.query.bookId) ||
+      firstQueryValue(route.query.name)
+  )
 }
 
 function applyMaterialRouteFocus() {
@@ -2151,14 +2563,17 @@ function clearMaterialBookFilter() {
 function matchesMaterialFilter(item) {
   if (['market_hotspot', 'writer_activity'].includes(item.type)) return false
   if (materialFilter.value === 'all') return true
-  if (materialFilter.value === 'market') return item.sourceType === 'market' || item.metadata?.sourceModule === 'market'
+  if (materialFilter.value === 'market')
+    return item.sourceType === 'market' || item.metadata?.sourceModule === 'market'
   if (materialFilter.value === 'imported') return item.sourceType === 'imported'
   if (materialFilter.value === 'unbound') return !(item.relatedBookIds || []).length
   return item.type === materialFilter.value
 }
 
 function normalizeFilterText(value) {
-  return String(value || '').trim().toLowerCase()
+  return String(value || '')
+    .trim()
+    .toLowerCase()
 }
 
 function materialBookFilterIds() {
@@ -2186,7 +2601,9 @@ function materialBookCandidateTexts(item = {}) {
     bookAnalysis.bookTitle,
     bookAnalysis.sourceBookId,
     bookAnalysis.sourceBookName
-  ].map(normalizeFilterText).filter(Boolean)
+  ]
+    .map(normalizeFilterText)
+    .filter(Boolean)
 }
 
 function matchesMaterialBookFilter(item) {
@@ -2194,10 +2611,11 @@ function matchesMaterialBookFilter(item) {
   if (!ids.length) return true
   const candidates = materialBookCandidateTexts(item)
   return candidates.some((candidate) =>
-    ids.some((id) =>
-      candidate === id ||
-      (id.length >= 4 && candidate.includes(id)) ||
-      (candidate.length >= 4 && id.includes(candidate))
+    ids.some(
+      (id) =>
+        candidate === id ||
+        (id.length >= 4 && candidate.includes(id)) ||
+        (candidate.length >= 4 && id.includes(candidate))
     )
   )
 }
@@ -2225,7 +2643,10 @@ function bookSearchText(book) {
     book.intro,
     book.sourceName,
     ...(book.tags || [])
-  ].filter(Boolean).join(' ').toLowerCase()
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
 }
 
 function materialSearchText(item) {
@@ -2246,18 +2667,34 @@ function materialSearchText(item) {
     meta.legacyBookName,
     bookAnalysis.bookTitle,
     ...(item.tags || [])
-  ].filter(Boolean).join(' ').toLowerCase()
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
 }
 
 function imageSearchText(asset) {
-  return [asset.name, asset.bookName, asset.bookFolderName, asset.type, asset.source, asset.relativePath]
+  return [
+    asset.name,
+    asset.bookName,
+    asset.bookFolderName,
+    asset.type,
+    asset.source,
+    asset.relativePath
+  ]
     .filter(Boolean)
     .join(' ')
     .toLowerCase()
 }
 
 function promptSearchText(preset) {
-  return [preset.name, preset.category, preset.systemPrompt, preset.userPromptTemplate, promptScopeText(preset)]
+  return [
+    preset.name,
+    preset.category,
+    preset.systemPrompt,
+    preset.userPromptTemplate,
+    promptScopeText(preset)
+  ]
     .filter(Boolean)
     .join(' ')
     .toLowerCase()
@@ -2286,26 +2723,29 @@ function findBookByKey(value) {
 }
 
 function promptBookIdentifiers(preset = {}) {
-  return [preset.bookId, preset.bookFolderName, preset.bookName]
-    .filter(Boolean)
-    .map(String)
+  return [preset.bookId, preset.bookFolderName, preset.bookName].filter(Boolean).map(String)
 }
 
 function bookFromPrompt(preset = {}) {
   const ids = promptBookIdentifiers(preset)
   if (!ids.length && !preset.bookPath) return null
-  return books.value.find((book) => {
-    const bookIds = bookIdentifiers(book)
-    const path = String(preset.bookPath || '')
-    return (
-      ids.some((id) => bookIds.some((bookId) => sameText(bookId, id))) ||
-      bookIds.some((bookId) => path.includes(bookId))
-    )
-  }) || null
+  return (
+    books.value.find((book) => {
+      const bookIds = bookIdentifiers(book)
+      const path = String(preset.bookPath || '')
+      return (
+        ids.some((id) => bookIds.some((bookId) => sameText(bookId, id))) ||
+        bookIds.some((bookId) => path.includes(bookId))
+      )
+    }) || null
+  )
 }
 
 function isPromptBookScoped(preset = {}) {
-  return preset.scope === 'book' || Boolean(preset.bookId || preset.bookName || preset.bookFolderName || preset.bookPath)
+  return (
+    preset.scope === 'book' ||
+    Boolean(preset.bookId || preset.bookName || preset.bookFolderName || preset.bookPath)
+  )
 }
 
 function promptScopeText(preset = {}) {
@@ -2320,7 +2760,7 @@ function promptScopeText(preset = {}) {
 function promptScopeKey(preset = {}) {
   if (!isPromptBookScoped(preset)) return 'global'
   const book = bookFromPrompt(preset)
-  return `book:${book ? bookKey(book) : (preset.bookId || preset.bookFolderName || preset.bookName || preset.bookPath || '')}`
+  return `book:${book ? bookKey(book) : preset.bookId || preset.bookFolderName || preset.bookName || preset.bookPath || ''}`
 }
 
 function promptScopePayloadForBook(book = {}) {
@@ -2386,7 +2826,10 @@ function isCreativeBook(book = {}) {
 }
 
 function isImportedBook(book = {}) {
-  return ['imported', 'file_import', 'txt', 'epub'].includes(book.sourceType) || book.importedFrom === 'file'
+  return (
+    ['imported', 'file_import', 'txt', 'epub'].includes(book.sourceType) ||
+    book.importedFrom === 'file'
+  )
 }
 
 function isReferenceBook(book = {}) {
@@ -2426,7 +2869,9 @@ function bookStatusLabel(book = {}) {
 }
 
 function chapterCount(book = {}) {
-  return Number(chapterCountMap.value[bookKey(book)] || book.totalChapterCount || book.chapterCount || 0)
+  return Number(
+    chapterCountMap.value[bookKey(book)] || book.totalChapterCount || book.chapterCount || 0
+  )
 }
 
 function bookWordCount(book = {}) {
@@ -2456,16 +2901,16 @@ function chapterCountText(book = {}) {
 }
 
 function bookTags(book = {}) {
-  return [
-    book.typeName,
-    book.sourcePlatform || book.sourceName,
-    ...(book.tags || [])
-  ].filter(Boolean)
+  return [book.typeName, book.sourcePlatform || book.sourceName, ...(book.tags || [])].filter(
+    Boolean
+  )
 }
 
 function relatedAssets(book = {}) {
   const names = new Set([bookKey(book), book.name, book.folderName].filter(Boolean).map(String))
-  return assetItems.value.filter((asset) => names.has(asset.bookName) || names.has(asset.bookFolderName))
+  return assetItems.value.filter(
+    (asset) => names.has(asset.bookName) || names.has(asset.bookFolderName)
+  )
 }
 
 function relatedKnowledge(book = {}) {
@@ -2473,12 +2918,21 @@ function relatedKnowledge(book = {}) {
   return knowledgeItems.value.filter((item) => {
     const related = item.relatedBookIds || []
     const meta = item.metadata || {}
-    return related.some((id) => names.has(String(id))) || names.has(item.sourceName) || names.has(meta.legacyBookName)
+    return (
+      related.some((id) => names.has(String(id))) ||
+      names.has(item.sourceName) ||
+      names.has(meta.legacyBookName)
+    )
   })
 }
 
 function hasSplitKnowledge(book = {}) {
-  return relatedKnowledge(book).some((item) => item.type === 'book_analysis' || item.metadata?.legacyExtractionId || item.metadata?.bookAnalysis)
+  return relatedKnowledge(book).some(
+    (item) =>
+      item.type === 'book_analysis' ||
+      item.metadata?.legacyExtractionId ||
+      item.metadata?.bookAnalysis
+  )
 }
 
 function isSplitReady(book = {}) {
@@ -2492,8 +2946,14 @@ function assetSummaryForBook(book = {}) {
   const splitReady = isSplitReady(book)
   const countType = (types) => knowledge.filter((item) => types.includes(item.type)).length
   const base = [
-    { label: '角色', value: splitReady ? String(countType(['character', 'character_setting'])) : '待拆书' },
-    { label: '世界观', value: splitReady ? String(countType(['world_setting', 'setting'])) : '待拆书' },
+    {
+      label: '角色',
+      value: splitReady ? String(countType(['character', 'character_setting'])) : '待拆书'
+    },
+    {
+      label: '世界观',
+      value: splitReady ? String(countType(['world_setting', 'setting'])) : '待拆书'
+    },
     { label: '图片', value: String(assets.length) },
     { label: '拆书片段', value: splitReady ? String(countType(['book_analysis'])) : '待拆书' }
   ]
@@ -2518,7 +2978,8 @@ function recentActionText(book = {}) {
   if (status === 'split_failed') return '上次拆书失败，可以进入资产台查看原因并重新拆书。'
   if (status === 'outdated') return '正文有变化，旧资产可能需要重新拆书。'
   if (isSplitReady(book)) return '已存在拆书资产，可以进入资产台继续整理。'
-  if (isDownloadedBook(book) || isImportedBook(book) || isReferenceBook(book)) return '还没有拆书结果，可以先阅读或开始拆书。'
+  if (isDownloadedBook(book) || isImportedBook(book) || isReferenceBook(book))
+    return '还没有拆书结果，可以先阅读或开始拆书。'
   return '可以进入创作台继续写作。'
 }
 
@@ -2541,7 +3002,12 @@ function bookUpdatedAt(book = {}) {
 
 function webCoverUrl(book = {}) {
   if (!book.coverUrl) return ''
-  if (book.coverUrl.startsWith('file://') || book.coverUrl.startsWith('http://') || book.coverUrl.startsWith('https://')) return book.coverUrl
+  if (
+    book.coverUrl.startsWith('file://') ||
+    book.coverUrl.startsWith('http://') ||
+    book.coverUrl.startsWith('https://')
+  )
+    return book.coverUrl
   const params = new URLSearchParams({
     book: book.folderName || book.name || '',
     file: book.coverUrl
@@ -2562,14 +3028,21 @@ const mutedCoverColorMap = new Map([
 ])
 
 function wabiCoverColor(color, fallback = DEFAULT_WABI_COVER_COLOR) {
-  const normalized = String(color || '').trim().toLowerCase()
+  const normalized = String(color || '')
+    .trim()
+    .toLowerCase()
   return mutedCoverColorMap.get(normalized) || normalized || fallback
 }
 
 function bookCoverStyle(book = {}) {
   const cover = webCoverUrl(book)
   if (cover) return { backgroundImage: `url(${cover})` }
-  return { backgroundColor: wabiCoverColor(book.coverColor, isDownloadedBook(book) ? '#8a735d' : DEFAULT_WABI_COVER_COLOR) }
+  return {
+    backgroundColor: wabiCoverColor(
+      book.coverColor,
+      isDownloadedBook(book) ? '#8a735d' : DEFAULT_WABI_COVER_COLOR
+    )
+  }
 }
 
 function materialTypeLabel(item = {}) {
@@ -2605,14 +3078,21 @@ function bindingStatusLabel(item = {}) {
 }
 
 function sourceBookName(item = {}) {
-  const key = item.metadata?.sourceBookId ||
+  const key =
+    item.metadata?.sourceBookId ||
     item.metadata?.sourceBookName ||
     item.metadata?.legacyBookName ||
     item.metadata?.targetBookId ||
     item.sourceName
   const book = findBookByKey(key)
   if (book) return bookTitle(book)
-  return item.metadata?.sourceBookName || item.metadata?.legacyBookName || item.sourceName || key || '未绑定'
+  return (
+    item.metadata?.sourceBookName ||
+    item.metadata?.legacyBookName ||
+    item.sourceName ||
+    key ||
+    '未绑定'
+  )
 }
 
 function usageLabel(item = {}) {
@@ -2702,7 +3182,8 @@ function materialCount(type) {
     if (['market_hotspot', 'writer_activity'].includes(item.type)) return false
     if (!matchesMaterialBookFilter(item)) return false
     if (type === 'all') return true
-    if (type === 'market') return item.sourceType === 'market' || item.metadata?.sourceModule === 'market'
+    if (type === 'market')
+      return item.sourceType === 'market' || item.metadata?.sourceModule === 'market'
     if (type === 'imported') return item.sourceType === 'imported'
     if (type === 'unbound') return !(item.relatedBookIds || []).length
     return item.type === type
@@ -2718,7 +3199,9 @@ function imageCount(type) {
 }
 
 function promptCount(type) {
-  return promptPresets.value.filter((preset) => type === 'all' || normalizePromptCategory(preset.category) === type).length
+  return promptPresets.value.filter(
+    (preset) => type === 'all' || normalizePromptCategory(preset.category) === type
+  ).length
 }
 
 function trashCount(type) {
@@ -2731,7 +3214,8 @@ function assetUrl(asset) {
 
 function flattenChapters(tree = []) {
   return tree.flatMap((node) => {
-    if (Array.isArray(node.children)) return node.children.filter((child) => child.type === 'chapter')
+    if (Array.isArray(node.children))
+      return node.children.filter((child) => child.type === 'chapter')
     return node.type === 'chapter' ? [node] : []
   })
 }
@@ -3012,7 +3496,10 @@ function dateValue(value) {
   background: rgba(251, 250, 246, 0.58);
   cursor: pointer;
   padding: 12px;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 
   &.selected,
   &:hover {
@@ -3113,8 +3600,7 @@ function dateValue(value) {
   aspect-ratio: 3 / 4;
   border-radius: 4px 9px 9px 4px;
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.36), transparent 18%),
-    rgba(255, 248, 224, 0.74);
+    linear-gradient(90deg, rgba(255, 255, 255, 0.36), transparent 18%), rgba(255, 248, 224, 0.74);
   box-shadow: 10px 10px 24px rgba(12, 20, 36, 0.16);
 }
 
@@ -3803,6 +4289,277 @@ function dateValue(value) {
   .library-pagination :deep(.el-pagination__total) {
     color: var(--wabi-muted);
     font-size: 12px;
+  }
+}
+
+.book-card.add-book-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed rgba(99, 102, 241, 0.35); // matches theme/primary border
+  background: rgba(99, 102, 241, 0.02);
+  min-height: 216px;
+  transition: all 0.3s ease;
+  text-align: center;
+  padding: 20px;
+}
+
+.book-card.add-book-card:hover {
+  border-color: #6366f1; // theme primary color
+  background: rgba(99, 102, 241, 0.06);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+}
+
+.add-book-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
+}
+
+.book-card.add-book-card:hover .add-book-icon {
+  transform: scale(1.1);
+  background: #6366f1;
+  color: #ffffff;
+}
+
+.add-book-info h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--wabi-title, #3a3731);
+  margin-bottom: 6px;
+}
+
+.add-book-info p {
+  font-size: 12px;
+  color: var(--wabi-text, #86827a);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.image-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.image-card {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: 1px solid var(--wabi-line, rgba(230, 225, 218, 0.8));
+  border-radius: 8px;
+  background: #faf9f6;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+    border-color: #6366f1;
+
+    .image-actions-overlay {
+      opacity: 1;
+    }
+  }
+
+  .image-preview {
+    position: relative;
+    aspect-ratio: 1;
+    background: #f0ede4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s ease;
+    }
+
+    &:hover img {
+      transform: scale(1.05);
+    }
+  }
+
+  h3 {
+    margin: 8px 10px 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--wabi-title, #3a3731);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  p {
+    margin: 0 10px 10px;
+    font-size: 11px;
+    color: var(--wabi-text, #86827a);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.image-actions-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  z-index: 2;
+
+  .action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    color: #333333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+
+    &:hover {
+      transform: scale(1.1);
+      background: #6366f1;
+      color: #ffffff;
+    }
+
+    &.delete:hover {
+      background: #ef4444;
+      color: #ffffff;
+    }
+  }
+}
+
+.image-lightbox-dialog {
+  background: transparent !important;
+  box-shadow: none !important;
+
+  .el-dialog__header {
+    background: #ffffff;
+    border-bottom: 1px solid var(--wabi-line, rgba(230, 225, 218, 0.8));
+    margin: 0;
+    padding: 16px 20px;
+  }
+
+  .el-dialog__body {
+    padding: 20px;
+    background: #faf8f5;
+  }
+}
+
+.lightbox-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 80vh;
+}
+
+.lightbox-image-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #111;
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 60vh;
+
+  img {
+    max-width: 100%;
+    max-height: 60vh;
+    object-fit: contain;
+  }
+}
+
+.lightbox-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--wabi-line, rgba(230, 225, 218, 0.8));
+  padding-top: 14px;
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--wabi-title, #3a3731);
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--wabi-text, #86827a);
+  }
+
+  .lightbox-actions {
+    display: flex;
+    gap: 10px;
+  }
+}
+
+.images-grid {
+  position: relative;
+}
+
+.image-drag-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(251, 250, 246, 0.85);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  pointer-events: none;
+
+  .overlay-content {
+    width: calc(100% - 40px);
+    height: calc(100% - 40px);
+    border: 3px dashed #6366f1;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #6366f1;
+    background: rgba(99, 102, 241, 0.02);
+
+    h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 16px 0 8px;
+    }
+
+    p {
+      font-size: 13px;
+      color: var(--wabi-text, #86827a);
+      margin: 0;
+    }
   }
 }
 </style>

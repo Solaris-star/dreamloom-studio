@@ -1,6 +1,14 @@
 <template>
   <section class="local-book-import-panel">
-    <el-alert v-if="errorMsg" class="inline-alert" type="error" :title="errorMsg" show-icon closable @close="errorMsg = ''" />
+    <el-alert
+      v-if="errorMsg"
+      class="inline-alert"
+      type="error"
+      :title="errorMsg"
+      show-icon
+      closable
+      @close="errorMsg = ''"
+    />
 
     <div class="local-import-head">
       <div>
@@ -55,7 +63,9 @@
             {{ formatWords(row.parsed?.totalWords) }} · {{ row.parsed?.chapterCount || 0 }} 章
           </p>
           <div v-if="row.parsed?.chapters?.length" class="chapter-preview">
-            <span v-for="chapter in row.parsed.chapters.slice(0, 4)" :key="chapter.title">{{ chapter.title }}</span>
+            <span v-for="chapter in row.parsed.chapters.slice(0, 4)" :key="chapter.title">{{
+              chapter.title
+            }}</span>
           </div>
         </div>
         <el-button
@@ -153,11 +163,15 @@ async function parseFiles(files) {
 async function importReadyRows() {
   if (!readyRows.value.length) return
   try {
-    await ElMessageBox.confirm(`确定将 ${readyRows.value.length} 本本地书籍加入书架吗？`, '确认导入', {
-      confirmButtonText: '导入',
-      cancelButtonText: '取消',
-      type: 'info'
-    })
+    await ElMessageBox.confirm(
+      `确定将 ${readyRows.value.length} 本本地书籍加入书架吗？`,
+      '确认导入',
+      {
+        confirmButtonText: '导入',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    )
   } catch {
     return
   }
@@ -166,7 +180,7 @@ async function importReadyRows() {
   let lastImported = null
   try {
     for (const row of [...readyRows.value]) {
-      lastImported = await importRow(row, { silentConfirm: true, skipEmit: true }) || lastImported
+      lastImported = (await importRow(row, { silentConfirm: true, skipEmit: true })) || lastImported
     }
     if (lastImported) {
       emit('imported', lastImported)
@@ -289,7 +303,8 @@ function formatWords(value) {
 }
 
 defineExpose({
-  openFilePicker
+  openFilePicker,
+  parseFiles
 })
 </script>
 

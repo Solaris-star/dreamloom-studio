@@ -1,6 +1,34 @@
 <template>
   <div class="editor-toolbar" :class="{ 'is-en': locale === 'en-US' }">
-    <div class="toolbar-title">{{ t('editorToolbar.title') }}</div>
+    <div class="toolbar-title">AI 助手</div>
+    <div class="toolbar-buttons ai-buttons">
+      <el-dropdown trigger="click" @command="(cmd) => emit('trigger-ai', 'polish', cmd)" style="width: 100%;">
+        <el-button class="tool-btn" style="width: 100%;">
+          <el-icon :size="14"><MagicStick /></el-icon>
+          <span>AI 润色 / 清理</span>
+          <el-icon class="el-icon--right"><arrow-down /></el-icon>
+        </el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item command="selection">{{ t('editorPanel.polishSelection') }}</el-dropdown-item>
+            <el-dropdown-item command="chapter">{{ t('editorPanel.polishChapter') }}</el-dropdown-item>
+            <el-dropdown-item divided command="clean_selection">AI 清理乱码 (选段)</el-dropdown-item>
+            <el-dropdown-item command="clean_chapter">AI 清理乱码 (整章)</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+
+      <el-button class="tool-btn" @click="emit('trigger-ai', 'continue')" style="width: 100%; margin-left: 0; margin-top: 8px;">
+        <el-icon :size="14"><EditPen /></el-icon>
+        <span>{{ t('editorPanel.aiContinue') }}</span>
+      </el-button>
+      <el-button class="tool-btn" @click="emit('trigger-ai', 'scene')" style="width: 100%; margin-left: 0; margin-top: 8px;">
+        <el-icon :size="14"><Picture /></el-icon>
+        <span>{{ t('editorPanel.aiSceneImage') }}</span>
+      </el-button>
+    </div>
+
+    <div class="toolbar-title" style="margin-top: 24px;">{{ t('editorToolbar.title') }}</div>
     <div class="toolbar-buttons">
       <el-button class="tool-btn" @click="handleOutlineManager">
         <SvgIcon name="resource" :size="14" />
@@ -54,11 +82,14 @@
 
 <script setup>
 import { ref } from 'vue'
+import { ArrowDown, MagicStick, EditPen, Picture } from '@element-plus/icons-vue'
 import RandomName from '@renderer/components/RandomName.vue'
 import BannedWordsDrawer from './BannedWordsDrawer.vue'
 import { useRouter, useRoute } from 'vue-router'
 import SvgIcon from '@renderer/components/SvgIcon.vue'
 import { useI18n } from 'vue-i18n'
+
+const emit = defineEmits(['trigger-ai'])
 
 const randomNameRef = ref(null)
 const bannedWordsRef = ref(null)
@@ -131,21 +162,32 @@ const handleBannedWords = () => {
 
 <style lang="scss" scoped>
 .editor-toolbar {
-  width: 100%;
+  container-type: inline-size;
+  padding: 16px;
   height: 100%;
   box-sizing: border-box;
-  background: var(--bg-soft);
-  padding: 16px;
+  background-color: var(--bg-primary);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
   .toolbar-title {
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--text-base);
-    margin-bottom: 8px;
-    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    padding-left: 4px;
   }
 
   .toolbar-buttons {
@@ -155,15 +197,17 @@ const handleBannedWords = () => {
 
     .tool-btn {
       justify-content: flex-start;
-      align-items: flex-start;
+      align-items: center;
       width: 100%;
       height: auto;
+      padding: 8px;
       white-space: normal;
       background: var(--bg-primary);
       border: 1px solid var(--border-color);
       color: var(--text-base);
       text-align: left;
       margin: 0;
+      transition: all 0.2s;
       &:hover {
         color: var(--el-color-primary);
       }
@@ -181,6 +225,27 @@ const handleBannedWords = () => {
     .toolbar-buttons .tool-btn span {
       font-size: 13px;
     }
+  }
+}
+
+@container (max-width: 90px) {
+  .editor-toolbar {
+    padding: 16px 8px;
+  }
+  .toolbar-title {
+    display: none;
+  }
+  .tool-btn {
+    justify-content: center !important;
+    padding: 8px 0 !important;
+  }
+  .tool-btn span,
+  .tool-btn .el-icon--right {
+    display: none !important;
+  }
+  .tool-btn .el-icon,
+  .tool-btn svg {
+    margin: 0 !important;
   }
 }
 :deep(.el-drawer__header) {

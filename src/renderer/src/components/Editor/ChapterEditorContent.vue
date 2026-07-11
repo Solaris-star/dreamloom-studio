@@ -111,11 +111,11 @@ function createEditor() {
         props.editorStore.setContent(content)
       }
 
-      // 防抖保存（1分钟自动保存）
+      // 防抖保存（2秒无感知自动保存）
       if (saveTimer.value) clearTimeout(saveTimer.value)
       saveTimer.value = setTimeout(() => {
         props.autoSaveContent()
-      }, 60000)
+      }, 2000)
 
       emit('content-updated', content)
     },

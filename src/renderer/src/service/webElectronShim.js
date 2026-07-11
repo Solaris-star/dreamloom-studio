@@ -20,9 +20,23 @@ function setWebBookshelfAuthenticated() {
   return true
 }
 
-function getWebBookshelfAuthenticated() {
-  if (typeof window === 'undefined') return false
-  return window.sessionStorage.getItem(BOOKSHELF_AUTH_SESSION_KEY) === 'true'
+async function getWebBookshelfAuthStatus() {
+  const status = await fetchJson('/api/auth/status')
+  if (status?.success !== true) {
+    throw new Error(status?.message || '读取书架认证状态失败')
+  }
+  if (status.authenticated) setWebBookshelfAuthenticated()
+  else window.sessionStorage.removeItem(BOOKSHELF_AUTH_SESSION_KEY)
+  return status
+}
+
+async function authenticateWebBookshelf(password) {
+  const result = await postJson('/api/auth/login', { password })
+  if (result?.success !== true || result?.authenticated !== true) {
+    throw new Error(result?.message || '书架认证失败')
+  }
+  setWebBookshelfAuthenticated()
+  return result
 }
 
 async function postJson(url, payload) {
@@ -60,7 +74,9 @@ function notSupportedSilent(method) {
 }
 
 function hasResultData(result) {
-  return result && typeof result === 'object' && Object.prototype.hasOwnProperty.call(result, 'data')
+  return (
+    result && typeof result === 'object' && Object.prototype.hasOwnProperty.call(result, 'data')
+  )
 }
 
 function requireSuccessResult(result, fallbackMessage = '操作失败') {
@@ -103,7 +119,8 @@ function resolveEmbeddingProviderId(payload) {
 }
 
 function normalizeEmbeddingProviderPayload(payload = {}) {
-  const source = payload?.provider && typeof payload.provider === 'object' ? payload.provider : payload
+  const source =
+    payload?.provider && typeof payload.provider === 'object' ? payload.provider : payload
   if (!source || typeof source !== 'object' || Array.isArray(source)) {
     throw new Error('读取 Embedding Provider 失败：本地记录格式不正确')
   }
@@ -321,30 +338,38 @@ function selectBrowserImage() {
       resolve(result)
     }
 
-    input.addEventListener('change', () => {
-      const file = input.files?.[0]
-      if (!file) {
-        finish({ success: false, message: '未选择图片' })
-        return
-      }
-      const reader = new FileReader()
-      reader.onload = () => {
-        const dataUrl = String(reader.result || '')
-        finish({
-          success: true,
-          filePath: dataUrl,
-          dataUrl,
-          fileName: file.name,
-          mimeType: file.type
-        })
-      }
-      reader.onerror = () => finish({ success: false, message: '读取图片失败' })
-      reader.readAsDataURL(file)
-    }, { once: true })
+    input.addEventListener(
+      'change',
+      () => {
+        const file = input.files?.[0]
+        if (!file) {
+          finish({ success: false, message: '未选择图片' })
+          return
+        }
+        const reader = new FileReader()
+        reader.onload = () => {
+          const dataUrl = String(reader.result || '')
+          finish({
+            success: true,
+            filePath: dataUrl,
+            dataUrl,
+            fileName: file.name,
+            mimeType: file.type
+          })
+        }
+        reader.onerror = () => finish({ success: false, message: '读取图片失败' })
+        reader.readAsDataURL(file)
+      },
+      { once: true }
+    )
 
-    input.addEventListener('cancel', () => {
-      finish({ success: false, message: '已取消选择' })
-    }, { once: true })
+    input.addEventListener(
+      'cancel',
+      () => {
+        finish({ success: false, message: '已取消选择' })
+      },
+      { once: true }
+    )
 
     document.body.appendChild(input)
     input.click()
@@ -354,11 +379,7 @@ function selectBrowserImage() {
 function pickResponseText(response) {
   if (!response) return ''
   return String(
-    response.content ||
-    response.result ||
-    response.text ||
-    response.output ||
-    ''
+    response.content || response.result || response.text || response.output || ''
   ).trim()
 }
 
@@ -391,7 +412,8 @@ function resolveResponseProviderMeta(response = {}, modelPayload = {}) {
   const parsed = splitModelBindingId(modelPayload.modelId)
   return {
     providerId: response?.providerId || modelPayload.providerId || parsed.providerId || '',
-    model: response?.model || response?.modelName || modelPayload.modelName || parsed.modelName || ''
+    model:
+      response?.model || response?.modelName || modelPayload.modelName || parsed.modelName || ''
   }
 }
 
@@ -484,7 +506,10 @@ function countWebTextWords(value) {
 function stripWebCodeFence(text) {
   const source = sanitizeWebText(text)
   if (!source) return ''
-  return source.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+  return source
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim()
 }
 
 function extractWebJsonBlock(text) {
@@ -780,7 +805,9 @@ async function runWebOutlineAiTask(payload = {}) {
 }
 
 function splitModelBindingId(modelId = '') {
-  const [providerId, ...modelParts] = String(modelId || '').trim().split('::')
+  const [providerId, ...modelParts] = String(modelId || '')
+    .trim()
+    .split('::')
   return {
     providerId: String(providerId || '').trim(),
     modelName: normalizeTextModelName(modelParts.join('::'))
@@ -801,7 +828,12 @@ function resolveTextAiModelPayload(payload = {}, modelPayload = {}) {
       ''
   return {
     modelId: payload.modelId || modelPayload.modelId || '',
-    providerId: payload.providerId || payload.textProviderId || parsed.providerId || modelPayload.providerId || '',
+    providerId:
+      payload.providerId ||
+      payload.textProviderId ||
+      parsed.providerId ||
+      modelPayload.providerId ||
+      '',
     modelName
   }
 }
@@ -834,7 +866,8 @@ async function readEditorModelDefaults() {
 
 async function resolveTextModelPayload(task = 'writing') {
   const defaults = await readEditorModelDefaults()
-  const directModelId = defaults?.[task] || defaults?.writing || defaults?.summary || defaults?.chat || ''
+  const directModelId =
+    defaults?.[task] || defaults?.writing || defaults?.summary || defaults?.chat || ''
   const parsed = splitModelBindingId(directModelId)
   if (parsed.providerId) {
     return {
@@ -1034,11 +1067,7 @@ async function fetchDailyRows(params = {}) {
 
 function buildBookIdentityList(bookName, aliases = []) {
   return Array.from(
-    new Set(
-      [bookName, ...aliases]
-        .map((value) => String(value || '').trim())
-        .filter(Boolean)
-    )
+    new Set([bookName, ...aliases].map((value) => String(value || '').trim()).filter(Boolean))
   )
 }
 
@@ -1087,8 +1116,7 @@ function buildElectronShim() {
     readBooksDir: readBooksDirForWeb,
     readWorkbenchDatabaseSnapshot: (payload) =>
       postJson('/api/workbench-database/snapshot', payload || {}),
-    queryWorkbenchDatabase: (payload) =>
-      postJson('/api/workbench-database/query', payload || {}),
+    queryWorkbenchDatabase: (payload) => postJson('/api/workbench-database/query', payload || {}),
     deleteBook: (name) => postJson('/api/books/delete', { name }),
     editBook: (bookInfo) => postJson('/api/books/edit', bookInfo || {}),
     openBookEditorWindow: async (_id, name) => {
@@ -1108,12 +1136,16 @@ function buildElectronShim() {
       }
     },
     setBookshelfAuthenticated: async () => setWebBookshelfAuthenticated(),
-    getBookshelfAuthenticated: async () => getWebBookshelfAuthenticated(),
+    getBookshelfAuthenticated: async () => {
+      const status = await getWebBookshelfAuthStatus()
+      return status.authenticated === true
+    },
+    getBookshelfAuthStatus: getWebBookshelfAuthStatus,
+    authenticateBookshelf: authenticateWebBookshelf,
 
     // ----- 卷与章节 -----
     createVolume: (bookName) => postJson('/api/volumes/create', { bookName }),
-    createChapter: (bookName, volumeId) =>
-      postJson('/api/chapters/create', { bookName, volumeId }),
+    createChapter: (bookName, volumeId) => postJson('/api/chapters/create', { bookName, volumeId }),
     loadChapters: async (bookName) => {
       const data = await postJson('/api/chapters/load', { bookName })
       if (data?.success !== true) {
@@ -1131,8 +1163,7 @@ function buildElectronShim() {
     upsertChapter: (payload) => postJson('/api/chapters/upsert', payload),
 
     // ----- 节点编辑 / 删除 -----
-    editNode: (bookName, payload) =>
-      postJson('/api/nodes/edit', { bookName, ...(payload || {}) }),
+    editNode: (bookName, payload) => postJson('/api/nodes/edit', { bookName, ...(payload || {}) }),
     deleteNode: (bookName, payload) =>
       postJson('/api/nodes/delete', { bookName, ...(payload || {}) }),
 
@@ -1141,10 +1172,8 @@ function buildElectronShim() {
       const data = await postJson('/api/sort-order/get', { bookName })
       return data
     },
-    setSortOrder: (bookName, order) =>
-      postJson('/api/sort-order/set', { bookName, order }),
-    getChapterSettings: (bookName) =>
-      postJson('/api/chapter-settings/get', { bookName }),
+    setSortOrder: (bookName, order) => postJson('/api/sort-order/set', { bookName, order }),
+    getChapterSettings: (bookName) => postJson('/api/chapter-settings/get', { bookName }),
     setChapterTargetWords: (bookName, targetWords) =>
       postJson('/api/chapter-settings/target-words', { bookName, targetWords }),
     updateChapterFormat: (bookName, settings) =>
@@ -1161,10 +1190,13 @@ function buildElectronShim() {
       if (!Array.isArray(data?.notes)) {
         throw new Error('读取笔记失败：接口返回格式不正确')
       }
-      return data
+      const arr = data.notes
+      arr.success = true
+      arr.bookName = data.bookName
+      arr.notes = data.notes
+      return arr
     },
-    createNotebook: (bookName) =>
-      postJson('/api/notebooks/create', { bookName }),
+    createNotebook: (bookName) => postJson('/api/notebooks/create', { bookName }),
     deleteNotebook: (bookName, notebookName) =>
       postJson('/api/notebooks/delete', { bookName, notebookName }),
     renameNotebook: (bookName, oldName, newName) =>
@@ -1223,7 +1255,9 @@ function buildElectronShim() {
     },
     getBookDailyStats: async (bookName) => {
       const books = await readBooksDirForWeb()
-      const match = books.find((book) => [book.folderName, book.name, book.id].some((value) => value === bookName))
+      const match = books.find((book) =>
+        [book.folderName, book.name, book.id].some((value) => value === bookName)
+      )
       return fetchBookDailyStats(bookName, match ? [match.name, match.folderName, match.id] : [])
     },
     getAllBooksDailyStats: async () => {
@@ -1262,7 +1296,10 @@ function buildElectronShim() {
     deleteMap: async (payload) =>
       requireSuccessResult(await postJson('/api/studio/maps/delete', payload), '删除地图失败'),
     saveMapData: async (payload) =>
-      requireSuccessResult(await postJson('/api/studio/maps/data/save', payload), '保存地图数据失败'),
+      requireSuccessResult(
+        await postJson('/api/studio/maps/data/save', payload),
+        '保存地图数据失败'
+      ),
     loadMapData: async (payload) =>
       unwrapResultData(await postJson('/api/studio/maps/data/load', payload), '读取地图数据失败'),
     readCharacters: (bookName) => postJson('/api/studio/characters/read', { bookName }),
@@ -1396,7 +1433,8 @@ function buildElectronShim() {
         feature: 'ai_polish',
         title: '编辑器 AI 润色',
         content,
-        instruction: '请在保留剧情、人物语气和原有信息的前提下润色这段小说正文。只返回润色后的正文，不要解释。',
+        instruction:
+          '请在保留剧情、人物语气和原有信息的前提下润色这段小说正文。只返回润色后的正文，不要解释。',
         ...aiModelPayload
       })
       const aiResult = requireWebAiTextTaskResponse(response, 'AI 润色失败')
@@ -1415,9 +1453,43 @@ function buildElectronShim() {
         providerId: meta.providerId
       }
     },
+    cleanGarbageTextWithAI: async (input) => {
+      const payload = normalizeTextAiPayload(input)
+      const content = String(payload.text || payload.content || '').trim()
+      if (!content) {
+        return { success: false, message: '请先输入或选择需要清理的正文', content: '' }
+      }
+      const modelPayload = await resolveTextModelPayload('writing')
+      const aiModelPayload = resolveTextAiModelPayload(payload, modelPayload)
+      const response = await postJson('/api/ai/text-task', {
+        task: 'clean_garbage',
+        feature: 'ai_polish',
+        title: '编辑器 AI 清理乱码',
+        content,
+        instruction:
+          '请帮我清理这段小说文本中的防盗版乱码（如各种生僻字、特殊符号、无逻辑组合等）。要求：绝对忠于原文，不得改变、总结或删减任何正常的剧情描写和对白，仅作乱码剔除处理。只返回清理后的正文，不要解释。',
+        ...aiModelPayload
+      })
+      const aiResult = requireWebAiTextTaskResponse(response, 'AI 清理失败')
+      if (aiResult.success !== true) {
+        return { success: false, message: aiResult.message || 'AI 清理失败', content: '' }
+      }
+      const resultText = aiResult.content
+      const meta = resolveResponseProviderMeta(response, aiModelPayload)
+      return {
+        success: true,
+        content: resultText,
+        inputWordCount: countWebTextWords(content),
+        wordCount: countWebTextWords(resultText),
+        usage: response?.usage || {},
+        model: meta.model,
+        providerId: meta.providerId
+      }
+    },
     refineSettingWithAI: refineWebSettingWithAI,
     runOutlineAiTask: runWebOutlineAiTask,
-    generateChapterFromOutline: (payload) => postJson('/api/ai/generate-chapter-from-outline', payload),
+    generateChapterFromOutline: (payload) =>
+      postJson('/api/ai/generate-chapter-from-outline', payload),
     continueWriteWithAI: async (input = {}) => {
       const payload = normalizeTextAiPayload(input)
       const { text = '', prompt = '', maxAddWords = 0 } = payload
@@ -1529,8 +1601,8 @@ function buildElectronShim() {
       apiKey: await getStoreValue('customTextApi.apiKey', '')
     }),
     validateCustomTextApiConfig: async (directConfig) => {
-      const baseUrl = directConfig?.baseUrl || await getStoreValue('customTextApi.baseUrl', '')
-      const apiKey = directConfig?.apiKey || await getStoreValue('customTextApi.apiKey', '')
+      const baseUrl = directConfig?.baseUrl || (await getStoreValue('customTextApi.baseUrl', ''))
+      const apiKey = directConfig?.apiKey || (await getStoreValue('customTextApi.apiKey', ''))
       if (!baseUrl || !apiKey) {
         return { success: false, isValid: false, message: '请先配置 API 地址和 Key' }
       }
@@ -1542,7 +1614,7 @@ function buildElectronShim() {
         })
         if (proxyResult.success) {
           const data = proxyResult.data
-          const models = data?.data ? data.data.map(m => m.id) : []
+          const models = data?.data ? data.data.map((m) => m.id) : []
           return { success: true, isValid: true, models }
         } else if (proxyResult.status === 401 || proxyResult.status === 403) {
           return { success: false, isValid: false, message: 'API Key 无效或无权限' }
@@ -1561,8 +1633,8 @@ function buildElectronShim() {
       }
     },
     listCustomTextApiModels: async (directConfig) => {
-      const baseUrl = directConfig?.baseUrl || await getStoreValue('customTextApi.baseUrl', '')
-      const apiKey = directConfig?.apiKey || await getStoreValue('customTextApi.apiKey', '')
+      const baseUrl = directConfig?.baseUrl || (await getStoreValue('customTextApi.baseUrl', ''))
+      const apiKey = directConfig?.apiKey || (await getStoreValue('customTextApi.apiKey', ''))
 
       if (!baseUrl || !apiKey) {
         return { success: false, models: [], message: '请先配置 API 地址和 Key' }
@@ -1575,7 +1647,7 @@ function buildElectronShim() {
         })
         if (proxyResult.success) {
           const data = proxyResult.data
-          const models = data?.data ? data.data.map(m => m.id) : []
+          const models = data?.data ? data.data.map((m) => m.id) : []
           return { success: true, models }
         } else if (proxyResult.status === 401 || proxyResult.status === 403) {
           return { success: false, models: [], message: 'API Key 无效或无权限' }
@@ -1633,7 +1705,11 @@ function buildElectronShim() {
       postJson('/api/ai/image-task', {
         feature: 'ai_cover',
         title: '封面生成',
-        prompt: payload?.prompt || [payload?.titlePrompt, payload?.authorPrompt, payload?.backgroundPrompt].filter(Boolean).join('\n'),
+        prompt:
+          payload?.prompt ||
+          [payload?.titlePrompt, payload?.authorPrompt, payload?.backgroundPrompt]
+            .filter(Boolean)
+            .join('\n'),
         negativePrompt: payload?.negativePrompt || '',
         size: payload?.size || '1024x1024',
         bookName: payload?.bookName || '',
@@ -1769,14 +1845,18 @@ function buildElectronShim() {
     },
     addAiProvider: async (provider) => {
       const providers = requireStoredAiProviders(await getStoreValue('aiProviders', []))
-      const newProvider = { ...provider, id: provider.id || crypto.randomUUID(), createdAt: Date.now() }
+      const newProvider = {
+        ...provider,
+        id: provider.id || crypto.randomUUID(),
+        createdAt: Date.now()
+      }
       providers.push(newProvider)
       await setStoreValue('aiProviders', providers)
       return { success: true, provider: newProvider }
     },
     updateAiProvider: async (provider) => {
       const providers = requireStoredAiProviders(await getStoreValue('aiProviders', []))
-      const index = providers.findIndex(p => p.id === provider.id)
+      const index = providers.findIndex((p) => p.id === provider.id)
       if (index === -1) return { success: false, message: 'Provider not found' }
       providers[index] = { ...providers[index], ...provider, updatedAt: Date.now() }
       await setStoreValue('aiProviders', providers)
@@ -1787,14 +1867,17 @@ function buildElectronShim() {
       if (!providerId || !providers.some((p) => p.id === providerId)) {
         return { success: false, message: 'Provider not found' }
       }
-      const filtered = providers.filter(p => p.id !== providerId)
+      const filtered = providers.filter((p) => p.id !== providerId)
       await setStoreValue('aiProviders', filtered)
       return { success: true, providers: filtered }
     },
     validateAiProvider: async (provider) => {
-      const apiKeys = Array.isArray(provider?.apiKeys) && provider.apiKeys.length
-        ? provider.apiKeys
-        : (provider?.apiKey ? [provider.apiKey] : [])
+      const apiKeys =
+        Array.isArray(provider?.apiKeys) && provider.apiKeys.length
+          ? provider.apiKeys
+          : provider?.apiKey
+            ? [provider.apiKey]
+            : []
       if (!apiKeys.length || !provider?.baseUrl) {
         return { success: false, isValid: false, message: '请先填写 API 地址和 Key' }
       }
@@ -1821,7 +1904,7 @@ function buildElectronShim() {
           })
           if (proxyResult.success) {
             const data = proxyResult.data
-            const models = data?.data ? data.data.map(m => m.id) : []
+            const models = data?.data ? data.data.map((m) => m.id) : []
             return { success: true, isValid: true, models }
           } else if (proxyResult.status === 401 || proxyResult.status === 403) {
             continue
@@ -1834,9 +1917,12 @@ function buildElectronShim() {
       return { success: false, isValid: false, message: '所有 Key 均无效或无权限' }
     },
     listAiProviderModels: async (provider) => {
-      const apiKeys = Array.isArray(provider?.apiKeys) && provider.apiKeys.length
-        ? provider.apiKeys
-        : (provider?.apiKey ? [provider.apiKey] : [])
+      const apiKeys =
+        Array.isArray(provider?.apiKeys) && provider.apiKeys.length
+          ? provider.apiKeys
+          : provider?.apiKey
+            ? [provider.apiKey]
+            : []
       if (!apiKeys.length || !provider?.baseUrl) {
         return { success: false, models: [], message: '请先填写 API 地址和 Key' }
       }
@@ -1856,7 +1942,7 @@ function buildElectronShim() {
           })
           if (proxyResult.success) {
             const data = proxyResult.data
-            const models = data?.data ? data.data.map(m => m.id) : []
+            const models = data?.data ? data.data.map((m) => m.id) : []
             return { success: true, models }
           } else if (proxyResult.status === 401 || proxyResult.status === 403) {
             continue
@@ -1869,9 +1955,12 @@ function buildElectronShim() {
       return { success: false, models: [], message: '所有 Key 均无效或无权限' }
     },
     testAiProviderModel: async (provider, modelName) => {
-      const apiKeys = Array.isArray(provider?.apiKeys) && provider.apiKeys.length
-        ? provider.apiKeys
-        : (provider?.apiKey ? [provider.apiKey] : [])
+      const apiKeys =
+        Array.isArray(provider?.apiKeys) && provider.apiKeys.length
+          ? provider.apiKeys
+          : provider?.apiKey
+            ? [provider.apiKey]
+            : []
       if (!apiKeys.length || !provider?.baseUrl) {
         return { success: false, message: '请先填写 API 地址和 Key' }
       }
@@ -1948,9 +2037,8 @@ function buildElectronShim() {
       return await postJson('/api/extraction/create', payload)
     },
     getExtractionProgress: async (jobIdOrPayload) => {
-      const payload = typeof jobIdOrPayload === 'object'
-        ? jobIdOrPayload
-        : { jobId: jobIdOrPayload }
+      const payload =
+        typeof jobIdOrPayload === 'object' ? jobIdOrPayload : { jobId: jobIdOrPayload }
       return await postJson('/api/extraction/progress', payload)
     },
     listExtractions: async (bookPath) => {
@@ -1982,7 +2070,8 @@ function buildElectronShim() {
     convertTopicCardToBook: (topicCardId) =>
       postJson('/api/knowledge/convert-topic-to-book', { topicCardId }),
     runKnowledgeAiTask: (payload) => postJson('/api/knowledge/ai-task', payload || {}),
-    createTopicCardFromAi: (payload) => postJson('/api/knowledge/create-topic-from-ai', payload || {}),
+    createTopicCardFromAi: (payload) =>
+      postJson('/api/knowledge/create-topic-from-ai', payload || {}),
     listMarketHotspots: (filter) => postJson('/api/market/hotspots', filter || {}),
     createMarketHotspot: (input) => postJson('/api/market/hotspots/create', input || {}),
     updateMarketHotspot: (id, patch) => postJson('/api/market/hotspots/update', { id, patch }),
@@ -2007,19 +2096,32 @@ function buildElectronShim() {
     getMarketOverview: (payload = {}) => postJson('/api/market/overview', payload || {}),
     getMarketHotRank: (payload = {}) => postJson('/api/market/hot-rank', payload || {}),
     getMarketKeywordCloud: (payload = {}) => postJson('/api/market/keyword-cloud', payload || {}),
-    getMarketKeywordCombination: (payload = {}) => postJson('/api/market/keyword-combination', payload || {}),
-    getMarketActivitiesBoard: (payload = {}) => postJson('/api/market/activities-board', payload || {}),
-    saveMarketInspiration: (payload = {}) => postJson('/api/market/save-inspiration', payload || {}),
-    generateMarketOutline: (payload = {}) => postJson('/api/market/generate-outline', payload || {}),
-    applyMarketInsightToCurrentBook: (payload = {}) => postJson('/api/market/apply-to-current-book', payload || {}),
-    createBookFromMarketInsight: (payload = {}) => postJson('/api/market/create-book-from-insight', payload || {}),
-    getAnalyticsOverview: async (payload = {}) => postJson('/api/analytics/overview', payload || {}),
-    getAnalyticsDailyWords: async (payload = {}) => postJson('/api/analytics/daily-words', payload || {}),
-    getAnalyticsWritingHabit: async (payload = {}) => postJson('/api/analytics/writing-habit', payload || {}),
-    getAnalyticsSessionStats: async (payload = {}) => postJson('/api/analytics/session-stats', payload || {}),
-    getAnalyticsTokenStats: async (payload = {}) => postJson('/api/analytics/token-stats', payload || {}),
-    getAnalyticsWeeklyReport: async (payload = {}) => postJson('/api/analytics/weekly-report', payload || {}),
-    getAnalyticsMonthlyReport: async (payload = {}) => postJson('/api/analytics/monthly-report', payload || {}),
+    getMarketKeywordCombination: (payload = {}) =>
+      postJson('/api/market/keyword-combination', payload || {}),
+    getMarketActivitiesBoard: (payload = {}) =>
+      postJson('/api/market/activities-board', payload || {}),
+    saveMarketInspiration: (payload = {}) =>
+      postJson('/api/market/save-inspiration', payload || {}),
+    generateMarketOutline: (payload = {}) =>
+      postJson('/api/market/generate-outline', payload || {}),
+    applyMarketInsightToCurrentBook: (payload = {}) =>
+      postJson('/api/market/apply-to-current-book', payload || {}),
+    createBookFromMarketInsight: (payload = {}) =>
+      postJson('/api/market/create-book-from-insight', payload || {}),
+    getAnalyticsOverview: async (payload = {}) =>
+      postJson('/api/analytics/overview', payload || {}),
+    getAnalyticsDailyWords: async (payload = {}) =>
+      postJson('/api/analytics/daily-words', payload || {}),
+    getAnalyticsWritingHabit: async (payload = {}) =>
+      postJson('/api/analytics/writing-habit', payload || {}),
+    getAnalyticsSessionStats: async (payload = {}) =>
+      postJson('/api/analytics/session-stats', payload || {}),
+    getAnalyticsTokenStats: async (payload = {}) =>
+      postJson('/api/analytics/token-stats', payload || {}),
+    getAnalyticsWeeklyReport: async (payload = {}) =>
+      postJson('/api/analytics/weekly-report', payload || {}),
+    getAnalyticsMonthlyReport: async (payload = {}) =>
+      postJson('/api/analytics/monthly-report', payload || {}),
     runConsistencyCheck: async (payload = {}) => postJson('/api/consistency/check', payload || {}),
     listConsistencyChecks: async (payload = {}) => postJson('/api/consistency/list', payload || {}),
     listWritingGoals: async () => postJson('/api/goals/list', {}),
@@ -2030,7 +2132,8 @@ function buildElectronShim() {
     importAsset: async (payload = {}) => postJson('/api/assets/import', payload || {}),
     deleteAsset: async (id) => postJson('/api/assets/delete', { id }),
     restoreAsset: async (id) => postJson('/api/assets/restore', { id }),
-    attachAssetToBook: async (payload = {}) => postJson('/api/assets/attach-to-book', payload || {}),
+    attachAssetToBook: async (payload = {}) =>
+      postJson('/api/assets/attach-to-book', payload || {}),
     previewImportBook: async (payload = {}) => postJson('/api/import/preview', payload || {}),
     importBookFromFile: async (payload = {}) => postJson('/api/import/book', payload || {}),
     exportBookFile: async (payload = {}) => postJson('/api/export/book', payload || {}),
@@ -2044,18 +2147,23 @@ function buildElectronShim() {
     importAppSettings: async (payload = {}) => postJson('/api/settings/import', payload || {}),
     vectorSearch: async (payload = {}) => postJson('/api/vector/search', payload || {}),
     vectorGetStats: async (bookPathOrPayload = {}) => {
-      const payload = typeof bookPathOrPayload === 'string'
-        ? { bookPath: bookPathOrPayload }
-        : (bookPathOrPayload || {})
+      const payload =
+        typeof bookPathOrPayload === 'string'
+          ? { bookPath: bookPathOrPayload }
+          : bookPathOrPayload || {}
       return postJson('/api/vector/stats', payload)
     },
-    vectorDeleteSource: async (payload = {}) => postJson('/api/vector/delete-source', payload || {}),
-    plotEvolutionEvolve: async (payload = {}) => postJson('/api/plot-evolution/evolve', payload || {}),
-    plotEvolutionRegenerate: async (payload = {}) => postJson('/api/plot-evolution/regenerate', payload || {}),
+    vectorDeleteSource: async (payload = {}) =>
+      postJson('/api/vector/delete-source', payload || {}),
+    plotEvolutionEvolve: async (payload = {}) =>
+      postJson('/api/plot-evolution/evolve', payload || {}),
+    plotEvolutionRegenerate: async (payload = {}) =>
+      postJson('/api/plot-evolution/regenerate', payload || {}),
     listSettingSnapshots: async (bookPathOrPayload = {}) => {
-      const payload = typeof bookPathOrPayload === 'string'
-        ? { bookPath: bookPathOrPayload }
-        : (bookPathOrPayload || {})
+      const payload =
+        typeof bookPathOrPayload === 'string'
+          ? { bookPath: bookPathOrPayload }
+          : bookPathOrPayload || {}
       return postJson('/api/setting-snapshots/list', payload)
     },
     createSettingSnapshot: async (payload = {}) =>
@@ -2070,8 +2178,7 @@ function buildElectronShim() {
       postJson('/api/setting-tree/generate', payload || {}),
     regenerateSettingNode: async (payload = {}) =>
       postJson('/api/setting-tree/regenerate-node', payload || {}),
-    applySettingTree: async (payload = {}) =>
-      postJson('/api/setting-tree/apply', payload || {}),
+    applySettingTree: async (payload = {}) => postJson('/api/setting-tree/apply', payload || {}),
     listPromptPresets: async (payload = {}) => postJson('/api/prompts/list', payload || {}),
     createPromptPreset: async (payload = {}) => postJson('/api/prompts/create', payload || {}),
     updatePromptPreset: async (payload = {}) => postJson('/api/prompts/update', payload || {}),
@@ -2094,12 +2201,17 @@ function buildElectronShim() {
         .flatMap((provider) => {
           const providerId = provider.id || provider.provider || provider.name || 'custom_text'
           const providerName = provider.provider || provider.apiType || provider.name || 'custom'
-          const providerDisplayName = provider.displayName || provider.name || providerName || '自定义供应商'
-          const models = Array.from(new Set([
-            ...(Array.isArray(provider.models) ? provider.models : []),
-            provider.model,
-            provider.modelName
-          ].filter(Boolean)))
+          const providerDisplayName =
+            provider.displayName || provider.name || providerName || '自定义供应商'
+          const models = Array.from(
+            new Set(
+              [
+                ...(Array.isArray(provider.models) ? provider.models : []),
+                provider.model,
+                provider.modelName
+              ].filter(Boolean)
+            )
+          )
           const names = models.length ? models : ['']
           return names.map((modelName) => ({
             id: `${providerId}::${modelName || 'default'}`,
@@ -2110,7 +2222,7 @@ function buildElectronShim() {
             modelName,
             displayName: modelName || providerDisplayName || '自定义模型',
             enabled: provider.enabled !== false,
-            defaultFor: (providerId && providerId === active) ? 'writing' : provider.defaultFor || ''
+            defaultFor: providerId && providerId === active ? 'writing' : provider.defaultFor || ''
           }))
         })
         .filter((binding) => binding.enabled)
@@ -2140,10 +2252,19 @@ function buildElectronShim() {
         activeTextProviderId = String(modelId || '').split('::')[0] || modelId
         await setStoreValue('aiProviders.activeTextId', activeTextProviderId)
       }
-      return { success: true, task, modelId, defaults: nextDefaults, providerId: activeTextProviderId }
+      return {
+        success: true,
+        task,
+        modelId,
+        defaults: nextDefaults,
+        providerId: activeTextProviderId
+      }
     },
     openEditorSession: async (payload = {}) => {
-      const sessions = requireStoreArray(await getStoreValue('editorSessions', []), '读取编辑器会话记录失败')
+      const sessions = requireStoreArray(
+        await getStoreValue('editorSessions', []),
+        '读取编辑器会话记录失败'
+      )
       const id = payload.id || `editor_session:${payload.bookId || 'empty'}`
       const session = {
         id,
@@ -2155,27 +2276,42 @@ function buildElectronShim() {
         contextOptions: payload.contextOptions || {},
         lastOpenedAt: new Date().toISOString()
       }
-      await setStoreValue('editorSessions', [session, ...sessions.filter((item) => item.id !== id)].slice(0, 80))
+      await setStoreValue(
+        'editorSessions',
+        [session, ...sessions.filter((item) => item.id !== id)].slice(0, 80)
+      )
       await setStoreValue('lastActiveBookId', session.bookId)
       return { success: true, session }
     },
     updateEditorSessionContext: async ({ sessionId, contextOptions } = {}) => {
-      const sessions = requireStoreArray(await getStoreValue('editorSessions', []), '读取编辑器会话记录失败')
+      const sessions = requireStoreArray(
+        await getStoreValue('editorSessions', []),
+        '读取编辑器会话记录失败'
+      )
       const session = sessions.find((item) => item.id === sessionId) || { id: sessionId }
       const next = {
         ...session,
         contextOptions: { ...(session.contextOptions || {}), ...(contextOptions || {}) },
         lastOpenedAt: new Date().toISOString()
       }
-      await setStoreValue('editorSessions', [next, ...sessions.filter((item) => item.id !== sessionId)].slice(0, 80))
+      await setStoreValue(
+        'editorSessions',
+        [next, ...sessions.filter((item) => item.id !== sessionId)].slice(0, 80)
+      )
       return { success: true, session: next }
     },
     listEditorMessages: async (sessionId) => {
-      const messages = requireStoreArray(await getStoreValue('editorMessages', []), '读取编辑器消息失败')
+      const messages = requireStoreArray(
+        await getStoreValue('editorMessages', []),
+        '读取编辑器消息失败'
+      )
       return { success: true, messages: messages.filter((item) => item.sessionId === sessionId) }
     },
     appendEditorMessage: async ({ sessionId, message } = {}) => {
-      const messages = requireStoreArray(await getStoreValue('editorMessages', []), '读取编辑器消息失败')
+      const messages = requireStoreArray(
+        await getStoreValue('editorMessages', []),
+        '读取编辑器消息失败'
+      )
       const next = {
         id: message?.id || crypto.randomUUID(),
         sessionId,
@@ -2209,21 +2345,34 @@ function buildElectronShim() {
       const id = String(generationId || '').trim()
       if (!id) return { success: false, message: '缺少生成记录 ID' }
       const nextStatus = status || statusFromApplyAction(applyAction)
-      const rows = requireStoreArray(await getStoreValue('editorGenerations', []), '读取生成记录失败')
+      const rows = requireStoreArray(
+        await getStoreValue('editorGenerations', []),
+        '读取生成记录失败'
+      )
       const target = rows.find((item) => item.id === id)
       if (!target) return { success: false, message: '未找到生成记录，无法更新状态' }
       const patch = { status: nextStatus, applyAction, appliedAt: new Date().toISOString() }
-      await setStoreValue('editorGenerations', rows.map((item) =>
-        item.id === id ? { ...item, ...patch } : item
-      ))
+      await setStoreValue(
+        'editorGenerations',
+        rows.map((item) => (item.id === id ? { ...item, ...patch } : item))
+      )
       return { success: true, generation: { ...target, ...patch } }
     },
     listEditorGenerations: async (bookId = '') => {
-      const generations = requireStoreArray(await getStoreValue('editorGenerations', []), '读取生成记录失败')
-      return { success: true, items: generations.filter((item) => !bookId || item.bookId === bookId) }
+      const generations = requireStoreArray(
+        await getStoreValue('editorGenerations', []),
+        '读取生成记录失败'
+      )
+      return {
+        success: true,
+        items: generations.filter((item) => !bookId || item.bookId === bookId)
+      }
     },
     createEditorSnapshot: async (payload = {}) => {
-      const snapshots = requireStoreArray(await getStoreValue('editorSnapshots', []), '读取编辑器快照失败')
+      const snapshots = requireStoreArray(
+        await getStoreValue('editorSnapshots', []),
+        '读取编辑器快照失败'
+      )
       const snapshot = {
         id: crypto.randomUUID(),
         bookId: payload.bookId || payload.bookName || '',
@@ -2238,7 +2387,10 @@ function buildElectronShim() {
       return { success: true, snapshot }
     },
     saveEditorMaterial: async (payload = {}) => {
-      const materials = requireStoreArray(await getStoreValue('editorMaterials', []), '读取编辑器素材失败')
+      const materials = requireStoreArray(
+        await getStoreValue('editorMaterials', []),
+        '读取编辑器素材失败'
+      )
       const material = {
         id: crypto.randomUUID(),
         source: 'editor_agent',
@@ -2250,7 +2402,10 @@ function buildElectronShim() {
       return { success: true, material }
     },
     listEditorMaterials: async ({ bookId = '', chapterId = '' } = {}) => {
-      const materials = requireStoreArray(await getStoreValue('editorMaterials', []), '读取编辑器素材失败')
+      const materials = requireStoreArray(
+        await getStoreValue('editorMaterials', []),
+        '读取编辑器素材失败'
+      )
       return {
         success: true,
         materials: materials.filter((item) => {
@@ -2289,7 +2444,10 @@ function buildElectronShim() {
     setActiveEmbeddingProvider: async (payload = {}) => {
       const providers = await storedEmbeddingProviders()
       const id = resolveEmbeddingProviderId(payload)
-      const active = typeof payload === 'object' && payload !== null && 'active' in payload ? Boolean(payload.active) : true
+      const active =
+        typeof payload === 'object' && payload !== null && 'active' in payload
+          ? Boolean(payload.active)
+          : true
       if (!id || !providers.some((item) => item.id === id)) {
         return { success: false, message: '未找到 Embedding Provider' }
       }
@@ -2306,11 +2464,12 @@ function buildElectronShim() {
     },
     validateEmbeddingProvider: async (payload = {}) => {
       const canUseDirectProvider = payload && typeof payload === 'object' && !Array.isArray(payload)
-      const directProvider = canUseDirectProvider ? normalizeEmbeddingProviderPayload(payload) : null
-      const needsStoredProviders = !directProvider?.baseUrl && !directProvider?.apiKey && !directProvider?.modelName
-      const providers = needsStoredProviders
-        ? await storedEmbeddingProviders()
-        : []
+      const directProvider = canUseDirectProvider
+        ? normalizeEmbeddingProviderPayload(payload)
+        : null
+      const needsStoredProviders =
+        !directProvider?.baseUrl && !directProvider?.apiKey && !directProvider?.modelName
+      const providers = needsStoredProviders ? await storedEmbeddingProviders() : []
       const target = resolveEmbeddingProviderForAction(payload, providers)
       if (!target) {
         return { success: false, isValid: false, message: '未找到 Embedding Provider' }
@@ -2334,7 +2493,11 @@ function buildElectronShim() {
         })
         return proxyResult.success
           ? { success: true, isValid: true }
-          : { success: false, isValid: false, message: proxyResult.data?.error?.message || `验证失败: ${proxyResult.status}` }
+          : {
+              success: false,
+              isValid: false,
+              message: proxyResult.data?.error?.message || `验证失败: ${proxyResult.status}`
+            }
       } catch (error) {
         return { success: false, isValid: false, message: error.message || '验证失败' }
       }

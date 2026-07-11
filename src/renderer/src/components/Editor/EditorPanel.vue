@@ -5,6 +5,10 @@
       v-model="menubarState"
       :editor="editor"
       :book-name="bookName"
+      :left-collapsed="leftCollapsed"
+      :right-collapsed="rightCollapsed"
+      @toggle-left="$emit('toggle-left')"
+      @toggle-right="$emit('toggle-right')"
       @toggle-search="toggleSearchPanel"
       @save="saveContent"
       @export="handleExport"
@@ -45,42 +49,6 @@
     <!-- 正文内容编辑区（含右上角 AI 润色按钮） -->
     <div class="editor-content-wrap">
       <EditorContent class="editor-content" :editor="editor" />
-      <!-- 仅章节模式显示：固定于编辑区右上角的 AI 润色下拉（段落/整章） -->
-      <div v-if="editorStore.file?.type === 'chapter'" class="ai-polish-wrap">
-        <el-dropdown trigger="click" @command="handlePolishCommand">
-          <el-button type="primary" size="small" class="ai-polish-btn" :loading="polishLoading">
-            {{ t('editorPanel.aiPolish') }}
-            <el-icon class="el-icon--right"><arrow-down /></el-icon>
-          </el-button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="selection">
-                {{ t('editorPanel.polishSelection') }}
-              </el-dropdown-item>
-              <el-dropdown-item command="chapter">
-                {{ t('editorPanel.polishChapter') }}
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-        <el-button
-          type="success"
-          size="small"
-          class="ai-continue-btn"
-          :loading="continueLoading"
-          @click="handleContinueClick"
-        >
-          {{ t('editorPanel.aiContinue') }}
-        </el-button>
-        <el-button
-          type="warning"
-          size="small"
-          class="ai-scene-btn"
-          @click="handleAISceneImageClick"
-        >
-          {{ t('editorPanel.aiSceneImage') }}
-        </el-button>
-      </div>
     </div>
     <!-- AI 润色结果确认弹框（段落 / 整章共用） -->
     <el-dialog
@@ -259,7 +227,15 @@ const editorStore = useEditorStore()
 const { t } = useI18n()
 
 const props = defineProps({
-  bookName: String
+  bookName: String,
+  leftCollapsed: {
+    type: Boolean,
+    default: false
+  },
+  rightCollapsed: {
+    type: Boolean,
+    default: false
+  }
 })
 
 watch(
@@ -612,10 +588,18 @@ watch(
             }
             chain.run()
 
-            // 恢复光标到末尾
-            if (currentDocSize > 0) {
-              editor.value.chain().focus().setTextSelection(currentDocSize).run()
-            }
+            // 恢复光标到最开始并回到顶部
+            editor.value.chain().focus().setTextSelection(0).run()
+            const scrollContainers = document.querySelectorAll('.editor-content, .editor-content .tiptap, .tiptap, .editor-content-wrap')
+            scrollContainers.forEach(el => { if (el) el.scrollTop = 0 })
+          }, 100)
+        } else {
+          // 没有全局样式格式化时，也需要回到顶部
+          setTimeout(() => {
+            if (!editor.value) return
+            editor.value.chain().focus().setTextSelection(0).run()
+            const scrollContainers = document.querySelectorAll('.editor-content, .editor-content .tiptap, .tiptap, .editor-content-wrap')
+            scrollContainers.forEach(el => { if (el) el.scrollTop = 0 })
           }, 100)
         }
       })
@@ -1060,7 +1044,8 @@ async function getPreviousChapterContextInfo() {
   }
 
   try {
-    const chaptersTree = await window.electron.loadChapters(props.bookName)
+    const chapterResult = await window.electron.loadChapters(props.bookName)
+    const chaptersTree = Array.isArray(chapterResult) ? chapterResult : chapterResult.chapters
     if (!Array.isArray(chaptersTree) || chaptersTree.length === 0) {
       return { hasPrevious: false, contextText: '' }
     }
@@ -1114,12 +1099,81 @@ async function getPreviousChapterContextInfo() {
   }
 }
 
+  async function handleCleanGarbageSelection() {
+    if (!editor.value) return
+    const { from, to, empty } = editor.value.state.selection
+    if (empty) {
+      ElMessage.warning('请先在正文中选中需要清理乱码的段落')
+      return
+    }
+    const text = editor.value.state.doc.textBetween(from, to, '\n')
+    if (getPlainTextWordCount(text) < 5) {
+      ElMessage.warning('选中的内容太短')
+      return
+    }
+    if (!window.electron?.cleanGarbageTextWithAI) {
+      ElMessage.error('当前环境不支持 AI 清理乱码')
+      return
+    }
+    polishLoading.value = true
+    try {
+      const res = await window.electron.cleanGarbageTextWithAI(text)
+      if (!res.success) {
+        ElMessage.error(res.message || '清理乱码失败')
+        return
+      }
+      polishMode.value = 'selection'
+      polishOriginalText.value = text
+      polishResultText.value = res.content || ''
+      polishReplaceFrom.value = from
+      polishReplaceTo.value = to
+      polishDialogVisible.value = true
+    } catch (e) {
+      ElMessage.error(e?.message || '清理乱码请求出错')
+    } finally {
+      polishLoading.value = false
+    }
+  }
+
+  async function handleCleanGarbageChapter() {
+    if (!editor.value) return
+    const fullText = editor.value.getText()
+    if (getPlainTextWordCount(fullText) < 10) {
+      ElMessage.warning('本章内容太少')
+      return
+    }
+    if (!window.electron?.cleanGarbageTextWithAI) {
+      ElMessage.error('当前环境不支持 AI 清理乱码')
+      return
+    }
+    polishLoading.value = true
+    try {
+      const res = await window.electron.cleanGarbageTextWithAI(fullText)
+      if (!res.success) {
+        ElMessage.error(res.message || '清理乱码失败')
+        return
+      }
+      polishMode.value = 'chapter'
+      polishOriginalText.value = fullText
+      polishResultText.value = res.content || ''
+      polishDialogVisible.value = true
+    } catch (e) {
+      ElMessage.error(e?.message || '清理乱码请求出错')
+    } finally {
+      polishLoading.value = false
+    }
+  }
+
 /** 下拉选择：润色选中文本 / 润色整章 */
 function handlePolishCommand(command) {
   if (command === 'selection') {
     handlePolishSelection()
   } else if (command === 'chapter') {
     handlePolishChapter()
+  } else if (command === 'clean_selection') {
+    handleCleanGarbageSelection()
+  } else if (command === 'clean_chapter') {
+    handleCleanGarbageChapter()
   }
 }
 
@@ -1886,7 +1940,7 @@ function resumeChapterDecorationTimers() {
   }
 }
 
-const emit = defineEmits(['refresh-notes', 'refresh-chapters'])
+const emit = defineEmits(['refresh-notes', 'refresh-chapters', 'toggle-left', 'toggle-right'])
 
 // 监听当前文件类型，动态设置首行缩进和编辑器模式
 watch(
@@ -1906,6 +1960,13 @@ watch(
   },
   { immediate: true }
 )
+
+defineExpose({
+  getEditorContentComponent,
+  handlePolishCommand,
+  handleContinueClick,
+  handleAISceneImageClick
+})
 </script>
 
 <style lang="scss" scoped>
@@ -2082,8 +2143,7 @@ watch(
   height: max-content;
   min-height: 100%;
   white-space: pre-wrap; // 保证Tab缩进和换行显示
-  // 底部留出约一屏可滚动空间，使写作时最后一行可滚动到视口上部，焦点保持在编辑区上方
-  padding-bottom: 70vh;
+  padding-bottom: 40px;
   // 字体、字号、行高、段落间距通过 updateEditorStyle 设置到根元素（--paragraph-spacing）
 
   &:focus {
