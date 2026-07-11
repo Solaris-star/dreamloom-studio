@@ -1,263 +1,309 @@
 <template>
   <div class="home-page">
-      <header class="dashboard-header">
-        <div>
-          <h1>织梦书房</h1>
-          <p class="brand-en">Dreamloom Studio · DLS</p>
-          <p class="headline">今天想写一个什么样的故事？</p>
-          <p class="subline">从一个念头开始，把故事慢慢织出来。</p>
+    <header class="dashboard-header">
+      <div>
+        <h1>{{ APP_NAME_ZH }}</h1>
+        <p class="brand-en">Dreamloom Studio · DLS</p>
+        <p class="headline">今天想写一个什么样的故事？</p>
+        <p class="subline">从一个念头开始，把故事慢慢织出来。</p>
+      </div>
+    </header>
+
+    <section class="dashboard-main-grid">
+      <article ref="starterCardRef" class="dashboard-card creation-card" aria-label="创作起笔">
+        <div class="card-title">
+          <div>
+            <h2>创作起笔</h2>
+            <p class="starter-kicker">设定生成，黄金三章</p>
+          </div>
         </div>
-      </header>
-
-      <section class="dashboard-main-grid">
-        <article ref="starterCardRef" class="dashboard-card creation-card" aria-label="创作起笔">
-          <div class="card-title">
-            <div>
-              <h2>创作起笔</h2>
-              <p class="starter-kicker">设定生成，黄金三章</p>
-            </div>
-          </div>
-          <p class="starter-desc">
-            输入创意想法，选择提示词策略，织梦会先生成设定树，再给出开篇黄金三章。
-          </p>
-          <textarea
-            v-model="ideaInput"
-            class="creation-textarea"
-            placeholder="请输入您的小说创意想法，例如：一个现代都市的年轻程序员意外获得了穿越时空的能力..."
-          ></textarea>
-          <div class="starter-control-row">
-            <label>
-              <span>AI 服务</span>
-              <el-select
-                v-model="selectedProviderId"
-                filterable
-                placeholder="选择文本 AI 服务"
-                :loading="loadingProviders"
-                @change="handleProviderChange"
-              >
-                <el-option v-for="provider in textProviders" :key="provider.id" :label="provider.name" :value="provider.id" />
-              </el-select>
-            </label>
-            <label>
-              <span>模型</span>
-              <el-select
-                v-model="selectedModel"
-                filterable
-                allow-create
-                default-first-option
-                placeholder="选择或输入模型"
-                :disabled="!selectedProviderId"
-              >
-                <el-option v-for="model in modelOptions" :key="model" :label="model" :value="model" />
-              </el-select>
-            </label>
-            <label class="strategy-field">
-              <span>提示词</span>
-              <el-select
-                v-model="selectedStarterPresetId"
-                filterable
-                placeholder="选择提示词"
-              >
-                <el-option
-                  v-for="preset in starterPresetOptions"
-                  :key="preset.id"
-                  :label="promptPresetDisplayName(preset)"
-                  :value="preset.id"
-                />
-              </el-select>
-            </label>
-            <button class="prompt-market-button" type="button" title="提示词市场" @click="router.push('/ai/prompts')">
-              <span class="market-icon">▣</span>
-              市场
-            </button>
-          </div>
-          <div class="starter-actions">
-            <el-button class="starter-submit" type="primary" :loading="creatingJob" :disabled="!canCreateStarterJob" @click="handleCreateStarterJob">
-              生成设定
-            </el-button>
-          </div>
-        </article>
-
-        <aside class="dashboard-side-stack" aria-label="首页信息栏">
-          <article class="dashboard-card market-card" aria-label="市场风向">
-            <div class="card-title">
-              <div>
-                <h2>市场风向</h2>
-              </div>
-              <span class="update-text">{{ marketUpdateText }}</span>
-            </div>
-            <div class="market-tabs" role="tablist" aria-label="市场时间范围">
-              <button
-                v-for="tab in marketTabs"
-                :key="tab.key"
-                :class="{ active: marketRange === tab.key }"
-                type="button"
-                @click="marketRange = tab.key"
-              >
-                {{ tab.label }}
-              </button>
-            </div>
-            <div v-if="marketError" class="small-error">{{ marketError }}</div>
-            <div v-else-if="!marketHotspots.length && !marketActivities.length" class="compact-empty market-empty">
-              <strong>暂无市场数据</strong>
-              <span>点击市场灵感里的刷新热榜，织梦会自动整理公开热词和活动。</span>
-              <button type="button" @click="router.push('/market/overview')">去刷新热榜</button>
-            </div>
-            <template v-else>
-              <div class="market-section">
-                <h3>热点题材</h3>
-                <ol v-if="marketHotspots.length" class="market-list">
-                  <li v-for="(item, index) in marketHotspots" :key="item.id" @click="router.push('/market/overview')">
-                    <span class="rank">{{ index + 1 }}</span>
-                    <span class="market-name">{{ item.keyword || item.title }}</span>
-                    <b>热度 {{ Number(item.heatScore || 0) }}</b>
-                    <span class="trend-arrow">↑</span>
-                  </li>
-                </ol>
-                <p v-else class="inline-empty">暂无热点题材。</p>
-              </div>
-              <div class="market-section">
-                <h3>作家活动</h3>
-                <div v-if="marketActivities.length" class="activity-list">
-                  <button
-                    v-for="item in marketActivities"
-                    :key="item.id"
-                    type="button"
-                    @click="router.push('/market/overview')"
-                  >
-                    <span>{{ item.title }}</span>
-                    <small>{{ remainingText(item) }}</small>
-                  </button>
-                </div>
-                <p v-else class="inline-empty">暂无进行中的作家活动。</p>
-              </div>
-            </template>
-            <button class="more-link" type="button" @click="router.push('/market/overview')">查看市场灵感 ></button>
-          </article>
-
-          <article class="dashboard-card status-card" aria-label="写作近况">
-            <div class="card-title">
-              <div>
-                <h2>写作近况</h2>
-              </div>
-              <button class="more-link top-link" type="button" @click="router.push('/analytics/overview')">查看数据中心 ></button>
-            </div>
-            <div v-if="statsError" class="small-error status-error">
-              <span>{{ statsError }}</span>
-              <button type="button" :disabled="statsLoading" @click="loadStats">重试</button>
-            </div>
-            <div class="status-grid">
-              <div>
-                <b>{{ formatNumber(todayStatus.todayWords) }}</b>
-                <span>新增字数</span>
-              </div>
-              <div>
-                <b>{{ formatNumber(todayStatus.streakDays) }}</b>
-                <span>连续写作</span>
-              </div>
-              <div>
-                <b>{{ formatNumber(todayStatus.totalAiCalls) }}</b>
-                <span>AI 调用</span>
-              </div>
-              <div>
-                <b>{{ formatNumber(todayStatus.totalAiTokens) }}</b>
-                <span>Token</span>
-              </div>
-            </div>
-            <div v-if="hasTrendData" class="mini-line-chart" aria-label="最近 7 天净增字数">
-              <svg viewBox="0 0 240 78" preserveAspectRatio="none" role="img">
-                <polyline :points="chartPoints" />
-                <circle
-                  v-for="point in chartPointRows"
-                  :key="point.key"
-                  :cx="point.x"
-                  :cy="point.y"
-                  r="3"
-                />
-              </svg>
-            </div>
-            <p v-else class="chart-empty">写几章后，这里会出现你的 7 天创作曲线。</p>
-          </article>
-        </aside>
-      </section>
-
-      <section class="starter-category-section">
-        <div class="section-title-row">
-          <h2>选择小说分类</h2>
-        </div>
-        <div class="starter-category-tags">
+        <p class="starter-desc">
+          输入创意想法，选择提示词策略，织梦会先生成设定树，再给出开篇黄金三章。
+        </p>
+        <textarea
+          v-model="ideaInput"
+          class="creation-textarea"
+          placeholder="请输入您的小说创意想法，例如：一个现代都市的年轻程序员意外获得了穿越时空的能力..."
+        ></textarea>
+        <div class="starter-control-row">
+          <label>
+            <span>AI 服务</span>
+            <el-select
+              v-model="selectedProviderId"
+              filterable
+              placeholder="选择文本 AI 服务"
+              :loading="loadingProviders"
+              @change="handleProviderChange"
+            >
+              <el-option
+                v-for="provider in textProviders"
+                :key="provider.id"
+                :label="provider.name"
+                :value="provider.id"
+              />
+            </el-select>
+          </label>
+          <label>
+            <span>模型</span>
+            <el-select
+              v-model="selectedModel"
+              filterable
+              allow-create
+              default-first-option
+              placeholder="选择或输入模型"
+              :disabled="!selectedProviderId"
+            >
+              <el-option v-for="model in modelOptions" :key="model" :label="model" :value="model" />
+            </el-select>
+          </label>
+          <label class="strategy-field">
+            <span>提示词</span>
+            <el-select v-model="selectedStarterPresetId" filterable placeholder="选择提示词">
+              <el-option
+                v-for="preset in starterPresetOptions"
+                :key="preset.id"
+                :label="promptPresetDisplayName(preset)"
+                :value="preset.id"
+              />
+            </el-select>
+          </label>
           <button
-            v-for="category in starterCategories"
-            :key="category.name"
+            class="prompt-market-button"
             type="button"
-            @click="applyStarterCategory(category)"
+            title="提示词市场"
+            @click="router.push('/ai/prompts')"
           >
-            {{ category.name }}
+            <span class="market-icon">▣</span>
+            市场
           </button>
         </div>
-        <p>点击标签快速填充创作提示词，或直接在上方输入框中输入您的想法。</p>
-      </section>
+        <div class="starter-actions">
+          <el-button
+            class="starter-submit"
+            type="primary"
+            :loading="creatingJob"
+            :disabled="!canCreateStarterJob"
+            @click="handleCreateStarterJob"
+          >
+            生成设定
+          </el-button>
+        </div>
+      </article>
 
-      <section class="dashboard-bottom-grid">
-        <article class="dashboard-card continue-card">
+      <aside class="dashboard-side-stack" aria-label="首页信息栏">
+        <article class="dashboard-card market-card" aria-label="市场风向">
           <div class="card-title">
             <div>
-              <h2>继续写作</h2>
+              <h2>市场风向</h2>
             </div>
-            <button class="more-link top-link" type="button" @click="router.push('/knowledge-library/creative')">查看更多 ></button>
+            <span class="update-text">{{ marketUpdateText }}</span>
           </div>
-          <div v-if="recentBooksReadError" class="small-error list-error">
-            <span>{{ recentBooksReadError }}</span>
-            <button type="button" :disabled="recentBooksLoading" @click="loadRecentBookDetails">重试</button>
+          <div class="market-tabs" role="tablist" aria-label="市场时间范围">
+            <button
+              v-for="tab in marketTabs"
+              :key="tab.key"
+              :class="{ active: marketRange === tab.key }"
+              type="button"
+              @click="marketRange = tab.key"
+            >
+              {{ tab.label }}
+            </button>
           </div>
-          <div v-if="recentBooks.length" class="writing-list">
-            <div v-for="book in recentBooks" :key="book.id || book.folderName || book.name" class="writing-row">
-              <div class="cover-thumb" :style="{ backgroundColor: wabiCoverColor(book.coverColor) }">
-                <img v-if="coverSrc(book)" :src="coverSrc(book)" :alt="book.name" />
-              </div>
-              <div class="writing-main">
-                <strong>{{ book.name || book.folderName }}</strong>
-                <small>{{ latestChapterText(book) }} · {{ todayBookWordsText(book) }}</small>
-              </div>
-              <el-button size="small" @click="openBook(book)">继续写</el-button>
+          <div v-if="marketError" class="small-error">{{ marketError }}</div>
+          <div
+            v-else-if="!marketHotspots.length && !marketActivities.length"
+            class="compact-empty market-empty"
+          >
+            <strong>暂无市场数据</strong>
+            <span>点击市场灵感里的刷新热榜，织梦会自动整理公开热词和活动。</span>
+            <button type="button" @click="router.push('/market/overview')">去刷新热榜</button>
+          </div>
+          <template v-else>
+            <div class="market-section">
+              <h3>热点题材</h3>
+              <ol v-if="marketHotspots.length" class="market-list">
+                <li
+                  v-for="(item, index) in marketHotspots"
+                  :key="item.id"
+                  @click="router.push('/market/overview')"
+                >
+                  <span class="rank">{{ index + 1 }}</span>
+                  <span class="market-name">{{ item.keyword || item.title }}</span>
+                  <b>热度 {{ Number(item.heatScore || 0) }}</b>
+                  <span class="trend-arrow">↑</span>
+                </li>
+              </ol>
+              <p v-else class="inline-empty">暂无热点题材。</p>
             </div>
-          </div>
-          <p v-else class="soft-empty">还没有作品。可以先用「创作起笔」生成起笔方案，再转为新书。</p>
+            <div class="market-section">
+              <h3>作家活动</h3>
+              <div v-if="marketActivities.length" class="activity-list">
+                <button
+                  v-for="item in marketActivities"
+                  :key="item.id"
+                  type="button"
+                  @click="router.push('/market/overview')"
+                >
+                  <span>{{ item.title }}</span>
+                  <small>{{ remainingText(item) }}</small>
+                </button>
+              </div>
+              <p v-else class="inline-empty">暂无进行中的作家活动。</p>
+            </div>
+          </template>
+          <button class="more-link" type="button" @click="router.push('/market/overview')">
+            查看市场灵感 >
+          </button>
         </article>
 
-        <article class="dashboard-card materials-card">
+        <article class="dashboard-card status-card" aria-label="写作近况">
           <div class="card-title">
             <div>
-              <h2>可引用资料</h2>
+              <h2>写作近况</h2>
             </div>
-            <button class="more-link top-link" type="button" @click="router.push('/knowledge-library/all')">查看更多 ></button>
+            <button
+              class="more-link top-link"
+              type="button"
+              @click="router.push('/analytics/overview')"
+            >
+              查看数据中心 >
+            </button>
           </div>
-          <div v-if="recentMaterials.length" class="material-list">
-            <div v-for="item in recentMaterials" :key="item.key" class="material-row">
-              <div>
-                <span class="type-tag">{{ item.typeLabel }}</span>
-                <strong>{{ item.title }}</strong>
-                <small>{{ formatDate(item.updatedAt) }}</small>
-              </div>
-              <div class="material-actions">
-                <button type="button" @click="openMaterial(item)">打开</button>
-                <button type="button" @click="quoteMaterial(item)">引用到创作起笔</button>
-              </div>
+          <div v-if="statsError" class="small-error status-error">
+            <span>{{ statsError }}</span>
+            <button type="button" :disabled="statsLoading" @click="loadStats">重试</button>
+          </div>
+          <div class="status-grid">
+            <div>
+              <b>{{ formatNumber(todayStatus.todayWords) }}</b>
+              <span>新增字数</span>
+            </div>
+            <div>
+              <b>{{ formatNumber(todayStatus.streakDays) }}</b>
+              <span>连续写作</span>
+            </div>
+            <div>
+              <b>{{ formatNumber(todayStatus.totalAiCalls) }}</b>
+              <span>AI 调用</span>
+            </div>
+            <div>
+              <b>{{ formatNumber(todayStatus.totalAiTokens) }}</b>
+              <span>Token</span>
             </div>
           </div>
-          <div v-else class="compact-empty">
-            <strong>暂无可引用资料</strong>
-            <span>去创作库添加资料，或在 AI 工坊保存 Prompt 模板。</span>
-            <button type="button" @click="router.push('/knowledge-library/all')">添加资料</button>
+          <div v-if="hasTrendData" class="mini-line-chart" aria-label="最近 7 天净增字数">
+            <svg viewBox="0 0 240 78" preserveAspectRatio="none" role="img">
+              <polyline :points="chartPoints" />
+              <circle
+                v-for="point in chartPointRows"
+                :key="point.key"
+                :cx="point.x"
+                :cy="point.y"
+                r="3"
+              />
+            </svg>
           </div>
+          <p v-else class="chart-empty">写几章后，这里会出现你的 7 天创作曲线。</p>
         </article>
-      </section>
+      </aside>
+    </section>
+
+    <section class="starter-category-section">
+      <div class="section-title-row">
+        <h2>选择小说分类</h2>
+      </div>
+      <div class="starter-category-tags">
+        <button
+          v-for="category in starterCategories"
+          :key="category.name"
+          type="button"
+          @click="applyStarterCategory(category)"
+        >
+          {{ category.name }}
+        </button>
+      </div>
+      <p>点击标签快速填充创作提示词，或直接在上方输入框中输入您的想法。</p>
+    </section>
+
+    <section class="dashboard-bottom-grid">
+      <article class="dashboard-card continue-card">
+        <div class="card-title">
+          <div>
+            <h2>继续写作</h2>
+          </div>
+          <button
+            class="more-link top-link"
+            type="button"
+            @click="router.push('/knowledge-library/creative')"
+          >
+            查看更多 >
+          </button>
+        </div>
+        <div v-if="recentBooksReadError" class="small-error list-error">
+          <span>{{ recentBooksReadError }}</span>
+          <button type="button" :disabled="recentBooksLoading" @click="loadRecentBookDetails">
+            重试
+          </button>
+        </div>
+        <div v-if="recentBooks.length" class="writing-list">
+          <div
+            v-for="book in recentBooks"
+            :key="book.id || book.folderName || book.name"
+            class="writing-row"
+          >
+            <div class="cover-thumb" :style="{ backgroundColor: wabiCoverColor(book.coverColor) }">
+              <img v-if="coverSrc(book)" :src="coverSrc(book)" :alt="book.name" />
+            </div>
+            <div class="writing-main">
+              <strong>{{ book.name || book.folderName }}</strong>
+              <small>{{ latestChapterText(book) }} · {{ todayBookWordsText(book) }}</small>
+            </div>
+            <el-button size="small" @click="openBook(book)">继续写</el-button>
+          </div>
+        </div>
+        <p v-else class="soft-empty">还没有作品。可以先用「创作起笔」生成起笔方案，再转为新书。</p>
+      </article>
+
+      <article class="dashboard-card materials-card">
+        <div class="card-title">
+          <div>
+            <h2>可引用资料</h2>
+          </div>
+          <button
+            class="more-link top-link"
+            type="button"
+            @click="router.push('/knowledge-library/all')"
+          >
+            查看更多 >
+          </button>
+        </div>
+        <div v-if="recentMaterials.length" class="material-list">
+          <div v-for="item in recentMaterials" :key="item.key" class="material-row">
+            <div>
+              <span class="type-tag">{{ item.typeLabel }}</span>
+              <strong>{{ item.title }}</strong>
+              <small>{{ formatDate(item.updatedAt) }}</small>
+            </div>
+            <div class="material-actions">
+              <button type="button" @click="openMaterial(item)">打开</button>
+              <button type="button" @click="quoteMaterial(item)">引用到创作起笔</button>
+            </div>
+          </div>
+        </div>
+        <div v-else class="compact-empty">
+          <strong>暂无可引用资料</strong>
+          <span>去创作库添加资料，或在 AI 工坊保存 Prompt 模板。</span>
+          <button type="button" @click="router.push('/knowledge-library/all')">添加资料</button>
+        </div>
+      </article>
+    </section>
 
     <EncourageToastScheduler />
   </div>
 </template>
 
 <script setup>
+import { APP_NAME_ZH } from '@renderer/constants/brand'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -271,7 +317,11 @@ import { listMarketActivities, listMarketHotspots } from '@renderer/service/mark
 import { listPromptPresets } from '@renderer/service/aiWorkshop'
 import { statisticsService } from '@renderer/service/statisticsService'
 import { createCreationStarterJob } from '@renderer/service/creationStarter'
-import { getActiveTextProvider, getAiProvidersByCategory, setActiveTextProvider } from '@renderer/service/aiProvider'
+import {
+  getActiveTextProvider,
+  getAiProvidersByCategory,
+  setActiveTextProvider
+} from '@renderer/service/aiProvider'
 import { joinedPathToFileUrl } from '@renderer/utils/localFileUrl'
 
 const router = useRouter()
@@ -353,10 +403,17 @@ const starterCategories = [
 
 const books = computed(() => mainStore.books || [])
 const canCreateStarterJob = computed(() =>
-  Boolean(ideaInput.value.trim() && selectedProviderId.value && selectedModel.value && selectedStarterPresetId.value)
+  Boolean(
+    ideaInput.value.trim() &&
+      selectedProviderId.value &&
+      selectedModel.value &&
+      selectedStarterPresetId.value
+  )
 )
 const starterPresetOptions = computed(() => {
-  const rows = promptPresets.value.filter((preset) => ['settingtree', 'creation_starter', 'topic'].includes(normalizePresetCategory(preset.category)))
+  const rows = promptPresets.value.filter((preset) =>
+    ['settingtree', 'creation_starter', 'topic'].includes(normalizePresetCategory(preset.category))
+  )
   return uniqueById(rows)
 })
 const creativeBooks = computed(() => books.value.filter((book) => book.bookRole !== 'downloaded'))
@@ -390,9 +447,7 @@ const referenceOptions = computed(() => {
     updatedAt: book.updatedAt,
     raw: book
   }))
-  const knowledgeRows = knowledgeItems.value
-    .filter(isCreativeReferenceItem)
-    .map((item) => ({
+  const knowledgeRows = knowledgeItems.value.filter(isCreativeReferenceItem).map((item) => ({
     key: `knowledge:${item.id}`,
     type: item.type,
     category: referenceCategoryForType(item.type),
@@ -453,7 +508,9 @@ const chartPointRows = computed(() => {
     y: Math.round(height - (item.value / max) * 60 - 9)
   }))
 })
-const chartPoints = computed(() => chartPointRows.value.map((point) => `${point.x},${point.y}`).join(' '))
+const chartPoints = computed(() =>
+  chartPointRows.value.map((point) => `${point.x},${point.y}`).join(' ')
+)
 
 onMounted(async () => {
   await loadDashboardData()
@@ -478,7 +535,8 @@ async function loadTextProviders() {
     textProviders.value = await getAiProvidersByCategory('text')
     const active = await getActiveTextProvider().catch(() => null)
     const activeId = active?.providerId || ''
-    const provider = textProviders.value.find((item) => item.id === activeId) || textProviders.value[0]
+    const provider =
+      textProviders.value.find((item) => item.id === activeId) || textProviders.value[0]
     if (provider) {
       selectedProviderId.value = provider.id
       setModelOptions(provider)
@@ -535,9 +593,10 @@ function selectDefaultStarterPreset() {
     return
   }
   if (options.some((preset) => preset.id === selectedStarterPresetId.value)) return
-  const preferred = options.find((preset) => /tomato|番茄|网文/i.test(`${preset.id} ${preset.name}`))
-    || options.find((preset) => /nine|九线法/i.test(`${preset.id} ${preset.name}`))
-    || options[0]
+  const preferred =
+    options.find((preset) => /tomato|番茄|网文/i.test(`${preset.id} ${preset.name}`)) ||
+    options.find((preset) => /nine|九线法/i.test(`${preset.id} ${preset.name}`)) ||
+    options[0]
   selectedStarterPresetId.value = preferred?.id || ''
 }
 
@@ -649,7 +708,9 @@ async function handleCreateStarterJob() {
       autoReferences,
       advanced: {
         promptPresetId: selectedStarterPresetId.value,
-        promptPresetName: promptPresetDisplayName(starterPresetOptions.value.find((preset) => preset.id === selectedStarterPresetId.value))
+        promptPresetName: promptPresetDisplayName(
+          starterPresetOptions.value.find((preset) => preset.id === selectedStarterPresetId.value)
+        )
       },
       providerId: selectedProviderId.value,
       model: selectedModel.value
@@ -675,13 +736,13 @@ function buildAutoReferences() {
       .filter(isCreativeReferenceItem)
       .slice(0, 5)
       .map((item) => ({
-      key: `auto-knowledge:${item.id}`,
-      type: item.type,
-      typeLabel: assetTypeText(item.type),
-      title: item.title,
-      summary: item.summary || item.content || '',
-      raw: item
-    })),
+        key: `auto-knowledge:${item.id}`,
+        type: item.type,
+        typeLabel: assetTypeText(item.type),
+        title: item.title,
+        summary: item.summary || item.content || '',
+        raw: item
+      })),
     ...promptPresets.value.slice(0, 3).map((preset) => ({
       key: `auto-prompt:${preset.id}`,
       type: 'prompt_template',
@@ -718,7 +779,9 @@ function normalizePromptRows(result) {
 }
 
 function normalizePresetCategory(category) {
-  return String(category || '').replace(/[-_\s]/g, '').toLowerCase()
+  return String(category || '')
+    .replace(/[-_\s]/g, '')
+    .toLowerCase()
 }
 
 function promptPresetDisplayName(preset) {
@@ -762,7 +825,9 @@ function coverSrc(book) {
 }
 
 function wabiCoverColor(color) {
-  const normalized = String(color || '').trim().toLowerCase()
+  const normalized = String(color || '')
+    .trim()
+    .toLowerCase()
   return mutedCoverColorMap.get(normalized) || normalized || DEFAULT_WABI_COVER_COLOR
 }
 
@@ -1114,7 +1179,7 @@ function isCreativeReferenceItem(item = {}) {
   }
 
   &::before {
-    content: "一";
+    content: '一';
     margin-right: 6px;
     color: rgba(251, 250, 246, 0.86);
   }
@@ -1272,7 +1337,7 @@ function isCreativeReferenceItem(item = {}) {
   box-shadow: 0 8px 16px rgba(58, 55, 49, 0.12);
 
   &::after {
-    content: "织梦";
+    content: '织梦';
     position: absolute;
     right: 6px;
     bottom: 6px;

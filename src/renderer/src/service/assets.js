@@ -31,13 +31,22 @@ export function requireAssetListResult(result, label = '加载素材失败') {
   return checked
 }
 
-function requireAssetItemResult(result, label, { expectedBookName = '', requiredFields = [] } = {}) {
+function requireAssetItemResult(
+  result,
+  label,
+  { expectedBookName = '', requiredFields = [] } = {}
+) {
   requireAssetSuccess(result, label)
   if (!isPlainObject(result.item) || !String(result.item.id || '')) {
     throw new Error(`${label}：接口返回格式不正确`)
   }
   if (expectedBookName) {
-    const bookNames = [result.item.bookName, result.item.bookFolderName, result.bookName, result.bookFolderName]
+    const bookNames = [
+      result.item.bookName,
+      result.item.bookFolderName,
+      result.bookName,
+      result.bookFolderName
+    ]
       .filter(Boolean)
       .map(String)
     if (!bookNames.includes(String(expectedBookName))) {
@@ -71,12 +80,16 @@ export async function restoreAsset(id) {
 
 export async function attachAssetToBook(payload = {}) {
   const result = await ensureElectronApi('attachAssetToBook')(payload)
-  return requireAssetItemResult(result, '关联素材失败', { expectedBookName: payload.bookName || '' })
+  return requireAssetItemResult(result, '关联素材失败', {
+    expectedBookName: payload.bookName || ''
+  })
 }
 
 export async function importAsset(payload = {}) {
   const result = await ensureElectronApi('importAsset')(payload)
-  return requireAssetItemResult(result, '导入素材失败', { expectedBookName: payload.bookName || '' })
+  return requireAssetItemResult(result, '导入素材失败', {
+    expectedBookName: payload.bookName || ''
+  })
 }
 
 export function imageSelectionToImportInput(selection = {}) {
@@ -92,7 +105,10 @@ export function imageSelectionToImportInput(selection = {}) {
 
   const filePath = String(selection.filePath || '')
   const dataUrl = selection.dataUrl || (filePath.startsWith('data:image/') ? filePath : '')
-  const sourcePath = selection.path || selection.sourcePath || (filePath && !filePath.startsWith('data:image/') ? filePath : '')
+  const sourcePath =
+    selection.path ||
+    selection.sourcePath ||
+    (filePath && !filePath.startsWith('data:image/') ? filePath : '')
   const fileName = selection.fileName || selection.name || ''
 
   if (dataUrl) return { dataUrl, fileName }

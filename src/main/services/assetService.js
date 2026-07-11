@@ -17,7 +17,11 @@ const IMAGE_CONTENT_TYPES = {
 }
 
 function safeName(value, fallback = 'asset') {
-  return String(value || fallback).trim().replace(/[\\/:*?"<>|]/g, '_') || fallback
+  return (
+    String(value || fallback)
+      .trim()
+      .replace(/[\\/:*?"<>|]/g, '_') || fallback
+  )
 }
 
 function isInside(baseDir, targetPath) {
@@ -213,16 +217,26 @@ function normalizeFilter(filter = {}) {
   return {
     type: String(filter.type || '').trim(),
     bookName: String(filter.bookName || filter.book || '').trim(),
-    keyword: String(filter.keyword || '').trim().toLowerCase(),
+    keyword: String(filter.keyword || '')
+      .trim()
+      .toLowerCase(),
     includeTrash: Boolean(filter.includeTrash || filter.type === 'trash')
   }
 }
 
 function matchesFilter(asset, filter) {
-  if (filter.type && filter.type !== 'all' && filter.type !== 'trash' && asset.type !== filter.type) return false
-  if (filter.bookName && asset.bookName !== filter.bookName && asset.bookFolderName !== filter.bookName) return false
+  if (filter.type && filter.type !== 'all' && filter.type !== 'trash' && asset.type !== filter.type)
+    return false
+  if (
+    filter.bookName &&
+    asset.bookName !== filter.bookName &&
+    asset.bookFolderName !== filter.bookName
+  )
+    return false
   if (filter.keyword) {
-    const text = [asset.name, asset.bookName, asset.type, asset.source, asset.relativePath].join(' ').toLowerCase()
+    const text = [asset.name, asset.bookName, asset.type, asset.source, asset.relativePath]
+      .join(' ')
+      .toLowerCase()
     if (!text.includes(filter.keyword)) return false
   }
   return true
@@ -270,7 +284,10 @@ export function listAssets(booksDir, filterInput = {}) {
   const books = readBooks(booksDir)
   let items = books.flatMap((book) => scanBookAssets(booksDir, book))
   if (filter.includeTrash) {
-    items = filter.type === 'trash' ? trashRowsToAssets(booksDir) : [...items, ...trashRowsToAssets(booksDir)]
+    items =
+      filter.type === 'trash'
+        ? trashRowsToAssets(booksDir)
+        : [...items, ...trashRowsToAssets(booksDir)]
   }
   const filtered = items
     .filter((item) => matchesFilter(item, filter))
@@ -300,7 +317,8 @@ function getTrashAsset(booksDir, id) {
   const row = rows.find((item) => item.id === id)
   if (!row) throw new Error('回收站记录不存在')
   const target = resolve(booksDir, row.trashRelativePath)
-  if (!isInside(getTrashDir(booksDir), target) || !fs.existsSync(target)) throw new Error('回收站文件不存在')
+  if (!isInside(getTrashDir(booksDir), target) || !fs.existsSync(target))
+    throw new Error('回收站文件不存在')
   return { row, filePath: target, rows }
 }
 
@@ -343,7 +361,9 @@ function destinationForType(bookPath, type, fileName) {
 
 function getBookByName(booksDir, bookName) {
   const books = readBooks(booksDir)
-  const book = books.find((item) => item.name === bookName || item.folderName === bookName || item.id === bookName)
+  const book = books.find(
+    (item) => item.name === bookName || item.folderName === bookName || item.id === bookName
+  )
   if (!book) throw new Error('未找到目标书籍')
   return book
 }
@@ -359,7 +379,9 @@ function updateBookCoverMeta(book, targetPath) {
 export function importAsset(booksDir, input = {}) {
   const book = getBookByName(booksDir, input.bookName)
   const type = String(input.type || 'attachment')
-  const fileName = safeName(input.fileName || basename(input.sourcePath || '') || `asset_${Date.now()}`)
+  const fileName = safeName(
+    input.fileName || basename(input.sourcePath || '') || `asset_${Date.now()}`
+  )
   const targetPath = destinationForType(book.path, type, fileName)
 
   if (input.sourcePath) {
@@ -418,8 +440,14 @@ export function restoreAsset(booksDir, id) {
   if (fs.existsSync(targetPath)) throw new Error('原位置已有同名文件，请先处理后再恢复')
   fs.mkdirSync(dirname(targetPath), { recursive: true })
   fs.renameSync(filePath, targetPath)
-  writeTrashManifest(booksDir, rows.filter((item) => item.id !== id))
-  const originalFolderName = String(row.originalRelativePath || '').split(/[\\/]/).filter(Boolean)[0] || ''
+  writeTrashManifest(
+    booksDir,
+    rows.filter((item) => item.id !== id)
+  )
+  const originalFolderName =
+    String(row.originalRelativePath || '')
+      .split(/[\\/]/)
+      .filter(Boolean)[0] || ''
   const restoredBook = readBooks(booksDir).find(
     (book) =>
       book.folderName === row.bookFolderName ||

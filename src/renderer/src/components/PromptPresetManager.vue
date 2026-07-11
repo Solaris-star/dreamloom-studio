@@ -9,9 +9,15 @@
   >
     <div class="preset-content">
       <div class="preset-toolbar">
-        <el-button type="primary" :disabled="!!presetLoadError" @click="openEditDialog(null)">{{ t('promptPreset.create') }}</el-button>
-        <el-button :disabled="!!presetLoadError" @click="handleImport">{{ t('promptPreset.import') }}</el-button>
-        <el-button :disabled="!!presetLoadError" @click="handleExport">{{ t('promptPreset.export') }}</el-button>
+        <el-button type="primary" :disabled="!!presetLoadError" @click="openEditDialog(null)">{{
+          t('promptPreset.create')
+        }}</el-button>
+        <el-button :disabled="!!presetLoadError" @click="handleImport">{{
+          t('promptPreset.import')
+        }}</el-button>
+        <el-button :disabled="!!presetLoadError" @click="handleExport">{{
+          t('promptPreset.export')
+        }}</el-button>
       </div>
       <div v-if="presetLoadError" class="preset-read-error">
         <span>{{ presetLoadError }}</span>
@@ -95,7 +101,13 @@
           <el-slider v-model="editingPreset.temperature" :min="0" :max="2" :step="0.1" show-input />
         </el-form-item>
         <el-form-item :label="t('promptPreset.maxTokens')">
-          <el-slider v-model="editingPreset.maxTokens" :min="256" :max="8192" :step="256" show-input />
+          <el-slider
+            v-model="editingPreset.maxTokens"
+            :min="256"
+            :max="8192"
+            :step="256"
+            show-input
+          />
         </el-form-item>
         <el-form-item :label="t('promptPreset.topP')">
           <el-slider v-model="editingPreset.topP" :min="0" :max="1" :step="0.05" show-input />
@@ -103,7 +115,9 @@
       </el-form>
       <template #footer>
         <el-button @click="editVisible = false">{{ t('promptPreset.cancel') }}</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSave">{{ t('promptPreset.save') }}</el-button>
+        <el-button type="primary" :loading="saving" @click="handleSave">{{
+          t('promptPreset.save')
+        }}</el-button>
       </template>
     </el-dialog>
   </el-dialog>

@@ -3,6 +3,7 @@
 > 💡 在地图设计工具中，油漆桶工具看似简单，实则暗藏玄机。本文将带你探索 织梦书房 项目中油漆桶工具的核心实现思路，从洪水填充算法到坐标转换，从性能优化到数据序列化，揭秘一个看似简单功能背后的技术细节。
 
 ## 📋 目录
+
 - [功能简介](#功能简介)
 - [核心算法：洪水填充](#核心算法洪水填充)
 - [技术挑战](#技术挑战)
@@ -25,13 +26,14 @@
 ### 🖼️ 使用场景
 
 在地图设计中，油漆桶工具常用于：
+
 - 🌊 填充地形区域（海洋、陆地、森林等）
 - 🎨 快速为封闭区域上色
 - 🗺️ 创建区域标记和区分
 
 ![地图设计](static/maps.png)
 
-*地图设计工具中的油漆桶工具 - 快速填充封闭区域，创建丰富的地图效果*
+_地图设计工具中的油漆桶工具 - 快速填充封闭区域，创建丰富的地图效果_
 
 ## 🔬 核心算法：洪水填充
 
@@ -50,19 +52,19 @@
 ```javascript
 // 核心算法流程（简化版）
 function floodFill(startX, startY, targetColor, fillColor, imageData) {
-  const stack = [[startX, startY]]  // 使用栈而非递归
-  const visited = new Set()         // 记录已访问的像素
-  
+  const stack = [[startX, startY]] // 使用栈而非递归
+  const visited = new Set() // 记录已访问的像素
+
   while (stack.length) {
     const [x, y] = stack.pop()
-    
+
     // 边界检查和颜色匹配
     if (isValid(x, y) && colorMatches(x, y, targetColor)) {
-      fillPixel(x, y, fillColor)     // 填充像素
-      visited.add(`${x},${y}`)       // 标记已访问
-      
+      fillPixel(x, y, fillColor) // 填充像素
+      visited.add(`${x},${y}`) // 标记已访问
+
       // 将相邻像素加入栈
-      stack.push([x+1, y], [x-1, y], [x, y+1], [x, y-1])
+      stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1])
     }
   }
 }
@@ -81,6 +83,7 @@ function floodFill(startX, startY, targetColor, fillColor, imageData) {
 ### 挑战 1: 坐标转换的复杂性
 
 在 Canvas 中，我们使用了两种坐标系：
+
 - **场景坐标**: 逻辑坐标系，用于存储元素位置（支持无限画布）
 - **画布像素坐标**: 物理坐标系，用于实际绘制（受画布尺寸限制）
 
@@ -135,6 +138,7 @@ const fillImageData = cropImageData(imageData, bounds)
 ```
 
 **优化效果**:
+
 - 📉 存储空间减少 90%+（对于小区域填充）
 - ⚡ 序列化速度更快
 - 💾 内存占用更低
@@ -154,6 +158,7 @@ const imageDataBase64 = tempCanvas.toDataURL('image/png')
 ```
 
 **优势**:
+
 - ✅ 可以保存到 JSON 文件中
 - ✅ 跨平台兼容
 - ✅ 可以直接作为图片源使用
@@ -188,6 +193,7 @@ visited.add(key)
 ```
 
 **为什么使用 Set？**
+
 - ⚡ O(1) 查找和插入
 - 💾 比数组更节省内存
 - 🔒 自动去重
@@ -267,6 +273,7 @@ function renderFill(ctx, element) {
 ### 🚀 下一步探索
 
 如果你想深入了解：
+
 - 📖 **完整代码实现**: 查看 [useBucketTool.js](https://github.com/zhimeng-shufang/zhimeng-shufang/blob/main/src/renderer/src/composables/map/tools/useBucketTool.js)
 - 🎨 **渲染系统**: 查看 [useRender.js](https://github.com/zhimeng-shufang/zhimeng-shufang/blob/main/src/renderer/src/composables/map/useRender.js)
 - 🗺️ **坐标转换**: 查看 [useCoordinate.js](https://github.com/zhimeng-shufang/zhimeng-shufang/blob/main/src/renderer/src/composables/map/useCoordinate.js)
@@ -291,4 +298,3 @@ function renderFill(ctx, element) {
 > 💡 **如果这篇文章对你有帮助，请给个 ⭐️ 支持一下！**
 >
 > 💡 **想深入了解实现细节？欢迎查看 GitHub 上对应的代码文件，每个模块都有详细的注释说明！**
-

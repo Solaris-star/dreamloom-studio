@@ -25,12 +25,7 @@
         >
           <template v-if="providersLoaded">
             <el-form-item v-if="noImageProviders">
-              <el-alert
-                type="warning"
-                :closable="false"
-                show-icon
-                class="ai-drawer-provider-alert"
-              >
+              <el-alert type="warning" :closable="false" show-icon class="ai-drawer-provider-alert">
                 {{ t('imageAi.noProviderHint') }}
               </el-alert>
             </el-form-item>
@@ -58,7 +53,11 @@
           </el-form-item>
 
           <el-form-item :label="t('aiSceneImage.outputSize')">
-            <el-select v-model="form.outputSize" :placeholder="t('aiSceneImage.selectRatio')" style="width: 100%">
+            <el-select
+              v-model="form.outputSize"
+              :placeholder="t('aiSceneImage.selectRatio')"
+              style="width: 100%"
+            >
               <el-option
                 v-for="opt in sizeOptions"
                 :key="opt.value"
@@ -90,7 +89,12 @@
           </el-form-item>
 
           <el-form-item :label="t('aiSceneImage.shotRange')">
-            <el-select v-model="form.shotRange" :placeholder="t('aiSceneImage.optional')" style="width: 100%" clearable>
+            <el-select
+              v-model="form.shotRange"
+              :placeholder="t('aiSceneImage.optional')"
+              style="width: 100%"
+              clearable
+            >
               <el-option
                 v-for="opt in shotRangeOptions"
                 :key="opt.value"
@@ -101,7 +105,12 @@
           </el-form-item>
 
           <el-form-item :label="t('aiSceneImage.setting')">
-            <el-select v-model="form.setting" :placeholder="t('aiSceneImage.optional')" style="width: 100%" clearable>
+            <el-select
+              v-model="form.setting"
+              :placeholder="t('aiSceneImage.optional')"
+              style="width: 100%"
+              clearable
+            >
               <el-option
                 v-for="opt in settingOptions"
                 :key="opt.value"
@@ -112,7 +121,12 @@
           </el-form-item>
 
           <el-form-item :label="t('aiSceneImage.lighting')">
-            <el-select v-model="form.lighting" :placeholder="t('aiSceneImage.optional')" style="width: 100%" clearable>
+            <el-select
+              v-model="form.lighting"
+              :placeholder="t('aiSceneImage.optional')"
+              style="width: 100%"
+              clearable
+            >
               <el-option
                 v-for="opt in lightingOptions"
                 :key="opt.value"
@@ -192,7 +206,9 @@
           @click="handleGenerate"
         >
           {{
-            generatedList.length > 0 ? t('aiSceneImage.generateOneMore') : t('aiSceneImage.generate')
+            generatedList.length > 0
+              ? t('aiSceneImage.generateOneMore')
+              : t('aiSceneImage.generate')
           }}
         </el-button>
       </div>
@@ -398,15 +414,15 @@ watch(
 function labelFromOptions(options, value) {
   if (!value) return ''
   const o = options.find((x) => x.value === value)
-  return o && o.value ? o.label.replace(new RegExp(`^${t('aiSceneImage.unspecified')}$`), '').replace(/·/g, ' ') : ''
+  return o && o.value
+    ? o.label.replace(new RegExp(`^${t('aiSceneImage.unspecified')}$`), '').replace(/·/g, ' ')
+    : ''
 }
 
 function buildFullPrompt() {
   const isSquare = form.value.outputSize === '1280*1280'
   const parts = [
-    isSquare
-      ? t('aiSceneImage.promptSquareFrame')
-      : t('aiSceneImage.promptLandscapeFrame')
+    isSquare ? t('aiSceneImage.promptSquareFrame') : t('aiSceneImage.promptLandscapeFrame')
   ]
   const styleKey = form.value.style
   if (styleKey) {

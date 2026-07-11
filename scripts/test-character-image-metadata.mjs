@@ -79,10 +79,7 @@ try {
   const emptyCleanup = removeCharacterImageTempDir(tempDir, bookPath)
   assert.equal(emptyCleanup.existed, false)
   assert.equal(emptyCleanup.deletedFiles, 0)
-  assert.throws(
-    () => removeCharacterImageTempDir(root, bookPath),
-    /人物图临时目录无效/
-  )
+  assert.throws(() => removeCharacterImageTempDir(root, bookPath), /人物图临时目录无效/)
 } finally {
   fs.rmSync(root, { recursive: true, force: true })
 }

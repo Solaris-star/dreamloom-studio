@@ -1051,7 +1051,9 @@ async function handleSaveMap() {
     ElMessage.success(t('mapDesign.saveSuccess'))
   } catch (error) {
     console.error('保存地图失败:', error)
-    ElMessage.error(t('mapDesign.saveFailedWithReason', { reason: error.message || t('common.unknownError') }))
+    ElMessage.error(
+      t('mapDesign.saveFailedWithReason', { reason: error.message || t('common.unknownError') })
+    )
   }
 }
 

@@ -54,10 +54,16 @@ if (hasFlag('help') || hasFlag('h')) {
 const sources = splitList(argValue('sources'), ['qidian', 'fanqie', 'qimao'])
 const limit = numberValue('limit', 8)
 const timeoutMs = numberValue('timeout-ms', 12000)
-const requestIntervalMs = numberValue('request-interval-ms', Number(process.env.MARKET_TREND_REQUEST_INTERVAL_MS || 800))
+const requestIntervalMs = numberValue(
+  'request-interval-ms',
+  Number(process.env.MARKET_TREND_REQUEST_INTERVAL_MS || 800)
+)
 const force = hasFlag('force')
 const twice = hasFlag('twice')
-const booksDir = argValue('books-dir', process.env.NOVEL_BOOKS_DIR || fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-market-live-')))
+const booksDir = argValue(
+  'books-dir',
+  process.env.NOVEL_BOOKS_DIR || fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-market-live-'))
+)
 
 function formatSourceResult(result = {}) {
   const cache = result.fromCache ? `${result.cacheType || 'cache'} hit` : 'live fetch'
@@ -70,7 +76,9 @@ function formatSourceResult(result = {}) {
   ]
   const failures = Array.isArray(result.failures) ? result.failures : []
   for (const failure of failures.slice(0, 5)) {
-    lines.push(`失败：${failure.errorType || 'unknown'} ${failure.url || ''} ${failure.message || ''}`)
+    lines.push(
+      `失败：${failure.errorType || 'unknown'} ${failure.url || ''} ${failure.message || ''}`
+    )
   }
   return lines.join('\n')
 }
@@ -93,7 +101,9 @@ async function runOnce(label, runOptions = {}) {
     requestIntervalMs
   })
   console.log(`书库目录：${booksDir}`)
-  console.log(`整体状态：${result.success ? 'success' : 'error'}，清理缓存：${result.cachePrune?.removed || 0}`)
+  console.log(
+    `整体状态：${result.success ? 'success' : 'error'}，清理缓存：${result.cachePrune?.removed || 0}`
+  )
   for (const sourceResult of result.results || []) {
     console.log('\n' + formatSourceResult(sourceResult))
     const topics = marketService.listHotTopics(booksDir, {

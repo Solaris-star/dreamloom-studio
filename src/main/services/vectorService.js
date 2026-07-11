@@ -44,7 +44,7 @@ class VectorService {
       }
       await db.createTable(TABLE_NAME, [seedRecord])
       const table = await db.openTable(TABLE_NAME)
-      await table.delete('sourceExtractionId = \'__init__\'')
+      await table.delete("sourceExtractionId = '__init__'")
       return table
     }
     return await db.openTable(TABLE_NAME)

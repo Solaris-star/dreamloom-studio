@@ -30,9 +30,7 @@ function requireSnapshotListResult(result, fallback = '读取快照失败') {
     throw createSettingSnapshotError(result, fallback)
   }
 
-  return result.snapshots
-    .map((snapshot) => normalizeSettingSnapshot(snapshot))
-    .filter(Boolean)
+  return result.snapshots.map((snapshot) => normalizeSettingSnapshot(snapshot)).filter(Boolean)
 }
 
 function requireSettingSnapshotSuccess(result, fallback = '操作失败') {
@@ -53,7 +51,11 @@ function requireSettingSnapshotResult(result, fallback = '操作失败') {
 
 function requireSettingSnapshotDiffResult(result, fallback = '对比失败') {
   requireSettingSnapshotSuccess(result, fallback)
-  if (!Array.isArray(result.added) || !Array.isArray(result.removed) || !Array.isArray(result.modified)) {
+  if (
+    !Array.isArray(result.added) ||
+    !Array.isArray(result.removed) ||
+    !Array.isArray(result.modified)
+  ) {
     throw new Error(fallback)
   }
   return {

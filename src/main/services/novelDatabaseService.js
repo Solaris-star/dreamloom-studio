@@ -79,7 +79,9 @@ function loadSqliteModule() {
   try {
     sqliteModule = nodeRequire('node:sqlite')
   } catch (error) {
-    throw new Error(`当前 Node 不支持 node:sqlite，无法创建 SQLite 数据库：${error?.message || error}`)
+    throw new Error(
+      `当前 Node 不支持 node:sqlite，无法创建 SQLite 数据库：${error?.message || error}`
+    )
   }
   if (!sqliteModule?.DatabaseSync) {
     throw new Error('当前 Node 缺少 node:sqlite DatabaseSync，无法创建 SQLite 数据库')
@@ -369,7 +371,10 @@ function applyMigrations(db) {
     db.exec('BEGIN')
     try {
       db.exec(migration.up)
-      db.prepare('INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)').run(migration.id, nowIso())
+      db.prepare('INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)').run(
+        migration.id,
+        nowIso()
+      )
       db.exec('COMMIT')
     } catch (error) {
       db.exec('ROLLBACK')
@@ -449,7 +454,9 @@ function snapshotBookDocuments(db, project = {}) {
     ['sequence_charts', 'sequence-charts.json']
   ]
   return documents
-    .map(([type, fileName]) => upsertDocumentSnapshot(db, projectId, type, join(bookPath, fileName)))
+    .map(([type, fileName]) =>
+      upsertDocumentSnapshot(db, projectId, type, join(bookPath, fileName))
+    )
     .filter(Boolean)
 }
 
@@ -694,17 +701,23 @@ function getProjectByIdRow(db, projectId) {
   return id ? db.prepare('SELECT * FROM projects WHERE id = ?').get(id) : null
 }
 
-function upsertProjectRow(db, { booksDir, bookName, bookPath = '', meta = null, previousBookName = '' } = {}) {
+function upsertProjectRow(
+  db,
+  { booksDir, bookName, bookPath = '', meta = null, previousBookName = '' } = {}
+) {
   const root = resolveBooksDir(booksDir)
   const folderName = safeName(bookName || meta?.name)
   const resolvedBookPath = bookPath || join(root, folderName)
-  const bookMeta = meta && typeof meta === 'object' ? meta : readBookMeta(root, folderName, resolvedBookPath)
+  const bookMeta =
+    meta && typeof meta === 'object' ? meta : readBookMeta(root, folderName, resolvedBookPath)
   const requestedProjectId = projectIdFrom(folderName, bookMeta)
   const previousFolderName = previousBookName ? safeName(previousBookName) : ''
   const existingById = getProjectByIdRow(db, requestedProjectId)
   const existingByName = getProjectByNameRow(db, folderName)
   const existingByPreviousName =
-    previousFolderName && previousFolderName !== folderName ? getProjectByNameRow(db, previousFolderName) : null
+    previousFolderName && previousFolderName !== folderName
+      ? getProjectByNameRow(db, previousFolderName)
+      : null
   const existingIds = new Set(
     [existingById, existingByName, existingByPreviousName].filter(Boolean).map((row) => row.id)
   )
@@ -856,9 +869,7 @@ function createRepository(db, dbPath, booksDir) {
       if (!plans.length) throw new Error('记录立项结果前需要 AI 生成方案')
 
       const selectedPlan = input.selectedPlan || result.selectedPlan || null
-      const selectedBookName =
-        cleanText(input.bookName) ||
-        cleanText(selectedPlan?.title)
+      const selectedBookName = cleanText(input.bookName) || cleanText(selectedPlan?.title)
       const project =
         selectedBookName || input.bookPath
           ? ensureProject(db, {
@@ -871,9 +882,12 @@ function createRepository(db, dbPath, booksDir) {
 
       const id = cleanText(input.id || result.id || result.runId) || `book_idea_${randomUUID()}`
       const timestamp = nowIso()
-      const selectedPlanId = cleanText(input.selectedPlanId || selectedPlan?.id || result.selectedPlanId)
+      const selectedPlanId = cleanText(
+        input.selectedPlanId || selectedPlan?.id || result.selectedPlanId
+      )
       const confirmedAt = cleanText(input.confirmedAt)
-      const status = cleanText(input.status) || (project && selectedPlanId ? 'confirmed' : 'generated')
+      const status =
+        cleanText(input.status) || (project && selectedPlanId ? 'confirmed' : 'generated')
       const bookPath = cleanText(input.bookPath) || project?.bookPath || ''
       db.prepare(
         `
@@ -919,7 +933,9 @@ function createRepository(db, dbPath, booksDir) {
         Number(plans.length),
         jsonText(plans),
         cleanText(result.providerId || input.providerId || payload.providerId),
-        cleanText(result.model || result.modelName || input.model || payload.model || payload.modelName),
+        cleanText(
+          result.model || result.modelName || input.model || payload.model || payload.modelName
+        ),
         jsonText(result.usage || input.usage || {}),
         jsonText(
           redactSensitive({
@@ -929,7 +945,13 @@ function createRepository(db, dbPath, booksDir) {
               plans,
               usage: result.usage || {},
               providerId: result.providerId || input.providerId || payload.providerId || '',
-              model: result.model || result.modelName || input.model || payload.model || payload.modelName || ''
+              model:
+                result.model ||
+                result.modelName ||
+                input.model ||
+                payload.model ||
+                payload.modelName ||
+                ''
             }
           })
         ),
@@ -943,13 +965,17 @@ function createRepository(db, dbPath, booksDir) {
   function confirmBookIdeaRun(input = {}) {
     return runInTransaction(() => {
       const id = cleanText(input.bookIdeaRunId || input.ideaRunId || input.runId || input.id)
-      const selectedPlanId = cleanText(input.selectedPlanId || input.planId || input.selectedPlan?.id)
+      const selectedPlanId = cleanText(
+        input.selectedPlanId || input.planId || input.selectedPlan?.id
+      )
       if (!id && !selectedPlanId) return null
 
       const existingRow = id
         ? db.prepare('SELECT * FROM book_idea_runs WHERE id = ?').get(id)
         : db
-            .prepare('SELECT * FROM book_idea_runs WHERE selected_plan_id = ? ORDER BY updated_at DESC LIMIT 1')
+            .prepare(
+              'SELECT * FROM book_idea_runs WHERE selected_plan_id = ? ORDER BY updated_at DESC LIMIT 1'
+            )
             .get(selectedPlanId)
       if (!existingRow) return null
 
@@ -986,7 +1012,9 @@ function createRepository(db, dbPath, booksDir) {
         timestamp,
         existingRow.id
       )
-      return mapBookIdeaRun(db.prepare('SELECT * FROM book_idea_runs WHERE id = ?').get(existingRow.id))
+      return mapBookIdeaRun(
+        db.prepare('SELECT * FROM book_idea_runs WHERE id = ?').get(existingRow.id)
+      )
     })
   }
 
@@ -1098,13 +1126,17 @@ function createRepository(db, dbPath, booksDir) {
         generatedContent,
         Number(run.wordCount || result.wordCount || countWords(generatedContent)),
         cleanText(result.providerId || run.providerId || payload.providerId),
-        cleanText(result.model || result.modelName || run.model || payload.model || payload.modelName),
+        cleanText(
+          result.model || result.modelName || run.model || payload.model || payload.modelName
+        ),
         jsonText(result.usage || run.usage || {}),
         jsonText({ payload, result }),
         timestamp,
         timestamp
       )
-      return mapChapterOutlineRun(db.prepare('SELECT * FROM chapter_outline_runs WHERE id = ?').get(id))
+      return mapChapterOutlineRun(
+        db.prepare('SELECT * FROM chapter_outline_runs WHERE id = ?').get(id)
+      )
     })
   }
 
@@ -1122,7 +1154,8 @@ function createRepository(db, dbPath, booksDir) {
       })
       if (!project) throw new Error('记录拆书结果前需要有效作品')
 
-      const id = cleanText(input.id || extraction.id || extraction.runId) || `extraction_${randomUUID()}`
+      const id =
+        cleanText(input.id || extraction.id || extraction.runId) || `extraction_${randomUUID()}`
       const stats = extraction.stats && typeof extraction.stats === 'object' ? extraction.stats : {}
       const usage = input.usage || extraction.usage || stats.tokenUsage || {}
       const timestamp = nowIso()
@@ -1231,7 +1264,9 @@ function createRepository(db, dbPath, booksDir) {
         jsonText(check),
         nowIso()
       )
-      return mapConsistencyCheck(db.prepare('SELECT * FROM consistency_checks WHERE id = ?').get(id))
+      return mapConsistencyCheck(
+        db.prepare('SELECT * FROM consistency_checks WHERE id = ?').get(id)
+      )
     })
   }
 
@@ -1248,8 +1283,12 @@ function createRepository(db, dbPath, booksDir) {
 
       const volumeName = cleanText(chapter.volumeName) || '正文'
       const chapterName = cleanText(chapter.chapterName) || '第1章'
-      const previousChapterName = cleanText(chapter.previousChapterName || input.previousChapterName)
-      const filePath = cleanText(chapter.filePath) || join(project.bookPath, '正文', volumeName, `${chapterName}.txt`)
+      const previousChapterName = cleanText(
+        chapter.previousChapterName || input.previousChapterName
+      )
+      const filePath =
+        cleanText(chapter.filePath) ||
+        join(project.bookPath, '正文', volumeName, `${chapterName}.txt`)
       const contentText = rawText(chapter.content)
       const id = cleanText(chapter.id) || `${project.id}:${volumeName}:${chapterName}`
       const check = chapter.check || null
@@ -1257,11 +1296,9 @@ function createRepository(db, dbPath, booksDir) {
       const timestamp = nowIso()
 
       if (previousChapterName && previousChapterName !== chapterName) {
-        db.prepare('DELETE FROM chapters WHERE project_id = ? AND volume_name = ? AND chapter_name = ?').run(
-          project.id,
-          volumeName,
-          previousChapterName
-        )
+        db.prepare(
+          'DELETE FROM chapters WHERE project_id = ? AND volume_name = ? AND chapter_name = ?'
+        ).run(project.id, volumeName, previousChapterName)
       }
 
       db.prepare(
@@ -1359,7 +1396,9 @@ function createRepository(db, dbPath, booksDir) {
       snapshotBookDocuments(db, project)
       return mapChapter(
         db
-          .prepare('SELECT * FROM chapters WHERE project_id = ? AND volume_name = ? AND chapter_name = ?')
+          .prepare(
+            'SELECT * FROM chapters WHERE project_id = ? AND volume_name = ? AND chapter_name = ?'
+          )
           .get(project.id, volumeName, chapterName)
       )
     })
@@ -1404,11 +1443,11 @@ function createRepository(db, dbPath, booksDir) {
       const bookName = input.bookName || result.bookName || result.task?.bookName
       const project = bookName
         ? ensureProject(db, {
-          booksDir,
-          bookName,
-          bookPath: input.bookPath,
-          meta: input.meta
-        })
+            booksDir,
+            bookName,
+            bookPath: input.bookPath,
+            meta: input.meta
+          })
         : null
       const id = input.id || result.task?.id || `backup_${randomUUID()}`
       db.prepare(
@@ -1433,9 +1472,7 @@ function createRepository(db, dbPath, booksDir) {
   }
 
   function listMigrations() {
-    return db
-      .prepare('SELECT id, applied_at AS appliedAt FROM schema_migrations ORDER BY id')
-      .all()
+    return db.prepare('SELECT id, applied_at AS appliedAt FROM schema_migrations ORDER BY id').all()
   }
 
   function listProjects() {
@@ -1469,7 +1506,9 @@ function createRepository(db, dbPath, booksDir) {
 
   function listResearchRuns(projectId = '') {
     const rows = projectId
-      ? db.prepare('SELECT * FROM research_runs WHERE project_id = ? ORDER BY created_at DESC').all(projectId)
+      ? db
+          .prepare('SELECT * FROM research_runs WHERE project_id = ? ORDER BY created_at DESC')
+          .all(projectId)
       : db.prepare('SELECT * FROM research_runs ORDER BY created_at DESC').all()
     return rows.map(mapResearchRun)
   }
@@ -1485,7 +1524,9 @@ function createRepository(db, dbPath, booksDir) {
 
   function listBookIdeaRuns(projectId = '') {
     const rows = projectId
-      ? db.prepare('SELECT * FROM book_idea_runs WHERE project_id = ? ORDER BY updated_at DESC').all(projectId)
+      ? db
+          .prepare('SELECT * FROM book_idea_runs WHERE project_id = ? ORDER BY updated_at DESC')
+          .all(projectId)
       : db.prepare('SELECT * FROM book_idea_runs ORDER BY updated_at DESC').all()
     return rows.map(mapBookIdeaRun)
   }
@@ -1494,7 +1535,9 @@ function createRepository(db, dbPath, booksDir) {
     const id = cleanText(input.bookIdeaRunId || input.ideaRunId || input.runId || input.id)
     if (id) {
       const row = projectId
-        ? db.prepare('SELECT * FROM book_idea_runs WHERE project_id = ? AND id = ?').get(projectId, id)
+        ? db
+            .prepare('SELECT * FROM book_idea_runs WHERE project_id = ? AND id = ?')
+            .get(projectId, id)
         : db.prepare('SELECT * FROM book_idea_runs WHERE id = ?').get(id)
       return mapBookIdeaRun(row)
     }
@@ -1521,7 +1564,9 @@ function createRepository(db, dbPath, booksDir) {
 
   function listOutlines(projectId = '') {
     const rows = projectId
-      ? db.prepare('SELECT * FROM outlines WHERE project_id = ? ORDER BY updated_at DESC').all(projectId)
+      ? db
+          .prepare('SELECT * FROM outlines WHERE project_id = ? ORDER BY updated_at DESC')
+          .all(projectId)
       : db.prepare('SELECT * FROM outlines ORDER BY updated_at DESC').all()
     return rows.map(mapOutline)
   }
@@ -1537,16 +1582,24 @@ function createRepository(db, dbPath, booksDir) {
 
   function listChapterOutlineRuns(projectId = '') {
     const rows = projectId
-      ? db.prepare('SELECT * FROM chapter_outline_runs WHERE project_id = ? ORDER BY updated_at DESC').all(projectId)
+      ? db
+          .prepare(
+            'SELECT * FROM chapter_outline_runs WHERE project_id = ? ORDER BY updated_at DESC'
+          )
+          .all(projectId)
       : db.prepare('SELECT * FROM chapter_outline_runs ORDER BY updated_at DESC').all()
     return rows.map(mapChapterOutlineRun)
   }
 
   function getChapterOutlineRun(projectId = '', input = {}) {
-    const id = cleanText(input.chapterOutlineRunId || input.outlineChapterRunId || input.runId || input.id)
+    const id = cleanText(
+      input.chapterOutlineRunId || input.outlineChapterRunId || input.runId || input.id
+    )
     if (id) {
       const row = projectId
-        ? db.prepare('SELECT * FROM chapter_outline_runs WHERE project_id = ? AND id = ?').get(projectId, id)
+        ? db
+            .prepare('SELECT * FROM chapter_outline_runs WHERE project_id = ? AND id = ?')
+            .get(projectId, id)
         : db.prepare('SELECT * FROM chapter_outline_runs WHERE id = ?').get(id)
       return mapChapterOutlineRun(row)
     }
@@ -1574,14 +1627,18 @@ function createRepository(db, dbPath, booksDir) {
     }
     return mapChapterOutlineRun(
       db
-        .prepare('SELECT * FROM chapter_outline_runs WHERE chapter_name = ? ORDER BY updated_at DESC LIMIT 1')
+        .prepare(
+          'SELECT * FROM chapter_outline_runs WHERE chapter_name = ? ORDER BY updated_at DESC LIMIT 1'
+        )
         .get(chapterName)
     )
   }
 
   function listExtractionRuns(projectId = '') {
     const rows = projectId
-      ? db.prepare('SELECT * FROM extraction_runs WHERE project_id = ? ORDER BY updated_at DESC').all(projectId)
+      ? db
+          .prepare('SELECT * FROM extraction_runs WHERE project_id = ? ORDER BY updated_at DESC')
+          .all(projectId)
       : db.prepare('SELECT * FROM extraction_runs ORDER BY updated_at DESC').all()
     return rows.map(mapExtractionRun)
   }
@@ -1590,7 +1647,9 @@ function createRepository(db, dbPath, booksDir) {
     const id = cleanText(input.extractionRunId || input.extractionId || input.runId || input.id)
     if (id) {
       const row = projectId
-        ? db.prepare('SELECT * FROM extraction_runs WHERE project_id = ? AND id = ?').get(projectId, id)
+        ? db
+            .prepare('SELECT * FROM extraction_runs WHERE project_id = ? AND id = ?')
+            .get(projectId, id)
         : db.prepare('SELECT * FROM extraction_runs WHERE id = ?').get(id)
       return mapExtractionRun(row)
     }
@@ -1604,14 +1663,18 @@ function createRepository(db, dbPath, booksDir) {
           )
           .get(projectId, sourceBookName)
       : db
-          .prepare('SELECT * FROM extraction_runs WHERE source_book_name = ? ORDER BY updated_at DESC LIMIT 1')
+          .prepare(
+            'SELECT * FROM extraction_runs WHERE source_book_name = ? ORDER BY updated_at DESC LIMIT 1'
+          )
           .get(sourceBookName)
     return mapExtractionRun(row)
   }
 
   function listChapters(projectId = '') {
     const rows = projectId
-      ? db.prepare('SELECT * FROM chapters WHERE project_id = ? ORDER BY updated_at DESC').all(projectId)
+      ? db
+          .prepare('SELECT * FROM chapters WHERE project_id = ? ORDER BY updated_at DESC')
+          .all(projectId)
       : db.prepare('SELECT * FROM chapters ORDER BY updated_at DESC').all()
     return rows.map(mapChapter)
   }
@@ -1620,7 +1683,9 @@ function createRepository(db, dbPath, booksDir) {
     const chapterId = cleanText(input.chapterId || input.id)
     if (chapterId) {
       const row = projectId
-        ? db.prepare('SELECT * FROM chapters WHERE project_id = ? AND id = ?').get(projectId, chapterId)
+        ? db
+            .prepare('SELECT * FROM chapters WHERE project_id = ? AND id = ?')
+            .get(projectId, chapterId)
         : db.prepare('SELECT * FROM chapters WHERE id = ?').get(chapterId)
       return mapChapter(row)
     }
@@ -1632,14 +1697,18 @@ function createRepository(db, dbPath, booksDir) {
     if (projectId && volumeName) {
       return mapChapter(
         db
-          .prepare('SELECT * FROM chapters WHERE project_id = ? AND volume_name = ? AND chapter_name = ?')
+          .prepare(
+            'SELECT * FROM chapters WHERE project_id = ? AND volume_name = ? AND chapter_name = ?'
+          )
           .get(projectId, volumeName, chapterName)
       )
     }
     if (projectId) {
       return mapChapter(
         db
-          .prepare('SELECT * FROM chapters WHERE project_id = ? AND chapter_name = ? ORDER BY updated_at DESC LIMIT 1')
+          .prepare(
+            'SELECT * FROM chapters WHERE project_id = ? AND chapter_name = ? ORDER BY updated_at DESC LIMIT 1'
+          )
           .get(projectId, chapterName)
       )
     }
@@ -1652,7 +1721,9 @@ function createRepository(db, dbPath, booksDir) {
 
   function listAgentTasks(projectId = '') {
     const rows = projectId
-      ? db.prepare('SELECT * FROM agent_tasks WHERE project_id = ? ORDER BY updated_at DESC').all(projectId)
+      ? db
+          .prepare('SELECT * FROM agent_tasks WHERE project_id = ? ORDER BY updated_at DESC')
+          .all(projectId)
       : db.prepare('SELECT * FROM agent_tasks ORDER BY updated_at DESC').all()
     return rows.map(mapAgentTask)
   }
@@ -1668,7 +1739,9 @@ function createRepository(db, dbPath, booksDir) {
 
   function listConsistencyChecks(projectId = '') {
     const rows = projectId
-      ? db.prepare('SELECT * FROM consistency_checks WHERE project_id = ? ORDER BY created_at DESC').all(projectId)
+      ? db
+          .prepare('SELECT * FROM consistency_checks WHERE project_id = ? ORDER BY created_at DESC')
+          .all(projectId)
       : db.prepare('SELECT * FROM consistency_checks ORDER BY created_at DESC').all()
     return rows.map(mapConsistencyCheck)
   }
@@ -1677,14 +1750,18 @@ function createRepository(db, dbPath, booksDir) {
     const id = cleanText(input.checkId || input.consistencyCheckId || input.id)
     if (!id) return null
     const row = projectId
-      ? db.prepare('SELECT * FROM consistency_checks WHERE project_id = ? AND id = ?').get(projectId, id)
+      ? db
+          .prepare('SELECT * FROM consistency_checks WHERE project_id = ? AND id = ?')
+          .get(projectId, id)
       : db.prepare('SELECT * FROM consistency_checks WHERE id = ?').get(id)
     return mapConsistencyCheck(row)
   }
 
   function listExports(projectId = '') {
     const rows = projectId
-      ? db.prepare('SELECT * FROM exports WHERE project_id = ? ORDER BY created_at DESC').all(projectId)
+      ? db
+          .prepare('SELECT * FROM exports WHERE project_id = ? ORDER BY created_at DESC')
+          .all(projectId)
       : db.prepare('SELECT * FROM exports ORDER BY created_at DESC').all()
     return rows.map(mapExport)
   }
@@ -1702,15 +1779,21 @@ function createRepository(db, dbPath, booksDir) {
     if (!taskId) return null
     const row = projectId
       ? db
-          .prepare('SELECT * FROM exports WHERE project_id = ? AND task_id = ? ORDER BY created_at DESC LIMIT 1')
+          .prepare(
+            'SELECT * FROM exports WHERE project_id = ? AND task_id = ? ORDER BY created_at DESC LIMIT 1'
+          )
           .get(projectId, taskId)
-      : db.prepare('SELECT * FROM exports WHERE task_id = ? ORDER BY created_at DESC LIMIT 1').get(taskId)
+      : db
+          .prepare('SELECT * FROM exports WHERE task_id = ? ORDER BY created_at DESC LIMIT 1')
+          .get(taskId)
     return mapExport(row)
   }
 
   function listBackups(projectId = '') {
     const rows = projectId
-      ? db.prepare('SELECT * FROM backups WHERE project_id = ? ORDER BY created_at DESC').all(projectId)
+      ? db
+          .prepare('SELECT * FROM backups WHERE project_id = ? ORDER BY created_at DESC')
+          .all(projectId)
       : db.prepare('SELECT * FROM backups ORDER BY created_at DESC').all()
     return rows.map(mapBackup)
   }
@@ -1728,9 +1811,13 @@ function createRepository(db, dbPath, booksDir) {
     if (!taskId) return null
     const row = projectId
       ? db
-          .prepare('SELECT * FROM backups WHERE project_id = ? AND task_id = ? ORDER BY created_at DESC LIMIT 1')
+          .prepare(
+            'SELECT * FROM backups WHERE project_id = ? AND task_id = ? ORDER BY created_at DESC LIMIT 1'
+          )
           .get(projectId, taskId)
-      : db.prepare('SELECT * FROM backups WHERE task_id = ? ORDER BY created_at DESC LIMIT 1').get(taskId)
+      : db
+          .prepare('SELECT * FROM backups WHERE task_id = ? ORDER BY created_at DESC LIMIT 1')
+          .get(taskId)
     return mapBackup(row)
   }
 
@@ -1886,7 +1973,9 @@ export function recordOutline(input = {}) {
 }
 
 export function recordChapterOutlineRun(input = {}) {
-  return withNovelDatabase(input.booksDir, (repository) => repository.recordChapterOutlineRun(input))
+  return withNovelDatabase(input.booksDir, (repository) =>
+    repository.recordChapterOutlineRun(input)
+  )
 }
 
 export function recordExtractionRun(input = {}) {

@@ -192,7 +192,9 @@ function queueOptions(options) {
 function optionEnabled(value, fallback = false) {
   if (value === undefined) return fallback
   if (typeof value === 'boolean') return value
-  const text = String(value || '').trim().toLowerCase()
+  const text = String(value || '')
+    .trim()
+    .toLowerCase()
   if (['false', '0', 'no', 'off'].includes(text)) return false
   if (['true', '1', 'yes', 'on'].includes(text)) return true
   return Boolean(value)
@@ -299,10 +301,15 @@ function printTaskList(result) {
     const title = task.title || task.type || 'Agent 任务'
     const chapter = task.chapterId ? ` / ${task.chapterId}` : ''
     const time = task.updatedAt || task.createdAt || ''
-    console.log(`${index + 1}. ${task.id} [${taskStatusText(task.status)}] ${title}${chapter}${time ? ` · ${time}` : ''}`)
+    console.log(
+      `${index + 1}. ${task.id} [${taskStatusText(task.status)}] ${title}${chapter}${time ? ` · ${time}` : ''}`
+    )
     if (task.error) console.log(`   错误：${task.error}`)
     const event = Array.isArray(task.events) ? task.events.at(-1) : null
-    if (event?.title) console.log(`   最近事件：${event.title}${event.status ? ` / ${taskStatusText(event.status)}` : ''}`)
+    if (event?.title)
+      console.log(
+        `   最近事件：${event.title}${event.status ? ` / ${taskStatusText(event.status)}` : ''}`
+      )
   }
 }
 
@@ -334,7 +341,11 @@ async function run() {
       cacheTtlMs: options.cacheTtlMs,
       timeoutMs: options.timeoutMs
     })
-    printResult(options, result, `已刷新市场数据：${result.topics.length} 条热点，新增 ${result.inserted} 条`)
+    printResult(
+      options,
+      result,
+      `已刷新市场数据：${result.topics.length} 条热点，新增 ${result.inserted} 条`
+    )
     return
   }
 
@@ -420,7 +431,11 @@ async function run() {
       },
       queueOptions(options)
     )
-    printResult(options, result, `已加入队列：${result.queueName} / ${result.jobId}，任务 ${result.taskId}`)
+    printResult(
+      options,
+      result,
+      `已加入队列：${result.queueName} / ${result.jobId}，任务 ${result.taskId}`
+    )
     return
   }
 
@@ -441,7 +456,11 @@ async function run() {
       },
       queueOptions(options)
     )
-    printResult(options, result, `已加入检查队列：${result.queueName} / ${result.jobId}，任务 ${result.taskId}`)
+    printResult(
+      options,
+      result,
+      `已加入检查队列：${result.queueName} / ${result.jobId}，任务 ${result.taskId}`
+    )
     return
   }
 
@@ -464,7 +483,11 @@ async function run() {
       },
       queueOptions(options)
     )
-    printResult(options, result, `已加入返修队列：${result.queueName} / ${result.jobId}，任务 ${result.taskId}`)
+    printResult(
+      options,
+      result,
+      `已加入返修队列：${result.queueName} / ${result.jobId}，任务 ${result.taskId}`
+    )
     return
   }
 
@@ -479,8 +502,12 @@ async function run() {
     const result = options.jobId
       ? await getAgentTaskQueueJob(options.jobId, queueOptions(options))
       : optionEnabled(options.jobs, false)
-        ? await listAgentTaskQueueJobs({ ...queueOptions(options), limit: options.limit, types: options.types })
-      : await getAgentTaskQueueStatus(queueOptions(options))
+        ? await listAgentTaskQueueJobs({
+            ...queueOptions(options),
+            limit: options.limit,
+            types: options.types
+          })
+        : await getAgentTaskQueueStatus(queueOptions(options))
     printResult(
       options,
       result,

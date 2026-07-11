@@ -108,7 +108,9 @@
                 type="success"
                 :icon="MagicStick"
                 :disabled="!localForm.name || !localForm.type"
-                :title="!localForm.name || !localForm.type ? t('bookForm.fillNameAndTypeFirst') : ''"
+                :title="
+                  !localForm.name || !localForm.type ? t('bookForm.fillNameAndTypeFirst') : ''
+                "
                 @click="$emit('open-ai-cover')"
               >
                 {{ t('bookForm.aiGenerateCover') }}

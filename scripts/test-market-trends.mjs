@@ -56,7 +56,10 @@ const first = await marketService.refreshMarketTrends(booksDir, {
 assert.equal(first.success, true)
 assert.equal(first.inserted, 2)
 assert.equal(first.hotspotSync.inserted, 2)
-assert.equal(first.results[0].sourceUrls.some((url) => url.includes('weibohot')), true)
+assert.equal(
+  first.results[0].sourceUrls.some((url) => url.includes('weibohot')),
+  true
+)
 assert.equal(Boolean(first.results[0].fetchedAt), true)
 assert.equal(first.results[0].requestIntervalMs, 7)
 assert.equal(first.results[0].waitCount, 0)
@@ -79,7 +82,10 @@ assert.equal(cached.results[0].fromCache, true)
 assert.equal(cached.results[0].cacheType, 'persistent')
 assert.equal(cached.collectionLogs[0].fromCache, true)
 assert.equal(cached.collectionLogs[0].cacheType, 'persistent')
-assert.equal(cached.collectionLogs[0].sourceUrls.some((url) => url.includes('weibohot')), true)
+assert.equal(
+  cached.collectionLogs[0].sourceUrls.some((url) => url.includes('weibohot')),
+  true
+)
 assert.equal(cached.results[0].topics.length, 1)
 assert.equal(calls.length, callCountAfterFirst)
 assert.deepEqual(waits, [])
@@ -121,7 +127,10 @@ assert.equal(failed.results[0].failures[0].errorType, 'http')
 assert.equal(failed.results[0].failures[0].retryCount, 1)
 assert.equal(failed.collectionLogs[0].failures[0].url.includes('hotlist'), true)
 assert.equal(failed.collectionLogs[0].retryCount, 1)
-assert.equal(failed.sourceStatus.find((item) => item.source === 'aggregated')?.lastFailures[0].errorType, 'http')
+assert.equal(
+  failed.sourceStatus.find((item) => item.source === 'aggregated')?.lastFailures[0].errorType,
+  'http'
+)
 assert.equal(waits.includes(5), true)
 
 const cachePruneBooksDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-market-cache-'))
@@ -242,20 +251,53 @@ const publicNovelResult = await marketService.refreshMarketTrends(booksDir, {
 })
 
 assert.equal(publicNovelResult.success, true)
-assert.equal(publicNovelResult.results.find((item) => item.source === 'fanqie')?.topics.length >= 2, true)
-assert.equal(publicNovelResult.results.find((item) => item.source === 'qimao')?.topics.length >= 2, true)
-assert.equal(publicNovelResult.collectionLogs.some((item) => item.source === 'fanqie' && item.sourceUrls.length > 0), true)
-assert.equal(publicNovelResult.collectionLogs.some((item) => item.source === 'qimao' && item.sourceUrls.length > 0), true)
-assert.equal(waits.slice(waitsBeforePublicNovel).every((ms) => ms === 11), true)
-assert.equal(publicNovelResult.collectionLogs.some((item) => item.waitCount > 0 && item.requestIntervalMs === 11), true)
+assert.equal(
+  publicNovelResult.results.find((item) => item.source === 'fanqie')?.topics.length >= 2,
+  true
+)
+assert.equal(
+  publicNovelResult.results.find((item) => item.source === 'qimao')?.topics.length >= 2,
+  true
+)
+assert.equal(
+  publicNovelResult.collectionLogs.some(
+    (item) => item.source === 'fanqie' && item.sourceUrls.length > 0
+  ),
+  true
+)
+assert.equal(
+  publicNovelResult.collectionLogs.some(
+    (item) => item.source === 'qimao' && item.sourceUrls.length > 0
+  ),
+  true
+)
+assert.equal(
+  waits.slice(waitsBeforePublicNovel).every((ms) => ms === 11),
+  true
+)
+assert.equal(
+  publicNovelResult.collectionLogs.some(
+    (item) => item.waitCount > 0 && item.requestIntervalMs === 11
+  ),
+  true
+)
 
 const fanqieTopics = marketService.listHotTopics(booksDir, { source: 'fanqie', limit: 10 })
-assert.equal(fanqieTopics.some((topic) => topic.keyword === '逆光短剧师'), true)
+assert.equal(
+  fanqieTopics.some((topic) => topic.keyword === '逆光短剧师'),
+  true
+)
 assert.equal(fanqieTopics.find((topic) => topic.keyword === '逆光短剧师')?.extra.author, '云灯')
 
 const qimaoTopics = marketService.listHotTopics(booksDir, { source: 'qimao', limit: 10 })
-assert.equal(qimaoTopics.some((topic) => topic.keyword === '七猫惊雷榜'), true)
-assert.equal(qimaoTopics.find((topic) => topic.keyword === '七猫惊雷榜')?.extra.category, '东方玄幻')
+assert.equal(
+  qimaoTopics.some((topic) => topic.keyword === '七猫惊雷榜'),
+  true
+)
+assert.equal(
+  qimaoTopics.find((topic) => topic.keyword === '七猫惊雷榜')?.extra.category,
+  '东方玄幻'
+)
 
 const maleOverview = marketService.getMarketOverview(booksDir, { channel: 'male', limit: 10 })
 assert.equal(maleOverview.writableDirections.length > 0, true)

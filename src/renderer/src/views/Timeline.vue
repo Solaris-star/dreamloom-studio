@@ -7,7 +7,11 @@
       </el-button>
     </template>
     <template #default>
-      <el-empty v-if="timelines.length === 0" :image-size="200" :description="t('timeline.empty')" />
+      <el-empty
+        v-if="timelines.length === 0"
+        :image-size="200"
+        :description="t('timeline.empty')"
+      />
       <div v-else class="timeline-main">
         <div class="timeline-list">
           <div v-for="(timeline, idx) in timelines" :key="timeline.id" class="timeline-column">
@@ -57,7 +61,9 @@
               </el-timeline-item>
             </el-timeline>
             <div class="timeline-actions">
-              <el-button class="add-node-btn" @click="addNode(idx)">{{ t('timeline.addNode') }}</el-button>
+              <el-button class="add-node-btn" @click="addNode(idx)">{{
+                t('timeline.addNode')
+              }}</el-button>
               <el-button class="remove-timeline-btn" type="danger" @click="removeTimeline(idx)">
                 {{ t('timeline.deleteTimeline') }}
               </el-button>
@@ -75,7 +81,11 @@
   >
     <el-form :model="nodeInfo" label-width="80px" @submit.prevent="confirmAddNode">
       <el-form-item :label="t('timeline.nodeTitle')">
-        <el-input v-model="nodeInfo.title" :placeholder="t('timeline.nodeTitlePlaceholder')" clearable />
+        <el-input
+          v-model="nodeInfo.title"
+          :placeholder="t('timeline.nodeTitlePlaceholder')"
+          clearable
+        />
       </el-form-item>
       <el-form-item :label="t('timeline.nodeDesc')">
         <el-input
@@ -166,11 +176,15 @@ function addTimeline() {
 }
 async function removeTimeline(idx) {
   try {
-    await ElMessageBox.confirm(t('timeline.deleteTimelineConfirm'), t('timeline.deleteConfirmTitle'), {
-      confirmButtonText: t('common.delete'),
-      cancelButtonText: t('common.cancel'),
-      type: 'warning'
-    })
+    await ElMessageBox.confirm(
+      t('timeline.deleteTimelineConfirm'),
+      t('timeline.deleteConfirmTitle'),
+      {
+        confirmButtonText: t('common.delete'),
+        cancelButtonText: t('common.cancel'),
+        type: 'warning'
+      }
+    )
     timelines.value.splice(idx, 1)
     ElMessage.success(t('timeline.deleteSuccess'))
   } catch {

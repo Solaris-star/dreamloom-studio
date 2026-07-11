@@ -16,9 +16,10 @@ import {
 function encodeClientTextFrame(text) {
   const data = Buffer.from(text, 'utf-8')
   const mask = randomBytes(4)
-  const header = data.length < 126
-    ? Buffer.from([0x81, 0x80 | data.length])
-    : Buffer.from([0x81, 0x80 | 126, data.length >> 8, data.length & 0xff])
+  const header =
+    data.length < 126
+      ? Buffer.from([0x81, 0x80 | data.length])
+      : Buffer.from([0x81, 0x80 | 126, data.length >> 8, data.length & 0xff])
   const masked = Buffer.from(data.map((byte, index) => byte ^ mask[index % 4]))
   return Buffer.concat([header, mask, masked])
 }
@@ -60,15 +61,17 @@ async function connectWebSocket({ port, path }) {
   const ready = new Promise((resolve, reject) => {
     socket.once('error', reject)
     socket.once('connect', () => {
-      socket.write([
-        `GET ${path} HTTP/1.1`,
-        'Host: 127.0.0.1',
-        'Upgrade: websocket',
-        'Connection: Upgrade',
-        `Sec-WebSocket-Key: ${key}`,
-        'Sec-WebSocket-Version: 13',
-        '\r\n'
-      ].join('\r\n'))
+      socket.write(
+        [
+          `GET ${path} HTTP/1.1`,
+          'Host: 127.0.0.1',
+          'Upgrade: websocket',
+          'Connection: Upgrade',
+          `Sec-WebSocket-Key: ${key}`,
+          'Sec-WebSocket-Version: 13',
+          '\r\n'
+        ].join('\r\n')
+      )
     })
     socket.on('data', (chunk) => {
       if (!connected) {

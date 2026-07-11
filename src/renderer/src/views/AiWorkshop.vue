@@ -25,7 +25,9 @@
           <h2>Prompt 模板</h2>
           <p>管理真实可用的提示词模板，写作时可以直接选用。</p>
         </div>
-        <el-button type="primary" class="primary-action" :icon="Plus" @click="handleCreatePreset">新建模板</el-button>
+        <el-button type="primary" class="primary-action" :icon="Plus" @click="handleCreatePreset"
+          >新建模板</el-button
+        >
       </div>
       <p v-if="promptLoadError" class="manager-error">{{ promptLoadError }}</p>
       <el-empty v-else-if="!promptPresets.length" description="暂无 Prompt 模板" />
@@ -60,14 +62,19 @@
         v-motion-list="{ selector: '.history-card', key: `history:${historyItems.length}` }"
         class="history-list"
       >
-      <article v-for="item in historyItems" :key="item.id" class="history-card" @click="openHistory(item)">
-        <div class="history-head">
-          <h3>{{ item.title || item.feature || 'AI 生成' }}</h3>
-          <span>{{ formatTime(item.createdAt) }}</span>
-        </div>
-        <p>{{ item.input || '未记录输入内容。' }}</p>
-        <pre>{{ item.output || '未记录输出内容。' }}</pre>
-      </article>
+        <article
+          v-for="item in historyItems"
+          :key="item.id"
+          class="history-card"
+          @click="openHistory(item)"
+        >
+          <div class="history-head">
+            <h3>{{ item.title || item.feature || 'AI 生成' }}</h3>
+            <span>{{ formatTime(item.createdAt) }}</span>
+          </div>
+          <p>{{ item.input || '未记录输入内容。' }}</p>
+          <pre>{{ item.output || '未记录输出内容。' }}</pre>
+        </article>
       </div>
     </section>
 
@@ -121,11 +128,7 @@
         <div class="setup-strip">
           <label v-if="activeTools.length > 1" class="field-block strip-field">
             <span>任务</span>
-            <el-select
-              v-model="activeToolKey"
-              placeholder="选择任务"
-              @change="selectTool"
-            >
+            <el-select v-model="activeToolKey" placeholder="选择任务" @change="selectTool">
               <el-option
                 v-for="tool in activeTools"
                 :key="tool.key"
@@ -246,7 +249,11 @@
           >
             {{ activeTool.actionLabel }}
           </el-button>
-          <el-button :icon="DocumentCopy" :disabled="!hasLatestResult" @click="copyText(latestOutputText)">
+          <el-button
+            :icon="DocumentCopy"
+            :disabled="!hasLatestResult"
+            @click="copyText(latestOutputText)"
+          >
             复制结果
           </el-button>
           <el-button :disabled="!hasLatestResult" @click="resultDrawerVisible = true">
@@ -255,19 +262,34 @@
           <el-button :disabled="!hasLatestResult" @click="saveResultToKnowledge">
             保存到素材库
           </el-button>
-          <el-tooltip v-if="activeBookSaveName" :disabled="canSaveResultToBook" :content="saveResultToBookDisabledTip">
+          <el-tooltip
+            v-if="activeBookSaveName"
+            :disabled="canSaveResultToBook"
+            :content="saveResultToBookDisabledTip"
+          >
             <span>
-              <el-button :disabled="!canSaveResultToBook" @click="saveResultToBook">应用到当前作品</el-button>
+              <el-button :disabled="!canSaveResultToBook" @click="saveResultToBook"
+                >应用到当前作品</el-button
+              >
             </span>
           </el-tooltip>
           <el-dropdown trigger="click" @command="handleSecondaryAction">
             <el-button :icon="MoreFilled" title="更多操作" aria-label="更多操作" />
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="saveDraft" :icon="DocumentChecked">保存输入</el-dropdown-item>
+                <el-dropdown-item command="saveDraft" :icon="DocumentChecked"
+                  >保存输入</el-dropdown-item
+                >
                 <el-dropdown-item command="clear" :icon="Delete">清空</el-dropdown-item>
-                <el-dropdown-item command="copyResult" :icon="DocumentCopy" :disabled="!hasLatestResult">复制结果</el-dropdown-item>
-                <el-dropdown-item command="openResult" :disabled="!hasLatestResult">查看完整结果</el-dropdown-item>
+                <el-dropdown-item
+                  command="copyResult"
+                  :icon="DocumentCopy"
+                  :disabled="!hasLatestResult"
+                  >复制结果</el-dropdown-item
+                >
+                <el-dropdown-item command="openResult" :disabled="!hasLatestResult"
+                  >查看完整结果</el-dropdown-item
+                >
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -294,19 +316,37 @@
         <span>Token：{{ latestUsageText }}</span>
       </div>
       <img v-if="latestImageUrl" class="drawer-image" :src="latestImageUrl" alt="AI 生成图片" />
-      <CreationStarterResultBlock v-else-if="activeTool.key === 'starter' && parsedStarterResult" :result="parsedStarterResult" />
+      <CreationStarterResultBlock
+        v-else-if="activeTool.key === 'starter' && parsedStarterResult"
+        :result="parsedStarterResult"
+      />
       <pre v-else class="drawer-output">{{ latestOutputText || '暂无结果。' }}</pre>
       <div class="drawer-actions">
         <el-button :disabled="!hasLatestResult" @click="copyText(latestOutputText)">复制</el-button>
-        <el-button :disabled="!hasLatestResult" @click="saveResultToKnowledge">保存到素材库</el-button>
-        <el-tooltip v-if="activeBookSaveName" :disabled="canSaveResultToBook" :content="saveResultToBookDisabledTip">
+        <el-button :disabled="!hasLatestResult" @click="saveResultToKnowledge"
+          >保存到素材库</el-button
+        >
+        <el-tooltip
+          v-if="activeBookSaveName"
+          :disabled="canSaveResultToBook"
+          :content="saveResultToBookDisabledTip"
+        >
           <span>
-            <el-button :disabled="!canSaveResultToBook" @click="saveResultToBook">应用到当前作品</el-button>
+            <el-button :disabled="!canSaveResultToBook" @click="saveResultToBook"
+              >应用到当前作品</el-button
+            >
           </span>
         </el-tooltip>
         <el-button :disabled="!latestOutputText" @click="insertResultToInput">插入正文</el-button>
         <el-button :disabled="!latestOutputText" @click="continueRefine">继续完善</el-button>
-        <el-button v-motion-feedback type="primary" class="primary-action" :loading="running" @click="handlePrimaryAction">重新生成</el-button>
+        <el-button
+          v-motion-feedback
+          type="primary"
+          class="primary-action"
+          :loading="running"
+          @click="handlePrimaryAction"
+          >重新生成</el-button
+        >
       </div>
     </el-drawer>
   </section>
@@ -317,7 +357,15 @@ import { computed, defineComponent, h, nextTick, onBeforeUnmount, onMounted, ref
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { Delete, DocumentChecked, DocumentCopy, MoreFilled, Picture, Plus, Refresh } from '@element-plus/icons-vue'
+import {
+  Delete,
+  DocumentChecked,
+  DocumentCopy,
+  MoreFilled,
+  Picture,
+  Plus,
+  Refresh
+} from '@element-plus/icons-vue'
 import {
   BookOpen,
   Bot,
@@ -377,47 +425,98 @@ const CreationStarterResultBlock = defineComponent({
     }
   },
   setup(props) {
-    const section = (title, body) => h('article', { class: 'starter-result-section' }, [
-      h('h3', title),
-      h('p', body || '暂无内容。')
-    ])
+    const section = (title, body) =>
+      h('article', { class: 'starter-result-section' }, [
+        h('h3', title),
+        h('p', body || '暂无内容。')
+      ])
     const settingTree = () => {
       const roots = props.result.settingTree?.roots || props.result.settingTree || []
       if (!Array.isArray(roots)) return ''
-      return roots.map((root) => {
-        const children = Array.isArray(root.children)
-          ? root.children.map((child) => `  - ${child.name || child.title || '未命名'}：${child.description || child.summary || ''}`).join('\n')
-          : ''
-        return `${root.name || root.title || '未命名'}：${root.description || root.summary || ''}${children ? `\n${children}` : ''}`
-      }).join('\n\n')
+      return roots
+        .map((root) => {
+          const children = Array.isArray(root.children)
+            ? root.children
+                .map(
+                  (child) =>
+                    `  - ${child.name || child.title || '未命名'}：${child.description || child.summary || ''}`
+                )
+                .join('\n')
+            : ''
+          return `${root.name || root.title || '未命名'}：${root.description || root.summary || ''}${children ? `\n${children}` : ''}`
+        })
+        .join('\n\n')
     }
     const goldenThreeChapters = () => {
       const chapters = props.result.goldenThreeChapters || props.result.openingChapters || []
       if (!Array.isArray(chapters)) return ''
-      return chapters.map((item, index) => {
-        const title = `第 ${item.index || item.chapter || index + 1} 章：${item.title || '未命名章节'}`
-        const body = [item.summary, item.openingImage, item.coreEvent, item.characterChange, item.endingHook]
-          .filter(Boolean)
-          .join('\n')
-        return `${title}\n${body}`
-      }).join('\n\n')
+      return chapters
+        .map((item, index) => {
+          const title = `第 ${item.index || item.chapter || index + 1} 章：${item.title || '未命名章节'}`
+          const body = [
+            item.summary,
+            item.openingImage,
+            item.coreEvent,
+            item.characterChange,
+            item.endingHook
+          ]
+            .filter(Boolean)
+            .join('\n')
+          return `${title}\n${body}`
+        })
+        .join('\n\n')
     }
-    return () => h('div', { class: 'starter-result-block' }, [
-      section('设定树', settingTree() || props.result.core?.oneLineHook || props.result.core?.synopsis),
-      section('故事发动机', props.result.engine
-        ? Object.entries(props.result.engine).map(([key, value]) => `${key}：${value}`).join('\n')
-        : ''),
-      section('人物种子', Array.isArray(props.result.characters)
-        ? props.result.characters.map((item) => `${item.name || item.role || '角色'}：${item.identity || item.personality || ''}`).join('\n')
-        : ''),
-      section('世界规则', props.result.world
-        ? [props.result.world.background, props.result.world.powerSystem, ...(props.result.world.coreRules || [])].filter(Boolean).join('\n')
-        : ''),
-      section('黄金三章', goldenThreeChapters()),
-      section('写作约束', props.result.writingGuide
-        ? [props.result.writingGuide.style, props.result.writingGuide.pace, props.result.writingGuide.pointOfView].filter(Boolean).join('\n')
-        : '')
-    ])
+    return () =>
+      h('div', { class: 'starter-result-block' }, [
+        section(
+          '设定树',
+          settingTree() || props.result.core?.oneLineHook || props.result.core?.synopsis
+        ),
+        section(
+          '故事发动机',
+          props.result.engine
+            ? Object.entries(props.result.engine)
+                .map(([key, value]) => `${key}：${value}`)
+                .join('\n')
+            : ''
+        ),
+        section(
+          '人物种子',
+          Array.isArray(props.result.characters)
+            ? props.result.characters
+                .map(
+                  (item) =>
+                    `${item.name || item.role || '角色'}：${item.identity || item.personality || ''}`
+                )
+                .join('\n')
+            : ''
+        ),
+        section(
+          '世界规则',
+          props.result.world
+            ? [
+                props.result.world.background,
+                props.result.world.powerSystem,
+                ...(props.result.world.coreRules || [])
+              ]
+                .filter(Boolean)
+                .join('\n')
+            : ''
+        ),
+        section('黄金三章', goldenThreeChapters()),
+        section(
+          '写作约束',
+          props.result.writingGuide
+            ? [
+                props.result.writingGuide.style,
+                props.result.writingGuide.pace,
+                props.result.writingGuide.pointOfView
+              ]
+                .filter(Boolean)
+                .join('\n')
+            : ''
+        )
+      ])
   }
 })
 
@@ -483,47 +582,352 @@ const aiPages = {
 
 const toolGroups = {
   creation: [
-    { key: 'starter', label: '设定生成，黄金三章', task: 'topic', feature: 'creation_starter', hint: '输入一个想法，织梦会生成设定树和开篇黄金三章。', icon: Sparkles, actionLabel: '生成设定', inputLabel: '故事想法', placeholder: '说出你的故事想法', tip: '适合从一句灵感开始，生成可保存、可转成新书的设定树和黄金三章。' },
-    { key: 'refine_setting', label: '完善设定', task: 'topic', hint: '补充世界规则、人物关系和核心冲突。', icon: Wand2, actionLabel: '完善设定', inputLabel: '设定草稿', placeholder: '粘贴已有设定或故事方向' },
-    { key: 'opening', label: '生成开篇', task: 'golden_chapters', hint: '把想法扩展为开篇正文方向和前三章节奏。', icon: BookOpen, actionLabel: '生成开篇', inputLabel: '开篇方向', placeholder: '描述主角、开场场景和第一个冲突' },
-    { key: 'topic_card', label: '转为选题卡', task: 'topic', hint: '把灵感整理为可保存的选题卡。', icon: ClipboardList, actionLabel: '生成选题卡', inputLabel: '灵感信息', placeholder: '输入题材、卖点、主角和核心冲突' },
-    { key: 'new_book_plan', label: '转为新书', task: 'outline', hint: '生成新书基础资料，方便继续创建作品。', icon: ScrollText, actionLabel: '生成新书资料', inputLabel: '新书想法', placeholder: '输入书名方向、题材、主角、世界规则' }
+    {
+      key: 'starter',
+      label: '设定生成，黄金三章',
+      task: 'topic',
+      feature: 'creation_starter',
+      hint: '输入一个想法，织梦会生成设定树和开篇黄金三章。',
+      icon: Sparkles,
+      actionLabel: '生成设定',
+      inputLabel: '故事想法',
+      placeholder: '说出你的故事想法',
+      tip: '适合从一句灵感开始，生成可保存、可转成新书的设定树和黄金三章。'
+    },
+    {
+      key: 'refine_setting',
+      label: '完善设定',
+      task: 'topic',
+      hint: '补充世界规则、人物关系和核心冲突。',
+      icon: Wand2,
+      actionLabel: '完善设定',
+      inputLabel: '设定草稿',
+      placeholder: '粘贴已有设定或故事方向'
+    },
+    {
+      key: 'opening',
+      label: '生成开篇',
+      task: 'golden_chapters',
+      hint: '把想法扩展为开篇正文方向和前三章节奏。',
+      icon: BookOpen,
+      actionLabel: '生成开篇',
+      inputLabel: '开篇方向',
+      placeholder: '描述主角、开场场景和第一个冲突'
+    },
+    {
+      key: 'topic_card',
+      label: '转为选题卡',
+      task: 'topic',
+      hint: '把灵感整理为可保存的选题卡。',
+      icon: ClipboardList,
+      actionLabel: '生成选题卡',
+      inputLabel: '灵感信息',
+      placeholder: '输入题材、卖点、主角和核心冲突'
+    },
+    {
+      key: 'new_book_plan',
+      label: '转为新书',
+      task: 'outline',
+      hint: '生成新书基础资料，方便继续创建作品。',
+      icon: ScrollText,
+      actionLabel: '生成新书资料',
+      inputLabel: '新书想法',
+      placeholder: '输入书名方向、题材、主角、世界规则'
+    }
   ],
   text: [
-    { key: 'continue', label: 'AI 续写', task: 'continue', hint: '承接原文继续写，不重复上文，保持当前文风和剧情节奏。', icon: PenLine, actionLabel: '续写', inputLabel: '原文', placeholder: '输入正文、选题、设定或当前剧情' },
-    { key: 'polish', label: 'AI 润色', task: 'polish', hint: '优化表达，保留原意和文风。', icon: Brush, actionLabel: '润色', inputLabel: '待润色文本', placeholder: '粘贴需要润色的正文' },
-    { key: 'rewrite', label: 'AI 改写', task: 'rewrite', hint: '按你的要求改写文本。', icon: Wand2, actionLabel: '改写', inputLabel: '待改写文本', placeholder: '粘贴需要改写的正文' },
-    { key: 'expand', label: 'AI 扩写', task: 'expand', hint: '补足动作、心理、景物和对话。', icon: Sparkles, actionLabel: '扩写', inputLabel: '待扩写文本', placeholder: '输入较短剧情或场景' },
-    { key: 'summarize', label: 'AI 总结', task: 'summarize', hint: '提取要点，整理摘要。', icon: FileText, actionLabel: '总结', inputLabel: '待总结内容', placeholder: '粘贴章节或设定资料' },
-    { key: 'logic_check', label: '检查逻辑', task: 'consistency_check', feature: 'consistency_check', hint: '检查剧情前后是否冲突。', icon: Shield, actionLabel: '检查逻辑', inputLabel: '剧情内容', placeholder: '粘贴剧情、设定或章节正文' },
-    { key: 'conflict', label: '加强冲突', task: 'rewrite', hint: '增强人物目标、阻碍和对抗。', icon: Sword, actionLabel: '加强冲突', inputLabel: '当前剧情', placeholder: '输入一段偏平的剧情' },
-    { key: 'selling_point', label: '加强爽点', task: 'rewrite', hint: '强化期待、回报和情绪释放。', icon: Flame, actionLabel: '加强爽点', inputLabel: '当前剧情', placeholder: '输入需要增强吸引力的剧情' },
-    { key: 'chapter_hook', label: '生成章末钩子', task: 'plot', hint: '生成适合放在章节末尾的悬念。', icon: Zap, actionLabel: '生成钩子', inputLabel: '本章内容', placeholder: '输入本章剧情和下一章方向' }
+    {
+      key: 'continue',
+      label: 'AI 续写',
+      task: 'continue',
+      hint: '承接原文继续写，不重复上文，保持当前文风和剧情节奏。',
+      icon: PenLine,
+      actionLabel: '续写',
+      inputLabel: '原文',
+      placeholder: '输入正文、选题、设定或当前剧情'
+    },
+    {
+      key: 'polish',
+      label: 'AI 润色',
+      task: 'polish',
+      hint: '优化表达，保留原意和文风。',
+      icon: Brush,
+      actionLabel: '润色',
+      inputLabel: '待润色文本',
+      placeholder: '粘贴需要润色的正文'
+    },
+    {
+      key: 'rewrite',
+      label: 'AI 改写',
+      task: 'rewrite',
+      hint: '按你的要求改写文本。',
+      icon: Wand2,
+      actionLabel: '改写',
+      inputLabel: '待改写文本',
+      placeholder: '粘贴需要改写的正文'
+    },
+    {
+      key: 'expand',
+      label: 'AI 扩写',
+      task: 'expand',
+      hint: '补足动作、心理、景物和对话。',
+      icon: Sparkles,
+      actionLabel: '扩写',
+      inputLabel: '待扩写文本',
+      placeholder: '输入较短剧情或场景'
+    },
+    {
+      key: 'summarize',
+      label: 'AI 总结',
+      task: 'summarize',
+      hint: '提取要点，整理摘要。',
+      icon: FileText,
+      actionLabel: '总结',
+      inputLabel: '待总结内容',
+      placeholder: '粘贴章节或设定资料'
+    },
+    {
+      key: 'logic_check',
+      label: '检查逻辑',
+      task: 'consistency_check',
+      feature: 'consistency_check',
+      hint: '检查剧情前后是否冲突。',
+      icon: Shield,
+      actionLabel: '检查逻辑',
+      inputLabel: '剧情内容',
+      placeholder: '粘贴剧情、设定或章节正文'
+    },
+    {
+      key: 'conflict',
+      label: '加强冲突',
+      task: 'rewrite',
+      hint: '增强人物目标、阻碍和对抗。',
+      icon: Sword,
+      actionLabel: '加强冲突',
+      inputLabel: '当前剧情',
+      placeholder: '输入一段偏平的剧情'
+    },
+    {
+      key: 'selling_point',
+      label: '加强爽点',
+      task: 'rewrite',
+      hint: '强化期待、回报和情绪释放。',
+      icon: Flame,
+      actionLabel: '加强爽点',
+      inputLabel: '当前剧情',
+      placeholder: '输入需要增强吸引力的剧情'
+    },
+    {
+      key: 'chapter_hook',
+      label: '生成章末钩子',
+      task: 'plot',
+      hint: '生成适合放在章节末尾的悬念。',
+      icon: Zap,
+      actionLabel: '生成钩子',
+      inputLabel: '本章内容',
+      placeholder: '输入本章剧情和下一章方向'
+    }
   ],
   plot: [
-    { key: 'topic', label: '选题生成', task: 'topic', hint: '生成原创小说选题卡。', icon: Bot, actionLabel: '生成选题', inputLabel: '灵感或市场信息', placeholder: '输入题材、读者、热点或你想写的方向' },
-    { key: 'outline', label: '大纲生成', task: 'outline', hint: '把想法整理成可写的大纲。', icon: ClipboardList, actionLabel: '生成大纲', inputLabel: '故事方向', placeholder: '输入故事核心、主角目标和主要冲突' },
-    { key: 'golden_chapters', label: '黄金三章', task: 'golden_chapters', hint: '设计前三章的开篇钩子和冲突。', icon: Drama, actionLabel: '生成黄金三章', inputLabel: '选题信息', placeholder: '输入选题卡、主角设定和开篇场景' },
-    { key: 'plot', label: '剧情推演', task: 'plot', hint: '给出后续剧情方案。', icon: Layers, actionLabel: '推演剧情', inputLabel: '当前剧情', placeholder: '输入当前剧情和你卡住的地方' },
-    { key: 'foreshadowing', label: '伏笔回收', task: 'plot', hint: '整理可回收伏笔和回收方式。', icon: Network, actionLabel: '生成回收方案', inputLabel: '伏笔列表', placeholder: '输入已有伏笔、人物秘密和后续目标' },
-    { key: 'instance', label: '副本设计', task: 'outline', hint: '设计一次完整副本、任务或单元剧情。', icon: Map, actionLabel: '设计副本', inputLabel: '副本想法', placeholder: '输入副本主题、奖励、危险和关键角色' },
-    { key: 'ending', label: '结局方案', task: 'plot', hint: '生成多个结局方向和收束方式。', icon: ScrollText, actionLabel: '生成结局', inputLabel: '长线剧情', placeholder: '输入主线、人物关系和必须回收的问题' }
+    {
+      key: 'topic',
+      label: '选题生成',
+      task: 'topic',
+      hint: '生成原创小说选题卡。',
+      icon: Bot,
+      actionLabel: '生成选题',
+      inputLabel: '灵感或市场信息',
+      placeholder: '输入题材、读者、热点或你想写的方向'
+    },
+    {
+      key: 'outline',
+      label: '大纲生成',
+      task: 'outline',
+      hint: '把想法整理成可写的大纲。',
+      icon: ClipboardList,
+      actionLabel: '生成大纲',
+      inputLabel: '故事方向',
+      placeholder: '输入故事核心、主角目标和主要冲突'
+    },
+    {
+      key: 'golden_chapters',
+      label: '黄金三章',
+      task: 'golden_chapters',
+      hint: '设计前三章的开篇钩子和冲突。',
+      icon: Drama,
+      actionLabel: '生成黄金三章',
+      inputLabel: '选题信息',
+      placeholder: '输入选题卡、主角设定和开篇场景'
+    },
+    {
+      key: 'plot',
+      label: '剧情推演',
+      task: 'plot',
+      hint: '给出后续剧情方案。',
+      icon: Layers,
+      actionLabel: '推演剧情',
+      inputLabel: '当前剧情',
+      placeholder: '输入当前剧情和你卡住的地方'
+    },
+    {
+      key: 'foreshadowing',
+      label: '伏笔回收',
+      task: 'plot',
+      hint: '整理可回收伏笔和回收方式。',
+      icon: Network,
+      actionLabel: '生成回收方案',
+      inputLabel: '伏笔列表',
+      placeholder: '输入已有伏笔、人物秘密和后续目标'
+    },
+    {
+      key: 'instance',
+      label: '副本设计',
+      task: 'outline',
+      hint: '设计一次完整副本、任务或单元剧情。',
+      icon: Map,
+      actionLabel: '设计副本',
+      inputLabel: '副本想法',
+      placeholder: '输入副本主题、奖励、危险和关键角色'
+    },
+    {
+      key: 'ending',
+      label: '结局方案',
+      task: 'plot',
+      hint: '生成多个结局方向和收束方式。',
+      icon: ScrollText,
+      actionLabel: '生成结局',
+      inputLabel: '长线剧情',
+      placeholder: '输入主线、人物关系和必须回收的问题'
+    }
   ],
   world: [
-    { key: 'character', label: '人物生成', task: 'character', hint: '生成主要人物档案。', icon: UserRound, actionLabel: '生成人物', inputLabel: '故事方向', placeholder: '输入人物定位、题材和剧情功能' },
-    { key: 'relationship', label: '人物关系', task: 'character', hint: '整理人物关系、矛盾和情感牵引。', icon: Network, actionLabel: '生成关系', inputLabel: '人物列表', placeholder: '输入人物名称、身份和当前关系' },
-    { key: 'world', label: '世界观生成', task: 'world', hint: '生成规则、组织、地点和冲突体系。', icon: Landmark, actionLabel: '生成世界观', inputLabel: '故事方向', placeholder: '输入题材、时代、力量体系和主要矛盾' },
-    { key: 'organization', label: '势力组织', task: 'world', hint: '生成组织、势力、阶层和冲突。', icon: Shield, actionLabel: '生成势力', inputLabel: '世界背景', placeholder: '输入世界背景和组织需求' },
-    { key: 'location', label: '地点设定', task: 'world', hint: '生成地点、区域和可用场景。', icon: Map, actionLabel: '生成地点', inputLabel: '地点想法', placeholder: '输入地点名称、气质、用途和危险' },
-    { key: 'dictionary', label: '词条生成', task: 'world', hint: '生成可放入词条字典的设定。', icon: ScrollText, actionLabel: '生成词条', inputLabel: '词条方向', placeholder: '输入术语、道具、势力或规则' },
-    { key: 'rules', label: '规则体系', task: 'world', hint: '生成清晰的力量与限制规则。', icon: ClipboardList, actionLabel: '生成规则', inputLabel: '体系想法', placeholder: '输入能力、代价、升级和限制' }
+    {
+      key: 'character',
+      label: '人物生成',
+      task: 'character',
+      hint: '生成主要人物档案。',
+      icon: UserRound,
+      actionLabel: '生成人物',
+      inputLabel: '故事方向',
+      placeholder: '输入人物定位、题材和剧情功能'
+    },
+    {
+      key: 'relationship',
+      label: '人物关系',
+      task: 'character',
+      hint: '整理人物关系、矛盾和情感牵引。',
+      icon: Network,
+      actionLabel: '生成关系',
+      inputLabel: '人物列表',
+      placeholder: '输入人物名称、身份和当前关系'
+    },
+    {
+      key: 'world',
+      label: '世界观生成',
+      task: 'world',
+      hint: '生成规则、组织、地点和冲突体系。',
+      icon: Landmark,
+      actionLabel: '生成世界观',
+      inputLabel: '故事方向',
+      placeholder: '输入题材、时代、力量体系和主要矛盾'
+    },
+    {
+      key: 'organization',
+      label: '势力组织',
+      task: 'world',
+      hint: '生成组织、势力、阶层和冲突。',
+      icon: Shield,
+      actionLabel: '生成势力',
+      inputLabel: '世界背景',
+      placeholder: '输入世界背景和组织需求'
+    },
+    {
+      key: 'location',
+      label: '地点设定',
+      task: 'world',
+      hint: '生成地点、区域和可用场景。',
+      icon: Map,
+      actionLabel: '生成地点',
+      inputLabel: '地点想法',
+      placeholder: '输入地点名称、气质、用途和危险'
+    },
+    {
+      key: 'dictionary',
+      label: '词条生成',
+      task: 'world',
+      hint: '生成可放入词条字典的设定。',
+      icon: ScrollText,
+      actionLabel: '生成词条',
+      inputLabel: '词条方向',
+      placeholder: '输入术语、道具、势力或规则'
+    },
+    {
+      key: 'rules',
+      label: '规则体系',
+      task: 'world',
+      hint: '生成清晰的力量与限制规则。',
+      icon: ClipboardList,
+      actionLabel: '生成规则',
+      inputLabel: '体系想法',
+      placeholder: '输入能力、代价、升级和限制'
+    }
   ],
   image: [
-    { key: 'cover', label: '封面生成', kind: 'image', feature: 'ai_cover', hint: '适合生成书封背景和整体视觉。', icon: Picture, actionLabel: '生成图像', inputLabel: '封面画面', placeholder: '描述封面主体、背景、光影、构图和书籍气质' },
-    { key: 'character_image', label: '人物图生成', kind: 'image', feature: 'ai_character_image', hint: '适合生成角色立绘或头像。', icon: UserRound, actionLabel: '生成图像', inputLabel: '人物画面', placeholder: '描述人物外貌、服装、姿态、表情和背景' },
-    { key: 'scene_image', label: '场景图生成', kind: 'image', feature: 'ai_scene_image', hint: '适合生成关键场景画面。', icon: Image, actionLabel: '生成图像', inputLabel: '场景画面', placeholder: '描述场景、时间、氛围、人物位置和镜头感' },
-    { key: 'map_concept', label: '地图概念图', kind: 'image', feature: 'ai_map_concept', hint: '生成地图或区域视觉概念。', icon: Map, actionLabel: '生成图像', inputLabel: '地图描述', placeholder: '描述地形、区域、标志地点和整体风格' },
-    { key: 'prop_image', label: '道具图', kind: 'image', feature: 'ai_prop_image', hint: '生成关键道具或法宝视觉。', icon: Sword, actionLabel: '生成图像', inputLabel: '道具描述', placeholder: '描述道具材质、功能、纹样和氛围' }
+    {
+      key: 'cover',
+      label: '封面生成',
+      kind: 'image',
+      feature: 'ai_cover',
+      hint: '适合生成书封背景和整体视觉。',
+      icon: Picture,
+      actionLabel: '生成图像',
+      inputLabel: '封面画面',
+      placeholder: '描述封面主体、背景、光影、构图和书籍气质'
+    },
+    {
+      key: 'character_image',
+      label: '人物图生成',
+      kind: 'image',
+      feature: 'ai_character_image',
+      hint: '适合生成角色立绘或头像。',
+      icon: UserRound,
+      actionLabel: '生成图像',
+      inputLabel: '人物画面',
+      placeholder: '描述人物外貌、服装、姿态、表情和背景'
+    },
+    {
+      key: 'scene_image',
+      label: '场景图生成',
+      kind: 'image',
+      feature: 'ai_scene_image',
+      hint: '适合生成关键场景画面。',
+      icon: Image,
+      actionLabel: '生成图像',
+      inputLabel: '场景画面',
+      placeholder: '描述场景、时间、氛围、人物位置和镜头感'
+    },
+    {
+      key: 'map_concept',
+      label: '地图概念图',
+      kind: 'image',
+      feature: 'ai_map_concept',
+      hint: '生成地图或区域视觉概念。',
+      icon: Map,
+      actionLabel: '生成图像',
+      inputLabel: '地图描述',
+      placeholder: '描述地形、区域、标志地点和整体风格'
+    },
+    {
+      key: 'prop_image',
+      label: '道具图',
+      kind: 'image',
+      feature: 'ai_prop_image',
+      hint: '生成关键道具或法宝视觉。',
+      icon: Sword,
+      actionLabel: '生成图像',
+      inputLabel: '道具描述',
+      placeholder: '描述道具材质、功能、纹样和氛围'
+    }
   ]
 }
 
@@ -598,39 +1002,66 @@ const promptCategoryAliases = {
 }
 
 const activeTools = computed(() => toolGroups[activeTab.value] || toolGroups.creation)
-const activeTool = computed(() => activeTools.value.find((item) => item.key === activeToolKey.value) || activeTools.value[0])
+const activeTool = computed(
+  () => activeTools.value.find((item) => item.key === activeToolKey.value) || activeTools.value[0]
+)
 const activePage = computed(() => aiPages[activeTab.value] || aiPages.creation)
 const activeTabLabel = computed(() => activePage.value.label)
 const activePromptPresets = computed(() => {
   const categories = getActivePromptCategories()
-  const matched = promptPresets.value.filter((preset) => categories.has(normalizePromptCategory(preset.category)))
-  const fallback = promptPresets.value.filter((preset) => normalizePromptCategory(preset.category) === 'chat')
+  const matched = promptPresets.value.filter((preset) =>
+    categories.has(normalizePromptCategory(preset.category))
+  )
+  const fallback = promptPresets.value.filter(
+    (preset) => normalizePromptCategory(preset.category) === 'chat'
+  )
   return uniquePresets([...matched, ...fallback])
 })
 const selectedPresetName = computed(() => {
   const preset = promptPresets.value.find((item) => item.id === selectedPresetId.value)
   return preset ? promptPresetDisplayName(preset) : ''
 })
-const currentModelText = computed(() => [providerName.value, currentModel.value].filter(Boolean).join(' / ') || '未配置')
-const estimatedTokens = computed(() => Math.max(1, Math.ceil((mainInput.value.length + extraRequirement.value.length + selectedContextText.value.length) / 1.6)))
-const selectedContextText = computed(() => selectedContexts.value.map((item) => `${item.typeLabel}：${item.title}\n${item.summary || ''}`).join('\n\n'))
+const currentModelText = computed(
+  () => [providerName.value, currentModel.value].filter(Boolean).join(' / ') || '未配置'
+)
+const estimatedTokens = computed(() =>
+  Math.max(
+    1,
+    Math.ceil(
+      (mainInput.value.length + extraRequirement.value.length + selectedContextText.value.length) /
+        1.6
+    )
+  )
+)
+const selectedContextText = computed(() =>
+  selectedContexts.value
+    .map((item) => `${item.typeLabel}：${item.title}\n${item.summary || ''}`)
+    .join('\n\n')
+)
 const contextStatusText = computed(() => {
   if (contextLoadError.value) {
-    return selectedContexts.value.length ? `已引用 ${selectedContexts.value.length} 项，素材读取失败` : '引用素材读取失败'
+    return selectedContexts.value.length
+      ? `已引用 ${selectedContexts.value.length} 项，素材读取失败`
+      : '引用素材读取失败'
   }
   return selectedContexts.value.length ? `已引用 ${selectedContexts.value.length} 项` : '未添加引用'
 })
 const generationReferenceText = computed(() => {
   if (!selectedContexts.value.length) return '未引用素材'
-  return selectedContexts.value
-    .slice(0, 3)
-    .map((item) => `${item.typeLabel}：${item.title}`)
-    .join('、') + (selectedContexts.value.length > 3 ? ` 等 ${selectedContexts.value.length} 项` : '')
+  return (
+    selectedContexts.value
+      .slice(0, 3)
+      .map((item) => `${item.typeLabel}：${item.title}`)
+      .join('、') +
+    (selectedContexts.value.length > 3 ? ` 等 ${selectedContexts.value.length} 项` : '')
+  )
 })
 const generationElapsedSeconds = computed(() => {
   const started = generationStartedAt.value
   if (!started) return 0
-  const current = running.value ? generationNow.value : generationEndedAt.value || generationNow.value
+  const current = running.value
+    ? generationNow.value
+    : generationEndedAt.value || generationNow.value
   return Math.max(0, Math.floor((current - started) / 1000))
 })
 const generationElapsedText = computed(() => formatDuration(generationElapsedSeconds.value))
@@ -640,7 +1071,12 @@ const generationStatusText = computed(() => {
   if (hasLatestResult.value) return '生成完成'
   return '等待开始'
 })
-const generationStatusVisible = computed(() => running.value || Boolean(latestErrorText.value) || Boolean(generationStartedAt.value && hasLatestResult.value))
+const generationStatusVisible = computed(
+  () =>
+    running.value ||
+    Boolean(latestErrorText.value) ||
+    Boolean(generationStartedAt.value && hasLatestResult.value)
+)
 const activeBookForSave = computed(() => resolveActiveBookForSave())
 const activeBookSaveName = computed(() => {
   const targetBook = activeBookForSave.value
@@ -648,11 +1084,9 @@ const activeBookSaveName = computed(() => {
 })
 const activePromptBook = computed(() => resolvePromptBookFromRoute())
 const hasLatestResult = computed(() => Boolean(latestOutputText.value || latestImageUrl.value))
-const canSaveResultToBook = computed(() => Boolean(
-  hasLatestResult.value &&
-  activeBookSaveName.value &&
-  resultBookTarget(activeTool.value)
-))
+const canSaveResultToBook = computed(() =>
+  Boolean(hasLatestResult.value && activeBookSaveName.value && resultBookTarget(activeTool.value))
+)
 const saveResultToBookDisabledTip = computed(() => {
   if (!hasLatestResult.value) return '请先生成结果'
   if (!activeBookSaveName.value) return '请先添加作品引用'
@@ -793,7 +1227,9 @@ function getActivePromptCategories() {
   sources.forEach((source) => {
     const key = String(source)
     categories.add(normalizePromptCategory(key))
-    ;(promptCategoryAliases[key] || []).forEach((category) => categories.add(normalizePromptCategory(category)))
+    ;(promptCategoryAliases[key] || []).forEach((category) =>
+      categories.add(normalizePromptCategory(category))
+    )
   })
   if (!categories.size) categories.add('chat')
   return categories
@@ -834,8 +1270,10 @@ function selectDefaultPromptPreset() {
     selectedPresetId.value = routePresetId
     return
   }
-  if (selectedPresetId.value && presets.some((preset) => preset.id === selectedPresetId.value)) return
-  const preferred = presets.find((preset) => normalizePromptCategory(preset.category) !== 'chat') || presets[0]
+  if (selectedPresetId.value && presets.some((preset) => preset.id === selectedPresetId.value))
+    return
+  const preferred =
+    presets.find((preset) => normalizePromptCategory(preset.category) !== 'chat') || presets[0]
   selectedPresetId.value = preferred?.id || ''
 }
 
@@ -844,7 +1282,10 @@ async function loadPrompts() {
   try {
     const payload = buildPromptScopePayload()
     const result = await listPromptPresets(
-      activeTab.value === 'prompts' && !payload.bookId && !payload.bookName && !payload.bookFolderName
+      activeTab.value === 'prompts' &&
+        !payload.bookId &&
+        !payload.bookName &&
+        !payload.bookFolderName
         ? { includeAllBookPresets: true }
         : payload
     )
@@ -948,8 +1389,10 @@ function applyRouteToolAndContext() {
 
   const context = bookContextFromRoute()
   if (!context) return
-  const exists = selectedContexts.value.some((item) =>
-    item.key === context.key || (item.type === 'book' && sameContextTitle(item.title, context.title))
+  const exists = selectedContexts.value.some(
+    (item) =>
+      item.key === context.key ||
+      (item.type === 'book' && sameContextTitle(item.title, context.title))
   )
   if (!exists) selectedContexts.value = [context, ...selectedContexts.value]
   if (activeToolKey.value === 'outline' && !mainInput.value.trim()) {
@@ -962,7 +1405,9 @@ function bookContextFromRoute() {
   const routeBookName = queryText(route.query.name)
   const candidates = [routeBookId, routeBookName].filter(Boolean)
   if (!candidates.length) return null
-  const book = books.value.find((item) => bookIdentifiers(item).some((id) => candidates.includes(id)))
+  const book = books.value.find((item) =>
+    bookIdentifiers(item).some((id) => candidates.includes(id))
+  )
   if (book) {
     return normalizeContextItem({
       key: `book:${book.id || book.folderName || book.name}`,
@@ -986,9 +1431,12 @@ function resolvePromptBookFromRoute() {
   const routeBookName = queryText(route.query.name)
   const candidates = [routeBookId, routeBookName].filter(Boolean)
   if (!candidates.length) return null
-  const book = books.value.find((item) =>
-    bookIdentifiers(item).some((id) => candidates.some((candidate) => sameText(id, candidate))) ||
-    candidates.some((candidate) => sameText(item.name, candidate) || sameText(item.folderName, candidate))
+  const book = books.value.find(
+    (item) =>
+      bookIdentifiers(item).some((id) => candidates.some((candidate) => sameText(id, candidate))) ||
+      candidates.some(
+        (candidate) => sameText(item.name, candidate) || sameText(item.folderName, candidate)
+      )
   )
   if (book) return book
   return {
@@ -1005,7 +1453,8 @@ function buildPromptScopePayload() {
     scope: 'book',
     bookId: book.id || queryText(route.query.bookId) || book.folderName || book.name,
     bookName: book.name || queryText(route.query.name) || book.folderName || book.id,
-    bookFolderName: book.folderName || book.name || queryText(route.query.name) || queryText(route.query.bookId)
+    bookFolderName:
+      book.folderName || book.name || queryText(route.query.name) || queryText(route.query.bookId)
   }
 }
 
@@ -1077,13 +1526,16 @@ async function loadStarterJob(jobId) {
   selectedContexts.value = [
     ...(starterJob.value.references || []),
     ...(starterJob.value.autoReferences || [])
-  ].map(normalizeContextItem).filter(Boolean)
+  ]
+    .map(normalizeContextItem)
+    .filter(Boolean)
   if (starterJob.value.status === 'pending') {
     await runStarterGeneration()
   } else if (starterJob.value.rawOutput) {
     latestErrorText.value = ''
     latestOutputText.value = starterJob.value.rawOutput
-    parsedStarterResult.value = starterJob.value.result || parseJsonResult(starterJob.value.rawOutput)
+    parsedStarterResult.value =
+      starterJob.value.result || parseJsonResult(starterJob.value.rawOutput)
     latestUsage.value = starterJob.value.usage || {}
     resultDrawerVisible.value = true
   } else if (starterJob.value.status === 'failed') {
@@ -1096,7 +1548,10 @@ async function runStarterGeneration() {
   beginGeneration()
   latestErrorText.value = ''
   try {
-    starterJob.value = await updateCreationStarterJob(starterJob.value.id, { status: 'running', errorMessage: '' })
+    starterJob.value = await updateCreationStarterJob(starterJob.value.id, {
+      status: 'running',
+      errorMessage: ''
+    })
   } catch (error) {
     const message = readableAiError(error?.message || '更新起笔任务失败')
     starterJobReadError.value = message
@@ -1112,12 +1567,16 @@ async function runStarterGeneration() {
       task: 'topic',
       feature: 'creation_starter',
       title: '创作起笔',
-      content: JSON.stringify({
-        prompt: starterJob.value.prompt,
-        manualReferences: starterJob.value.references,
-        autoReferences: starterJob.value.autoReferences,
-        advanced: starterJob.value.advanced
-      }, null, 2),
+      content: JSON.stringify(
+        {
+          prompt: starterJob.value.prompt,
+          manualReferences: starterJob.value.references,
+          autoReferences: starterJob.value.autoReferences,
+          advanced: starterJob.value.advanced
+        },
+        null,
+        2
+      ),
       instruction: [
         '你是网文创作策划助手。请根据输入想法和所选提示词，生成一个可直接用于开书的设定树和黄金三章。',
         '必须优先返回合法 JSON，不要使用 Markdown 代码块。',
@@ -1229,7 +1688,11 @@ async function runLogicCheckTool() {
 }
 
 async function runTextTool() {
-  if (!mainInput.value.trim() && !extraRequirement.value.trim() && !selectedContextText.value.trim()) {
+  if (
+    !mainInput.value.trim() &&
+    !extraRequirement.value.trim() &&
+    !selectedContextText.value.trim()
+  ) {
     animateShake(toolPanelRef.value)
     ElMessage.warning('请输入任务内容')
     return
@@ -1253,7 +1716,8 @@ async function runTextTool() {
     latestOutputText.value = output
     latestImageUrl.value = ''
     latestUsage.value = result.usage || {}
-    parsedStarterResult.value = activeTool.value.key === 'starter' ? parseJsonResult(latestOutputText.value) : null
+    parsedStarterResult.value =
+      activeTool.value.key === 'starter' ? parseJsonResult(latestOutputText.value) : null
     await loadHistory()
     resultDrawerVisible.value = true
     ElMessage.success('生成完成')
@@ -1621,7 +2085,9 @@ async function appendAiOutline(bookName) {
   const section = ensureOutlineSection(payload.children, outlineResultSectionName())
   const title = `${activeTool.value.label}结果`
   const content = latestOutputText.value.trim()
-  const existing = section.children.find((entry) => sameText(entry?.title, title) && sameText(entry?.content, content))
+  const existing = section.children.find(
+    (entry) => sameText(entry?.title, title) && sameText(entry?.content, content)
+  )
   if (!existing) {
     section.children.push({
       id: genId(),
@@ -1643,7 +2109,9 @@ async function appendAiSetting(bookName) {
   const category = ensureSettingCategory(payload.categories, settingResultCategoryName())
   const name = `${activeTool.value.label}结果`
   const introduction = latestOutputText.value.trim()
-  const existing = category.items.find((entry) => sameText(entry?.name, name) && sameText(entry?.introduction, introduction))
+  const existing = category.items.find(
+    (entry) => sameText(entry?.name, name) && sameText(entry?.introduction, introduction)
+  )
   if (!existing) {
     category.items.push({
       id: genId(),
@@ -1665,10 +2133,7 @@ async function appendAiNote(bookName) {
   await ensureNoteDocument(bookName, notebookName, noteName)
   const note = await readNoteDocument(bookName, notebookName, noteName)
   const existingContent = note.content.trim()
-  const content = [
-    existingContent,
-    aiNoteEntryContent()
-  ].filter(Boolean).join('\n\n')
+  const content = [existingContent, aiNoteEntryContent()].filter(Boolean).join('\n\n')
   await writeNoteDocument({
     bookName,
     notebookName,
@@ -1718,18 +2183,21 @@ function resolveActiveBookForSave() {
       .flatMap((item) => [String(item.key || '').replace(/^book:/, ''), item.title])
   ].filter(Boolean)
   for (const candidate of candidates) {
-    const match = books.value.find((book) =>
-      bookIdentifiers(book).some((id) => sameText(id, candidate)) ||
-      sameText(book.name, candidate) ||
-      sameText(book.folderName, candidate)
+    const match = books.value.find(
+      (book) =>
+        bookIdentifiers(book).some((id) => sameText(id, candidate)) ||
+        sameText(book.name, candidate) ||
+        sameText(book.folderName, candidate)
     )
     if (match) return match
   }
   const fallbackContext = selectedContexts.value.find((item) => item.type === 'book')
-  if (fallbackContext?.title) return { name: fallbackContext.title, folderName: fallbackContext.title }
+  if (fallbackContext?.title)
+    return { name: fallbackContext.title, folderName: fallbackContext.title }
   const routeName = queryText(route.query.name)
   const routeBookId = queryText(route.query.bookId)
-  if (routeName || routeBookId) return { name: routeName || routeBookId, folderName: routeName || routeBookId, id: routeBookId }
+  if (routeName || routeBookId)
+    return { name: routeName || routeBookId, folderName: routeName || routeBookId, id: routeBookId }
   return null
 }
 
@@ -1737,10 +2205,32 @@ function resultBookTarget(tool = {}) {
   if (tool.kind === 'image') return 'images'
   const key = tool.key || ''
   if (key === 'character') return 'characters'
-  if (['relationship', 'world', 'organization', 'location', 'dictionary', 'rules', 'refine_setting'].includes(key)) {
+  if (
+    [
+      'relationship',
+      'world',
+      'organization',
+      'location',
+      'dictionary',
+      'rules',
+      'refine_setting'
+    ].includes(key)
+  ) {
     return 'settings'
   }
-  if (['continue', 'polish', 'rewrite', 'expand', 'conflict', 'selling_point', 'summarize', 'logic_check', 'chapter_hook'].includes(key)) {
+  if (
+    [
+      'continue',
+      'polish',
+      'rewrite',
+      'expand',
+      'conflict',
+      'selling_point',
+      'summarize',
+      'logic_check',
+      'chapter_hook'
+    ].includes(key)
+  ) {
     return 'notes'
   }
   return 'outlines'
@@ -1748,7 +2238,8 @@ function resultBookTarget(tool = {}) {
 
 function aiNoteName() {
   const key = activeTool.value.key
-  if (['continue', 'polish', 'rewrite', 'expand', 'conflict', 'selling_point'].includes(key)) return '正文处理'
+  if (['continue', 'polish', 'rewrite', 'expand', 'conflict', 'selling_point'].includes(key))
+    return '正文处理'
   if (['summarize', 'logic_check'].includes(key)) return '章节检查'
   if (key === 'chapter_hook') return '章节备忘'
   return 'AI 结果'
@@ -1879,13 +2370,15 @@ function normalizeSettingsPayload(data) {
   return {
     categories: categories.length
       ? categories
-      : [{
-          id: genId(),
-          name: 'AI 工坊',
-          introduction: '从 AI 工坊保存的生成结果。',
-          children: [],
-          items: []
-        }]
+      : [
+          {
+            id: genId(),
+            name: 'AI 工坊',
+            introduction: '从 AI 工坊保存的生成结果。',
+            children: [],
+            items: []
+          }
+        ]
   }
 }
 
@@ -1893,7 +2386,10 @@ function normalizeSettingCategory(category = {}) {
   if (!category || typeof category !== 'object' || Array.isArray(category)) {
     throw new Error('读取设定集失败：分类格式异常')
   }
-  if (Object.prototype.hasOwnProperty.call(category, 'children') && !Array.isArray(category.children)) {
+  if (
+    Object.prototype.hasOwnProperty.call(category, 'children') &&
+    !Array.isArray(category.children)
+  ) {
     throw new Error('读取设定集失败：分类 children 必须是数组')
   }
   if (Object.prototype.hasOwnProperty.call(category, 'items') && !Array.isArray(category.items)) {
@@ -1908,11 +2404,11 @@ function normalizeSettingCategory(category = {}) {
     items: (category.items || [])
       .filter((item) => item && typeof item === 'object' && !Array.isArray(item))
       .map((item) => ({
-          ...item,
-          id: String(item.id || genId()),
-          name: safeText(item.name, '未命名设定'),
-          introduction: String(item.introduction || item.content || '').trim()
-        }))
+        ...item,
+        id: String(item.id || genId()),
+        name: safeText(item.name, '未命名设定'),
+        introduction: String(item.introduction || item.content || '').trim()
+      }))
   }
 }
 
@@ -1943,29 +2439,39 @@ function buildCharactersFromResult() {
         ? parsed.characterList
         : []
   if (rows.length) return rows.filter((item) => item && typeof item === 'object')
-  return [{
-    name: `${activeTool.value.label}素材`,
-    biography: latestOutputText.value.trim()
-  }]
+  return [
+    {
+      name: `${activeTool.value.label}素材`,
+      biography: latestOutputText.value.trim()
+    }
+  ]
 }
 
 function normalizeCharacterTags(row = {}) {
-  return Array.from(new Set([
-    activeTool.value.label,
-    row.identity,
-    row.faction,
-    ...(Array.isArray(row.tags) ? row.tags : []),
-    ...(Array.isArray(row.abilities) ? row.abilities : [])
-  ].filter(Boolean).map(String)))
+  return Array.from(
+    new Set(
+      [
+        activeTool.value.label,
+        row.identity,
+        row.faction,
+        ...(Array.isArray(row.tags) ? row.tags : []),
+        ...(Array.isArray(row.abilities) ? row.abilities : [])
+      ]
+        .filter(Boolean)
+        .map(String)
+    )
+  )
 }
 
 function readableCharacterBody(row = {}) {
   const direct = safeText(row.biography || row.introduction || row.summary || row.description, '')
   if (direct) return direct
-  return Object.entries(row)
-    .filter(([, value]) => value !== undefined && value !== null && value !== '')
-    .map(([key, value]) => `${key}：${Array.isArray(value) ? value.join('、') : String(value)}`)
-    .join('\n') || latestOutputText.value.trim()
+  return (
+    Object.entries(row)
+      .filter(([, value]) => value !== undefined && value !== null && value !== '')
+      .map(([key, value]) => `${key}：${Array.isArray(value) ? value.join('、') : String(value)}`)
+      .join('\n') || latestOutputText.value.trim()
+  )
 }
 
 function outlineResultSectionName() {
@@ -2006,7 +2512,14 @@ function requireAssetImportResult(result, { message, bookName, type } = {}) {
   }
   if (!String(result.item.id || '').trim()) throw new Error(`${message}：接口返回的素材缺少 ID`)
   if (!sameText(result.item.type, type)) throw new Error(`${message}：接口返回的素材类型不匹配`)
-  if (![result.item.bookName, result.item.bookFolderName, result.bookName, result.bookFolderName].some((name) => sameText(name, bookName))) {
+  if (
+    ![
+      result.item.bookName,
+      result.item.bookFolderName,
+      result.bookName,
+      result.bookFolderName
+    ].some((name) => sameText(name, bookName))
+  ) {
     throw new Error(`${message}：接口返回的作品不匹配`)
   }
   if (typeof result.item.relativePath !== 'string' || !result.item.relativePath.trim()) {
@@ -2059,7 +2572,8 @@ function openHistory(item) {
   latestOutputText.value = item.output || ''
   latestImageUrl.value = String(item.output || '').startsWith('data:image') ? item.output : ''
   latestUsage.value = item.usage || {}
-  parsedStarterResult.value = item.feature === 'creation_starter' ? parseJsonResult(item.output) : null
+  parsedStarterResult.value =
+    item.feature === 'creation_starter' ? parseJsonResult(item.output) : null
   resultDrawerVisible.value = true
 }
 
@@ -2214,8 +2728,7 @@ function formatTime(value) {
     border: 1px solid var(--wabi-line);
     border-radius: 8px;
     background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.32), transparent 58%),
-      rgba(251, 250, 246, 0.98);
+      linear-gradient(135deg, rgba(255, 255, 255, 0.32), transparent 58%), rgba(251, 250, 246, 0.98);
     box-shadow: var(--wabi-shadow-soft);
     color: var(--wabi-ink-soft);
     line-height: 1.75;

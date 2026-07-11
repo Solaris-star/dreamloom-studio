@@ -3,6 +3,7 @@
 > 💡 本文详细介绍了如何在 Electron + Vue 3 桌面应用中接入 DeepSeek AI，实现 AI 辅助功能。通过本文，你将了解如何在主进程中安全地处理 API 调用、如何设计频率限制机制、以及如何在前端优雅地集成 AI 功能。本文以 织梦书房 小说写作软件为例，提供了一套完整的 AI 集成解决方案。
 
 ## 📋 目录
+
 - [为什么选择 DeepSeek](#为什么选择-deepseek)
 - [技术架构设计](#技术架构设计)
 - [核心实现方案](#核心实现方案)
@@ -64,12 +65,14 @@ DeepSeek 作为国内领先的大语言模型服务，具有以下优势：
 在主进程中创建 DeepSeek 服务类，封装所有 API 调用逻辑：
 
 **核心功能：**
+
 - API Key 管理（从 electron-store 读取）
 - 请求频率限制（每分钟最多 10 次）
 - 防重复请求机制
 - 统一的错误处理
 
 **关键设计点：**
+
 - 使用滑动时间窗口实现频率限制
 - 使用 Map 跟踪正在进行的请求，防止重复提交
 - 针对不同错误码提供友好的错误提示
@@ -94,11 +97,11 @@ class DeepSeekService {
   checkRateLimit(requestId) {
     const now = Date.now()
     const { maxRequests, windowMs, requests } = this.rateLimit
-    
+
     // 清理过期的请求记录
     const validRequests = requests.filter((time) => now - time < windowMs)
     this.rateLimit.requests = validRequests
-    
+
     // 检查是否超过限制
     if (validRequests.length >= maxRequests) {
       const oldestRequest = validRequests[0]
@@ -107,7 +110,7 @@ class DeepSeekService {
         `请求频率过高，请稍后再试。当前限制：每分钟 ${maxRequests} 次请求，还需等待约 ${waitTime} 秒`
       )
     }
-    
+
     // 记录本次请求
     this.rateLimit.requests.push(now)
     this.pendingRequests.set(requestId, now)
@@ -120,12 +123,14 @@ class DeepSeekService {
 通过 Electron 的 IPC 机制，在主进程和渲染进程之间建立安全的通信通道：
 
 **主进程处理器：**
+
 - `deepseek:set-api-key` - 设置 API Key
 - `deepseek:get-api-key` - 获取 API Key
 - `deepseek:generate-names` - AI 随机起名
 - `deepseek:validate-api-key` - 验证 API Key
 
 **Preload 脚本：**
+
 - 通过 `contextBridge` 安全暴露 API
 - 渲染进程通过 `window.electron` 访问
 
@@ -145,8 +150,7 @@ ipcMain.handle('deepseek:generate-names', async (event, options) => {
 // src/preload/index.js - 安全暴露 API
 contextBridge.exposeInMainWorld('electron', {
   deepseek: {
-    generateNames: (options) => 
-      ipcRenderer.invoke('deepseek:generate-names', options)
+    generateNames: (options) => ipcRenderer.invoke('deepseek:generate-names', options)
   }
 })
 ```
@@ -156,6 +160,7 @@ contextBridge.exposeInMainWorld('electron', {
 在前端组件中，通过服务层封装调用主进程 API：
 
 **设计要点：**
+
 - 按钮状态控制（loading、disabled）
 - 防抖处理（避免快速点击）
 - 错误处理和降级方案
@@ -166,11 +171,13 @@ contextBridge.exposeInMainWorld('electron', {
 ### 1. API Key 安全存储
 
 **存储位置：**
+
 - 使用 `electron-store` 存储在用户数据目录
 - 不在项目目录中，不会被 Git 跟踪
 - 每个用户的 API Key 独立存储
 
 **安全措施：**
+
 - ✅ API Key 只在主进程中处理
 - ✅ 不通过 IPC 传递完整 Key（仅传递操作结果）
 - ✅ 不在日志中记录 API Key
@@ -179,11 +186,13 @@ contextBridge.exposeInMainWorld('electron', {
 ### 2. 请求频率限制
 
 **实现机制：**
+
 - 滑动时间窗口：记录最近 1 分钟内的请求时间戳
 - 自动清理：每次检查时清理过期记录
 - 友好提示：超过限制时显示等待时间
 
 **限制策略：**
+
 - 每分钟最多 10 次请求
 - 相同请求 ID 的重复调用会被阻止
 - 请求完成后自动清除记录
@@ -191,16 +200,19 @@ contextBridge.exposeInMainWorld('electron', {
 ### 3. 用户体验优化
 
 **按钮状态控制：**
+
 - 请求进行中时禁用按钮
 - 显示 loading 状态
 - 防止重复点击
 
 **防抖处理：**
+
 - 随机起名：300ms 防抖
 - API Key 验证：500ms 防抖
 - 保存操作：300ms 防抖
 
 **错误处理：**
+
 - 针对不同错误码提供明确提示
 - 余额不足时提供充值链接
 - 网络错误时提供重试建议
@@ -237,6 +249,7 @@ AI 功能失败时，应该有降级方案：
 完整的实现代码可以在项目仓库中查看：
 
 **核心文件：**
+
 - `src/main/services/deepseek.js` - DeepSeek 服务层
 - `src/main/index.js` - IPC 处理器
 - `src/preload/index.js` - Preload API 暴露
@@ -260,7 +273,7 @@ async function generateNamesWithAIService() {
       gender: gender.value,
       count: 24
     })
-    
+
     if (result.success && result.names.length > 0) {
       names.value = result.names
       ElMessage.success(`AI 生成了 ${result.names.length} 个名字`)
@@ -317,4 +330,4 @@ async function generateNamesWithAIService() {
 >
 > 💡 **想深入了解实现细节？欢迎查看 GitHub 上对应的代码文件，每个模块都有详细的注释说明！**
 
-*本文基于 织梦书房 v0.1.8 版本，DeepSeek API 集成方案*
+_本文基于 织梦书房 v0.1.8 版本，DeepSeek API 集成方案_

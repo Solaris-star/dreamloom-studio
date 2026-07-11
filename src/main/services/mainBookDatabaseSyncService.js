@@ -93,13 +93,7 @@ export function syncBookDocument({
   })
 }
 
-export function syncBookDocumentFile({
-  booksDir,
-  bookName,
-  bookPath,
-  fileName,
-  meta
-} = {}) {
+export function syncBookDocumentFile({ booksDir, bookName, bookPath, fileName, meta } = {}) {
   const documentType = BOOK_DOCUMENT_TYPES[fileName]
   if (!documentType) return null
   return syncBookDocument({ booksDir, bookName, bookPath, documentType, fileName, meta })
@@ -167,7 +161,8 @@ export function syncExportResult({
   result = {}
 } = {}) {
   if (!booksDir) return withSkippedDatabaseSync(result, '缺少书库目录，已跳过导出数据库同步')
-  if (result?.success !== true) return withSkippedDatabaseSync(result, '导出未成功，已跳过数据库同步')
+  if (result?.success !== true)
+    return withSkippedDatabaseSync(result, '导出未成功，已跳过数据库同步')
   const taskBookName = result.task?.bookName || ''
   const folderName = safeBookFolderName(taskBookName || bookName)
   if (!folderName) {
@@ -215,7 +210,8 @@ export function syncBackupResult({
   result = {}
 } = {}) {
   if (!booksDir) return withSkippedDatabaseSync(result, '缺少书库目录，已跳过备份数据库同步')
-  if (result?.success !== true) return withSkippedDatabaseSync(result, '备份未成功，已跳过数据库同步')
+  if (result?.success !== true)
+    return withSkippedDatabaseSync(result, '备份未成功，已跳过数据库同步')
   const taskBookName = result.task?.bookName || ''
   const folderName = safeBookFolderName(taskBookName || result.bookName || bookName)
 
@@ -261,11 +257,13 @@ function collectChapterTextFiles(rootPath, volumeParts = []) {
         return collectChapterTextFiles(entryPath, [...volumeParts, entry.name])
       }
       if (!entry.isFile() || !entry.name.endsWith('.txt')) return []
-      return [{
-        volumeName: volumeParts.join('/') || '正文',
-        chapterName: basename(entry.name, '.txt'),
-        filePath: entryPath
-      }]
+      return [
+        {
+          volumeName: volumeParts.join('/') || '正文',
+          chapterName: basename(entry.name, '.txt'),
+          filePath: entryPath
+        }
+      ]
     })
 }
 
@@ -313,12 +311,10 @@ function syncBookDirectoryWithRepository(repository, { bookName, bookPath } = {}
   }
 }
 
-export function syncImportResult({
-  booksDir,
-  result = {}
-} = {}) {
+export function syncImportResult({ booksDir, result = {} } = {}) {
   if (!booksDir) return withSkippedDatabaseSync(result, '缺少书库目录，已跳过导入数据库同步')
-  if (result?.success !== true) return withSkippedDatabaseSync(result, '导入未成功，已跳过数据库同步')
+  if (result?.success !== true)
+    return withSkippedDatabaseSync(result, '导入未成功，已跳过数据库同步')
   const taskBookName = result.task?.bookName || ''
   const folderName = safeBookFolderName(result.bookName || taskBookName)
   if (!folderName) {
@@ -373,12 +369,10 @@ export function syncImportResult({
   }
 }
 
-export function syncRestoreResult({
-  booksDir,
-  result = {}
-} = {}) {
+export function syncRestoreResult({ booksDir, result = {} } = {}) {
   if (!booksDir) return withSkippedDatabaseSync(result, '缺少书库目录，已跳过恢复数据库同步')
-  if (result?.success !== true) return withSkippedDatabaseSync(result, '恢复未成功，已跳过数据库同步')
+  if (result?.success !== true)
+    return withSkippedDatabaseSync(result, '恢复未成功，已跳过数据库同步')
   const mode = String(result.mode || result.restoreMode || '').toLowerCase()
   if (mode && !['library', 'bookshelf', 'current'].includes(mode)) {
     return {
@@ -418,9 +412,11 @@ export function syncRestoreResult({
         })
       )
     )
-    const documentTypes = [...new Set(
-      syncedBooks.flatMap((book) => book.documents.map((document) => document.documentType))
-    )]
+    const documentTypes = [
+      ...new Set(
+        syncedBooks.flatMap((book) => book.documents.map((document) => document.documentType))
+      )
+    ]
 
     return {
       ...result,
@@ -429,7 +425,10 @@ export function syncRestoreResult({
         projectCount: syncedBooks.length,
         projectIds: syncedBooks.map((book) => book.project?.id || '').filter(Boolean),
         documentTypes,
-        chapterCount: syncedBooks.reduce((sum, book) => sum + book.chapters.filter(Boolean).length, 0)
+        chapterCount: syncedBooks.reduce(
+          (sum, book) => sum + book.chapters.filter(Boolean).length,
+          0
+        )
       },
       projectRecords: syncedBooks.map((book) => book.project).filter(Boolean)
     }

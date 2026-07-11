@@ -79,10 +79,7 @@
               </el-radio-group>
             </el-form-item>
 
-            <el-form-item
-              v-if="taskType === 'refine'"
-              :label="t('outlineManager.refineDirection')"
-            >
+            <el-form-item v-if="taskType === 'refine'" :label="t('outlineManager.refineDirection')">
               <el-radio-group v-model="refineMode" class="ai-radio-group" :disabled="loading">
                 <el-radio-button label="details">
                   {{ t('outlineManager.refineModes.details') }}
@@ -256,7 +253,11 @@
           <el-button type="primary" :loading="loading" @click="handleGenerate">
             {{ generateButtonLabel }}
           </el-button>
-          <el-button type="success" :disabled="loading || !canApplyCurrentDraft" @click="handleApplyDraft">
+          <el-button
+            type="success"
+            :disabled="loading || !canApplyCurrentDraft"
+            @click="handleApplyDraft"
+          >
             {{ applyButtonLabel }}
           </el-button>
         </div>
@@ -551,7 +552,11 @@ function formatVersionStatus(version) {
 }
 
 function stripCodeFence(text) {
-  return String(text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+  return String(text || '')
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim()
 }
 
 function extractJsonBlock(text) {
@@ -800,8 +805,10 @@ function updateSessionPreferences() {
   session.preferences.refineMode = refineMode.value
   session.preferences.splitMode = splitMode.value
   session.preferences.splitCount = splitCount.value
-  session.preferences.refineApplyAction = taskType.value === 'refine' ? applyAction.value : session.preferences.refineApplyAction
-  session.preferences.splitApplyAction = taskType.value === 'split' ? applyAction.value : session.preferences.splitApplyAction
+  session.preferences.refineApplyAction =
+    taskType.value === 'refine' ? applyAction.value : session.preferences.refineApplyAction
+  session.preferences.splitApplyAction =
+    taskType.value === 'split' ? applyAction.value : session.preferences.splitApplyAction
 }
 
 function createVersionFromResult(result, finalInstruction) {
@@ -929,7 +936,9 @@ function validateSplitItems(items, expectedCount) {
   }
 
   const minimumLength = 120
-  const tooShortIndex = items.findIndex((item) => String(item.content || '').trim().length < minimumLength)
+  const tooShortIndex = items.findIndex(
+    (item) => String(item.content || '').trim().length < minimumLength
+  )
   if (tooShortIndex !== -1) {
     return t('outlineManager.splitValidationTooShort', {
       index: tooShortIndex + 1,
@@ -974,7 +983,9 @@ async function handleApplyDraft() {
     }
 
     if (taskType.value === 'split') {
-      const items = splitItems.value.length ? splitItems.value : parseSplitDraftText(rawSplitDraft.value).items
+      const items = splitItems.value.length
+        ? splitItems.value
+        : parseSplitDraftText(rawSplitDraft.value).items
       const expectedCount = Number(version.targetCount) || Number(splitCount.value) || 3
       const splitValidationError = validateSplitItems(items, expectedCount)
       if (splitValidationError) {
@@ -1058,42 +1069,39 @@ async function handleCopyDraft() {
   }
 }
 
-watch(
-  taskType,
-  async (nextTask, prevTask) => {
-    if (!visible.value || isHydrating || nextTask === prevTask) return
-    if (selectedVersion.value) {
-      await saveCurrentDraftEdits({ silent: true })
-    }
-
-    const session = ensureCurrentNodeSession()
-    if (!session) return
-
-    instruction.value = session.lastInstructions?.[nextTask] || ''
-    applyAction.value =
-      nextTask === 'split'
-        ? session.preferences?.splitApplyAction || 'create-children'
-        : session.preferences?.refineApplyAction || 'replace'
-
-    const latest = (session.versions || [])
-      .filter((version) => version.taskType === nextTask)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
-
-    if (baseStrategy.value === 'latest-draft' && !latest) {
-      baseStrategy.value = 'original'
-    }
-
-    if (latest) {
-      selectVersion(latest.id)
-    } else {
-      selectedVersionId.value = ''
-      clearCurrentDraftEditor()
-    }
-
-    updateSessionPreferences()
-    await saveAiSessions({ silent: true })
+watch(taskType, async (nextTask, prevTask) => {
+  if (!visible.value || isHydrating || nextTask === prevTask) return
+  if (selectedVersion.value) {
+    await saveCurrentDraftEdits({ silent: true })
   }
-)
+
+  const session = ensureCurrentNodeSession()
+  if (!session) return
+
+  instruction.value = session.lastInstructions?.[nextTask] || ''
+  applyAction.value =
+    nextTask === 'split'
+      ? session.preferences?.splitApplyAction || 'create-children'
+      : session.preferences?.refineApplyAction || 'replace'
+
+  const latest = (session.versions || [])
+    .filter((version) => version.taskType === nextTask)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+
+  if (baseStrategy.value === 'latest-draft' && !latest) {
+    baseStrategy.value = 'original'
+  }
+
+  if (latest) {
+    selectVersion(latest.id)
+  } else {
+    selectedVersionId.value = ''
+    clearCurrentDraftEditor()
+  }
+
+  updateSessionPreferences()
+  await saveAiSessions({ silent: true })
+})
 
 watch(
   () => props.selectedNodeId,

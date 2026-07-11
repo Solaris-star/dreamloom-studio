@@ -26,7 +26,9 @@
                 <label>{{ t('home.systemSettings.booksDir') }}</label>
                 <div class="dir-picker">
                   <el-input v-model="bookDir" readonly placeholder="未设置目录" />
-                  <el-button type="primary" :loading="savingBooksDir" @click="handleChooseDir">选择目录</el-button>
+                  <el-button type="primary" :loading="savingBooksDir" @click="handleChooseDir"
+                    >选择目录</el-button
+                  >
                 </div>
               </div>
               <div class="setting-item">
@@ -51,7 +53,12 @@
                     <el-input v-model="profileForm.authorName" placeholder="导出和新书默认署名" />
                   </div>
                 </div>
-                <el-button type="primary" :loading="savingProfileSettings" @click="saveProfileSettings">保存个人信息</el-button>
+                <el-button
+                  type="primary"
+                  :loading="savingProfileSettings"
+                  @click="saveProfileSettings"
+                  >保存个人信息</el-button
+                >
               </div>
             </div>
 
@@ -90,7 +97,11 @@
                   :aria-label="`切换到${theme.name}`"
                   @click="handleThemeChange(theme.key)"
                 >
-                  <span class="theme-preview" :style="getPreviewStyle(theme.key)" aria-hidden="true">
+                  <span
+                    class="theme-preview"
+                    :style="getPreviewStyle(theme.key)"
+                    aria-hidden="true"
+                  >
                     <i class="preview-paper"></i>
                     <i class="preview-line line-one"></i>
                     <i class="preview-line line-two"></i>
@@ -140,7 +151,12 @@
                   <el-checkbox v-model="editorForm.globalItalicMode">默认斜体</el-checkbox>
                   <el-checkbox v-model="editorForm.autoSave">自动保存</el-checkbox>
                 </div>
-                <el-button type="primary" :loading="savingEditorSettings" @click="saveEditorSettings">保存编辑器设置</el-button>
+                <el-button
+                  type="primary"
+                  :loading="savingEditorSettings"
+                  @click="saveEditorSettings"
+                  >保存编辑器设置</el-button
+                >
               </div>
             </div>
 
@@ -163,7 +179,12 @@
                   <el-checkbox v-model="privacyForm.saveUsageStats">保存用量统计</el-checkbox>
                   <el-checkbox v-model="privacyForm.localOnly">只使用本地文件存储</el-checkbox>
                 </div>
-                <el-button type="primary" :loading="savingPrivacySettings" @click="savePrivacySettings">保存隐私设置</el-button>
+                <el-button
+                  type="primary"
+                  :loading="savingPrivacySettings"
+                  @click="savePrivacySettings"
+                  >保存隐私设置</el-button
+                >
               </div>
             </div>
 
@@ -189,8 +210,12 @@
                   </div>
                 </div>
                 <div class="button-row">
-                  <el-button :loading="loadingStorageStats" @click="loadStorageStats">刷新</el-button>
-                  <el-button type="danger" plain :loading="clearingTrash" @click="handleClearTrash">清理回收站</el-button>
+                  <el-button :loading="loadingStorageStats" @click="loadStorageStats"
+                    >刷新</el-button
+                  >
+                  <el-button type="danger" plain :loading="clearingTrash" @click="handleClearTrash"
+                    >清理回收站</el-button
+                  >
                 </div>
               </div>
             </div>
@@ -204,7 +229,12 @@
                   </el-checkbox>
                   <el-checkbox v-model="notificationForm.goalReminder">提醒写作目标</el-checkbox>
                 </div>
-                <el-button type="primary" :loading="savingNotificationSettings" @click="saveNotificationSettings">保存通知设置</el-button>
+                <el-button
+                  type="primary"
+                  :loading="savingNotificationSettings"
+                  @click="saveNotificationSettings"
+                  >保存通知设置</el-button
+                >
               </div>
             </div>
 
@@ -222,7 +252,12 @@
               <h2 class="section-title">数据管理</h2>
               <div class="setting-card">
                 <div class="button-row">
-                  <el-button type="primary" :loading="exportingSettings" @click="handleExportSettings">导出设置</el-button>
+                  <el-button
+                    type="primary"
+                    :loading="exportingSettings"
+                    @click="handleExportSettings"
+                    >导出设置</el-button
+                  >
                   <label class="import-settings-button" title="导入设置会合并到当前设置文件">
                     <input
                       accept=".json,application/json"
@@ -239,8 +274,8 @@
             <!-- 关于 -->
             <div v-if="activeTab === 'about'" class="settings-section about-page">
               <div class="about-hero">
-                <img :src="brandLogoUrl" alt="织梦书房" />
-                <h1>织梦书房</h1>
+                <img :src="brandLogoUrl" alt="织梦工坊" />
+                <h1>织梦工坊</h1>
                 <p class="brand-name-en">Dreamloom Studio · DLS</p>
                 <p>Version {{ currentVersion }}</p>
               </div>
@@ -586,7 +621,11 @@ async function handleClearTrash() {
   clearingTrash.value = true
   try {
     const result = await window.electron?.clearAssetTrash?.()
-    if (result?.success === true && typeof result.bytesBefore === 'number' && typeof result.bytesAfter === 'number') {
+    if (
+      result?.success === true &&
+      typeof result.bytesBefore === 'number' &&
+      typeof result.bytesAfter === 'number'
+    ) {
       ElMessage.success('回收站已清理')
       await loadStorageStats()
     } else {
@@ -659,7 +698,13 @@ function requireSettingsExportResult(result) {
   } catch {
     throw new Error('导出设置失败：接口返回内容不是 JSON')
   }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || !parsed.settings || typeof parsed.settings !== 'object') {
+  if (
+    !parsed ||
+    typeof parsed !== 'object' ||
+    Array.isArray(parsed) ||
+    !parsed.settings ||
+    typeof parsed.settings !== 'object'
+  ) {
     throw new Error('导出设置失败：接口返回备份格式不正确')
   }
   return result
@@ -717,7 +762,6 @@ async function handleThemeChange(theme) {
     showSettingsError(error, '保存主题失败')
   }
 }
-
 </script>
 
 <style lang="scss" scoped>
@@ -751,7 +795,10 @@ async function handleThemeChange(theme) {
     border: 1px solid transparent;
     border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.22s ease, border-color 0.22s ease, color 0.22s ease;
+    transition:
+      background-color 0.22s ease,
+      border-color 0.22s ease,
+      color 0.22s ease;
     color: var(--text-secondary);
 
     &:hover {
@@ -976,10 +1023,21 @@ async function handleThemeChange(theme) {
     border: 1px solid var(--preview-line);
     border-radius: var(--theme-control-radius, 8px);
     background:
-      linear-gradient(90deg, color-mix(in srgb, var(--preview-line) 24%, transparent) 1px, transparent 1px),
-      linear-gradient(180deg, color-mix(in srgb, var(--preview-line) 16%, transparent) 1px, transparent 1px),
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--preview-line) 24%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--preview-line) 16%, transparent) 1px,
+        transparent 1px
+      ),
       var(--preview-bg);
-    background-size: 22px 22px, 22px 22px, auto;
+    background-size:
+      22px 22px,
+      22px 22px,
+      auto;
   }
 
   .preview-paper {

@@ -9,8 +9,12 @@ const { listInstalledWritingSkills, runWritingSkill } = await import(runnerPath)
 const installed = listInstalledWritingSkills()
 assert.equal(installed.success, true)
 assert.ok(installed.skills.some((skill) => skill.id === 'story-long-write'))
-assert.ok(installed.skills.some((skill) => skill.id === 'story-deslop' && skill.source === 'external'))
-assert.ok(installed.groups.some((group) => group.items.some((skill) => skill.id === 'story-review')))
+assert.ok(
+  installed.skills.some((skill) => skill.id === 'story-deslop' && skill.source === 'external')
+)
+assert.ok(
+  installed.groups.some((group) => group.items.some((skill) => skill.id === 'story-review'))
+)
 
 await assert.rejects(
   () => runWritingSkill({ skillId: 'missing-skill' }),

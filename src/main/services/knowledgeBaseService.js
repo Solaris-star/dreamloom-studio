@@ -29,13 +29,7 @@ export const KNOWLEDGE_SOURCE_TYPES = [
   'system'
 ]
 
-export const KNOWLEDGE_STATUSES = [
-  'draft',
-  'active',
-  'archived',
-  'converted_to_book',
-  'discarded'
-]
+export const KNOWLEDGE_STATUSES = ['draft', 'active', 'archived', 'converted_to_book', 'discarded']
 
 function isSupersededExtraction(record = {}) {
   return record.lifecycleStatus === 'superseded' || record.superseded === true
@@ -200,7 +194,9 @@ export function normalizeKnowledgeItem(raw = {}) {
     lastUsedAt: raw.lastUsedAt || ''
   }
   if (item.type === 'writer_activity' && item.metadata.writerActivity) {
-    item.metadata.writerActivity.status = calculateWriterActivityStatus(item.metadata.writerActivity)
+    item.metadata.writerActivity.status = calculateWriterActivityStatus(
+      item.metadata.writerActivity
+    )
   }
   return item
 }
@@ -219,7 +215,12 @@ function readItems(booksDir) {
   let rows
   if (Array.isArray(data)) {
     rows = data
-  } else if (data && typeof data === 'object' && !Array.isArray(data) && Array.isArray(data.items)) {
+  } else if (
+    data &&
+    typeof data === 'object' &&
+    !Array.isArray(data) &&
+    Array.isArray(data.items)
+  ) {
     rows = data.items
   } else {
     throw new Error('知识库条目格式异常，已停止读取知识库')
@@ -242,7 +243,9 @@ function getBookDirNames(booksDir) {
   if (!booksDir || !fs.existsSync(booksDir)) return []
   return fs
     .readdirSync(booksDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && fs.existsSync(join(booksDir, entry.name, 'mazi.json')))
+    .filter(
+      (entry) => entry.isDirectory() && fs.existsSync(join(booksDir, entry.name, 'mazi.json'))
+    )
     .map((entry) => entry.name)
 }
 
@@ -345,8 +348,15 @@ function titleFromExtractedItem(item, dimension, index) {
 
 function knowledgeTypeFromDimension(dimension, item = {}) {
   if (dimension === 'character' || dimension === 'characterSetting') return 'character_setting'
-  if (dimension === 'novelFeatures' || dimension === 'worldbuilding' || dimension === 'goldenFinger' || dimension === 'powerSystem') return 'world_setting'
-  if (dimension === 'relationship' || dimension === 'timeline' || dimension === 'locationFaction') return 'setting'
+  if (
+    dimension === 'novelFeatures' ||
+    dimension === 'worldbuilding' ||
+    dimension === 'goldenFinger' ||
+    dimension === 'powerSystem'
+  )
+    return 'world_setting'
+  if (dimension === 'relationship' || dimension === 'timeline' || dimension === 'locationFaction')
+    return 'setting'
   if (dimension === 'foreshadowing') return 'foreshadowing'
   if (dimension === 'plot') {
     const text = toPlainText(item)
@@ -398,8 +408,12 @@ function buildKnowledgeFromExtractionItem({ extraction, bookName, dimension, ite
 
 function migrateExtractions(booksDir, items) {
   const existingIds = new Set(items.flatMap((item) => item.sourceIds || []))
-  const existingMigrated = new Set(items.map((item) => item.metadata?.legacyExtractionId).filter(Boolean))
-  const existingExtractionItems = new Set(items.map((item) => item.metadata?.extractionItemId).filter(Boolean))
+  const existingMigrated = new Set(
+    items.map((item) => item.metadata?.legacyExtractionId).filter(Boolean)
+  )
+  const existingExtractionItems = new Set(
+    items.map((item) => item.metadata?.extractionItemId).filter(Boolean)
+  )
   const nextItems = [...items]
   let changed = false
 
@@ -410,12 +424,19 @@ function migrateExtractions(booksDir, items) {
     let records
     if (Array.isArray(data)) {
       records = data
-    } else if (data && typeof data === 'object' && !Array.isArray(data) && Array.isArray(data.extractions)) {
+    } else if (
+      data &&
+      typeof data === 'object' &&
+      !Array.isArray(data) &&
+      Array.isArray(data.extractions)
+    ) {
       records = data.extractions
     } else {
       throw new Error(`${bookName} 拆书记录格式异常，已停止迁移拆书知识`)
     }
-    const supersededKnowledgeIds = new Set(records.filter(isSupersededExtraction).flatMap(extractionKnowledgeIds))
+    const supersededKnowledgeIds = new Set(
+      records.filter(isSupersededExtraction).flatMap(extractionKnowledgeIds)
+    )
 
     if (supersededKnowledgeIds.size) {
       for (let i = 0; i < nextItems.length; i += 1) {
@@ -427,10 +448,12 @@ function migrateExtractions(booksDir, items) {
           metadata: {
             ...(item.metadata || {}),
             assetStatus: 'superseded',
-            supersededByExtraction: records.find((record) =>
-              Array.isArray(record.replacedExtractionIds) &&
-              record.replacedExtractionIds.includes(item.metadata?.legacyExtractionId)
-            )?.id || ''
+            supersededByExtraction:
+              records.find(
+                (record) =>
+                  Array.isArray(record.replacedExtractionIds) &&
+                  record.replacedExtractionIds.includes(item.metadata?.legacyExtractionId)
+              )?.id || ''
           },
           updatedAt: nowIso()
         })
@@ -470,7 +493,8 @@ function migrateExtractions(booksDir, items) {
               stats: extraction.stats || {},
               bookAnalysis: {
                 bookTitle: extraction.sourceBookName || bookName,
-                sourceType: extraction.sourceType === 'online' ? 'public_metadata' : 'user_imported',
+                sourceType:
+                  extraction.sourceType === 'online' ? 'public_metadata' : 'user_imported',
                 reusableTechniques: dimensions.map((dim) => `${dimensionLabel(dim)}结果`),
                 riskNotes: ['仅参考创作方法，不照搬原作人物、剧情和专有设定。']
               }
@@ -514,7 +538,9 @@ function migrateExtractions(booksDir, items) {
 }
 
 function matchesText(item, keyword) {
-  const q = String(keyword || '').trim().toLowerCase()
+  const q = String(keyword || '')
+    .trim()
+    .toLowerCase()
   if (!q) return true
   const haystack = [
     item.title,
@@ -568,7 +594,8 @@ function scoreOf(item, key) {
   const topic = item.metadata?.topicCard || {}
   const market = item.metadata?.marketHotspot || {}
   if (key === 'heat') return Number(topic.marketHeatScore ?? market.heatScore ?? 0)
-  if (key === 'commercial') return Number(topic.commercialPotentialScore ?? market.opportunityScore ?? 0)
+  if (key === 'commercial')
+    return Number(topic.commercialPotentialScore ?? market.opportunityScore ?? 0)
   return 0
 }
 
@@ -624,7 +651,9 @@ function mergeDuplicate(existing, input) {
     content: input.content || existing.content,
     tags: Array.from(new Set([...existing.tags, ...asStringArray(input.tags)])),
     genreTags: Array.from(new Set([...existing.genreTags, ...asStringArray(input.genreTags)])),
-    platformTags: Array.from(new Set([...existing.platformTags, ...asStringArray(input.platformTags)])),
+    platformTags: Array.from(
+      new Set([...existing.platformTags, ...asStringArray(input.platformTags)])
+    ),
     sourceIds: Array.from(new Set([...existing.sourceIds, ...asStringArray(input.sourceIds)])),
     relatedKnowledgeIds: Array.from(
       new Set([...existing.relatedKnowledgeIds, ...asStringArray(input.relatedKnowledgeIds)])
@@ -664,7 +693,9 @@ function typeFromGenre(genreTags) {
     体育: ['tiyu', '体育（通用）']
   }
   const hit = Object.entries(mapping).find(([key]) => first.includes(key))
-  return hit ? { type: hit[1][0], typeName: hit[1][1] } : { type: 'xuanhua', typeName: first || '玄幻' }
+  return hit
+    ? { type: hit[1][0], typeName: hit[1][1] }
+    : { type: 'xuanhua', typeName: first || '玄幻' }
 }
 
 function buildSettingsFromTopic(item) {
@@ -718,23 +749,29 @@ function buildOutlinesFromTopic(item) {
   }
   const golden = item.metadata?.aiOutputs?.goldenChapters?.parsed
   const chapters = ['chapter1', 'chapter2', 'chapter3']
-    .map((key, index) => golden?.[key] && ({
-      id: randomUUID(),
-      title: golden[key].title || `第${index + 1}章`,
-      content: [
-        golden[key].summary,
-        golden[key].openingHook ? `开篇钩子：${golden[key].openingHook}` : '',
-        golden[key].conflict ? `核心冲突：${golden[key].conflict}` : '',
-        golden[key].endingHook ? `章末钩子：${golden[key].endingHook}` : ''
-      ]
-        .filter(Boolean)
-        .join('\n'),
-      children: []
-    }))
+    .map(
+      (key, index) =>
+        golden?.[key] && {
+          id: randomUUID(),
+          title: golden[key].title || `第${index + 1}章`,
+          content: [
+            golden[key].summary,
+            golden[key].openingHook ? `开篇钩子：${golden[key].openingHook}` : '',
+            golden[key].conflict ? `核心冲突：${golden[key].conflict}` : '',
+            golden[key].endingHook ? `章末钩子：${golden[key].endingHook}` : ''
+          ]
+            .filter(Boolean)
+            .join('\n'),
+          children: []
+        }
+    )
     .filter(Boolean)
 
   return {
-    content: [topic.oneLineHook || item.summary, topic.coreConflict ? `核心冲突：${topic.coreConflict}` : '']
+    content: [
+      topic.oneLineHook || item.summary,
+      topic.coreConflict ? `核心冲突：${topic.coreConflict}` : ''
+    ]
       .filter(Boolean)
       .join('\n\n'),
     children: chapters
@@ -757,7 +794,16 @@ function buildCharactersFromTopic(item) {
   }
   const protagonist = item.metadata?.topicCard?.protagonist
   return protagonist
-    ? [{ id: randomUUID(), name: '主角', identity: protagonist, personality: '', goal: '', secret: '' }]
+    ? [
+        {
+          id: randomUUID(),
+          name: '主角',
+          identity: protagonist,
+          personality: '',
+          goal: '',
+          secret: ''
+        }
+      ]
     : []
 }
 
@@ -825,8 +871,7 @@ class KnowledgeBaseService {
     let changed = 0
     const nextItems = items.map((item) => {
       const related =
-        item.metadata?.legacyExtractionId === extractionId ||
-        item.sourceIds.includes(extractionId)
+        item.metadata?.legacyExtractionId === extractionId || item.sourceIds.includes(extractionId)
       if (!related) return item
       changed += 1
       return normalizeKnowledgeItem({
@@ -934,7 +979,8 @@ class KnowledgeBaseService {
       name: bookName,
       type: typeInfo.type,
       typeName: typeInfo.typeName,
-      targetCount: topic.targetLength === 'short' ? 80000 : topic.targetLength === 'long' ? 1000000 : 300000,
+      targetCount:
+        topic.targetLength === 'short' ? 80000 : topic.targetLength === 'long' ? 1000000 : 300000,
       intro: topic.oneLineHook || item.summary || '',
       password: null,
       coverColor: '#22345c',

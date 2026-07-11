@@ -56,9 +56,7 @@ try {
       {
         name: '北境',
         introduction: '长年风雪，边城依靠剑馆和药铺守住商道。',
-        items: [
-          { name: '玉印', introduction: '师父失踪前留下的信物，不可被陌生人看到。' }
-        ],
+        items: [{ name: '玉印', introduction: '师父失踪前留下的信物，不可被陌生人看到。' }],
         children: []
       }
     ]
@@ -66,9 +64,7 @@ try {
   writeJson('timelines.json', [
     {
       title: '主线',
-      nodes: [
-        { title: '师父失踪', desc: '林青在雪夜发现剑馆暗室空了。' }
-      ]
+      nodes: [{ title: '师父失踪', desc: '林青在雪夜发现剑馆暗室空了。' }]
     }
   ])
 
@@ -157,9 +153,7 @@ try {
       {
         name: '北境',
         introduction: '长年风雪，边城依靠剑馆和药铺守住商道。',
-        items: [
-          { name: '玉印', introduction: '师父失踪前留下的信物，不可被陌生人看到。' }
-        ],
+        items: [{ name: '玉印', introduction: '师父失踪前留下的信物，不可被陌生人看到。' }],
         children: []
       }
     ]
@@ -173,9 +167,7 @@ try {
   writeJson('timelines.json', [
     {
       title: '主线',
-      nodes: [
-        { title: '师父失踪', desc: '林青在雪夜发现剑馆暗室空了。' }
-      ]
+      nodes: [{ title: '师父失踪', desc: '林青在雪夜发现剑馆暗室空了。' }]
     }
   ])
 

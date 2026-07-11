@@ -75,7 +75,9 @@
       </el-form>
       <template #footer>
         <el-button @click="passwordDialogVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handlePasswordConfirm">{{ t('common.confirm') }}</el-button>
+        <el-button type="primary" @click="handlePasswordConfirm">{{
+          t('common.confirm')
+        }}</el-button>
       </template>
     </el-dialog>
 

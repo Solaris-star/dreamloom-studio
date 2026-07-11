@@ -104,7 +104,9 @@ function insightToKnowledgeItem(insightInput) {
       `原始信号：${insight.originalTitle}`,
       `核心冲突：${insight.conflict}`,
       `开篇钩子：${insight.hook}`
-    ].filter(Boolean).join('\n'),
+    ]
+      .filter(Boolean)
+      .join('\n'),
     tags: insight.tags,
     genreTags: [insight.genre, ...insight.tags].filter(Boolean),
     platformTags: [insight.source].filter(Boolean),
@@ -118,12 +120,21 @@ function insightToKnowledgeItem(insightInput) {
       marketInsight: insight,
       topicCard: {
         oneLineHook: insight.loglineIdeas[0] || insight.hook,
-        protagonist: insight.channel === 'male' ? '背负压力但掌握关键能力的男主' : insight.channel === 'female' ? '被轻视但清醒果断的女主' : '被卷入事件的普通人',
-        goldenFinger: /系统|科技|芯片|创业/.test(insight.tags.join(' ') + insight.genre) ? '未来信息或系统提示' : '',
+        protagonist:
+          insight.channel === 'male'
+            ? '背负压力但掌握关键能力的男主'
+            : insight.channel === 'female'
+              ? '被轻视但清醒果断的女主'
+              : '被卷入事件的普通人',
+        goldenFinger: /系统|科技|芯片|创业/.test(insight.tags.join(' ') + insight.genre)
+          ? '未来信息或系统提示'
+          : '',
         worldSetting: insight.genre,
         coreConflict: insight.conflict,
         openingHook: insight.hook,
-        sellingPoints: [insight.storyPotential, ...insight.readerEmotion].filter(Boolean).slice(0, 5),
+        sellingPoints: [insight.storyPotential, ...insight.readerEmotion]
+          .filter(Boolean)
+          .slice(0, 5),
         riskNotes: ['保留抽象情绪和结构，不复述真实新闻人物。'],
         platformSuggestions: [insight.source].filter(Boolean),
         monetizationPath: insight.channel === 'female' ? 'short_drama' : 'subscription',
@@ -144,7 +155,12 @@ function insightToKnowledgeItem(insightInput) {
 function buildOutlineDraft(insightInput) {
   const insight = asInsight(insightInput)
   const titles = insight.bookTitleIdeas.length ? insight.bookTitleIdeas : [insight.title]
-  const mainCharacter = insight.channel === 'male' ? '男主：背负债务或误解，拥有快速学习与破局能力。' : insight.channel === 'female' ? '女主：被关系和资源压迫，但有清晰目标和反击手段。' : '主角：被公共事件卷入，从旁观者变成破局者。'
+  const mainCharacter =
+    insight.channel === 'male'
+      ? '男主：背负债务或误解，拥有快速学习与破局能力。'
+      : insight.channel === 'female'
+        ? '女主：被关系和资源压迫，但有清晰目标和反击手段。'
+        : '主角：被公共事件卷入，从旁观者变成破局者。'
   return {
     generator: 'template',
     generatorLabel: '规则模板',
@@ -244,12 +260,17 @@ function includesText(row, keyword) {
   ]
     .join(' ')
     .toLowerCase()
-  return text.includes(String(keyword || '').trim().toLowerCase())
+  return text.includes(
+    String(keyword || '')
+      .trim()
+      .toLowerCase()
+  )
 }
 
 function matchesFilter(row, filter = {}) {
   if (filter.keyword && !includesText(row, filter.keyword)) return false
-  if (filter.platform && !asStringArray(row.platforms || [row.platform]).includes(filter.platform)) return false
+  if (filter.platform && !asStringArray(row.platforms || [row.platform]).includes(filter.platform))
+    return false
   if (filter.category && !asStringArray(row.categories).includes(filter.category)) return false
   if (filter.status && row.status !== filter.status) return false
   return true
@@ -259,7 +280,8 @@ function sortRows(rows, sortBy = 'updatedAt') {
   const sorted = [...rows]
   sorted.sort((a, b) => {
     if (sortBy === 'heat') return Number(b.heatScore || 0) - Number(a.heatScore || 0)
-    if (sortBy === 'opportunity') return Number(b.opportunityScore || 0) - Number(a.opportunityScore || 0)
+    if (sortBy === 'opportunity')
+      return Number(b.opportunityScore || 0) - Number(a.opportunityScore || 0)
     if (sortBy === 'endDate') return new Date(a.endDate || 0) - new Date(b.endDate || 0)
     if (sortBy === 'createdAt') return new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
     return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
@@ -334,7 +356,9 @@ function mergeRows(rows, updated) {
 }
 
 function normalizeTrendKeyword(value) {
-  return String(value || '').trim().toLowerCase()
+  return String(value || '')
+    .trim()
+    .toLowerCase()
 }
 
 function inferTrendCategory(keyword) {
@@ -349,7 +373,8 @@ function inferTrendCategory(keyword) {
 
 function trendTopicToHotspot(topic = {}) {
   const keyword = String(topic.keyword || topic.title || '').trim()
-  const sourceName = TREND_SOURCE_LABELS[topic.source] || topic.extra?.sourceLabel || topic.source || '公开热榜'
+  const sourceName =
+    TREND_SOURCE_LABELS[topic.source] || topic.extra?.sourceLabel || topic.source || '公开热榜'
   const platform = topic.extra?.platform || TREND_SOURCE_PLATFORMS[topic.source] || sourceName
   const category = topic.extra?.category || inferTrendCategory(keyword)
   const heatScore = asNumber(topic.normalizedHeat || topic.heatIndex || 60, 60)
@@ -542,18 +567,21 @@ function activityToTopicCard(activity) {
     status: 'draft',
     metadata: {
       topicCard: {
-        oneLineHook: activity.summary || activity.requirementSummary || `${activity.title} 对应的原创选题。`,
+        oneLineHook:
+          activity.summary || activity.requirementSummary || `${activity.title} 对应的原创选题。`,
         protagonist: '',
         goldenFinger: '',
         worldSetting: '',
         coreConflict: activity.requirementSummary || '',
         openingHook: '',
         sellingPoints: [activity.rewardSummary, activity.requirementSummary].filter(Boolean),
-        riskNotes: activity.status === 'ending_soon' ? ['活动快截止了，适合短篇或已有存稿改造。'] : [],
+        riskNotes:
+          activity.status === 'ending_soon' ? ['活动快截止了，适合短篇或已有存稿改造。'] : [],
         platformSuggestions: activity.platform ? [activity.platform] : [],
         monetizationPath: 'unknown',
         targetLength: 'unknown',
-        marketHeatScore: activity.status === 'active' || activity.status === 'ending_soon' ? 70 : 45,
+        marketHeatScore:
+          activity.status === 'active' || activity.status === 'ending_soon' ? 70 : 45,
         originalityScore: 60,
         commercialPotentialScore: activity.rewardSummary ? 72 : 55,
         writingDifficultyScore: activity.status === 'ending_soon' ? 72 : 55,
@@ -568,7 +596,9 @@ function activityToTopicCard(activity) {
 
 export function listHotspots(booksDir, filter = {}) {
   return sortRows(
-    readRows(booksDir, HOTSPOTS_FILE).map(normalizeHotspot).filter((row) => matchesFilter(row, filter)),
+    readRows(booksDir, HOTSPOTS_FILE)
+      .map(normalizeHotspot)
+      .filter((row) => matchesFilter(row, filter)),
     filter.sortBy
   )
 }
@@ -625,7 +655,9 @@ export function createTopicCardFromHotspot(booksDir, id) {
 
 export function listActivities(booksDir, filter = {}) {
   return sortRows(
-    readRows(booksDir, ACTIVITIES_FILE).map(normalizeActivity).filter((row) => matchesFilter(row, filter)),
+    readRows(booksDir, ACTIVITIES_FILE)
+      .map(normalizeActivity)
+      .filter((row) => matchesFilter(row, filter)),
     filter.sortBy
   )
 }
@@ -656,7 +688,10 @@ export function saveActivityToKnowledge(booksDir, id) {
   const rows = readRows(booksDir, ACTIVITIES_FILE).map(normalizeActivity)
   const activity = rows.find((row) => row.id === id)
   if (!activity) return { success: false, message: '活动不存在' }
-  const result = knowledgeBaseService.createKnowledgeItem(booksDir, activityToKnowledgeItem(activity))
+  const result = knowledgeBaseService.createKnowledgeItem(
+    booksDir,
+    activityToKnowledgeItem(activity)
+  )
   const item = normalizeActivity({
     ...activity,
     knowledgeItemId: result.item?.id || activity.knowledgeItemId,
@@ -774,15 +809,21 @@ export function applyInsightToBook(booksDir, input = {}) {
   const bookName = String(input.bookId || input.bookName || '').trim()
   if (!insight) return { success: false, message: '灵感不存在' }
   if (!bookName) return { success: false, message: '请选择作品' }
-  const sectionName = {
-    book_setting: '作品设定',
-    characters: '人物设定',
-    worldview: '世界观',
-    conflict: '剧情冲突',
-    chapter_ideas: '章节灵感'
-  }[input.targetSection] || '章节灵感'
+  const sectionName =
+    {
+      book_setting: '作品设定',
+      characters: '人物设定',
+      worldview: '世界观',
+      conflict: '剧情冲突',
+      chapter_ideas: '章节灵感'
+    }[input.targetSection] || '章节灵感'
   const result = knowledgeBaseService.createKnowledgeItem(booksDir, {
-    type: input.targetSection === 'characters' ? 'character_setting' : input.targetSection === 'worldview' || input.targetSection === 'book_setting' ? 'world_setting' : 'plot_fragment',
+    type:
+      input.targetSection === 'characters'
+        ? 'character_setting'
+        : input.targetSection === 'worldview' || input.targetSection === 'book_setting'
+          ? 'world_setting'
+          : 'plot_fragment',
     title: `${insight.title}（${sectionName}）`,
     summary: insight.hook,
     content: [
@@ -810,30 +851,37 @@ export function applyInsightToBook(booksDir, input = {}) {
 export function createBookFromInsight(booksDir, input = {}) {
   const insight = input.insight || findInsight(booksDir, input.insightId, input.channel || 'all')
   if (!insight) return { success: false, message: '灵感不存在' }
-  const title = String(input.selectedTitle || insight.bookTitleIdeas?.[0] || insight.title || '市场灵感新书').trim()
+  const title = String(
+    input.selectedTitle || insight.bookTitleIdeas?.[0] || insight.title || '市场灵感新书'
+  ).trim()
   const safeName = title.replace(/[\\/:*?"<>|]/g, '_')
   const bookName = uniqueMarketBookName(booksDir, safeName)
   const bookPath = join(booksDir, bookName)
   const typeInfo = typeFromGenre(insight.genre)
   const outline = buildOutlineDraft({ ...insight, title: bookName })
-  writeMarketBookFiles(bookPath, {
-    id: String(Date.now()) + Math.floor(Math.random() * 10000).toString(),
-    name: bookName,
-    type: typeInfo.type,
-    typeName: typeInfo.typeName,
-    targetCount: insight.channel === 'male' ? 800000 : 300000,
-    totalWords: 0,
-    intro: insight.loglineIdeas?.[0] || insight.summary || insight.hook,
-    sourceType: 'market_insight',
-    marketInsightId: insight.id,
-    channel: insight.channel,
-    tags: insight.tags,
-    password: null,
-    coverColor: '#22345c',
-    coverUrl: null,
-    createdAt: new Date().toLocaleString(),
-    updatedAt: new Date().toLocaleString()
-  }, outline, insight)
+  writeMarketBookFiles(
+    bookPath,
+    {
+      id: String(Date.now()) + Math.floor(Math.random() * 10000).toString(),
+      name: bookName,
+      type: typeInfo.type,
+      typeName: typeInfo.typeName,
+      targetCount: insight.channel === 'male' ? 800000 : 300000,
+      totalWords: 0,
+      intro: insight.loglineIdeas?.[0] || insight.summary || insight.hook,
+      sourceType: 'market_insight',
+      marketInsightId: insight.id,
+      channel: insight.channel,
+      tags: insight.tags,
+      password: null,
+      coverColor: '#22345c',
+      coverUrl: null,
+      createdAt: new Date().toLocaleString(),
+      updatedAt: new Date().toLocaleString()
+    },
+    outline,
+    insight
+  )
   const saved = saveInsightToKnowledge(booksDir, { insight })
   if (saved?.item?.id) {
     knowledgeBaseService.updateKnowledgeItem(booksDir, saved.item.id, {

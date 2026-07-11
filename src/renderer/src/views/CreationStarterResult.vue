@@ -1,288 +1,347 @@
 <template>
-      <div class="starter-result-page">
-        <section class="hero-panel">
-          <div>
-            <p class="eyebrow">创作起笔</p>
-            <h1>根据你的想法，生成设定树和开篇黄金三章。</h1>
-          </div>
-          <el-tag :type="statusType" round>{{ statusText }}</el-tag>
-        </section>
-
-        <section v-if="loadingJob" class="state-panel">
-          <h2>正在读取起笔任务</h2>
-          <p>正在从本地任务存储读取真实任务记录。</p>
-        </section>
-
-        <section v-else-if="starterLoadError" class="state-panel state-error">
-          <h2>读取起笔任务失败</h2>
-          <p>{{ starterLoadError }}</p>
-          <el-button type="primary" :loading="loadingJob" @click="retryLoadJob">重试</el-button>
-        </section>
-
-        <section v-else-if="!job" class="state-panel">
-          <h2>没有找到起笔任务</h2>
-          <p>可以回到首页重新输入想法，创建一次新的起笔任务。</p>
-          <el-button type="primary" @click="router.push('/dashboard')">去首页起笔</el-button>
-        </section>
-
-        <template v-else>
-          <section class="status-panel">
-            <div>
-              <strong>{{ statusText }}</strong>
-              <span v-if="job.errorMessage">{{ job.errorMessage }}</span>
-              <span v-else-if="job.status === 'running'">正在调用当前文本 AI 服务，请稍候。</span>
-              <span v-else>任务创建于 {{ formatDateTime(job.createdAt) }}</span>
-            </div>
-            <el-progress
-              :percentage="job.status === 'completed' ? 100 : job.status === 'failed' ? 100 : 0"
-              :status="job.status === 'failed' ? 'exception' : job.status === 'completed' ? 'success' : undefined"
-              :indeterminate="job.status === 'running'"
-            />
-          </section>
-
-          <el-collapse class="context-collapse">
-            <el-collapse-item title="本次生成使用的上下文" name="context">
-              <div class="context-grid">
-                <article>
-                  <h3>用户输入</h3>
-                  <p>{{ job.prompt }}</p>
-                </article>
-                <article>
-                  <h3>手动引用素材</h3>
-                  <p v-if="!job.references.length">未手动选择素材。</p>
-                  <ul v-else>
-                    <li v-for="item in job.references" :key="item.key || item.id">
-                      {{ item.typeLabel || typeText(item.type) }}：{{ item.title }}
-                    </li>
-                  </ul>
-                </article>
-                <article>
-                  <h3>自动参考素材</h3>
-                  <p v-if="!job.autoReferences.length">当前没有自动参考素材。</p>
-                  <ul v-else>
-                    <li v-for="item in job.autoReferences" :key="item.key || item.id">
-                      {{ item.typeLabel || typeText(item.type) }}：{{ item.title }}
-                    </li>
-                  </ul>
-                </article>
-                <article>
-                  <h3>高级要求</h3>
-                  <p v-if="!filledAdvanced.length">未填写高级要求。</p>
-                  <ul v-else>
-                    <li v-for="item in filledAdvanced" :key="item.key">{{ item.label }}：{{ item.value }}</li>
-                  </ul>
-                </article>
-              </div>
-            </el-collapse-item>
-          </el-collapse>
-
-          <section class="result-grid">
-            <article class="result-panel wide">
-              <div class="section-head">
-                <span>01</span>
-                <h2>设定树</h2>
-              </div>
-              <template v-if="settingTreeRoots.length">
-                <div class="setting-tree-list">
-                  <div v-for="root in settingTreeRoots" :key="root.name || root.title" class="setting-root">
-                    <strong>{{ root.name || root.title || '未命名设定' }}</strong>
-                    <p>{{ root.description || root.summary || '暂无描述。' }}</p>
-                    <ul v-if="asArray(root.children).length">
-                      <li v-for="child in asArray(root.children)" :key="child.name || child.title">
-                        <b>{{ child.name || child.title || '未命名子项' }}</b>
-                        <span>{{ child.description || child.summary || '' }}</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </template>
-              <template v-else-if="parsedResult">
-                <div class="title-options">
-                  <el-tag v-for="title in asArray(parsedResult.core?.titleOptions)" :key="title" round>
-                    {{ title }}
-                  </el-tag>
-                </div>
-                <dl class="info-list">
-                  <div>
-                    <dt>一句话卖点</dt>
-                    <dd>{{ textOrEmpty(parsedResult.core?.oneLineHook) }}</dd>
-                  </div>
-                  <div>
-                    <dt>简介</dt>
-                    <dd>{{ textOrEmpty(parsedResult.core?.synopsis) }}</dd>
-                  </div>
-                  <div>
-                    <dt>题材标签</dt>
-                    <dd>{{ joinText(parsedResult.core?.genreTags) }}</dd>
-                  </div>
-                  <div>
-                    <dt>目标平台</dt>
-                    <dd>{{ joinText(parsedResult.core?.targetPlatforms) }}</dd>
-                  </div>
-                  <div>
-                    <dt>商业方向</dt>
-                    <dd>{{ textOrEmpty(parsedResult.core?.monetizationPath) }}</dd>
-                  </div>
-                </dl>
-              </template>
-              <pre v-else class="raw-output">{{ job.rawOutput || '暂无输出。' }}</pre>
-              <el-alert
-                v-if="job.rawOutput && !parsedResult && job.status === 'completed'"
-                type="warning"
-                show-icon
-                :closable="false"
-                title="结构化解析失败，已展示原始 AI 输出。"
-              />
-            </article>
-
-            <article class="result-panel">
-              <div class="section-head">
-                <span>02</span>
-                <h2>故事发动机</h2>
-              </div>
-              <dl class="info-list">
-                <div v-for="item in engineItems" :key="item.label">
-                  <dt>{{ item.label }}</dt>
-                  <dd>{{ item.value }}</dd>
-                </div>
-              </dl>
-            </article>
-
-            <article class="result-panel">
-              <div class="section-head">
-                <span>03</span>
-                <h2>人物种子</h2>
-              </div>
-              <div v-if="characters.length" class="stack-list">
-                <div v-for="item in characters" :key="`${item.name}-${item.role}`">
-                  <strong>{{ item.name || item.role || '未命名角色' }}</strong>
-                  <p>{{ [item.role, item.identity, item.personality].filter(Boolean).join(' · ') }}</p>
-                  <small>{{ item.growthArc || item.goal || item.flaw || '暂无人物补充。' }}</small>
-                </div>
-              </div>
-              <p v-else class="soft-empty">暂无人物内容。</p>
-            </article>
-
-            <article class="result-panel">
-              <div class="section-head">
-                <span>04</span>
-                <h2>世界规则</h2>
-              </div>
-              <dl class="info-list">
-                <div>
-                  <dt>世界背景</dt>
-                  <dd>{{ textOrEmpty(parsedResult?.world?.background) }}</dd>
-                </div>
-                <div>
-                  <dt>核心规则</dt>
-                  <dd>{{ joinText(parsedResult?.world?.coreRules) }}</dd>
-                </div>
-                <div>
-                  <dt>力量体系</dt>
-                  <dd>{{ textOrEmpty(parsedResult?.world?.powerSystem) }}</dd>
-                </div>
-                <div>
-                  <dt>组织势力</dt>
-                  <dd>{{ joinText(parsedResult?.world?.organizations) }}</dd>
-                </div>
-                <div>
-                  <dt>重要地点</dt>
-                  <dd>{{ joinText(parsedResult?.world?.locations) }}</dd>
-                </div>
-                <div>
-                  <dt>禁忌设定</dt>
-                  <dd>{{ joinText(parsedResult?.world?.taboos) }}</dd>
-                </div>
-              </dl>
-            </article>
-
-            <article class="result-panel">
-              <div class="section-head">
-                <span>05</span>
-                <h2>黄金三章</h2>
-              </div>
-              <div v-if="goldenThreeChapters.length" class="chapter-list">
-                <div v-for="(chapter, index) in goldenThreeChapters" :key="chapter.index || chapter.chapter || chapter.title">
-                  <strong>第 {{ chapter.index || chapter.chapter || index + 1 }} 章：{{ chapter.title || '未命名章节' }}</strong>
-                  <p>{{ chapter.summary || chapter.hook || chapter.progression || chapter.explosionPoint || chapter.conflict || '暂无章节方向。' }}</p>
-                  <small>{{ [chapter.openingImage, chapter.coreEvent, chapter.characterChange, chapter.endingHook || chapter.sellingPoint || chapter.twist].filter(Boolean).join(' / ') }}</small>
-                </div>
-              </div>
-              <p v-else class="soft-empty">暂无章节内容。</p>
-            </article>
-
-            <article class="result-panel">
-              <div class="section-head">
-                <span>06</span>
-                <h2>写作约束</h2>
-              </div>
-              <dl class="info-list">
-                <div>
-                  <dt>文风</dt>
-                  <dd>{{ textOrEmpty(parsedResult?.writingGuide?.style) }}</dd>
-                </div>
-                <div>
-                  <dt>节奏</dt>
-                  <dd>{{ textOrEmpty(parsedResult?.writingGuide?.pace) }}</dd>
-                </div>
-                <div>
-                  <dt>叙事人称</dt>
-                  <dd>{{ textOrEmpty(parsedResult?.writingGuide?.pointOfView) }}</dd>
-                </div>
-                <div>
-                  <dt>禁用方向</dt>
-                  <dd>{{ joinText(parsedResult?.writingGuide?.avoid) }}</dd>
-                </div>
-                <div>
-                  <dt>参考素材</dt>
-                  <dd>{{ joinText(parsedResult?.writingGuide?.references) }}</dd>
-                </div>
-              </dl>
-            </article>
-          </section>
-
-          <section class="action-panel">
-            <el-button :disabled="!canUseResult" :loading="savingTopic" @click="saveAsTopicCard">保存为选题卡</el-button>
-            <el-button :disabled="!canUseResult" :loading="refining" @click="refineSetting">继续完善设定</el-button>
-            <el-button :disabled="!canUseResult" :loading="outlining" @click="generateOutline">生成详细大纲</el-button>
-            <el-button type="primary" :disabled="!canUseResult" :loading="creatingBook" @click="convertToBook">转为新书</el-button>
-            <el-button :disabled="!canUseResult" :loading="covering" @click="generateCoverPrompt">生成封面提示词</el-button>
-            <el-button :disabled="!job.rawOutput" @click="copyMarkdown">复制 Markdown</el-button>
-            <el-button @click="router.push('/ai/text-tools')">打开 AI 工坊</el-button>
-          </section>
-
-          <section v-if="derivedOutput" class="derived-panel">
-            <div class="section-head">
-              <span>{{ derivedOutput.kind === 'outline' ? '大纲' : derivedOutput.kind === 'cover' ? '封面' : '设定' }}</span>
-              <h2>{{ derivedOutput.title }}</h2>
-            </div>
-            <pre>{{ derivedOutput.content }}</pre>
-          </section>
-
-          <section class="usage-panel">
-            <div>
-              <span>模型</span>
-              <strong>{{ job.model || '未记录' }}</strong>
-            </div>
-            <div>
-              <span>输入 token</span>
-              <strong>{{ numberText(inputTokens) }}</strong>
-            </div>
-            <div>
-              <span>输出 token</span>
-              <strong>{{ numberText(outputTokens) }}</strong>
-            </div>
-            <div>
-              <span>总 token</span>
-              <strong>{{ numberText(totalTokens) }}</strong>
-            </div>
-            <div>
-              <span>耗时</span>
-              <strong>{{ job.latencyMs ? `${(job.latencyMs / 1000).toFixed(1)} 秒` : '未记录' }}</strong>
-            </div>
-          </section>
-        </template>
+  <div class="starter-result-page">
+    <section class="hero-panel">
+      <div>
+        <p class="eyebrow">创作起笔</p>
+        <h1>根据你的想法，生成设定树和开篇黄金三章。</h1>
       </div>
+      <el-tag :type="statusType" round>{{ statusText }}</el-tag>
+    </section>
+
+    <section v-if="loadingJob" class="state-panel">
+      <h2>正在读取起笔任务</h2>
+      <p>正在从本地任务存储读取真实任务记录。</p>
+    </section>
+
+    <section v-else-if="starterLoadError" class="state-panel state-error">
+      <h2>读取起笔任务失败</h2>
+      <p>{{ starterLoadError }}</p>
+      <el-button type="primary" :loading="loadingJob" @click="retryLoadJob">重试</el-button>
+    </section>
+
+    <section v-else-if="!job" class="state-panel">
+      <h2>没有找到起笔任务</h2>
+      <p>可以回到首页重新输入想法，创建一次新的起笔任务。</p>
+      <el-button type="primary" @click="router.push('/dashboard')">去首页起笔</el-button>
+    </section>
+
+    <template v-else>
+      <section class="status-panel">
+        <div>
+          <strong>{{ statusText }}</strong>
+          <span v-if="job.errorMessage">{{ job.errorMessage }}</span>
+          <span v-else-if="job.status === 'running'">正在调用当前文本 AI 服务，请稍候。</span>
+          <span v-else>任务创建于 {{ formatDateTime(job.createdAt) }}</span>
+        </div>
+        <el-progress
+          :percentage="job.status === 'completed' ? 100 : job.status === 'failed' ? 100 : 0"
+          :status="
+            job.status === 'failed'
+              ? 'exception'
+              : job.status === 'completed'
+                ? 'success'
+                : undefined
+          "
+          :indeterminate="job.status === 'running'"
+        />
+      </section>
+
+      <el-collapse class="context-collapse">
+        <el-collapse-item title="本次生成使用的上下文" name="context">
+          <div class="context-grid">
+            <article>
+              <h3>用户输入</h3>
+              <p>{{ job.prompt }}</p>
+            </article>
+            <article>
+              <h3>手动引用素材</h3>
+              <p v-if="!job.references.length">未手动选择素材。</p>
+              <ul v-else>
+                <li v-for="item in job.references" :key="item.key || item.id">
+                  {{ item.typeLabel || typeText(item.type) }}：{{ item.title }}
+                </li>
+              </ul>
+            </article>
+            <article>
+              <h3>自动参考素材</h3>
+              <p v-if="!job.autoReferences.length">当前没有自动参考素材。</p>
+              <ul v-else>
+                <li v-for="item in job.autoReferences" :key="item.key || item.id">
+                  {{ item.typeLabel || typeText(item.type) }}：{{ item.title }}
+                </li>
+              </ul>
+            </article>
+            <article>
+              <h3>高级要求</h3>
+              <p v-if="!filledAdvanced.length">未填写高级要求。</p>
+              <ul v-else>
+                <li v-for="item in filledAdvanced" :key="item.key">
+                  {{ item.label }}：{{ item.value }}
+                </li>
+              </ul>
+            </article>
+          </div>
+        </el-collapse-item>
+      </el-collapse>
+
+      <section class="result-grid">
+        <article class="result-panel wide">
+          <div class="section-head">
+            <span>01</span>
+            <h2>设定树</h2>
+          </div>
+          <template v-if="settingTreeRoots.length">
+            <div class="setting-tree-list">
+              <div
+                v-for="root in settingTreeRoots"
+                :key="root.name || root.title"
+                class="setting-root"
+              >
+                <strong>{{ root.name || root.title || '未命名设定' }}</strong>
+                <p>{{ root.description || root.summary || '暂无描述。' }}</p>
+                <ul v-if="asArray(root.children).length">
+                  <li v-for="child in asArray(root.children)" :key="child.name || child.title">
+                    <b>{{ child.name || child.title || '未命名子项' }}</b>
+                    <span>{{ child.description || child.summary || '' }}</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </template>
+          <template v-else-if="parsedResult">
+            <div class="title-options">
+              <el-tag v-for="title in asArray(parsedResult.core?.titleOptions)" :key="title" round>
+                {{ title }}
+              </el-tag>
+            </div>
+            <dl class="info-list">
+              <div>
+                <dt>一句话卖点</dt>
+                <dd>{{ textOrEmpty(parsedResult.core?.oneLineHook) }}</dd>
+              </div>
+              <div>
+                <dt>简介</dt>
+                <dd>{{ textOrEmpty(parsedResult.core?.synopsis) }}</dd>
+              </div>
+              <div>
+                <dt>题材标签</dt>
+                <dd>{{ joinText(parsedResult.core?.genreTags) }}</dd>
+              </div>
+              <div>
+                <dt>目标平台</dt>
+                <dd>{{ joinText(parsedResult.core?.targetPlatforms) }}</dd>
+              </div>
+              <div>
+                <dt>商业方向</dt>
+                <dd>{{ textOrEmpty(parsedResult.core?.monetizationPath) }}</dd>
+              </div>
+            </dl>
+          </template>
+          <pre v-else class="raw-output">{{ job.rawOutput || '暂无输出。' }}</pre>
+          <el-alert
+            v-if="job.rawOutput && !parsedResult && job.status === 'completed'"
+            type="warning"
+            show-icon
+            :closable="false"
+            title="结构化解析失败，已展示原始 AI 输出。"
+          />
+        </article>
+
+        <article class="result-panel">
+          <div class="section-head">
+            <span>02</span>
+            <h2>故事发动机</h2>
+          </div>
+          <dl class="info-list">
+            <div v-for="item in engineItems" :key="item.label">
+              <dt>{{ item.label }}</dt>
+              <dd>{{ item.value }}</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="result-panel">
+          <div class="section-head">
+            <span>03</span>
+            <h2>人物种子</h2>
+          </div>
+          <div v-if="characters.length" class="stack-list">
+            <div v-for="item in characters" :key="`${item.name}-${item.role}`">
+              <strong>{{ item.name || item.role || '未命名角色' }}</strong>
+              <p>{{ [item.role, item.identity, item.personality].filter(Boolean).join(' · ') }}</p>
+              <small>{{ item.growthArc || item.goal || item.flaw || '暂无人物补充。' }}</small>
+            </div>
+          </div>
+          <p v-else class="soft-empty">暂无人物内容。</p>
+        </article>
+
+        <article class="result-panel">
+          <div class="section-head">
+            <span>04</span>
+            <h2>世界规则</h2>
+          </div>
+          <dl class="info-list">
+            <div>
+              <dt>世界背景</dt>
+              <dd>{{ textOrEmpty(parsedResult?.world?.background) }}</dd>
+            </div>
+            <div>
+              <dt>核心规则</dt>
+              <dd>{{ joinText(parsedResult?.world?.coreRules) }}</dd>
+            </div>
+            <div>
+              <dt>力量体系</dt>
+              <dd>{{ textOrEmpty(parsedResult?.world?.powerSystem) }}</dd>
+            </div>
+            <div>
+              <dt>组织势力</dt>
+              <dd>{{ joinText(parsedResult?.world?.organizations) }}</dd>
+            </div>
+            <div>
+              <dt>重要地点</dt>
+              <dd>{{ joinText(parsedResult?.world?.locations) }}</dd>
+            </div>
+            <div>
+              <dt>禁忌设定</dt>
+              <dd>{{ joinText(parsedResult?.world?.taboos) }}</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="result-panel">
+          <div class="section-head">
+            <span>05</span>
+            <h2>黄金三章</h2>
+          </div>
+          <div v-if="goldenThreeChapters.length" class="chapter-list">
+            <div
+              v-for="(chapter, index) in goldenThreeChapters"
+              :key="chapter.index || chapter.chapter || chapter.title"
+            >
+              <strong
+                >第 {{ chapter.index || chapter.chapter || index + 1 }} 章：{{
+                  chapter.title || '未命名章节'
+                }}</strong
+              >
+              <p>
+                {{
+                  chapter.summary ||
+                  chapter.hook ||
+                  chapter.progression ||
+                  chapter.explosionPoint ||
+                  chapter.conflict ||
+                  '暂无章节方向。'
+                }}
+              </p>
+              <small>{{
+                [
+                  chapter.openingImage,
+                  chapter.coreEvent,
+                  chapter.characterChange,
+                  chapter.endingHook || chapter.sellingPoint || chapter.twist
+                ]
+                  .filter(Boolean)
+                  .join(' / ')
+              }}</small>
+            </div>
+          </div>
+          <p v-else class="soft-empty">暂无章节内容。</p>
+        </article>
+
+        <article class="result-panel">
+          <div class="section-head">
+            <span>06</span>
+            <h2>写作约束</h2>
+          </div>
+          <dl class="info-list">
+            <div>
+              <dt>文风</dt>
+              <dd>{{ textOrEmpty(parsedResult?.writingGuide?.style) }}</dd>
+            </div>
+            <div>
+              <dt>节奏</dt>
+              <dd>{{ textOrEmpty(parsedResult?.writingGuide?.pace) }}</dd>
+            </div>
+            <div>
+              <dt>叙事人称</dt>
+              <dd>{{ textOrEmpty(parsedResult?.writingGuide?.pointOfView) }}</dd>
+            </div>
+            <div>
+              <dt>禁用方向</dt>
+              <dd>{{ joinText(parsedResult?.writingGuide?.avoid) }}</dd>
+            </div>
+            <div>
+              <dt>参考素材</dt>
+              <dd>{{ joinText(parsedResult?.writingGuide?.references) }}</dd>
+            </div>
+          </dl>
+        </article>
+      </section>
+
+      <section class="action-panel">
+        <el-button :disabled="!canUseResult" :loading="savingTopic" @click="saveAsTopicCard"
+          >保存为选题卡</el-button
+        >
+        <el-button :disabled="!canUseResult" :loading="refining" @click="refineSetting"
+          >继续完善设定</el-button
+        >
+        <el-button :disabled="!canUseResult" :loading="outlining" @click="generateOutline"
+          >生成详细大纲</el-button
+        >
+        <el-button
+          type="primary"
+          :disabled="!canUseResult"
+          :loading="creatingBook"
+          @click="convertToBook"
+          >转为新书</el-button
+        >
+        <el-button :disabled="!canUseResult" :loading="covering" @click="generateCoverPrompt"
+          >生成封面提示词</el-button
+        >
+        <el-button :disabled="!job.rawOutput" @click="copyMarkdown">复制 Markdown</el-button>
+        <el-button @click="router.push('/ai/text-tools')">打开 AI 工坊</el-button>
+      </section>
+
+      <section v-if="derivedOutput" class="derived-panel">
+        <div class="section-head">
+          <span>{{
+            derivedOutput.kind === 'outline'
+              ? '大纲'
+              : derivedOutput.kind === 'cover'
+                ? '封面'
+                : '设定'
+          }}</span>
+          <h2>{{ derivedOutput.title }}</h2>
+        </div>
+        <pre>{{ derivedOutput.content }}</pre>
+      </section>
+
+      <section class="usage-panel">
+        <div>
+          <span>模型</span>
+          <strong>{{ job.model || '未记录' }}</strong>
+        </div>
+        <div>
+          <span>输入 token</span>
+          <strong>{{ numberText(inputTokens) }}</strong>
+        </div>
+        <div>
+          <span>输出 token</span>
+          <strong>{{ numberText(outputTokens) }}</strong>
+        </div>
+        <div>
+          <span>总 token</span>
+          <strong>{{ numberText(totalTokens) }}</strong>
+        </div>
+        <div>
+          <span>耗时</span>
+          <strong>{{
+            job.latencyMs ? `${(job.latencyMs / 1000).toFixed(1)} 秒` : '未记录'
+          }}</strong>
+        </div>
+      </section>
+    </template>
+  </div>
 </template>
 
 <script setup>
@@ -328,9 +387,11 @@ const settingTreeRoots = computed(() => {
 })
 const characters = computed(() => asArray(parsedResult.value?.characters))
 const openingChapters = computed(() => asArray(parsedResult.value?.openingChapters))
-const goldenThreeChapters = computed(() => asArray(parsedResult.value?.goldenThreeChapters).length
-  ? asArray(parsedResult.value?.goldenThreeChapters)
-  : openingChapters.value)
+const goldenThreeChapters = computed(() =>
+  asArray(parsedResult.value?.goldenThreeChapters).length
+    ? asArray(parsedResult.value?.goldenThreeChapters)
+    : openingChapters.value
+)
 const canUseResult = computed(() => Boolean(job.value?.rawOutput || parsedResult.value))
 const statusText = computed(() => {
   const map = {
@@ -350,7 +411,11 @@ const statusType = computed(() => {
 })
 const filledAdvanced = computed(() =>
   Object.entries(job.value?.advanced || {})
-    .map(([key, value]) => ({ key, label: advancedLabels[key] || key, value: String(value || '').trim() }))
+    .map(([key, value]) => ({
+      key,
+      label: advancedLabels[key] || key,
+      value: String(value || '').trim()
+    }))
     .filter((item) => item.value)
 )
 const engineItems = computed(() => {
@@ -365,9 +430,19 @@ const engineItems = computed(() => {
     ['长期悬念', engine.longTermSuspense]
   ].map(([label, value]) => ({ label, value: textOrEmpty(value) }))
 })
-const inputTokens = computed(() => Number(job.value?.usage?.prompt_tokens || job.value?.usage?.promptTokens || 0))
-const outputTokens = computed(() => Number(job.value?.usage?.completion_tokens || job.value?.usage?.completionTokens || 0))
-const totalTokens = computed(() => Number(job.value?.usage?.total_tokens || job.value?.usage?.totalTokens || inputTokens.value + outputTokens.value))
+const inputTokens = computed(() =>
+  Number(job.value?.usage?.prompt_tokens || job.value?.usage?.promptTokens || 0)
+)
+const outputTokens = computed(() =>
+  Number(job.value?.usage?.completion_tokens || job.value?.usage?.completionTokens || 0)
+)
+const totalTokens = computed(() =>
+  Number(
+    job.value?.usage?.total_tokens ||
+      job.value?.usage?.totalTokens ||
+      inputTokens.value + outputTokens.value
+  )
+)
 
 onMounted(async () => {
   const loadedJob = await loadJob()
@@ -436,7 +511,10 @@ function requireBookVisibleInShelf(books, expectedName, fallback = '刷新书架
 async function runStarterGeneration() {
   if (!job.value) return
   try {
-    job.value = await updateCreationStarterJob(job.value.id, { status: 'running', errorMessage: '' })
+    job.value = await updateCreationStarterJob(job.value.id, {
+      status: 'running',
+      errorMessage: ''
+    })
   } catch (error) {
     starterLoadError.value = error?.message || '更新起笔任务失败'
     ElMessage.error(starterLoadError.value)
@@ -552,15 +630,30 @@ async function saveAsTopicCard() {
 }
 
 async function refineSetting() {
-  await runDerivedTask('refine', '完善后的设定', '请在已有起笔方案基础上，继续补充世界规则、人物关系和核心冲突，保留可执行的条目。', refining)
+  await runDerivedTask(
+    'refine',
+    '完善后的设定',
+    '请在已有起笔方案基础上，继续补充世界规则、人物关系和核心冲突，保留可执行的条目。',
+    refining
+  )
 }
 
 async function generateOutline() {
-  await runDerivedTask('outline', '详细大纲', '请基于起笔方案生成前 30 章详细大纲，每章包含标题、剧情推进、冲突、章末钩子。', outlining)
+  await runDerivedTask(
+    'outline',
+    '详细大纲',
+    '请基于起笔方案生成前 30 章详细大纲，每章包含标题、剧情推进、冲突、章末钩子。',
+    outlining
+  )
 }
 
 async function generateCoverPrompt() {
-  await runDerivedTask('cover', '封面提示词', '请基于起笔方案生成 3 套中文封面提示词，包含画面主体、场景、氛围、构图、避开的元素。', covering)
+  await runDerivedTask(
+    'cover',
+    '封面提示词',
+    '请基于起笔方案生成 3 套中文封面提示词，包含画面主体、场景、氛围、构图、避开的元素。',
+    covering
+  )
 }
 
 async function runDerivedTask(kind, title, instruction, loadingRef) {
@@ -644,7 +737,12 @@ function buildSettingsPayload() {
   addItem('故事发动机', engineItems.value.map((item) => `${item.label}：${item.value}`).join('\n'))
   addItem('世界规则', toWorldText())
   characters.value.forEach((item) => {
-    addItem(`人物：${item.name || item.role || '未命名角色'}`, [item.role, item.identity, item.personality, item.flaw, item.goal, item.growthArc].filter(Boolean).join('\n'))
+    addItem(
+      `人物：${item.name || item.role || '未命名角色'}`,
+      [item.role, item.identity, item.personality, item.flaw, item.goal, item.growthArc]
+        .filter(Boolean)
+        .join('\n')
+    )
   })
   return {
     categories: [
@@ -661,7 +759,9 @@ function buildSettingsPayload() {
 
 function buildOutlinesPayload() {
   return {
-    content: [parsedResult.value?.core?.synopsis, parsedResult.value?.core?.oneLineHook].filter(Boolean).join('\n\n'),
+    content: [parsedResult.value?.core?.synopsis, parsedResult.value?.core?.oneLineHook]
+      .filter(Boolean)
+      .join('\n\n'),
     children: openingChapters.value.map((chapter, index) => ({
       id: genId(),
       title: chapter.title || `第${index + 1}章`,
@@ -709,13 +809,19 @@ function toMarkdown() {
     ...engineItems.value.map((item) => `- ${item.label}：${item.value}`),
     '',
     `## 人物种子`,
-    ...characters.value.map((item) => `- ${item.name || item.role || '未命名角色'}：${[item.role, item.identity, item.personality, item.flaw, item.goal, item.growthArc].filter(Boolean).join('；')}`),
+    ...characters.value.map(
+      (item) =>
+        `- ${item.name || item.role || '未命名角色'}：${[item.role, item.identity, item.personality, item.flaw, item.goal, item.growthArc].filter(Boolean).join('；')}`
+    ),
     '',
     `## 世界规则`,
     toWorldText(),
     '',
     `## 起笔三章`,
-    ...openingChapters.value.map((chapter) => `- 第 ${chapter.chapter || '-'} 章《${chapter.title || '未命名章节'}》：${[chapter.hook, chapter.conflict, chapter.progression, chapter.sellingPoint, chapter.explosionPoint, chapter.twist, chapter.endingHook].filter(Boolean).join('；')}`),
+    ...openingChapters.value.map(
+      (chapter) =>
+        `- 第 ${chapter.chapter || '-'} 章《${chapter.title || '未命名章节'}》：${[chapter.hook, chapter.conflict, chapter.progression, chapter.sellingPoint, chapter.explosionPoint, chapter.twist, chapter.endingHook].filter(Boolean).join('；')}`
+    ),
     '',
     `## 写作约束`,
     `- 文风：${textOrEmpty(parsedResult.value.writingGuide?.style)}`,
@@ -746,11 +852,19 @@ function openBook(bookData) {
 }
 
 function firstTitle() {
-  return asArray(parsedResult.value?.core?.titleOptions)[0] || job.value?.prompt?.slice(0, 18) || '未命名新书'
+  return (
+    asArray(parsedResult.value?.core?.titleOptions)[0] ||
+    job.value?.prompt?.slice(0, 18) ||
+    '未命名新书'
+  )
 }
 
 function uniqueBookName(rawName) {
-  return String(rawName || '未命名新书').trim().slice(0, 15) || `新书${Date.now()}`
+  return (
+    String(rawName || '未命名新书')
+      .trim()
+      .slice(0, 15) || `新书${Date.now()}`
+  )
 }
 
 function genId() {
@@ -762,7 +876,9 @@ function asArray(value) {
 }
 
 function joinText(value) {
-  const rows = asArray(value).map((item) => String(item || '').trim()).filter(Boolean)
+  const rows = asArray(value)
+    .map((item) => String(item || '').trim())
+    .filter(Boolean)
   return rows.length ? rows.join('、') : '未记录'
 }
 
@@ -815,8 +931,7 @@ function formatDateTime(value) {
   border: 1px solid var(--border-color);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.32), transparent 56%),
-    rgba(251, 250, 246, 0.9);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.32), transparent 56%), rgba(251, 250, 246, 0.9);
 }
 
 .hero-panel {

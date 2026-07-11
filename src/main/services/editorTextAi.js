@@ -54,7 +54,8 @@ function buildNameMessages(options = {}) {
       prompt += '- 这是日本人名，但必须使用中文汉字音译，如：田中太郎、佐藤花子、铃木健一。\n'
       prompt += '- 不能使用日文假名，必须全部使用中文汉字。\n'
     } else if (type === 'en') {
-      prompt += '- 这是西方人名，但必须使用中文汉字音译，如：约翰·史密斯、玛丽·威廉姆斯、詹姆斯·布朗。\n'
+      prompt +=
+        '- 这是西方人名，但必须使用中文汉字音译，如：约翰·史密斯、玛丽·威廉姆斯、詹姆斯·布朗。\n'
       prompt += '- 不能使用英文字母，姓氏和名字之间用中文顿号“·”分隔。\n'
     } else {
       prompt += '- 要求名称有创意、符合文化背景、朗朗上口。\n'
@@ -89,7 +90,9 @@ function parseNames(rawText = '', count = 24) {
 class EditorTextAiService {
   async generateNames(payload = {}, textProvider) {
     ensureTextProvider(textProvider)
-    const count = Number.isFinite(Number(payload.count)) ? Math.max(1, Math.min(100, Number(payload.count))) : 24
+    const count = Number.isFinite(Number(payload.count))
+      ? Math.max(1, Math.min(100, Number(payload.count)))
+      : 24
     const result = await textProvider.chat({
       messages: buildNameMessages({ ...payload, count }),
       model: payload.model || payload.modelName || undefined,
@@ -189,7 +192,9 @@ class EditorTextAiService {
       requestId: `sceneVisual_${Date.now()}`
     })
 
-    const content = sanitizeText(result.content).replace(/^(画面描述|描述)[:：]\s*/i, '').trim()
+    const content = sanitizeText(result.content)
+      .replace(/^(画面描述|描述)[:：]\s*/i, '')
+      .trim()
     if (!content) throw new Error('提炼结果为空，请重试')
     return textResult(result, content)
   }

@@ -86,7 +86,7 @@ export default {
     // 事件处理
     function handleCanvasMouseDown(e) {
       const pos = getCanvasPos(e)
-      
+
       if (tool.value === 'pencil') {
         pencilTool.onMouseDown(pos)
       } else if (tool.value === 'eraser') {
@@ -97,7 +97,7 @@ export default {
 
     function handleCanvasMouseMove(e) {
       const pos = getCanvasPos(e)
-      
+
       if (tool.value === 'pencil' && pencilTool.drawingActive.value) {
         pencilTool.onMouseMove(pos)
       } else if (tool.value === 'eraser' && eraserTool.drawingActive.value) {
@@ -130,13 +130,14 @@ export default {
 ## 优势对比
 
 ### 重构前（MapDesign.vue）
+
 - 3000+ 行代码
 - 所有工具逻辑混在一起
 - 难以维护和扩展
 
 ### 重构后
+
 - MapDesign.vue: ~500-800 行（主要是组合 composables）
 - 每个工具: ~50-200 行（独立管理）
 - 共享逻辑: 可复用
 - 易于测试和维护
-

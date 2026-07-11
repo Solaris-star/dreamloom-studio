@@ -376,7 +376,11 @@ async function handleNoteClick(data, node) {
   if (data.type === 'note') {
     const currentFile = editorStore.file
     if (currentFile && currentFile.path === data.path) return
-    await editorStore.saveCurrentFileThroughHandler(false)
+    const saved = await editorStore.saveCurrentFileThroughHandler(false)
+    if (currentFile && !saved) {
+      ElMessage.error('当前内容保存失败，已取消切换，请重试')
+      return
+    }
     const parent = node.parent.data
     const res = await window.electron.readNote(props.bookName, parent.name, data.name)
     if (res.success) {
@@ -420,7 +424,11 @@ async function handleChapterClick(data, node) {
       })
     }
 
-    await editorStore.saveCurrentFileThroughHandler(false)
+    const saved = await editorStore.saveCurrentFileThroughHandler(false)
+    if (currentFile && !saved) {
+      ElMessage.error('当前内容保存失败，已取消切换，请重试')
+      return
+    }
     // 读取章节内容
     const res = await window.electron.readChapter(props.bookName, node.parent.data.name, data.name)
     if (res.success) {
@@ -527,7 +535,8 @@ async function loadChapters(arg = false) {
       currentChapterNodeKey.value = null
     }
 
-    const rawChapters = await window.electron.loadChapters(props.bookName)
+    const chapterResult = await window.electron.loadChapters(props.bookName)
+    const rawChapters = Array.isArray(chapterResult) ? chapterResult : chapterResult.chapters
     const rawVolumes = getVolumeNodes(rawChapters)
     const chapters = sortOrder.value === 'desc' ? [...rawChapters].reverse() : rawChapters
 
@@ -632,6 +641,72 @@ async function loadChapters(arg = false) {
   } catch {
     ElMessage.error(t('noteChapter.loadChaptersFailed'))
   }
+}
+
+function getFlattenedChapters() {
+  const list = []
+  chaptersTree.value.forEach(vol => {
+    if (vol.children && Array.isArray(vol.children)) {
+      vol.children.forEach(ch => {
+        list.push({ chapter: ch, volume: vol })
+      })
+    }
+  })
+  return list
+}
+
+async function prevChapter() {
+  const currentPath = editorStore.file?.path
+  if (!currentPath) return
+  const list = getFlattenedChapters()
+  const idx = list.findIndex(item => item.chapter.path === currentPath)
+  if (idx > 0) {
+    const target = list[idx - 1]
+    const fakeNode = { data: target.chapter, parent: { data: target.volume } }
+    await handleChapterClick(target.chapter, fakeNode)
+  } else {
+    ElMessage.info('已经是第一章了')
+  }
+}
+
+async function nextChapter() {
+  const currentPath = editorStore.file?.path
+  if (!currentPath) return
+  const list = getFlattenedChapters()
+  const idx = list.findIndex(item => item.chapter.path === currentPath)
+  if (idx !== -1 && idx < list.length - 1) {
+    const target = list[idx + 1]
+    const fakeNode = { data: target.chapter, parent: { data: target.volume } }
+    await handleChapterClick(target.chapter, fakeNode)
+  } else {
+    ElMessage.info('已经是最后一章了')
+  }
+}
+
+function getChapterOutline() {
+  const currentPath = editorStore.file?.path || ''
+  return chaptersTree.value.map((volume) => ({
+    id: getVolumeId(volume),
+    name: volume.name,
+    chapters: (volume.children || []).map((chapter) => ({
+      name: chapter.name,
+      path: chapter.path,
+      wordCount: Number(chapter.wordCount || chapter.words || 0),
+      current: chapter.path === currentPath
+    }))
+  }))
+}
+
+async function selectChapterByPath(path) {
+  if (!path || path === editorStore.file?.path) return true
+  const target = getFlattenedChapters().find((item) => item.chapter.path === path)
+  if (!target) {
+    ElMessage.error('未找到该章节')
+    return false
+  }
+  const fakeNode = { data: target.chapter, parent: { data: target.volume } }
+  await handleChapterClick(target.chapter, fakeNode)
+  return editorStore.file?.path === path
 }
 
 function ensureTrailingSpace(name) {
@@ -830,7 +905,7 @@ async function createNotebook() {
     ElMessage.success(t('noteChapter.createNotebookSuccess', { name: result.notebookName }))
 
     // 重新加载笔记数据
-    notesTree.value = await window.electron.loadNotes(props.bookName)
+    await loadNotesTree()
   } else {
     ElMessage.error(result.message || t('noteChapter.createNotebookFailed'))
   }
@@ -847,7 +922,7 @@ async function createNote(node) {
     ElMessage.success(t('noteChapter.createNoteSuccess'))
 
     // 重新加载笔记数据
-    notesTree.value = await window.electron.loadNotes(props.bookName)
+    await loadNotesTree()
   } else {
     ElMessage.error(result.message || t('noteChapter.createNoteFailed'))
   }
@@ -894,7 +969,7 @@ async function confirmEditNote(node) {
     ElMessage.success(t('noteChapter.renameSuccess'))
 
     // 重新加载笔记数据
-    notesTree.value = await window.electron.loadNotes(props.bookName)
+    await loadNotesTree()
   } else {
     ElMessage.error(result?.message || t('noteChapter.renameFailed'))
   }
@@ -929,7 +1004,7 @@ async function deleteNoteNode(node) {
       ElMessage.success(t('noteChapter.deleteSuccess'))
 
       // 重新加载笔记数据
-      notesTree.value = await window.electron.loadNotes(props.bookName)
+      await loadNotesTree()
     } else {
       ElMessage.error(result?.message || t('noteChapter.deleteFailed'))
     }
@@ -948,12 +1023,12 @@ onMounted(async () => {
 
     if (preserveOpenFile) {
       await loadChapters(false)
-      notesTree.value = await window.electron.loadNotes(props.bookName)
+      await loadNotesTree()
       await syncSidebarFromPersistedFile()
     } else {
       // 首次进入本书编辑页：优先恢复上次查看的章节，否则选中最新章节
       await loadChapters({ restoreLastChapter: true, autoSelectLatest: true })
-      notesTree.value = await window.electron.loadNotes(props.bookName)
+      await loadNotesTree()
     }
     await loadChapterSettings()
   } catch {
@@ -963,11 +1038,24 @@ onMounted(async () => {
 
 defineExpose({
   reloadNotes,
-  reloadChapters: (autoSelectLatest = false) => loadChapters(autoSelectLatest)
+  reloadChapters: (autoSelectLatest = false) => loadChapters(autoSelectLatest),
+  prevChapter,
+  nextChapter,
+  getChapterOutline,
+  selectChapterByPath
 })
 
 async function reloadNotes() {
-  notesTree.value = await window.electron.loadNotes(props.bookName)
+  await loadNotesTree()
+}
+
+async function loadNotesTree() {
+  const result = await window.electron.loadNotes(props.bookName)
+  const notes = Array.isArray(result) ? result : result?.notes
+  if (!Array.isArray(notes)) {
+    throw new Error(result?.message || '读取笔记失败：接口返回格式不正确')
+  }
+  notesTree.value = notes
 }
 
 // 打开章节设置弹框

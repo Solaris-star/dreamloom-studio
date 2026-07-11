@@ -121,13 +121,23 @@ function getWordLogs(params = {}) {
 function normalizeAiUsage(raw = {}) {
   const usage = raw.usage && typeof raw.usage === 'object' ? raw.usage : {}
   const promptTokens = asNumber(
-    raw.promptTokens ?? raw.prompt_tokens ?? raw.inputTokens ?? raw.input_tokens ??
-      usage.promptTokens ?? usage.prompt_tokens ?? usage.input_tokens,
+    raw.promptTokens ??
+      raw.prompt_tokens ??
+      raw.inputTokens ??
+      raw.input_tokens ??
+      usage.promptTokens ??
+      usage.prompt_tokens ??
+      usage.input_tokens,
     0
   )
   const completionTokens = asNumber(
-    raw.completionTokens ?? raw.completion_tokens ?? raw.outputTokens ?? raw.output_tokens ??
-      usage.completionTokens ?? usage.completion_tokens ?? usage.output_tokens,
+    raw.completionTokens ??
+      raw.completion_tokens ??
+      raw.outputTokens ??
+      raw.output_tokens ??
+      usage.completionTokens ??
+      usage.completion_tokens ??
+      usage.output_tokens,
     0
   )
   const totalTokens = asNumber(
@@ -510,9 +520,12 @@ export function getSessionStats(booksDir, params = {}) {
   }))
   const totalWords = rows.reduce((sum, row) => sum + row.words, 0)
   const totalMinutes = rows.reduce((sum, row) => sum + row.durationMinutes, 0)
-  const longest = rows.reduce((best, row) => (row.durationMinutes > best.durationMinutes ? row : best), {
-    durationMinutes: 0
-  })
+  const longest = rows.reduce(
+    (best, row) => (row.durationMinutes > best.durationMinutes ? row : best),
+    {
+      durationMinutes: 0
+    }
+  )
 
   return {
     sessionCount: rows.length,
@@ -552,9 +565,8 @@ function buildReport(booksDir, params = {}, type = 'week') {
     words: 0
   })
   const dailyAverage = activeDays ? Math.round(totalWords / activeDays) : 0
-  const label = type === 'month'
-    ? `${range.startDate.slice(0, 7)}`
-    : `${range.startDate} 至 ${range.endDate}`
+  const label =
+    type === 'month' ? `${range.startDate.slice(0, 7)}` : `${range.startDate} 至 ${range.endDate}`
 
   const summaryParts = []
   summaryParts.push(`本${type === 'month' ? '月' : '周'}新增 ${totalWords.toLocaleString()} 字`)

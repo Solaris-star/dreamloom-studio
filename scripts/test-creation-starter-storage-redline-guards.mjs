@@ -26,7 +26,7 @@ const aiWorkshop = readProjectFile('src/renderer/src/views/AiWorkshop.vue')
 
 for (const expected of [
   'function requireOptionalArrayField(raw = {}, fieldName, label)',
-  "throw new Error(`起笔任务${label}格式异常，已停止读取以免使用错误任务`)",
+  'throw new Error(`起笔任务${label}格式异常，已停止读取以免使用错误任务`)',
   "references: requireOptionalArrayField(raw, 'references', '手动参考素材')",
   "autoReferences: requireOptionalArrayField(raw, 'autoReferences', '自动参考素材')",
   'function requireStoredJobs',
@@ -46,12 +46,15 @@ for (const expected of [
 for (const forbidden of [
   "JSON.parse(localStorage.getItem(JOBS_KEY) || '[]')",
   'return Array.isArray(local) ? local.map(normalizeJob) : []',
-  "[CreationStarter] Electron store read failed",
+  '[CreationStarter] Electron store read failed',
   'await window.electronStore.set(JOBS_KEY, rows)\n    wroteElectronStore = true',
   'references: Array.isArray(raw.references) ? raw.references : []',
   'autoReferences: Array.isArray(raw.autoReferences) ? raw.autoReferences : []'
 ]) {
-  assert(!serviceSource.includes(forbidden), `creationStarter service must not contain ${forbidden}`)
+  assert(
+    !serviceSource.includes(forbidden),
+    `creationStarter service must not contain ${forbidden}`
+  )
 }
 
 for (const expected of [
@@ -63,20 +66,20 @@ for (const expected of [
   'starterLoadError.value = error?.message',
   "starterLoadError.value = writeError?.message || '保存起笔任务失败'",
   "function requireAiTextContent(result, fallback = '生成失败')",
-  "if (result?.success !== true) throw new Error(result?.message || fallback)",
-  "if (!content) throw new Error(`${fallback}：接口没有返回正文内容`)",
+  'if (result?.success !== true) throw new Error(result?.message || fallback)',
+  'if (!content) throw new Error(`${fallback}：接口没有返回正文内容`)',
   "const rawOutput = requireAiTextContent(result, '生成失败')",
-  "const content = requireAiTextContent(result, `${title}失败`)",
+  'const content = requireAiTextContent(result, `${title}失败`)',
   "function requireKnowledgeItemResult(result, fallback = '保存失败')",
   "requireKnowledgeItemResult(result, '保存失败')",
   "requireKnowledgeItemResult(topicResult, '保存选题卡失败')",
-  'function requireCreatedBookResult(result, expectedName, fallback = \'创建作品失败\')',
+  "function requireCreatedBookResult(result, expectedName, fallback = '创建作品失败')",
   'result.bookName !== expectedName',
   "typeof result.bookPath !== 'string'",
   'result.databaseSync?.success !== true',
-  'function requireBookVisibleInShelf(books, expectedName, fallback = \'刷新书架失败\')',
+  "function requireBookVisibleInShelf(books, expectedName, fallback = '刷新书架失败')",
   'const matchedBook = books.find((item) => item?.name === expectedName || item?.bookName === expectedName)',
-  "if (!matchedBook) throw new Error(`${fallback}：新作品未出现在书架列表中`)",
+  'if (!matchedBook) throw new Error(`${fallback}：新作品未出现在书架列表中`)',
   'const createdBook = requireCreatedBookResult(await createBook(bookData), title)',
   "import { writeOutlineDocument, writeSettingsDocument } from '@renderer/service/editor'",
   'await writeSettingsDocument(title, buildSettingsPayload())',
@@ -88,7 +91,7 @@ for (const expected of [
   "typeof navigator.clipboard?.writeText !== 'function'",
   'await navigator.clipboard.writeText(text)',
   "ElMessage.error(error?.message || '复制 Markdown 失败')",
-  ':percentage="job.status === \'completed\' ? 100 : job.status === \'failed\' ? 100 : 0"'
+  ":percentage=\"job.status === 'completed' ? 100 : job.status === 'failed' ? 100 : 0\""
 ]) {
   assertIncludes(resultView, expected, `CreationStarterResult missing ${expected}`)
 }
@@ -103,10 +106,10 @@ for (const forbidden of [
   'window.electron.writeOutlines',
   'function requireBookDocumentWriteResult(result, expected, fallback)',
   'await readBooksDir()\n    ElMessage.success(`已创建《${title}》`)',
-  'const rawOutput = result.content || \'\'',
-  'content: result.content || \'\'',
-  'navigator.clipboard?.writeText(text)\n  ElMessage.success(\'已复制 Markdown\')',
-  ':percentage="job.status === \'completed\' ? 100 : job.status === \'failed\' ? 100 : 36"'
+  "const rawOutput = result.content || ''",
+  "content: result.content || ''",
+  "navigator.clipboard?.writeText(text)\n  ElMessage.success('已复制 Markdown')",
+  ":percentage=\"job.status === 'completed' ? 100 : job.status === 'failed' ? 100 : 36\""
 ]) {
   assert(!resultView.includes(forbidden), `CreationStarterResult must not contain ${forbidden}`)
 }
@@ -119,7 +122,11 @@ for (const expected of [
   "requireElectronApi('writeOutlines', '大纲写入接口')",
   'return requireOutlineWriteResult(response)'
 ]) {
-  assertIncludes(editorService, expected, `editor service missing starter document writer guard ${expected}`)
+  assertIncludes(
+    editorService,
+    expected,
+    `editor service missing starter document writer guard ${expected}`
+  )
 }
 
 for (const expected of [
@@ -135,8 +142,12 @@ for (const expected of [
   assertIncludes(aiWorkshop, expected, `AiWorkshop starter job guard missing ${expected}`)
 }
 
-const { createCreationStarterJob, getCreationStarterJob, updateCreationStarterJob, listCreationStarterJobs } =
-  await import('../src/renderer/src/service/creationStarter.js')
+const {
+  createCreationStarterJob,
+  getCreationStarterJob,
+  updateCreationStarterJob,
+  listCreationStarterJobs
+} = await import('../src/renderer/src/service/creationStarter.js')
 
 const originalWarn = console.warn
 
@@ -206,7 +217,9 @@ await assertRejectsWithText(
   'malformed manual references should fail instead of becoming an empty list'
 )
 
-installStorage({ storedValue: [{ id: 'bad_auto_refs', prompt: '坏引用', autoReferences: { id: 'ref' } }] })
+installStorage({
+  storedValue: [{ id: 'bad_auto_refs', prompt: '坏引用', autoReferences: { id: 'ref' } }]
+})
 await assertRejectsWithText(
   () => getCreationStarterJob('bad_auto_refs'),
   '起笔任务自动参考素材格式异常',

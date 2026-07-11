@@ -14,7 +14,10 @@ import {
   writeNovelChapters
 } from '../src/main/services/novelCliService.js'
 import marketService from '../src/main/services/marketService.js'
-import { getNovelDatabasePath, openNovelDatabase } from '../src/main/services/novelDatabaseService.js'
+import {
+  getNovelDatabasePath,
+  openNovelDatabase
+} from '../src/main/services/novelDatabaseService.js'
 
 const ENV_KEYS = [
   'DEEPSEEK_API_KEY',
@@ -48,9 +51,7 @@ function readJson(filePath) {
 }
 
 function requestText(request = {}) {
-  return (request.messages || [])
-    .map((message) => message?.content || '')
-    .join('\n')
+  return (request.messages || []).map((message) => message?.content || '').join('\n')
 }
 
 function createOfflineProvider() {
@@ -140,7 +141,8 @@ function createOfflineProvider() {
     }
     if (requestId.includes('outline_chapter_')) {
       return {
-        content: '林澈在云海港口连夜查问姐姐的下落，沿着旧航道留下的线索潜入商路，发现宗门旧案与失踪事件已经连到一起。',
+        content:
+          '林澈在云海港口连夜查问姐姐的下落，沿着旧航道留下的线索潜入商路，发现宗门旧案与失踪事件已经连到一起。',
         providerId: 'offline-cli-provider',
         model: options.model || 'offline-model',
         usage: { total_tokens: 160 }
@@ -176,16 +178,12 @@ function createOfflineProvider() {
             {
               name: '世界',
               introduction: '云海商路与山门旧案相关设定。',
-              items: [
-                { name: '云海航道', introduction: '只在潮汐窗口开放。' }
-              ]
+              items: [{ name: '云海航道', introduction: '只在潮汐窗口开放。' }]
             },
             {
               name: '人物',
               introduction: '主角与配角设定。',
-              items: [
-                { name: '林澈', introduction: '寻找姐姐的少年。' }
-              ]
+              items: [{ name: '林澈', introduction: '寻找姐姐的少年。' }]
             }
           ]
         }),
@@ -403,7 +401,10 @@ try {
   assert.equal(outlineResult.success, true)
   assert.equal(outlineResult.count, 3)
   assert.equal(Boolean(outlineResult.outlineId), true)
-  assert.equal(outlineProvider.calls.some((id) => id.includes('outline_split')), true)
+  assert.equal(
+    outlineProvider.calls.some((id) => id.includes('outline_split')),
+    true
+  )
 
   const outlines = readJson(join(booksDir, bookName, 'outlines.json'))
   assert.equal(outlines.children.length, 1)
@@ -417,14 +418,18 @@ try {
   )
   fs.writeFileSync(
     join(booksDir, bookName, 'settings.json'),
-    JSON.stringify({
-      categories: [
-        {
-          name: '术法',
-          items: [{ name: '月影术', introduction: '月影术只能在夜间施展，白天不能发动。' }]
-        }
-      ]
-    }, null, 2),
+    JSON.stringify(
+      {
+        categories: [
+          {
+            name: '术法',
+            items: [{ name: '月影术', introduction: '月影术只能在夜间施展，白天不能发动。' }]
+          }
+        ]
+      },
+      null,
+      2
+    ),
     'utf-8'
   )
 
@@ -442,7 +447,8 @@ try {
     textProvider: offlineProvider,
     model: 'offline-model',
     onChunk: ({ content }) => streamedPieces.push(content),
-    onTaskProgress: ({ task, event }) => taskProgressEvents.push({ taskId: task.id, eventType: event?.type })
+    onTaskProgress: ({ task, event }) =>
+      taskProgressEvents.push({ taskId: task.id, eventType: event?.type })
   })
 
   assert.equal(writeResult.success, true)
@@ -452,22 +458,46 @@ try {
   assert.equal(writeResult.issues.length, 0)
   assert.equal(streamedPieces.length > 0, true)
   assert.equal(streamedPieces.join('').includes('林青'), true)
-  assert.equal(taskProgressEvents.some((item) => item.taskId === writeResult.taskId), true)
-  assert.equal(taskProgressEvents.some((item) => item.eventType === 'writer_stream'), true)
-  assert.equal(taskProgressEvents.some((item) => item.eventType === 'writer_rewrite_stream'), true)
-  assert.equal(taskProgressEvents.some((item) => item.eventType === 'writer_repair_stream'), true)
-  assert.equal(offlineProvider.calls.some((id) => id.includes('writer_rewrite')), true)
-  assert.equal(offlineProvider.calls.some((id) => id.includes('writer_repair')), true)
-  const initialWriterRequest = offlineProvider.requests.find((item) => item.requestId.includes('cli_writer_cli_write_'))
+  assert.equal(
+    taskProgressEvents.some((item) => item.taskId === writeResult.taskId),
+    true
+  )
+  assert.equal(
+    taskProgressEvents.some((item) => item.eventType === 'writer_stream'),
+    true
+  )
+  assert.equal(
+    taskProgressEvents.some((item) => item.eventType === 'writer_rewrite_stream'),
+    true
+  )
+  assert.equal(
+    taskProgressEvents.some((item) => item.eventType === 'writer_repair_stream'),
+    true
+  )
+  assert.equal(
+    offlineProvider.calls.some((id) => id.includes('writer_rewrite')),
+    true
+  )
+  assert.equal(
+    offlineProvider.calls.some((id) => id.includes('writer_repair')),
+    true
+  )
+  const initialWriterRequest = offlineProvider.requests.find((item) =>
+    item.requestId.includes('cli_writer_cli_write_')
+  )
   const initialWriterText = requestText(initialWriterRequest)
   assert.ok(initialWriterText.includes('【人物设定】'))
   assert.ok(initialWriterText.includes('月影术只能在夜间施展'))
-  const editorReviewRequest = offlineProvider.requests.find((item) => item.requestId.includes('cli_editor_review_'))
+  const editorReviewRequest = offlineProvider.requests.find((item) =>
+    item.requestId.includes('cli_editor_review_')
+  )
   const editorReviewText = requestText(editorReviewRequest)
   assert.ok(editorReviewText.includes('【设定管理】'))
   assert.ok(editorReviewText.includes('规则检查工具结果'))
   assert.ok(editorReviewText.includes('月影术 的使用条件与设定不一致'))
-  const repairWriterRequest = offlineProvider.requests.find((item) => item.requestId.includes('cli_writer_repair_'))
+  const repairWriterRequest = offlineProvider.requests.find((item) =>
+    item.requestId.includes('cli_writer_repair_')
+  )
   assert.ok(requestText(repairWriterRequest).includes('月影术只能在夜间施展'))
 
   const chapterPath = join(booksDir, bookName, '正文', '第一卷', '第一章.txt')
@@ -489,11 +519,15 @@ try {
   })
   assert.equal(memoryWriteResult.success, true)
   assert.equal(memoryWriteResult.repaired, true)
-  const memoryWriterRequest = memoryProvider.requests.find((item) => item.requestId.includes('cli_writer_cli_write_'))
+  const memoryWriterRequest = memoryProvider.requests.find((item) =>
+    item.requestId.includes('cli_writer_cli_write_')
+  )
   const memoryWriterText = requestText(memoryWriterRequest)
   assert.ok(memoryWriterText.includes('历史任务记录'))
   assert.ok(memoryWriterText.includes('林青在夜色里赶到山门'))
-  const memoryEditorRequest = memoryProvider.requests.find((item) => item.requestId.includes('cli_editor_review_'))
+  const memoryEditorRequest = memoryProvider.requests.find((item) =>
+    item.requestId.includes('cli_editor_review_')
+  )
   const memoryEditorText = requestText(memoryEditorRequest)
   assert.ok(memoryEditorText.includes('历史任务记录'))
   assert.ok(memoryEditorText.includes('林青在夜色里赶到山门'))
@@ -514,10 +548,19 @@ try {
   })
   assert.equal(multiWriteResult.success, true)
   assert.equal(multiWriteResult.count, 2)
-  assert.equal(multiWriteResult.chapters.every((item) => item.success), true)
+  assert.equal(
+    multiWriteResult.chapters.every((item) => item.success),
+    true
+  )
   assert.equal(multiProvider.calls.filter((id) => id.includes('cli_writer_')).length >= 2, true)
-  assert.equal(fs.existsSync(join(booksDir, bookName, '正文', '第一卷', '第一章 追兵入山.txt')), true)
-  assert.equal(fs.existsSync(join(booksDir, bookName, '正文', '第一卷', '第二章 月影试剑.txt')), true)
+  assert.equal(
+    fs.existsSync(join(booksDir, bookName, '正文', '第一卷', '第一章 追兵入山.txt')),
+    true
+  )
+  assert.equal(
+    fs.existsSync(join(booksDir, bookName, '正文', '第一卷', '第二章 月影试剑.txt')),
+    true
+  )
 
   const resumeProvider = createOfflineProvider()
   const resumeWriteResult = await writeNovelChapters({
@@ -540,8 +583,14 @@ try {
   assert.equal(resumeWriteResult.chapters[0].skipped, true)
   assert.equal(resumeWriteResult.chapters[1].skipped, true)
   assert.equal(resumeWriteResult.chapters[2].chapterName, '第三章 旧案开封')
-  assert.equal(fs.existsSync(join(booksDir, bookName, '正文', '第一卷', '第三章 旧案开封.txt')), true)
-  assert.equal(resumeProvider.calls.filter((id) => id.startsWith('cli_writer_cli_write_')).length, 1)
+  assert.equal(
+    fs.existsSync(join(booksDir, bookName, '正文', '第一卷', '第三章 旧案开封.txt')),
+    true
+  )
+  assert.equal(
+    resumeProvider.calls.filter((id) => id.startsWith('cli_writer_cli_write_')).length,
+    1
+  )
 
   restoreEnv()
   for (const key of ENV_KEYS) delete process.env[key]
@@ -560,33 +609,68 @@ try {
   assert.equal(fullyResumedResult.success, true)
   assert.equal(fullyResumedResult.count, 0)
   assert.equal(fullyResumedResult.skippedCount, 3)
-  assert.equal(fullyResumedResult.chapters.every((item) => item.skipped), true)
+  assert.equal(
+    fullyResumedResult.chapters.every((item) => item.skipped),
+    true
+  )
   restoreEnv()
 
   const taskStore = readJson(join(booksDir, bookName, '.editor-agent', 'tasks.json'))
   const task = taskStore.tasks.find((item) => item.id === writeResult.taskId)
   assert.equal(Boolean(task), true)
-  assert.equal(task.events.some((item) => item.type === 'writer'), true)
-  assert.equal(task.events.some((item) => item.type === 'writer_stream'), true)
-  assert.equal(task.events.some((item) => item.type === 'writer_rewrite_stream'), true)
-  assert.equal(task.events.some((item) => item.type === 'writer_repair_stream'), true)
+  assert.equal(
+    task.events.some((item) => item.type === 'writer'),
+    true
+  )
+  assert.equal(
+    task.events.some((item) => item.type === 'writer_stream'),
+    true
+  )
+  assert.equal(
+    task.events.some((item) => item.type === 'writer_rewrite_stream'),
+    true
+  )
+  assert.equal(
+    task.events.some((item) => item.type === 'writer_repair_stream'),
+    true
+  )
   assert.equal(task.events.find((item) => item.type === 'writer_stream')?.chunkCount > 0, true)
-  assert.equal(task.events.some((item) => item.type === 'editor_review'), true)
-  assert.equal(task.events.some((item) => item.type === 'writer_rewrite'), true)
-  const draftToolEvents = task.events.filter((item) => item.type === 'agent_draft_consistency_check')
+  assert.equal(
+    task.events.some((item) => item.type === 'editor_review'),
+    true
+  )
+  assert.equal(
+    task.events.some((item) => item.type === 'writer_rewrite'),
+    true
+  )
+  const draftToolEvents = task.events.filter(
+    (item) => item.type === 'agent_draft_consistency_check'
+  )
   assert.equal(draftToolEvents.length >= 3, true)
   assert.equal(draftToolEvents[0].role, 'tool')
   assert.equal(draftToolEvents[0].issueCount > 0, true)
   assert.equal(draftToolEvents[0].metadata.persisted, false)
-  assert.equal(task.events.some((item) => item.type === 'consistency_check'), true)
-  assert.equal(task.events.some((item) => item.type === 'writer_repair'), true)
-  assert.equal(task.events.some((item) => item.type === 'repair_saved'), true)
+  assert.equal(
+    task.events.some((item) => item.type === 'consistency_check'),
+    true
+  )
+  assert.equal(
+    task.events.some((item) => item.type === 'writer_repair'),
+    true
+  )
+  assert.equal(
+    task.events.some((item) => item.type === 'repair_saved'),
+    true
+  )
   const contextEvents = task.events.filter((item) => item.type === 'agent_context_loaded')
   assert.equal(contextEvents.length >= 2, true)
   assert.equal(contextEvents[0].role, 'tool')
   assert.equal(contextEvents[0].bookContext.loaded, true)
   assert.equal(contextEvents[0].sourceCount >= 3, true)
-  assert.equal(contextEvents[0].sources.some((item) => item.type === 'characters'), true)
+  assert.equal(
+    contextEvents[0].sources.some((item) => item.type === 'characters'),
+    true
+  )
   assert.equal(task.usage.calls, 4)
   const memoryTask = taskStore.tasks.find((item) => item.id === memoryWriteResult.taskId)
   assert.equal(Boolean(memoryTask), true)
@@ -595,7 +679,10 @@ try {
   assert.equal(memoryEvents[0].role, 'tool')
   assert.equal(memoryEvents[0].taskMemory.loaded, true)
   assert.equal(memoryEvents[0].taskCount > 0, true)
-  assert.equal(memoryEvents[0].sources.some((item) => item.type === 'agent_task'), true)
+  assert.equal(
+    memoryEvents[0].sources.some((item) => item.type === 'agent_task'),
+    true
+  )
   assert.equal(memoryTask.usage.calls, 4)
 
   const taskList = listNovelTasks({
@@ -621,7 +708,10 @@ try {
     bookName,
     status: 'checked'
   })
-  assert.equal(checkedTaskList.tasks.some((item) => item.id === writeResult.taskId), true)
+  assert.equal(
+    checkedTaskList.tasks.some((item) => item.id === writeResult.taskId),
+    true
+  )
 
   const abortController = new AbortController()
   const abortProvider = createAbortableProvider(abortController)
@@ -650,7 +740,10 @@ try {
   })
   assert.equal(cancelledTasks.count, 1)
   assert.equal(cancelledTasks.tasks[0].chapterId, '中止章')
-  assert.equal(cancelledTasks.tasks[0].events.some((item) => item.type === 'task_cancelled'), true)
+  assert.equal(
+    cancelledTasks.tasks[0].events.some((item) => item.type === 'task_cancelled'),
+    true
+  )
 
   const cliTasks = spawnSync(
     process.execPath,
@@ -693,7 +786,10 @@ try {
     sourceText: '第一章\n林澈在云海港口听见姐姐失踪的消息。'
   })
   assert.equal(lifecycleResult.success, true)
-  assert.equal(lifecycleResult.stages.map((item) => item.name).join(','), 'research,book_idea,init,extraction,setting,outline,chapter_outline,write,check,export')
+  assert.equal(
+    lifecycleResult.stages.map((item) => item.name).join(','),
+    'research,book_idea,init,extraction,setting,outline,chapter_outline,write,check,export'
+  )
   assert.equal(lifecycleResult.research.fromCache, true)
   assert.equal(lifecycleResult.extraction.bookName, '云海试航')
   assert.equal(lifecycleResult.setting.categories.length, 2)
@@ -703,11 +799,26 @@ try {
   assert.equal(lifecycleResult.writing.count, 2)
   assert.equal(fs.existsSync(lifecycleResult.export.filePath), true)
   assert.equal(fs.existsSync(join(booksDir, '云海试航', 'settings.json')), true)
-  assert.equal(lifecycleProvider.calls.some((id) => id.includes('book_idea_')), true)
-  assert.equal(lifecycleProvider.calls.some((id) => id.includes('setting_tree_')), true)
-  assert.equal(lifecycleProvider.calls.some((id) => id.includes('outline_chapter_')), true)
-  assert.equal(lifecycleProvider.calls.some((id) => id.includes('cli_writer_')), true)
-  assert.equal(lifecycleProvider.calls.some((id) => id.includes('outline_split')), true)
+  assert.equal(
+    lifecycleProvider.calls.some((id) => id.includes('book_idea_')),
+    true
+  )
+  assert.equal(
+    lifecycleProvider.calls.some((id) => id.includes('setting_tree_')),
+    true
+  )
+  assert.equal(
+    lifecycleProvider.calls.some((id) => id.includes('outline_chapter_')),
+    true
+  )
+  assert.equal(
+    lifecycleProvider.calls.some((id) => id.includes('cli_writer_')),
+    true
+  )
+  assert.equal(
+    lifecycleProvider.calls.some((id) => id.includes('outline_split')),
+    true
+  )
   assert.equal(lifecycleProvider.calls.filter((id) => id.includes('cli_writer_')).length >= 2, true)
 
   const exportResult = exportNovelBook({
@@ -725,8 +836,14 @@ try {
   const repository = openNovelDatabase(booksDir)
   try {
     const projects = repository.listProjects()
-    assert.equal(projects.some((item) => item.bookName === bookName), true)
-    assert.equal(projects.some((item) => item.bookName === '云海试航'), true)
+    assert.equal(
+      projects.some((item) => item.bookName === bookName),
+      true
+    )
+    assert.equal(
+      projects.some((item) => item.bookName === '云海试航'),
+      true
+    )
 
     const fengxueProject = repository.getProjectByName(bookName)
     const yunhaiProject = repository.getProjectByName('云海试航')
@@ -734,37 +851,90 @@ try {
     assert.equal(Boolean(yunhaiProject), true)
 
     const fengxueDocuments = repository.listBookDocuments(fengxueProject.id)
-    assert.equal(fengxueDocuments.some((item) => item.documentType === 'characters'), true)
-    assert.equal(fengxueDocuments.some((item) => item.documentType === 'settings'), true)
+    assert.equal(
+      fengxueDocuments.some((item) => item.documentType === 'characters'),
+      true
+    )
+    assert.equal(
+      fengxueDocuments.some((item) => item.documentType === 'settings'),
+      true
+    )
 
     const outlinesInDb = repository.listOutlines()
-    assert.equal(outlinesInDb.some((item) => item.id === outlineResult.outlineId), true)
-    assert.equal(outlinesInDb.some((item) => item.projectId === yunhaiProject.id), true)
+    assert.equal(
+      outlinesInDb.some((item) => item.id === outlineResult.outlineId),
+      true
+    )
+    assert.equal(
+      outlinesInDb.some((item) => item.projectId === yunhaiProject.id),
+      true
+    )
 
     const chapterOutlineRunsInDb = repository.listChapterOutlineRuns()
-    assert.equal(chapterOutlineRunsInDb.some((item) => item.projectId === yunhaiProject.id), true)
-    assert.equal(chapterOutlineRunsInDb.some((item) => item.chapterName.includes('第一章')), true)
-    assert.equal(chapterOutlineRunsInDb.some((item) => item.content.includes('林澈')), true)
+    assert.equal(
+      chapterOutlineRunsInDb.some((item) => item.projectId === yunhaiProject.id),
+      true
+    )
+    assert.equal(
+      chapterOutlineRunsInDb.some((item) => item.chapterName.includes('第一章')),
+      true
+    )
+    assert.equal(
+      chapterOutlineRunsInDb.some((item) => item.content.includes('林澈')),
+      true
+    )
 
     const chaptersInDb = repository.listChapters()
-    assert.equal(chaptersInDb.some((item) => item.projectId === fengxueProject.id && item.wordCount > 0), true)
-    assert.equal(chaptersInDb.some((item) => item.projectId === yunhaiProject.id && item.wordCount > 0), true)
-    assert.equal(chaptersInDb.some((item) => [writeResult.taskId, memoryWriteResult.taskId].includes(item.taskId)), true)
-    assert.equal(chaptersInDb.some((item) => item.content.includes('林青')), true)
+    assert.equal(
+      chaptersInDb.some((item) => item.projectId === fengxueProject.id && item.wordCount > 0),
+      true
+    )
+    assert.equal(
+      chaptersInDb.some((item) => item.projectId === yunhaiProject.id && item.wordCount > 0),
+      true
+    )
+    assert.equal(
+      chaptersInDb.some((item) =>
+        [writeResult.taskId, memoryWriteResult.taskId].includes(item.taskId)
+      ),
+      true
+    )
+    assert.equal(
+      chaptersInDb.some((item) => item.content.includes('林青')),
+      true
+    )
 
     const tasksInDb = repository.listAgentTasks()
-    assert.equal(tasksInDb.some((item) => item.id === writeResult.taskId && item.status === 'checked'), true)
+    assert.equal(
+      tasksInDb.some((item) => item.id === writeResult.taskId && item.status === 'checked'),
+      true
+    )
 
     const checksInDb = repository.listConsistencyChecks()
-    assert.equal(checksInDb.some((item) => item.projectId === fengxueProject.id), true)
-    assert.equal(checksInDb.some((item) => item.source === 'cli_auto_repair'), true)
+    assert.equal(
+      checksInDb.some((item) => item.projectId === fengxueProject.id),
+      true
+    )
+    assert.equal(
+      checksInDb.some((item) => item.source === 'cli_auto_repair'),
+      true
+    )
 
     const researchInDb = repository.listResearchRuns()
-    assert.equal(researchInDb.some((item) => item.fromCache && item.topicCount > 0), true)
+    assert.equal(
+      researchInDb.some((item) => item.fromCache && item.topicCount > 0),
+      true
+    )
 
     const exportsInDb = repository.listExports()
-    assert.equal(exportsInDb.some((item) => item.projectId === fengxueProject.id && item.format === 'md'), true)
-    assert.equal(exportsInDb.some((item) => item.projectId === yunhaiProject.id && item.format === 'md'), true)
+    assert.equal(
+      exportsInDb.some((item) => item.projectId === fengxueProject.id && item.format === 'md'),
+      true
+    )
+    assert.equal(
+      exportsInDb.some((item) => item.projectId === yunhaiProject.id && item.format === 'md'),
+      true
+    )
   } finally {
     repository.close()
   }
@@ -833,7 +1003,10 @@ try {
       }),
     /请先配置文本 AI 服务/
   )
-  assert.equal(fs.existsSync(join(booksDir, bookName, '正文', '缺模型卷', '第三章 旧案开封.txt')), false)
+  assert.equal(
+    fs.existsSync(join(booksDir, bookName, '正文', '缺模型卷', '第三章 旧案开封.txt')),
+    false
+  )
 } finally {
   restoreEnv()
   fs.rmSync(rootDir, { recursive: true, force: true })

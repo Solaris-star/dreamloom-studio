@@ -131,9 +131,9 @@ const goBack = () => {
   router.push('/')
 }
 
-const issueTrackerUrl = 'https://github.com/zhimeng-shufang/zhimeng-shufang/issues'
+const issueTrackerUrl = 'https://github.com/Solaris-star/dreamloom-studio/issues'
 const qqGroupQrcode = new URL('../../../../static/QQQRCode.png', import.meta.url).href
-const officialWebsite = 'https://github.com/zhimeng-shufang/zhimeng-shufang'
+const officialWebsite = 'https://github.com/Solaris-star/dreamloom-studio'
 
 const labels = computed(() =>
   locale.value === 'en-US' ? { entry: 'Entry', tip: 'Tip' } : { entry: '入口', tip: '提示' }
@@ -280,13 +280,13 @@ const guideData = {
       title: '联系支持',
       paragraphs: [
         '如遇问题或有功能建议，欢迎反馈。',
-        '我们会持续完善织梦书房，让本地写作和 AI 辅助更稳定。'
+        '我们会持续完善织梦工坊，让本地写作和 AI 辅助更稳定。'
       ],
       issueTitle: '问题反馈',
       issueLinkLabel: 'GitHub Issues',
       siteTitle: '官网（宣传网站）',
       qqTitle: 'QQ 群（交流反馈）',
-      qqAlt: '织梦书房 QQ 群二维码',
+      qqAlt: '织梦工坊 QQ 群二维码',
       qqTip: '扫码加入 QQ 群'
     }
   },

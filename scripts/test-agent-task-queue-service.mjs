@@ -14,7 +14,10 @@ import {
   listAgentTaskQueueJobs,
   normalizeAgentTaskQueueProgress
 } from '../src/main/services/agentTaskQueueService.js'
-import { listConsistencyChecks, runConsistencyCheck } from '../src/main/services/consistencyCheckService.js'
+import {
+  listConsistencyChecks,
+  runConsistencyCheck
+} from '../src/main/services/consistencyCheckService.js'
 import { initNovelProject } from '../src/main/services/novelCliService.js'
 
 const rootDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-agent-queue-'))
@@ -56,8 +59,14 @@ assert.equal(firstAttemptRetryEvent.status, 'retrying')
 assert.equal(firstAttemptRetryEvent.eventType, 'queue_retrying')
 assert.match(firstAttemptRetryEvent.content, /第 1 次执行失败，准备第 2 次执行，共 2 次/)
 assert.match(firstAttemptRetryEvent.content, /临时失败/)
-assert.equal(buildQueueRetryEvent({ attemptsMade: 1, opts: { attempts: 1 } }, new Error('最终失败')), null)
-assert.equal(buildQueueRetryEvent({ attemptsMade: 2, opts: { attempts: 2 } }, new Error('最终失败')), null)
+assert.equal(
+  buildQueueRetryEvent({ attemptsMade: 1, opts: { attempts: 1 } }, new Error('最终失败')),
+  null
+)
+assert.equal(
+  buildQueueRetryEvent({ attemptsMade: 2, opts: { attempts: 2 } }, new Error('最终失败')),
+  null
+)
 
 try {
   await initNovelProject({
@@ -79,15 +88,9 @@ try {
     /真实任务队列未启用/
   )
 
-  await assert.rejects(
-    () => getAgentTaskQueueStatus(),
-    /真实任务队列未启用/
-  )
+  await assert.rejects(() => getAgentTaskQueueStatus(), /真实任务队列未启用/)
 
-  await assert.rejects(
-    () => listAgentTaskQueueJobs(),
-    /真实任务队列未启用/
-  )
+  await assert.rejects(() => listAgentTaskQueueJobs(), /真实任务队列未启用/)
 
   await assert.rejects(
     () =>
@@ -145,10 +148,7 @@ try {
     /缺少一致性检查问题/
   )
 
-  await assert.rejects(
-    () => cancelAgentTaskQueueJob({ jobId: 'write:test' }),
-    /真实任务队列未启用/
-  )
+  await assert.rejects(() => cancelAgentTaskQueueJob({ jobId: 'write:test' }), /真实任务队列未启用/)
 
   const helpCli = spawnSync(process.execPath, [join(process.cwd(), 'bin', 'novel.js'), '--help'], {
     encoding: 'utf-8'
@@ -250,13 +250,7 @@ try {
 
   const cancelCli = spawnSync(
     process.execPath,
-    [
-      join(process.cwd(), 'bin', 'novel.js'),
-      'queue-cancel',
-      '--job-id',
-      'write:test',
-      '--json'
-    ],
+    [join(process.cwd(), 'bin', 'novel.js'), 'queue-cancel', '--job-id', 'write:test', '--json'],
     {
       encoding: 'utf-8',
       env: {
@@ -278,12 +272,18 @@ try {
         text: '测试正文',
         signal: abortController.signal
       }),
-    (error) => error?.name === 'AbortError' && error?.cancelled === true && /测试停止检查/.test(error.message)
+    (error) =>
+      error?.name === 'AbortError' &&
+      error?.cancelled === true &&
+      /测试停止检查/.test(error.message)
   )
   const checks = listConsistencyChecks({ bookPath: join(booksDir, bookName) })
   assert.equal(checks.checks.length, 0)
 
-  const closeResult = await closeAgentTaskQueue({ queueName: 'agent-task-test', redisUrl: 'redis://127.0.0.1:1' })
+  const closeResult = await closeAgentTaskQueue({
+    queueName: 'agent-task-test',
+    redisUrl: 'redis://127.0.0.1:1'
+  })
   assert.equal(closeResult.success, true)
   assert.equal(closeResult.queueName, 'agent-task-test')
   assert.equal(closeResult.redisUrl, 'redis://127.0.0.1:1')

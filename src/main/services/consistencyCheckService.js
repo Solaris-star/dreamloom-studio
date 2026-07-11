@@ -174,13 +174,26 @@ function findNearbyPhrases(text, name, pattern, limit = 6) {
     while ((match = regex.exec(text)) && matches.length < limit) {
       if (seen.has(match[0])) continue
       seen.add(match[0])
-      matches.push({ text: match[0], groups: match.slice(1).filter((group) => group !== undefined) })
+      matches.push({
+        text: match[0],
+        groups: match.slice(1).filter((group) => group !== undefined)
+      })
     }
   }
   return matches
 }
 
-function issueBase({ type, severity = 'medium', message, evidence, reference, expected, actual, suggestion, source = 'rules' }) {
+function issueBase({
+  type,
+  severity = 'medium',
+  message,
+  evidence,
+  reference,
+  expected,
+  actual,
+  suggestion,
+  source = 'rules'
+}) {
   return {
     id: randomUUID(),
     source,
@@ -198,7 +211,9 @@ function issueBase({ type, severity = 'medium', message, evidence, reference, ex
 function loadBookFacts(bookPath) {
   const meta = readPlainObjectFile(join(bookPath, 'mazi.json'), {}, 'mazi.json')
   const characters = readArrayFile(join(bookPath, 'characters.json'), [], 'characters.json')
-  const dictionary = flattenDictionary(readArrayFile(join(bookPath, 'dictionary.json'), [], 'dictionary.json'))
+  const dictionary = flattenDictionary(
+    readArrayFile(join(bookPath, 'dictionary.json'), [], 'dictionary.json')
+  )
   const settings = flattenSettings(readSettingsFile(join(bookPath, 'settings.json')))
   const timelines = readArrayFile(join(bookPath, 'timelines.json'), [], 'timelines.json')
   return { meta, characters, dictionary, settings, timelines }
@@ -220,11 +235,22 @@ function flattenSettings(data) {
       const categoryName = cleanText(node?.name)
       const nextPath = categoryName ? [...path, categoryName] : path
       if (categoryName && cleanText(node?.introduction)) {
-        out.push({ name: categoryName, introduction: cleanText(node.introduction), path: nextPath, type: 'category' })
+        out.push({
+          name: categoryName,
+          introduction: cleanText(node.introduction),
+          path: nextPath,
+          type: 'category'
+        })
       }
       for (const item of normalizeList(node?.items)) {
         const name = cleanText(item?.name)
-        if (name) out.push({ name, introduction: cleanText(item?.introduction), path: nextPath, type: 'setting' })
+        if (name)
+          out.push({
+            name,
+            introduction: cleanText(item?.introduction),
+            path: nextPath,
+            type: 'setting'
+          })
       }
       walk(node?.children, nextPath)
     }
@@ -241,20 +267,26 @@ function checkCharacterFacts(text, characters) {
 
     const expectedAge = normalizeAge(character?.age)
     if (expectedAge != null) {
-      const ageMatches = findNearbyPhrases(text, name, '([零〇一二两三四五六七八九十百\\d]{1,5})\\s*岁')
+      const ageMatches = findNearbyPhrases(
+        text,
+        name,
+        '([零〇一二两三四五六七八九十百\\d]{1,5})\\s*岁'
+      )
       for (const match of ageMatches) {
         const actualAge = chineseNumberToInt(match.groups[0])
         if (actualAge != null && actualAge !== expectedAge) {
-          issues.push(issueBase({
-            type: 'character_age',
-            severity: 'high',
-            message: `${name} 的正文年龄与人物档案不一致`,
-            evidence: match.text,
-            reference: `人物档案：${name}，年龄 ${expectedAge} 岁`,
-            expected: expectedAge,
-            actual: actualAge,
-            suggestion: '按人物档案修正文中年龄，或先更新人物档案。'
-          }))
+          issues.push(
+            issueBase({
+              type: 'character_age',
+              severity: 'high',
+              message: `${name} 的正文年龄与人物档案不一致`,
+              evidence: match.text,
+              reference: `人物档案：${name}，年龄 ${expectedAge} 岁`,
+              expected: expectedAge,
+              actual: actualAge,
+              suggestion: '按人物档案修正文中年龄，或先更新人物档案。'
+            })
+          )
         }
       }
     }
@@ -262,18 +294,24 @@ function checkCharacterFacts(text, characters) {
     const expectedGender = normalizeGender(character?.gender)
     if (expectedGender) {
       const oppositeTerms = expectedGender === 'female' ? MALE_TERMS : FEMALE_TERMS
-      const matches = findNearbyPhrases(text, name, `(${oppositeTerms.map(escapeRegExp).join('|')})`)
+      const matches = findNearbyPhrases(
+        text,
+        name,
+        `(${oppositeTerms.map(escapeRegExp).join('|')})`
+      )
       for (const match of matches) {
-        issues.push(issueBase({
-          type: 'character_gender',
-          severity: 'high',
-          message: `${name} 的正文性别表述与人物档案不一致`,
-          evidence: match.text,
-          reference: `人物档案：${name}，性别 ${character.gender}`,
-          expected: character.gender,
-          actual: match.groups[0],
-          suggestion: '按人物档案修正文中称谓，或先更新人物档案。'
-        }))
+        issues.push(
+          issueBase({
+            type: 'character_gender',
+            severity: 'high',
+            message: `${name} 的正文性别表述与人物档案不一致`,
+            evidence: match.text,
+            reference: `人物档案：${name}，性别 ${character.gender}`,
+            expected: character.gender,
+            actual: match.groups[0],
+            suggestion: '按人物档案修正文中称谓，或先更新人物档案。'
+          })
+        )
       }
     }
 
@@ -283,16 +321,18 @@ function checkCharacterFacts(text, characters) {
       for (const match of heightMatches) {
         const actualHeight = Number(match.groups[0])
         if (Number.isFinite(actualHeight) && Math.abs(actualHeight - expectedHeight) >= 6) {
-          issues.push(issueBase({
-            type: 'character_height',
-            severity: 'medium',
-            message: `${name} 的正文身高与人物档案差异较大`,
-            evidence: match.text,
-            reference: `人物档案：${name}，身高 ${expectedHeight} cm`,
-            expected: expectedHeight,
-            actual: actualHeight,
-            suggestion: '核对身高是否属于有意变化。'
-          }))
+          issues.push(
+            issueBase({
+              type: 'character_height',
+              severity: 'medium',
+              message: `${name} 的正文身高与人物档案差异较大`,
+              evidence: match.text,
+              reference: `人物档案：${name}，身高 ${expectedHeight} cm`,
+              expected: expectedHeight,
+              actual: actualHeight,
+              suggestion: '核对身高是否属于有意变化。'
+            })
+          )
         }
       }
     }
@@ -310,22 +350,26 @@ function checkRuleLimitedSetting(text, item) {
   if (name.length < 2 || !intro || !text.includes(name)) return []
 
   const issues = []
-  const introSaysNightOnly = hasAny(intro, NIGHT_TERMS) && (hasAny(intro, ONLY_TERMS) || /白[天日].{0,8}(?:无法|不能|不可)/.test(intro))
+  const introSaysNightOnly =
+    hasAny(intro, NIGHT_TERMS) &&
+    (hasAny(intro, ONLY_TERMS) || /白[天日].{0,8}(?:无法|不能|不可)/.test(intro))
   if (introSaysNightOnly) {
     const phrasePattern = `(?:${DAY_TERMS.map(escapeRegExp).join('|')})[^。！？\n]{0,24}${escapeRegExp(name)}[^。！？\n]{0,24}(?:${USE_TERMS.map(escapeRegExp).join('|')})|${escapeRegExp(name)}[^。！？\n]{0,24}(?:${DAY_TERMS.map(escapeRegExp).join('|')})[^。！？\n]{0,24}(?:${USE_TERMS.map(escapeRegExp).join('|')})`
     const regex = new RegExp(phrasePattern, 'g')
     let match
     while ((match = regex.exec(text)) && issues.length < 4) {
-      issues.push(issueBase({
-        type: 'setting_condition',
-        severity: 'high',
-        message: `${name} 的使用条件与设定不一致`,
-        evidence: match[0],
-        reference: `设定：${name}：${intro}`,
-        expected: '夜间或满足设定条件',
-        actual: '白天或日光环境使用',
-        suggestion: '调整使用时间，或在设定中解释例外原因。'
-      }))
+      issues.push(
+        issueBase({
+          type: 'setting_condition',
+          severity: 'high',
+          message: `${name} 的使用条件与设定不一致`,
+          evidence: match[0],
+          reference: `设定：${name}：${intro}`,
+          expected: '夜间或满足设定条件',
+          actual: '白天或日光环境使用',
+          suggestion: '调整使用时间，或在设定中解释例外原因。'
+        })
+      )
     }
   }
   return issues
@@ -347,14 +391,18 @@ function buildFactContext(facts = {}) {
   if (facts.meta?.intro) metaLines.push(`简介：${truncate(facts.meta.intro, 600)}`)
   if (metaLines.length) sections.push(`【作品信息】\n${metaLines.join('\n')}`)
 
-  const characterLines = normalizeList(facts.characters).slice(0, MAX_CONTEXT_ITEMS).map((item) => {
-    const bits = [`姓名：${cleanText(item?.name)}`]
-    if (item?.gender) bits.push(`性别：${item.gender}`)
-    if (item?.age) bits.push(`年龄：${item.age}`)
-    if (item?.height) bits.push(`身高：${item.height}`)
-    if (item?.biography || item?.introduction) bits.push(`档案：${truncate(item.biography || item.introduction, 220)}`)
-    return bits.filter(Boolean).join('；')
-  }).filter(Boolean)
+  const characterLines = normalizeList(facts.characters)
+    .slice(0, MAX_CONTEXT_ITEMS)
+    .map((item) => {
+      const bits = [`姓名：${cleanText(item?.name)}`]
+      if (item?.gender) bits.push(`性别：${item.gender}`)
+      if (item?.age) bits.push(`年龄：${item.age}`)
+      if (item?.height) bits.push(`身高：${item.height}`)
+      if (item?.biography || item?.introduction)
+        bits.push(`档案：${truncate(item.biography || item.introduction, 220)}`)
+      return bits.filter(Boolean).join('；')
+    })
+    .filter(Boolean)
   if (characterLines.length) sections.push(`【人物档案】\n${characterLines.join('\n')}`)
 
   const settingLines = [...normalizeList(facts.settings), ...normalizeList(facts.dictionary)]
@@ -362,10 +410,18 @@ function buildFactContext(facts = {}) {
     .map((item) => `「${item.name}」：${truncate(item.introduction, 220)}`)
   if (settingLines.length) sections.push(`【设定与词条】\n${settingLines.join('\n')}`)
 
-  const timelineLines = normalizeList(facts.timelines).slice(0, 12).flatMap((line) => {
-    const title = cleanText(line?.title || line?.name || '时间线')
-    return normalizeList(line?.nodes).slice(0, 18).map((node) => `${title}｜${cleanText(node?.title)}：${truncate(node?.desc || node?.content, 160)}`)
-  }).filter(Boolean)
+  const timelineLines = normalizeList(facts.timelines)
+    .slice(0, 12)
+    .flatMap((line) => {
+      const title = cleanText(line?.title || line?.name || '时间线')
+      return normalizeList(line?.nodes)
+        .slice(0, 18)
+        .map(
+          (node) =>
+            `${title}｜${cleanText(node?.title)}：${truncate(node?.desc || node?.content, 160)}`
+        )
+    })
+    .filter(Boolean)
   if (timelineLines.length) sections.push(`【时间线】\n${timelineLines.join('\n')}`)
 
   return sections.join('\n\n')
@@ -394,21 +450,23 @@ function parseLlmJson(raw) {
 
 function normalizeLlmIssues(parsed) {
   const rows = Array.isArray(parsed?.issues) ? parsed.issues : []
-  return rows.map((item) => {
-    const message = cleanText(item?.message || item?.issue || item?.reason)
-    if (!message) return null
-    return issueBase({
-      source: 'llm',
-      type: cleanText(item?.type) || 'semantic_consistency',
-      severity: cleanText(item?.severity) || 'medium',
-      message,
-      evidence: item?.evidence || item?.quote || '',
-      reference: item?.reference || item?.fact || '',
-      expected: item?.expected,
-      actual: item?.actual,
-      suggestion: item?.suggestion || item?.fix || ''
+  return rows
+    .map((item) => {
+      const message = cleanText(item?.message || item?.issue || item?.reason)
+      if (!message) return null
+      return issueBase({
+        source: 'llm',
+        type: cleanText(item?.type) || 'semantic_consistency',
+        severity: cleanText(item?.severity) || 'medium',
+        message,
+        evidence: item?.evidence || item?.quote || '',
+        reference: item?.reference || item?.fact || '',
+        expected: item?.expected,
+        actual: item?.actual,
+        suggestion: item?.suggestion || item?.fix || ''
+      })
     })
-  }).filter(Boolean)
+    .filter(Boolean)
 }
 
 async function runLlmCheck({ text, facts, payload, textProvider }) {
@@ -544,7 +602,11 @@ export async function runConsistencyCheck(payload = {}, options = {}) {
     issues
   }
 
-  const shouldPersist = payload.persist !== false && payload.save !== false && options.persist !== false && options.save !== false
+  const shouldPersist =
+    payload.persist !== false &&
+    payload.save !== false &&
+    options.persist !== false &&
+    options.save !== false
   record.persisted = shouldPersist
   if (shouldPersist) writeCheckRecord(bookPath, record)
   return { success: true, check: record, issues, summary: record.summary }

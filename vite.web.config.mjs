@@ -36,7 +36,7 @@ export default defineConfig({
     port: 5173,
     open: true,
     watch: {
-      ignored: ['**/.booksDir/**']
+      ignored: ['**/.booksDir/**', '**/.store.json', '**/assets-trash/**']
     }
   },
   build: {

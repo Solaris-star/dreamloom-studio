@@ -24,11 +24,9 @@ function eventLine(event = {}, task = {}) {
   const title = cleanText(event.title || event.type || '事件')
   const status = cleanText(event.status || task.status)
   const content = truncate(event.content || event.summary || '')
-  const parts = [
-    title,
-    status ? `状态：${status}` : '',
-    content ? `内容：${content}` : ''
-  ].filter(Boolean)
+  const parts = [title, status ? `状态：${status}` : '', content ? `内容：${content}` : ''].filter(
+    Boolean
+  )
   return `  - ${parts.join('；')}`
 }
 
@@ -73,12 +71,16 @@ function taskMemoryBlock(task = {}) {
     task.chapterId ? `章节：${task.chapterId}` : '',
     task.status ? `状态：${task.status}` : '',
     task.updatedAt ? `时间：${task.updatedAt}` : ''
-  ].filter(Boolean).join('；')
+  ]
+    .filter(Boolean)
+    .join('；')
   const lines = [header]
   if (task.resultPreview) lines.push(`  - 结果摘要：${task.resultPreview}`)
   if (task.review?.passed === false) {
     const issues = Array.isArray(task.review.issues) ? task.review.issues.join('；') : ''
-    lines.push(`  - Editor 未通过：${truncate(issues || task.review.revisionInstruction || '未列出原因')}`)
+    lines.push(
+      `  - Editor 未通过：${truncate(issues || task.review.revisionInstruction || '未列出原因')}`
+    )
   }
   if (task.error) lines.push(`  - 错误：${task.error}`)
   for (const event of task.events || []) {
@@ -116,12 +118,14 @@ export function editorAgentTaskMemoryRecord(memory = {}) {
 
 export function loadEditorAgentTaskMemory(bookPath, options = {}) {
   const loadedAt = new Date().toISOString()
-  const limit = Number.isFinite(Number(options.limit)) && Number(options.limit) > 0
-    ? Number(options.limit)
-    : DEFAULT_TASK_LIMIT
-  const eventLimit = Number.isFinite(Number(options.eventLimit)) && Number(options.eventLimit) > 0
-    ? Number(options.eventLimit)
-    : DEFAULT_EVENT_LIMIT
+  const limit =
+    Number.isFinite(Number(options.limit)) && Number(options.limit) > 0
+      ? Number(options.limit)
+      : DEFAULT_TASK_LIMIT
+  const eventLimit =
+    Number.isFinite(Number(options.eventLimit)) && Number(options.eventLimit) > 0
+      ? Number(options.eventLimit)
+      : DEFAULT_EVENT_LIMIT
 
   try {
     if (!bookPath || !fs.existsSync(bookPath)) {

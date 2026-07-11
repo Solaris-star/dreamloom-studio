@@ -8,11 +8,7 @@
   >
     <div class="dir-selector">
       <div class="path-bar">
-        <el-input
-          v-model="currentPath"
-          placeholder="输入目录路径"
-          @keyup.enter="navigateTo"
-        >
+        <el-input v-model="currentPath" placeholder="输入目录路径" @keyup.enter="navigateTo">
           <template #prepend>
             <el-button :disabled="!canGoUp" @click="goUp"> 上级 </el-button>
           </template>
@@ -29,12 +25,7 @@
           <el-button size="small" :loading="loading" @click="loadDir(currentPath)">重试</el-button>
         </div>
         <div v-else-if="dirs.length === 0" class="dir-empty">空目录</div>
-        <div
-          v-for="dir in dirs"
-          :key="dir.name"
-          class="dir-item"
-          @click="enterDir(dir.name)"
-        >
+        <div v-for="dir in dirs" :key="dir.name" class="dir-item" @click="enterDir(dir.name)">
           <FolderClosed class="dir-icon" :size="16" aria-hidden="true" />
           <span class="dir-name">{{ dir.name }}</span>
         </div>

@@ -40,12 +40,7 @@
 
       <div v-if="treeData.length > 0" class="tree-preview">
         <div class="tree-preview-title">{{ t('settingTree.preview') }}</div>
-        <el-tree
-          :data="treeData"
-          node-key="name"
-          default-expand-all
-          :expand-on-click-node="false"
-        >
+        <el-tree :data="treeData" node-key="name" default-expand-all :expand-on-click-node="false">
           <template #default="{ data }">
             <div class="tree-node">
               <span class="node-name">{{ data.name }}</span>
@@ -71,19 +66,13 @@
     </div>
 
     <template #footer>
-      <el-button @click="$emit('update:modelValue', false)">{{ t('settingTree.cancel') }}</el-button>
-      <el-button
-        type="warning"
-        :disabled="treeData.length === 0"
-        @click="handleApply('merge')"
-      >
+      <el-button @click="$emit('update:modelValue', false)">{{
+        t('settingTree.cancel')
+      }}</el-button>
+      <el-button type="warning" :disabled="treeData.length === 0" @click="handleApply('merge')">
         {{ t('settingTree.merge') }}
       </el-button>
-      <el-button
-        type="primary"
-        :disabled="treeData.length === 0"
-        @click="handleApply('replace')"
-      >
+      <el-button type="primary" :disabled="treeData.length === 0" @click="handleApply('replace')">
         {{ t('settingTree.replace') }}
       </el-button>
     </template>
@@ -153,12 +142,15 @@ async function handleGenerate() {
   if (!creativity.value.trim()) return
   generating.value = true
   try {
-    treeData.value = await generateSettingTree({
-      bookPath: props.bookPath,
-      bookName: props.bookName,
-      creativity: creativity.value,
-      strategy: strategy.value
-    }, t('settingTree.generateFailed'))
+    treeData.value = await generateSettingTree(
+      {
+        bookPath: props.bookPath,
+        bookName: props.bookName,
+        creativity: creativity.value,
+        strategy: strategy.value
+      },
+      t('settingTree.generateFailed')
+    )
   } catch (e) {
     ElMessage.error(e?.message || t('settingTree.generateError'))
   } finally {
@@ -169,13 +161,16 @@ async function handleGenerate() {
 async function handleRegenerateNode(data) {
   regeneratingNode.value = data.name
   try {
-    const node = await regenerateSettingNode({
-      bookPath: props.bookPath,
-      bookName: props.bookName,
-      nodeName: data.name,
-      nodeDescription: data.description,
-      strategy: strategy.value
-    }, t('settingTree.regenerateFailed'))
+    const node = await regenerateSettingNode(
+      {
+        bookPath: props.bookPath,
+        bookName: props.bookName,
+        nodeName: data.name,
+        nodeDescription: data.description,
+        strategy: strategy.value
+      },
+      t('settingTree.regenerateFailed')
+    )
     Object.assign(data, node)
     ElMessage.success(t('settingTree.regenerateSuccess'))
   } catch (e) {
@@ -216,12 +211,15 @@ function findNodeByName(nodes, name) {
 
 async function handleApply(mode) {
   try {
-    await applySettingTree({
-      bookPath: props.bookPath,
-      bookName: props.bookName,
-      tree: treeData.value,
-      mode
-    }, t('settingTree.applyFailed'))
+    await applySettingTree(
+      {
+        bookPath: props.bookPath,
+        bookName: props.bookName,
+        tree: treeData.value,
+        mode
+      },
+      t('settingTree.applyFailed')
+    )
     ElMessage.success(t('settingTree.applySuccess'))
     emit('update:modelValue', false)
   } catch (e) {

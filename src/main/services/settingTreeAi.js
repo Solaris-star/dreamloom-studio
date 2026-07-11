@@ -355,7 +355,10 @@ class SettingTreeAiService {
     }
   }
 
-  async regenerateSettingNode({ nodeName, nodeIntroduction, parentPath, strategy, idea }, textProvider) {
+  async regenerateSettingNode(
+    { nodeName, nodeIntroduction, parentPath, strategy, idea },
+    textProvider
+  ) {
     if (!textProvider?.chat) {
       throw new Error('文本 AI 服务不可用')
     }

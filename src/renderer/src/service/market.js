@@ -61,7 +61,11 @@ function requireTopicCardResult(result, fallback = '保存选题卡失败') {
 
 function requireRefreshResult(result) {
   const ok = requireMarketSuccess(result, '真实采集失败，请检查来源状态')
-  if (!Array.isArray(ok.results) || !ok.results.some((item) => item?.success === true) || !isObject(ok.hotspotSync)) {
+  if (
+    !Array.isArray(ok.results) ||
+    !ok.results.some((item) => item?.success === true) ||
+    !isObject(ok.hotspotSync)
+  ) {
     throw new Error('真实采集失败：接口没有返回采集结果')
   }
   return ok
@@ -127,7 +131,12 @@ function requireOutlineResult(result) {
 
 function requireBookResult(result) {
   const ok = requireMarketSuccess(result, '新建作品失败')
-  if (typeof ok.bookName !== 'string' || !ok.bookName.trim() || typeof ok.bookId !== 'string' || !ok.bookId.trim()) {
+  if (
+    typeof ok.bookName !== 'string' ||
+    !ok.bookName.trim() ||
+    typeof ok.bookId !== 'string' ||
+    !ok.bookId.trim()
+  ) {
     throw new Error('新建作品失败：接口没有返回作品信息')
   }
   return ok
@@ -142,11 +151,17 @@ export async function createMarketHotspot(input = {}) {
 }
 
 export async function updateMarketHotspot(id, patch = {}) {
-  return requireItemResult(await ensureElectronApi('updateMarketHotspot')(id, patch), '更新热点失败')
+  return requireItemResult(
+    await ensureElectronApi('updateMarketHotspot')(id, patch),
+    '更新热点失败'
+  )
 }
 
 export async function saveMarketHotspotToKnowledge(id) {
-  return requireKnowledgeResult(await ensureElectronApi('saveMarketHotspotToKnowledge')(id), '保存失败')
+  return requireKnowledgeResult(
+    await ensureElectronApi('saveMarketHotspotToKnowledge')(id),
+    '保存失败'
+  )
 }
 
 export async function createTopicCardFromMarketHotspot(id) {
@@ -162,11 +177,17 @@ export async function createMarketActivity(input = {}) {
 }
 
 export async function updateMarketActivity(id, patch = {}) {
-  return requireItemResult(await ensureElectronApi('updateMarketActivity')(id, patch), '更新活动失败')
+  return requireItemResult(
+    await ensureElectronApi('updateMarketActivity')(id, patch),
+    '更新活动失败'
+  )
 }
 
 export async function saveMarketActivityToKnowledge(id) {
-  return requireKnowledgeResult(await ensureElectronApi('saveMarketActivityToKnowledge')(id), '保存失败')
+  return requireKnowledgeResult(
+    await ensureElectronApi('saveMarketActivityToKnowledge')(id),
+    '保存失败'
+  )
 }
 
 export async function createTopicCardFromMarketActivity(id) {
@@ -194,7 +215,10 @@ export async function listMarketSourceStatus() {
 }
 
 export async function listMarketOpportunities(payload = {}) {
-  return requireListResult(await ensureElectronApi('listMarketOpportunities')(payload), '机会建议读取失败')
+  return requireListResult(
+    await ensureElectronApi('listMarketOpportunities')(payload),
+    '机会建议读取失败'
+  )
 }
 
 export async function getMarketDashboard(payload = {}) {
@@ -214,7 +238,9 @@ export async function getMarketKeywordCloud(payload = {}) {
 }
 
 export async function getMarketKeywordCombination(payload = {}) {
-  return requireKeywordCombinationResult(await ensureElectronApi('getMarketKeywordCombination')(payload))
+  return requireKeywordCombinationResult(
+    await ensureElectronApi('getMarketKeywordCombination')(payload)
+  )
 }
 
 export async function getMarketActivitiesBoard(payload = {}) {
@@ -222,7 +248,10 @@ export async function getMarketActivitiesBoard(payload = {}) {
 }
 
 export async function saveMarketInspiration(payload = {}) {
-  return requireKnowledgeResult(await ensureElectronApi('saveMarketInspiration')(payload), '保存失败')
+  return requireKnowledgeResult(
+    await ensureElectronApi('saveMarketInspiration')(payload),
+    '保存失败'
+  )
 }
 
 export async function generateMarketOutline(payload = {}) {
@@ -230,7 +259,10 @@ export async function generateMarketOutline(payload = {}) {
 }
 
 export async function applyMarketInsightToCurrentBook(payload = {}) {
-  return requireKnowledgeResult(await ensureElectronApi('applyMarketInsightToCurrentBook')(payload), '带入失败')
+  return requireKnowledgeResult(
+    await ensureElectronApi('applyMarketInsightToCurrentBook')(payload),
+    '带入失败'
+  )
 }
 
 export async function createBookFromMarketInsight(payload = {}) {

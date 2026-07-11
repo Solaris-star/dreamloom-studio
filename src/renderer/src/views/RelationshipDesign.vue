@@ -47,7 +47,9 @@
   </LayoutTool>
   <el-dialog
     v-model="infoDialogVisible"
-    :title="isAddMode ? t('relationshipDesign.addNodeTitle') : t('relationshipDesign.editNodeTitle')"
+    :title="
+      isAddMode ? t('relationshipDesign.addNodeTitle') : t('relationshipDesign.editNodeTitle')
+    "
     width="500px"
   >
     <el-form label-width="80px" @submit.prevent="saveNodeInfo">
@@ -98,7 +100,9 @@
             v-model="infoForm.avatar"
             :placeholder="t('relationshipDesign.avatarPlaceholder')"
           />
-          <el-button @click="selectLocalImage">{{ t('characterProfile.selectLocalImage') }}</el-button>
+          <el-button @click="selectLocalImage">{{
+            t('characterProfile.selectLocalImage')
+          }}</el-button>
           <div v-if="infoForm.avatar" class="avatar-preview">
             <el-image
               :src="getAvatarSrc(infoForm.avatar)"
@@ -125,7 +129,11 @@
   </el-dialog>
 
   <!-- 连线编辑弹框 -->
-  <el-dialog v-model="edgeDialogVisible" :title="t('relationshipDesign.editEdgeTitle')" width="400px">
+  <el-dialog
+    v-model="edgeDialogVisible"
+    :title="t('relationshipDesign.editEdgeTitle')"
+    width="400px"
+  >
     <el-form label-width="80px" @submit.prevent="saveEdgeInfo">
       <el-form-item :label="t('relationshipDesign.edgeDescription')">
         <el-input
@@ -608,12 +616,16 @@ function handleNodeDelete() {
 
   const nodeName = selectedNode.value.text || t('relationshipDesign.unknownNode')
 
-  ElMessageBox.confirm(t('relationshipDesign.deleteNodeConfirm', { name: nodeName }), t('relationshipDesign.deleteTitle'), {
-    confirmButtonText: t('relationshipDesign.confirmDelete'),
-    cancelButtonText: t('common.cancel'),
-    type: 'warning',
-    dangerouslyUseHTMLString: false
-  })
+  ElMessageBox.confirm(
+    t('relationshipDesign.deleteNodeConfirm', { name: nodeName }),
+    t('relationshipDesign.deleteTitle'),
+    {
+      confirmButtonText: t('relationshipDesign.confirmDelete'),
+      cancelButtonText: t('common.cancel'),
+      type: 'warning',
+      dangerouslyUseHTMLString: false
+    }
+  )
     .then(() => {
       syncGraphNodePositions()
 

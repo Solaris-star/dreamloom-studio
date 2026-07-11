@@ -48,25 +48,67 @@
         </section>
 
         <section class="toolbar">
-          <el-input v-model="filters.keyword" clearable placeholder="搜索标题、摘要、正文、标签" class="search-input">
+          <el-input
+            v-model="filters.keyword"
+            clearable
+            placeholder="搜索标题、摘要、正文、标签"
+            class="search-input"
+          >
             <template #prefix>
               <el-icon><Search /></el-icon>
             </template>
           </el-input>
           <el-select v-model="filters.type" clearable placeholder="类型" class="filter-select">
-            <el-option v-for="type in typeOptions" :key="type.value" :label="type.label" :value="type.value" />
+            <el-option
+              v-for="type in typeOptions"
+              :key="type.value"
+              :label="type.label"
+              :value="type.value"
+            />
           </el-select>
-          <el-select v-model="filters.sourceType" clearable placeholder="来源" class="filter-select">
-            <el-option v-for="source in sourceOptions" :key="source.value" :label="source.label" :value="source.value" />
+          <el-select
+            v-model="filters.sourceType"
+            clearable
+            placeholder="来源"
+            class="filter-select"
+          >
+            <el-option
+              v-for="source in sourceOptions"
+              :key="source.value"
+              :label="source.label"
+              :value="source.value"
+            />
           </el-select>
-          <el-select v-model="filters.platform" clearable filterable placeholder="平台" class="filter-select">
-            <el-option v-for="platform in platformOptions" :key="platform" :label="platform" :value="platform" />
+          <el-select
+            v-model="filters.platform"
+            clearable
+            filterable
+            placeholder="平台"
+            class="filter-select"
+          >
+            <el-option
+              v-for="platform in platformOptions"
+              :key="platform"
+              :label="platform"
+              :value="platform"
+            />
           </el-select>
-          <el-select v-model="filters.genre" clearable filterable placeholder="题材" class="filter-select">
+          <el-select
+            v-model="filters.genre"
+            clearable
+            filterable
+            placeholder="题材"
+            class="filter-select"
+          >
             <el-option v-for="genre in genreOptions" :key="genre" :label="genre" :value="genre" />
           </el-select>
           <el-select v-model="filters.status" clearable placeholder="状态" class="filter-select">
-            <el-option v-for="status in statusOptions" :key="status.value" :label="status.label" :value="status.value" />
+            <el-option
+              v-for="status in statusOptions"
+              :key="status.value"
+              :label="status.label"
+              :value="status.value"
+            />
           </el-select>
           <el-select v-model="filters.sortBy" placeholder="排序" class="filter-select">
             <el-option label="最近更新" value="updatedAt" />
@@ -113,7 +155,9 @@
               @click="selectItem(item)"
             >
               <div class="card-topline">
-                <el-tag size="small" :type="tagTypeForItem(item)" round>{{ typeLabel(item.type) }}</el-tag>
+                <el-tag size="small" :type="tagTypeForItem(item)" round>{{
+                  typeLabel(item.type)
+                }}</el-tag>
                 <el-tag v-if="item.status" size="small" :type="statusTagType(item.status)" round>
                   {{ statusLabel(item.status) }}
                 </el-tag>
@@ -138,8 +182,16 @@
                   <ScoreBar label="难度" :value="topicMeta(item).writingDifficultyScore" />
                 </div>
                 <div class="tag-row">
-                  <el-tag v-for="tag in item.genreTags.slice(0, 3)" :key="tag" size="small" round>{{ tag }}</el-tag>
-                  <el-tag v-for="tag in item.platformTags.slice(0, 3)" :key="tag" size="small" type="info" round>
+                  <el-tag v-for="tag in item.genreTags.slice(0, 3)" :key="tag" size="small" round>{{
+                    tag
+                  }}</el-tag>
+                  <el-tag
+                    v-for="tag in item.platformTags.slice(0, 3)"
+                    :key="tag"
+                    size="small"
+                    type="info"
+                    round
+                  >
                     {{ tag }}
                   </el-tag>
                 </div>
@@ -154,7 +206,12 @@
                   <span>机会 {{ displayScore(marketMeta(item).opportunityScore) }}</span>
                 </div>
                 <div class="tag-row">
-                  <el-tag v-for="tag in marketMeta(item).relatedKeywords?.slice(0, 4)" :key="tag" size="small" round>
+                  <el-tag
+                    v-for="tag in marketMeta(item).relatedKeywords?.slice(0, 4)"
+                    :key="tag"
+                    size="small"
+                    round
+                  >
                     {{ tag }}
                   </el-tag>
                 </div>
@@ -169,7 +226,12 @@
                   <span>{{ remainingDaysText(item) }}</span>
                 </div>
                 <div class="tag-row">
-                  <el-tag v-for="tag in activityMeta(item).categories?.slice(0, 4)" :key="tag" size="small" round>
+                  <el-tag
+                    v-for="tag in activityMeta(item).categories?.slice(0, 4)"
+                    :key="tag"
+                    size="small"
+                    round
+                  >
                     {{ tag }}
                   </el-tag>
                 </div>
@@ -179,7 +241,9 @@
                 <h3>{{ item.title }}</h3>
                 <p>{{ item.summary || item.content || '这个资产还没有摘要。' }}</p>
                 <div class="tag-row">
-                  <el-tag v-for="tag in allTags(item).slice(0, 6)" :key="tag" size="small" round>{{ tag }}</el-tag>
+                  <el-tag v-for="tag in allTags(item).slice(0, 6)" :key="tag" size="small" round>{{
+                    tag
+                  }}</el-tag>
                 </div>
               </template>
 
@@ -188,18 +252,67 @@
                 <span>{{ formatDate(item.updatedAt) }}</span>
               </div>
               <div class="action-row" @click.stop>
-                <el-button v-if="item.type === 'topic_card'" size="small" @click="runAi(item, 'expand')">AI 扩展</el-button>
-                <el-button v-if="item.type === 'topic_card'" size="small" @click="runAi(item, 'outline')">生成大纲</el-button>
-                <el-button v-if="item.type === 'topic_card'" size="small" @click="runAi(item, 'golden_chapters')">
+                <el-button
+                  v-if="item.type === 'topic_card'"
+                  size="small"
+                  @click="runAi(item, 'expand')"
+                  >AI 扩展</el-button
+                >
+                <el-button
+                  v-if="item.type === 'topic_card'"
+                  size="small"
+                  @click="runAi(item, 'outline')"
+                  >生成大纲</el-button
+                >
+                <el-button
+                  v-if="item.type === 'topic_card'"
+                  size="small"
+                  @click="runAi(item, 'golden_chapters')"
+                >
                   黄金三章
                 </el-button>
-                <el-button v-if="item.type === 'topic_card'" size="small" @click="runAi(item, 'characters')">角色设定</el-button>
-                <el-button v-if="item.type === 'topic_card'" size="small" @click="runAi(item, 'world')">世界观</el-button>
-                <el-button v-if="item.type === 'topic_card'" size="small" @click="runAi(item, 'evaluate')">评估</el-button>
-                <el-button v-if="item.type === 'topic_card'" size="small" @click="convertToBook(item)">转为新书</el-button>
-                <el-button v-if="item.type === 'market_hotspot'" size="small" @click="generateTopicFrom(item)">生成选题</el-button>
-                <el-button v-if="item.type === 'writer_activity'" size="small" @click="generateTopicFrom(item)">生成投稿选题</el-button>
-                <el-button v-if="item.type === 'book_analysis'" size="small" @click="generateTopicFrom(item)">基于此生成选题</el-button>
+                <el-button
+                  v-if="item.type === 'topic_card'"
+                  size="small"
+                  @click="runAi(item, 'characters')"
+                  >角色设定</el-button
+                >
+                <el-button
+                  v-if="item.type === 'topic_card'"
+                  size="small"
+                  @click="runAi(item, 'world')"
+                  >世界观</el-button
+                >
+                <el-button
+                  v-if="item.type === 'topic_card'"
+                  size="small"
+                  @click="runAi(item, 'evaluate')"
+                  >评估</el-button
+                >
+                <el-button
+                  v-if="item.type === 'topic_card'"
+                  size="small"
+                  @click="convertToBook(item)"
+                  >转为新书</el-button
+                >
+                <el-button
+                  v-if="item.type === 'market_hotspot'"
+                  size="small"
+                  @click="generateTopicFrom(item)"
+                  >生成选题</el-button
+                >
+                <el-button
+                  v-if="item.type === 'writer_activity'"
+                  size="small"
+                  @click="generateTopicFrom(item)"
+                  >生成投稿选题</el-button
+                >
+                <el-button
+                  v-if="item.type === 'book_analysis'"
+                  size="small"
+                  @click="generateTopicFrom(item)"
+                  >基于此生成选题</el-button
+                >
                 <el-button size="small" @click="archiveItem(item)">归档</el-button>
                 <el-button size="small" type="danger" @click="removeItem(item)">删除</el-button>
               </div>
@@ -210,17 +323,27 @@
             <template v-if="selectedItem">
               <div class="detail-header">
                 <div>
-                  <el-tag size="small" :type="tagTypeForItem(selectedItem)" round>{{ typeLabel(selectedItem.type) }}</el-tag>
+                  <el-tag size="small" :type="tagTypeForItem(selectedItem)" round>{{
+                    typeLabel(selectedItem.type)
+                  }}</el-tag>
                   <h2>{{ selectedItem.title }}</h2>
                 </div>
-                <el-button text :type="selectedItem.favorite ? 'warning' : 'info'" @click="toggleFavorite(selectedItem)">
+                <el-button
+                  text
+                  :type="selectedItem.favorite ? 'warning' : 'info'"
+                  @click="toggleFavorite(selectedItem)"
+                >
                   <el-icon><StarFilled v-if="selectedItem.favorite" /><Star v-else /></el-icon>
                 </el-button>
               </div>
               <p class="detail-summary">{{ selectedItem.summary || '暂无摘要' }}</p>
               <div class="detail-actions">
                 <el-button size="small" @click="editItem(selectedItem)">编辑</el-button>
-                <el-button v-if="selectedItem.sourceUrl" size="small" @click="openExternal(selectedItem.sourceUrl)">
+                <el-button
+                  v-if="selectedItem.sourceUrl"
+                  size="small"
+                  @click="openExternal(selectedItem.sourceUrl)"
+                >
                   查看来源
                 </el-button>
                 <el-button
@@ -232,10 +355,23 @@
                 </el-button>
               </div>
               <el-divider />
-              <DetailBlock title="正文 / 摘要" :content="selectedItem.content || selectedItem.summary" />
-              <DetailBlock title="结构化 Metadata" :content="JSON.stringify(selectedItem.metadata || {}, null, 2)" code />
-              <DetailBlock title="关联知识" :content="relatedTitleList(selectedItem).join('、') || '暂无关联'" />
-              <DetailBlock title="关联书籍" :content="selectedItem.relatedBookIds?.join('、') || '暂无关联'" />
+              <DetailBlock
+                title="正文 / 摘要"
+                :content="selectedItem.content || selectedItem.summary"
+              />
+              <DetailBlock
+                title="结构化 Metadata"
+                :content="JSON.stringify(selectedItem.metadata || {}, null, 2)"
+                code
+              />
+              <DetailBlock
+                title="关联知识"
+                :content="relatedTitleList(selectedItem).join('、') || '暂无关联'"
+              />
+              <DetailBlock
+                title="关联书籍"
+                :content="selectedItem.relatedBookIds?.join('、') || '暂无关联'"
+              />
               <div class="detail-time">
                 <span>创建：{{ formatDate(selectedItem.createdAt) }}</span>
                 <span>更新：{{ formatDate(selectedItem.updatedAt) }}</span>
@@ -248,11 +384,20 @@
     </template>
   </LayoutTool>
 
-  <el-dialog v-model="itemDialogVisible" :title="editingItem ? '编辑资产' : '新建资产'" width="760px">
+  <el-dialog
+    v-model="itemDialogVisible"
+    :title="editingItem ? '编辑资产' : '新建资产'"
+    width="760px"
+  >
     <el-form label-width="92px" :model="itemForm">
       <el-form-item label="类型">
         <el-select v-model="itemForm.type" style="width: 100%">
-          <el-option v-for="type in typeOptions" :key="type.value" :label="type.label" :value="type.value" />
+          <el-option
+            v-for="type in typeOptions"
+            :key="type.value"
+            :label="type.label"
+            :value="type.value"
+          />
         </el-select>
       </el-form-item>
       <el-form-item label="标题">
@@ -265,13 +410,34 @@
         <el-input v-model="itemForm.content" type="textarea" :rows="5" />
       </el-form-item>
       <el-form-item label="标签">
-        <el-select v-model="itemForm.tags" multiple filterable allow-create default-first-option style="width: 100%" />
+        <el-select
+          v-model="itemForm.tags"
+          multiple
+          filterable
+          allow-create
+          default-first-option
+          style="width: 100%"
+        />
       </el-form-item>
       <el-form-item label="题材">
-        <el-select v-model="itemForm.genreTags" multiple filterable allow-create default-first-option style="width: 100%" />
+        <el-select
+          v-model="itemForm.genreTags"
+          multiple
+          filterable
+          allow-create
+          default-first-option
+          style="width: 100%"
+        />
       </el-form-item>
       <el-form-item label="平台">
-        <el-select v-model="itemForm.platformTags" multiple filterable allow-create default-first-option style="width: 100%" />
+        <el-select
+          v-model="itemForm.platformTags"
+          multiple
+          filterable
+          allow-create
+          default-first-option
+          style="width: 100%"
+        />
       </el-form-item>
       <el-form-item label="来源">
         <el-input v-model="itemForm.sourceName" placeholder="平台、活动、导入来源" />
@@ -298,10 +464,22 @@
           <el-input v-model="itemForm.topicCard.coreConflict" type="textarea" :rows="2" />
         </el-form-item>
         <el-form-item label="爽点">
-          <el-select v-model="itemForm.topicCard.sellingPoints" multiple filterable allow-create style="width: 100%" />
+          <el-select
+            v-model="itemForm.topicCard.sellingPoints"
+            multiple
+            filterable
+            allow-create
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="风险">
-          <el-select v-model="itemForm.topicCard.riskNotes" multiple filterable allow-create style="width: 100%" />
+          <el-select
+            v-model="itemForm.topicCard.riskNotes"
+            multiple
+            filterable
+            allow-create
+            style="width: 100%"
+          />
         </el-form-item>
       </template>
 
@@ -312,20 +490,37 @@
         </el-form-item>
         <el-form-item label="活动类型">
           <el-select v-model="itemForm.writerActivity.activityType" style="width: 100%">
-            <el-option v-for="type in activityTypeOptions" :key="type.value" :label="type.label" :value="type.value" />
+            <el-option
+              v-for="type in activityTypeOptions"
+              :key="type.value"
+              :label="type.label"
+              :value="type.value"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="开始时间">
-          <el-date-picker v-model="itemForm.writerActivity.startDate" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss.SSSZ" />
+          <el-date-picker
+            v-model="itemForm.writerActivity.startDate"
+            type="datetime"
+            value-format="YYYY-MM-DDTHH:mm:ss.SSSZ"
+          />
         </el-form-item>
         <el-form-item label="截止时间">
-          <el-date-picker v-model="itemForm.writerActivity.endDate" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss.SSSZ" />
+          <el-date-picker
+            v-model="itemForm.writerActivity.endDate"
+            type="datetime"
+            value-format="YYYY-MM-DDTHH:mm:ss.SSSZ"
+          />
         </el-form-item>
         <el-form-item label="奖励摘要">
           <el-input v-model="itemForm.writerActivity.rewardSummary" type="textarea" :rows="2" />
         </el-form-item>
         <el-form-item label="要求摘要">
-          <el-input v-model="itemForm.writerActivity.requirementSummary" type="textarea" :rows="2" />
+          <el-input
+            v-model="itemForm.writerActivity.requirementSummary"
+            type="textarea"
+            :rows="2"
+          />
         </el-form-item>
       </template>
     </el-form>
@@ -341,12 +536,23 @@
       <span>正在加工资产...</span>
     </div>
     <template v-else>
-      <el-alert v-if="!aiResult.parsed" type="warning" show-icon :closable="false" title="AI 返回不是标准 JSON，已保留原始输出。" />
+      <el-alert
+        v-if="!aiResult.parsed"
+        type="warning"
+        show-icon
+        :closable="false"
+        title="AI 返回不是标准 JSON，已保留原始输出。"
+      />
       <el-input v-model="aiEditableText" type="textarea" :rows="16" />
     </template>
     <template #footer>
       <el-button @click="aiDialogVisible = false">关闭</el-button>
-      <el-button v-if="aiResult.task === 'topic_card'" type="primary" :disabled="!aiResult.parsed" @click="saveAiTopic">
+      <el-button
+        v-if="aiResult.task === 'topic_card'"
+        type="primary"
+        :disabled="!aiResult.parsed"
+        @click="saveAiTopic"
+      >
         保存为选题卡
       </el-button>
       <el-button v-else type="primary" :disabled="!aiEditableText" @click="applyAiToCurrentItem">
@@ -375,7 +581,12 @@
     </template>
   </el-dialog>
 
-  <el-dialog v-model="createDialogVisible" title="新建拆书知识" width="640px" @close="resetCreateForm">
+  <el-dialog
+    v-model="createDialogVisible"
+    title="新建拆书知识"
+    width="640px"
+    @close="resetCreateForm"
+  >
     <el-form label-width="100px">
       <el-form-item label="来源">
         <el-radio-group v-model="createForm.sourceType">
@@ -387,23 +598,41 @@
       <el-form-item v-if="createForm.sourceType === 'online'" label="在线搜索">
         <div class="online-search-wrap">
           <div class="online-search-row">
-            <el-input v-model="createForm.searchKeyword" clearable placeholder="输入书名关键词" @keyup.enter.prevent="handleOnlineSearch">
+            <el-input
+              v-model="createForm.searchKeyword"
+              clearable
+              placeholder="输入书名关键词"
+              @keyup.enter.prevent="handleOnlineSearch"
+            >
               <template #prefix>
                 <el-icon><Search /></el-icon>
               </template>
             </el-input>
-            <el-button type="primary" :loading="onlineSearching" @click="handleOnlineSearch">搜索</el-button>
+            <el-button type="primary" :loading="onlineSearching" @click="handleOnlineSearch"
+              >搜索</el-button
+            >
           </div>
           <p v-if="onlineSearchError" class="dialog-error">
             <span>{{ onlineSearchError }}</span>
             <button type="button" @click="handleOnlineSearch">重试</button>
           </p>
-          <el-table v-if="onlineSearchResults.length" :data="onlineSearchResults" stripe size="small" max-height="240" @row-click="selectOnlineBook">
+          <el-table
+            v-if="onlineSearchResults.length"
+            :data="onlineSearchResults"
+            stripe
+            size="small"
+            max-height="240"
+            @row-click="selectOnlineBook"
+          >
             <el-table-column prop="title" label="书名" min-width="160" show-overflow-tooltip />
             <el-table-column prop="author" label="作者" width="100" show-overflow-tooltip />
             <el-table-column width="80" align="center">
               <template #default="{ row }">
-                <el-button :type="createForm.selectedBook?.url === row.url ? 'success' : 'primary'" size="small" round>
+                <el-button
+                  :type="createForm.selectedBook?.url === row.url ? 'success' : 'primary'"
+                  size="small"
+                  round
+                >
                   {{ createForm.selectedBook?.url === row.url ? '已选' : '选择' }}
                 </el-button>
               </template>
@@ -413,15 +642,29 @@
       </el-form-item>
 
       <el-form-item v-if="createForm.sourceType === 'local'" label="本地书籍">
-        <el-select v-model="createForm.selectedLocalBook" filterable style="width: 100%" placeholder="选择本地书籍">
-          <el-option v-for="book in bookshelfList" :key="book.name" :label="book.name" :value="book.folderName || book.name" />
+        <el-select
+          v-model="createForm.selectedLocalBook"
+          filterable
+          style="width: 100%"
+          placeholder="选择本地书籍"
+        >
+          <el-option
+            v-for="book in bookshelfList"
+            :key="book.name"
+            :label="book.name"
+            :value="book.folderName || book.name"
+          />
         </el-select>
       </el-form-item>
 
       <el-form-item label="章节范围">
         <div class="extraction-scope-field">
           <div class="extraction-scope-row">
-            <el-checkbox v-model="createForm.limitChapters" :disabled="createForm.sourceType === 'online'">只处理前</el-checkbox>
+            <el-checkbox
+              v-model="createForm.limitChapters"
+              :disabled="createForm.sourceType === 'online'"
+              >只处理前</el-checkbox
+            >
             <el-input-number
               v-model="createForm.chapterLimit"
               :disabled="createForm.sourceType === 'local' && !createForm.limitChapters"
@@ -447,7 +690,9 @@
                   {{ isCreateDimensionGroupSelected(group) ? '取消本组' : '选择本组' }}
                 </el-button>
               </header>
-              <el-checkbox v-for="dim in group.dimensions" :key="dim.key" :value="dim.key">{{ dim.label }}</el-checkbox>
+              <el-checkbox v-for="dim in group.dimensions" :key="dim.key" :value="dim.key">{{
+                dim.label
+              }}</el-checkbox>
             </section>
           </div>
         </el-checkbox-group>
@@ -469,7 +714,13 @@
         <button type="button" @click="loadTextProviders">重试</button>
       </p>
       <el-form-item label="模型">
-        <el-select v-model="createForm.selectedModel" style="width: 100%" filterable allow-create :disabled="!createForm.selectedProviderId">
+        <el-select
+          v-model="createForm.selectedModel"
+          style="width: 100%"
+          filterable
+          allow-create
+          :disabled="!createForm.selectedProviderId"
+        >
           <el-option v-for="m in providerModels" :key="m" :label="m" :value="m" />
         </el-select>
       </el-form-item>
@@ -477,10 +728,24 @@
       <section v-if="extractionProgress" class="dialog-extraction-progress">
         <div class="dialog-progress-head">
           <strong>{{ extractionProgress.currentStep || '正在拆书' }}</strong>
-          <span>{{ Math.round(extractionProgress.overallPercent || extractionProgress.progress?.percent || 0) }}%</span>
+          <span
+            >{{
+              Math.round(
+                extractionProgress.overallPercent || extractionProgress.progress?.percent || 0
+              )
+            }}%</span
+          >
         </div>
-        <p v-if="extractionProgressScopeText" class="dialog-progress-scope">{{ extractionProgressScopeText }}</p>
-        <el-progress :percentage="Math.round(extractionProgress.overallPercent || extractionProgress.progress?.percent || 0)" />
+        <p v-if="extractionProgressScopeText" class="dialog-progress-scope">
+          {{ extractionProgressScopeText }}
+        </p>
+        <el-progress
+          :percentage="
+            Math.round(
+              extractionProgress.overallPercent || extractionProgress.progress?.percent || 0
+            )
+          "
+        />
         <div class="dialog-task-list">
           <span v-for="task in extractionProgressTasks" :key="task.id || task.dimension">
             {{ task.label }}：{{ task.extractedCount || task.itemCount || 0 }} 条
@@ -490,7 +755,12 @@
     </el-form>
     <template #footer>
       <el-button @click="createDialogVisible = false">取消</el-button>
-      <el-button type="primary" :loading="creating" :disabled="!canStartExtraction" @click="handleCreateExtraction">
+      <el-button
+        type="primary"
+        :loading="creating"
+        :disabled="!canStartExtraction"
+        @click="handleCreateExtraction"
+      >
         开始拆书
       </el-button>
     </template>
@@ -558,9 +828,7 @@ const DetailBlock = defineComponent({
     return () =>
       h('section', { class: 'detail-block' }, [
         h('h4', props.title),
-        props.code
-          ? h('pre', props.content || '暂无')
-          : h('p', props.content || '暂无')
+        props.code ? h('pre', props.content || '暂无') : h('p', props.content || '暂无')
       ])
   }
 })
@@ -695,14 +963,27 @@ const EXTRACTION_DIMENSION_GROUPS = [
   {
     key: 'assetDetail',
     label: '分项补提',
-    keys: ['characterSetting', 'relationship', 'worldbuilding', 'goldenFinger', 'powerSystem', 'timeline', 'locationFaction', 'foreshadowing']
+    keys: [
+      'characterSetting',
+      'relationship',
+      'worldbuilding',
+      'goldenFinger',
+      'powerSystem',
+      'timeline',
+      'locationFaction',
+      'foreshadowing'
+    ]
   }
 ]
 
-const activeCreateType = computed(() => tabs.find((tab) => tab.key === activeTab.value)?.type || 'note')
+const activeCreateType = computed(
+  () => tabs.find((tab) => tab.key === activeTab.value)?.type || 'note'
+)
 const topicCount = computed(() => items.value.filter((item) => item.type === 'topic_card').length)
 const endingSoonCount = computed(() => items.value.filter(isEndingSoon).length)
-const platformOptions = computed(() => uniqueFlat(items.value.flatMap((item) => item.platformTags || [])))
+const platformOptions = computed(() =>
+  uniqueFlat(items.value.flatMap((item) => item.platformTags || []))
+)
 const genreOptions = computed(() => uniqueFlat(items.value.flatMap((item) => item.genreTags || [])))
 const directoryGroups = computed(() =>
   typeOptions.map((type) => ({
@@ -716,11 +997,15 @@ const providerModels = computed(() => {
   const provider = textProviders.value.find((p) => p.id === createForm.value.selectedProviderId)
   return provider?.models || []
 })
-const selectedCreateLocalBook = computed(() =>
-  bookshelfList.value.find((book) => (book.folderName || book.name) === createForm.value.selectedLocalBook) || null
+const selectedCreateLocalBook = computed(
+  () =>
+    bookshelfList.value.find(
+      (book) => (book.folderName || book.name) === createForm.value.selectedLocalBook
+    ) || null
 )
 const createSourceChapterCount = computed(() => {
-  if (createForm.value.sourceType === 'local') return bookChapterCount(selectedCreateLocalBook.value)
+  if (createForm.value.sourceType === 'local')
+    return bookChapterCount(selectedCreateLocalBook.value)
   return bookChapterCount(createForm.value.selectedBook)
 })
 const createChapterLimitMax = computed(() => {
@@ -728,7 +1013,10 @@ const createChapterLimitMax = computed(() => {
   return Math.max(1, total ? Math.min(total, 200) : 200)
 })
 const createExtractionScopeText = computed(() => {
-  const limit = Math.max(1, Math.min(Number(createForm.value.chapterLimit || 10), createChapterLimitMax.value))
+  const limit = Math.max(
+    1,
+    Math.min(Number(createForm.value.chapterLimit || 10), createChapterLimitMax.value)
+  )
   if (createForm.value.sourceType === 'online') return `在线书籍本次下载并处理前 ${limit} 章。`
   if (!createForm.value.limitChapters) {
     const total = Number(createSourceChapterCount.value || 0)
@@ -760,14 +1048,16 @@ const extractionProgressTasks = computed(() => {
   return Object.values(rows || {})
 })
 const extractionProgressScopeText = computed(() => {
-  const scope = extractionProgress.value?.stats?.chapterScope || extractionProgress.value?.chapterScope
+  const scope =
+    extractionProgress.value?.stats?.chapterScope || extractionProgress.value?.chapterScope
   if (!scope?.label) return ''
   return `处理章节：${scope.label}`
 })
 const canStartExtraction = computed(() => {
   const form = createForm.value
   if (textProviderError.value) return false
-  if (!form.selectedDimensions.length || !form.selectedProviderId || !form.selectedModel) return false
+  if (!form.selectedDimensions.length || !form.selectedProviderId || !form.selectedModel)
+    return false
   if (form.sourceType === 'online') return Boolean(form.selectedBook)
   return Boolean(form.selectedLocalBook)
 })
@@ -790,9 +1080,12 @@ const filteredItems = computed(() => {
 })
 
 const emptyText = computed(() => {
-  if (activeTab.value === 'topic_card') return '还没有选题卡。你可以从市场热点、作家活动或拆书结果中一键生成选题。'
-  if (activeTab.value === 'writer_activity') return '还没有收藏作家活动。去市场灵感里看看最近有什么征文和扶持计划吧。'
-  if (activeTab.value === 'market_hotspot') return '还没有保存市场热点。你可以先从市场灵感模块收藏感兴趣的题材趋势。'
+  if (activeTab.value === 'topic_card')
+    return '还没有选题卡。你可以从市场热点、作家活动或拆书结果中一键生成选题。'
+  if (activeTab.value === 'writer_activity')
+    return '还没有收藏作家活动。去市场灵感里看看最近有什么征文和扶持计划吧。'
+  if (activeTab.value === 'market_hotspot')
+    return '还没有保存市场热点。你可以先从市场灵感模块收藏感兴趣的题材趋势。'
   return '创作库还是空的。你可以保存灵感、拆书结果、市场热点或作家活动，让它们成为你的创作素材。'
 })
 
@@ -803,10 +1096,13 @@ watch(filteredItems, (rows) => {
   }
 })
 
-watch(() => createForm.value.sourceType, (sourceType) => {
-  if (sourceType === 'online') createForm.value.limitChapters = true
-  clampCreateChapterLimit()
-})
+watch(
+  () => createForm.value.sourceType,
+  (sourceType) => {
+    if (sourceType === 'online') createForm.value.limitChapters = true
+    clampCreateChapterLimit()
+  }
+)
 
 watch([createChapterLimitMax, selectedCreateLocalBook], () => {
   clampCreateChapterLimit()
@@ -905,10 +1201,14 @@ function toggleCreateDimensionGroup(group = {}) {
   const keys = (group.dimensions || []).map((item) => item.key)
   if (!keys.length) return
   if (isCreateDimensionGroupSelected(group)) {
-    createForm.value.selectedDimensions = createForm.value.selectedDimensions.filter((key) => !keys.includes(key))
+    createForm.value.selectedDimensions = createForm.value.selectedDimensions.filter(
+      (key) => !keys.includes(key)
+    )
     return
   }
-  createForm.value.selectedDimensions = Array.from(new Set([...createForm.value.selectedDimensions, ...keys]))
+  createForm.value.selectedDimensions = Array.from(
+    new Set([...createForm.value.selectedDimensions, ...keys])
+  )
 }
 
 async function getBooksDir() {
@@ -981,7 +1281,8 @@ function sortRows(rows, sortBy) {
     const topic = topicMeta(item)
     const market = marketMeta(item)
     if (key === 'heat') return Number(topic.marketHeatScore ?? market.heatScore ?? 0)
-    if (key === 'commercial') return Number(topic.commercialPotentialScore ?? market.opportunityScore ?? 0)
+    if (key === 'commercial')
+      return Number(topic.commercialPotentialScore ?? market.opportunityScore ?? 0)
     return 0
   }
   return [...rows].sort((a, b) => {
@@ -1056,7 +1357,12 @@ function formatDate(value) {
   if (!value) return '-'
   const date = new Date(value)
   if (!Number.isFinite(date.getTime())) return String(value)
-  return date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
 function remainingDaysText(item) {
@@ -1100,7 +1406,10 @@ function editItem(item) {
     ...defaultItemForm(item.type),
     ...JSON.parse(JSON.stringify(item)),
     topicCard: { ...defaultItemForm().topicCard, ...(item.metadata?.topicCard || {}) },
-    writerActivity: { ...defaultItemForm().writerActivity, ...(item.metadata?.writerActivity || {}) }
+    writerActivity: {
+      ...defaultItemForm().writerActivity,
+      ...(item.metadata?.writerActivity || {})
+    }
   }
   itemDialogVisible.value = true
 }
@@ -1108,7 +1417,8 @@ function editItem(item) {
 function buildPayloadFromForm() {
   const metadata = { ...(editingItem.value?.metadata || {}) }
   if (itemForm.value.type === 'topic_card') metadata.topicCard = { ...itemForm.value.topicCard }
-  if (itemForm.value.type === 'writer_activity') metadata.writerActivity = { ...itemForm.value.writerActivity }
+  if (itemForm.value.type === 'writer_activity')
+    metadata.writerActivity = { ...itemForm.value.writerActivity }
   return {
     type: itemForm.value.type,
     title: itemForm.value.title.trim(),
@@ -1161,7 +1471,9 @@ async function saveItem() {
       ? await updateKnowledgeItem(editingItem.value.id, payload)
       : await createKnowledgeItem(payload)
     requireKnowledgeItem(result, '保存失败')
-    ElMessage.success(editingItem.value ? '已更新资产' : (result.duplicate ? '已更新已有资产' : '已保存资产'))
+    ElMessage.success(
+      editingItem.value ? '已更新资产' : result.duplicate ? '已更新已有资产' : '已保存资产'
+    )
     itemDialogVisible.value = false
     await loadItems()
     selectedItem.value = result.item
@@ -1211,7 +1523,12 @@ async function removeItem(item) {
 }
 
 async function generateTopicFrom(item) {
-  const task = item.type === 'book_analysis' ? 'from_book_analysis' : item.type === 'writer_activity' ? 'from_activity' : 'topic_card'
+  const task =
+    item.type === 'book_analysis'
+      ? 'from_book_analysis'
+      : item.type === 'writer_activity'
+        ? 'from_activity'
+        : 'topic_card'
   await runAi(item, task)
 }
 
@@ -1236,12 +1553,24 @@ function requireKnowledgeAiTaskResult(result, fallback = 'AI 生成失败') {
 async function runAi(item, task) {
   aiDialogVisible.value = true
   aiLoading.value = true
-  aiResult.value = { task: task === 'from_book_analysis' || task === 'from_activity' ? 'topic_card' : task, raw: '', parsed: null, sourceItem: item }
+  aiResult.value = {
+    task: task === 'from_book_analysis' || task === 'from_activity' ? 'topic_card' : task,
+    raw: '',
+    parsed: null,
+    sourceItem: item
+  }
   aiEditableText.value = ''
   try {
-    const relatedItems = (item.relatedKnowledgeIds || []).map((id) => items.value.find((entry) => entry.id === id)).filter(Boolean)
+    const relatedItems = (item.relatedKnowledgeIds || [])
+      .map((id) => items.value.find((entry) => entry.id === id))
+      .filter(Boolean)
     const result = requireKnowledgeAiTaskResult(
-      await runKnowledgeAiTask({ task, item, relatedItems, options: { length: topicMeta(item).targetLength || 'medium' } })
+      await runKnowledgeAiTask({
+        task,
+        item,
+        relatedItems,
+        options: { length: topicMeta(item).targetLength || 'medium' }
+      })
     )
     aiResult.value = {
       task: task === 'from_book_analysis' || task === 'from_activity' ? 'topic_card' : task,
@@ -1297,14 +1626,15 @@ async function applyAiToCurrentItem() {
     ElMessage.warning('请先修正为合法 JSON')
     return
   }
-  const outputKey = {
-    expand: 'expand',
-    outline: 'outline',
-    golden_chapters: 'goldenChapters',
-    characters: 'characters',
-    world: 'world',
-    evaluate: 'evaluation'
-  }[aiResult.value.task] || aiResult.value.task
+  const outputKey =
+    {
+      expand: 'expand',
+      outline: 'outline',
+      golden_chapters: 'goldenChapters',
+      characters: 'characters',
+      world: 'world',
+      evaluate: 'evaluation'
+    }[aiResult.value.task] || aiResult.value.task
   const patch = {
     metadata: {
       ...(item.metadata || {}),
@@ -1350,11 +1680,15 @@ async function applyAiToCurrentItem() {
 
 async function convertToBook(item) {
   try {
-    await ElMessageBox.confirm(`将「${item.title}」转为新书，并写入简介、设定与大纲草稿？`, '转为新书', {
-      confirmButtonText: '转为新书',
-      cancelButtonText: '取消',
-      type: 'info'
-    })
+    await ElMessageBox.confirm(
+      `将「${item.title}」转为新书，并写入简介、设定与大纲草稿？`,
+      '转为新书',
+      {
+        confirmButtonText: '转为新书',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    )
     const result = await convertTopicCardToBook(item.id)
     requireKnowledgeSuccess(result, '转书失败')
     if (!result.book || !result.item) throw new Error('转书失败')
@@ -1584,7 +1918,8 @@ async function handleCreateExtraction() {
         currentStep: result.currentStep || '已创建拆书任务，正在等待结果',
         overallPercent: result.overallPercent || 1,
         progress: { percent: result.overallPercent || 1 },
-        stats: result.stats || (result.chapterScope ? { chapterScope: result.chapterScope } : undefined)
+        stats:
+          result.stats || (result.chapterScope ? { chapterScope: result.chapterScope } : undefined)
       })
       if (!canReadExtractionProgress()) {
         throw new Error('任务已创建，但当前环境无法读取进度，请稍后刷新创作库')
@@ -1665,7 +2000,10 @@ async function loadOnlineExtractionText(bookRow, chapterLimit = 10) {
     ElMessage.warning(`已跳过 ${downloadedRows.length - rows.length} 章失败或空正文`)
   }
   const text = rows
-    .map((chapter, index) => `${chapter.title || chapters[index]?.title || `第${index + 1}章`}\n${chapter.content || ''}`)
+    .map(
+      (chapter, index) =>
+        `${chapter.title || chapters[index]?.title || `第${index + 1}章`}\n${chapter.content || ''}`
+    )
     .join('\n\n')
     .trim()
   if (!text) throw new Error('没有下载到在线书籍正文')
@@ -1867,14 +2205,16 @@ function onExtractionProgress(event) {
 
 .asset-card {
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.3), transparent 56%),
-    rgba(251, 250, 246, 0.9);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.3), transparent 56%), rgba(251, 250, 246, 0.9);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 14px;
   cursor: pointer;
   box-shadow: 0 4px 18px rgba(28, 40, 40, 0.05);
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 
   &:hover,
   &.selected {

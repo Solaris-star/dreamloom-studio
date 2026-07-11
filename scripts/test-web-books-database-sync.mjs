@@ -48,7 +48,10 @@ function assertDocumentWriteResult(result, { fileName, documentType, itemCount }
   if (itemCount !== undefined) assert.equal(result.itemCount, itemCount)
 }
 
-function assertGraphWriteResult(result, { graphName, assetType, collection, nodeCount, lineCount }) {
+function assertGraphWriteResult(
+  result,
+  { graphName, assetType, collection, nodeCount, lineCount }
+) {
   assert.equal(result.success, true)
   assert.equal(result.graphName, graphName)
   assert.equal(result.assetType, assetType)
@@ -129,7 +132,10 @@ try {
   assert.equal(fs.existsSync(getNovelDatabasePath(booksDir)), true)
 
   assertDocumentWriteResult(
-    writeCharacters({ bookName: originalBookName, data: [{ name: '林青', gender: '女' }] }, booksDir),
+    writeCharacters(
+      { bookName: originalBookName, data: [{ name: '林青', gender: '女' }] },
+      booksDir
+    ),
     { fileName: 'characters.json', documentType: 'characters', itemCount: 1 }
   )
   assertDocumentWriteResult(
@@ -137,7 +143,9 @@ try {
       {
         bookName: originalBookName,
         data: {
-          categories: [{ name: '术法', items: [{ name: '月影术', introduction: '只能夜间施展。' }] }]
+          categories: [
+            { name: '术法', items: [{ name: '月影术', introduction: '只能夜间施展。' }] }
+          ]
         }
       },
       booksDir
@@ -145,7 +153,10 @@ try {
     { fileName: 'settings.json', documentType: 'settings' }
   )
   assertDocumentWriteResult(
-    writeTimeline({ bookName: originalBookName, data: [{ title: '入山', time: '第一夜' }] }, booksDir),
+    writeTimeline(
+      { bookName: originalBookName, data: [{ title: '入山', time: '第一夜' }] },
+      booksDir
+    ),
     { fileName: 'timelines.json', documentType: 'timeline', itemCount: 1 }
   )
   assertDocumentWriteResult(
@@ -159,7 +170,10 @@ try {
     { fileName: 'outlines.json', documentType: 'outlines' }
   )
   assertDocumentWriteResult(
-    writeDictionary({ bookName: originalBookName, data: [{ term: '雪岭', description: '北境山脉。' }] }, booksDir),
+    writeDictionary(
+      { bookName: originalBookName, data: [{ term: '雪岭', description: '北境山脉。' }] },
+      booksDir
+    ),
     { fileName: 'dictionary.json', documentType: 'dictionary', itemCount: 1 }
   )
   assertDocumentWriteResult(
@@ -177,14 +191,20 @@ try {
     writeOutlineAiSessions(
       {
         bookName: originalBookName,
-        data: { version: 1, nodes: { outline_root: [{ role: 'assistant', content: '保留雪岭线。' }] } }
+        data: {
+          version: 1,
+          nodes: { outline_root: [{ role: 'assistant', content: '保留雪岭线。' }] }
+        }
       },
       booksDir
     ),
     { fileName: 'outline-ai-sessions.json', documentType: 'outline_ai_sessions' }
   )
   assertDocumentWriteResult(
-    writeSequenceCharts({ bookName: originalBookName, data: [{ id: 'seq_1', title: '追兵入山' }] }, booksDir),
+    writeSequenceCharts(
+      { bookName: originalBookName, data: [{ id: 'seq_1', title: '追兵入山' }] },
+      booksDir
+    ),
     { fileName: 'sequence-charts.json', documentType: 'sequence_charts', itemCount: 1 }
   )
   assertGraphWriteResult(
@@ -233,7 +253,8 @@ try {
         bookName: originalBookName,
         mapName: '雪岭地图',
         description: '主地图',
-        imageData: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGOSHzRgQAAAABJRU5ErkJggg=='
+        imageData:
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGOSHzRgQAAAABJRU5ErkJggg=='
       },
       booksDir
     ),

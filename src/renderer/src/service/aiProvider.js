@@ -76,7 +76,10 @@ function requireEmbeddingProviderModelsResult(result, fallback = '读取模型�
   return ok
 }
 
-function requireEmbeddingProviderValidationResult(result, fallback = '验证 Embedding Provider 失败') {
+function requireEmbeddingProviderValidationResult(
+  result,
+  fallback = '验证 Embedding Provider 失败'
+) {
   const ok = requireAiProviderSuccess(result, fallback)
   if (typeof ok.isValid !== 'boolean') {
     throw new Error(`${fallback}：接口返回格式不正确`)
@@ -92,23 +95,37 @@ export async function getAiProviders() {
 }
 
 export async function saveAiProviders(providers) {
-  return requireAiProviderListResult(await requireAiProviderApi('saveAiProviders')(providers), '保存 Provider 失败')
+  return requireAiProviderListResult(
+    await requireAiProviderApi('saveAiProviders')(providers),
+    '保存 Provider 失败'
+  )
 }
 
 export async function addAiProvider(provider) {
-  return requireAiProviderResult(await requireAiProviderApi('addAiProvider')(provider), '新增 Provider 失败')
+  return requireAiProviderResult(
+    await requireAiProviderApi('addAiProvider')(provider),
+    '新增 Provider 失败'
+  )
 }
 
 export async function updateAiProvider(provider) {
-  return requireAiProviderResult(await requireAiProviderApi('updateAiProvider')(provider), '更新 Provider 失败')
+  return requireAiProviderResult(
+    await requireAiProviderApi('updateAiProvider')(provider),
+    '更新 Provider 失败'
+  )
 }
 
 export async function deleteAiProvider(providerId) {
-  return requireAiProviderListResult(await requireAiProviderApi('deleteAiProvider')(providerId), '删除 Provider 失败')
+  return requireAiProviderListResult(
+    await requireAiProviderApi('deleteAiProvider')(providerId),
+    '删除 Provider 失败'
+  )
 }
 
 export async function validateAiProvider(provider) {
-  return requireAiProviderValidationResult(await requireAiProviderApi('validateAiProvider')(provider))
+  return requireAiProviderValidationResult(
+    await requireAiProviderApi('validateAiProvider')(provider)
+  )
 }
 
 export async function listAiProviderModels(provider) {
@@ -116,12 +133,14 @@ export async function listAiProviderModels(provider) {
 }
 
 export async function testAiProviderModel(provider, modelName) {
-  return requireAiProviderTestResult(await requireAiProviderApi('testAiProviderModel')(provider, modelName))
+  return requireAiProviderTestResult(
+    await requireAiProviderApi('testAiProviderModel')(provider, modelName)
+  )
 }
 
 export async function getAiProvidersByCategory(category) {
   const res = await getAiProviders()
-  return res.providers.filter(p => p.category === category)
+  return res.providers.filter((p) => p.category === category)
 }
 
 export async function getActiveTextProvider() {

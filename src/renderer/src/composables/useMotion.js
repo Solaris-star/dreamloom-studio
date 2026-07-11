@@ -33,7 +33,7 @@ export function pageEnter(el, done, options = {}) {
   }
 
   const compact = Boolean(options.compact)
-  const duration = compact ? 0.08 : (prefersReducedMotion() ? 0.08 : 0.24)
+  const duration = compact ? 0.08 : prefersReducedMotion() ? 0.08 : 0.24
   const finish = createMotionDone(done, options.fallbackMs || duration * 1000 + 240, () => {
     gsap.set(el, { autoAlpha: 1, y: 0, clearProps: 'transform,opacity,visibility,willChange' })
   })
@@ -60,7 +60,7 @@ export function pageLeave(el, done, options = {}) {
   }
 
   const compact = Boolean(options.compact)
-  const duration = compact ? 0.04 : (prefersReducedMotion() ? 0.06 : 0.16)
+  const duration = compact ? 0.04 : prefersReducedMotion() ? 0.06 : 0.16
   const finish = createMotionDone(done, options.fallbackMs || duration * 1000 + 240)
 
   gsap.killTweensOf(el)

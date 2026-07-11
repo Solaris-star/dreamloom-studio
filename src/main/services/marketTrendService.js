@@ -92,44 +92,58 @@ const SOURCE_CONFIG = {
   qidian: {
     label: '起点中文网',
     platform: '起点',
-    getUrls: () => configuredUrls('MARKET_QIDIAN_URLS', [
-      'https://m.qidian.com/rank/yuepiao/',
-      'https://m.qidian.com/rank/newbook/'
-    ]),
+    getUrls: () =>
+      configuredUrls('MARKET_QIDIAN_URLS', [
+        'https://m.qidian.com/rank/yuepiao/',
+        'https://m.qidian.com/rank/newbook/'
+      ]),
     intervalMs: 12 * 60 * 60 * 1000
   },
   jjwxc: {
     label: '晋江文学城',
     platform: '晋江',
-    getUrls: () => configuredUrls('MARKET_JJWXC_URLS', [
-      'https://www.jjwxc.net/topten.php?orderstr=1&t=0',
-      'https://www.jjwxc.net/topten.php?orderstr=7&t=0'
-    ]),
+    getUrls: () =>
+      configuredUrls('MARKET_JJWXC_URLS', [
+        'https://www.jjwxc.net/topten.php?orderstr=1&t=0',
+        'https://www.jjwxc.net/topten.php?orderstr=7&t=0'
+      ]),
     intervalMs: 12 * 60 * 60 * 1000
   },
   fanqie: {
     label: '番茄小说',
     platform: '番茄',
-    getUrls: () => configuredUrls('MARKET_FANQIE_URLS', [
-      'https://fanqienovel.com/rank/1_2_257',
-      'https://fanqienovel.com/rank/1_2_262',
-      'https://fanqienovel.com/rank'
-    ]),
+    getUrls: () =>
+      configuredUrls('MARKET_FANQIE_URLS', [
+        'https://fanqienovel.com/rank/1_2_257',
+        'https://fanqienovel.com/rank/1_2_262',
+        'https://fanqienovel.com/rank'
+      ]),
     intervalMs: 12 * 60 * 60 * 1000
   },
   qimao: {
     label: '七猫小说',
     platform: '七猫',
-    getUrls: () => configuredUrls('MARKET_QIMAO_URLS', [
-      'https://www.qimao.com/rank/',
-      'https://www.qimao.com/paihang',
-      'https://www.qimao.com/activity/current/'
-    ]),
+    getUrls: () =>
+      configuredUrls('MARKET_QIMAO_URLS', [
+        'https://www.qimao.com/rank/',
+        'https://www.qimao.com/paihang',
+        'https://www.qimao.com/activity/current/'
+      ]),
     intervalMs: 12 * 60 * 60 * 1000
   }
 }
 
-const DEFAULT_SOURCES = ['weibo', 'baidu', 'aggregated', 'dailyhot', 'rsshub', 'qidian', 'jjwxc', 'fanqie', 'qimao']
+const DEFAULT_SOURCES = [
+  'weibo',
+  'baidu',
+  'aggregated',
+  'dailyhot',
+  'rsshub',
+  'qidian',
+  'jjwxc',
+  'fanqie',
+  'qimao'
+]
 
 const CHANNEL_LABELS = {
   all: '通用',
@@ -180,7 +194,8 @@ const NOVEL_SIGNAL_RULES = [
     loglineIdeas: ['主角从一条公开热词里发现异常，追查时发现自己也被写进了局里。'],
     openingIdeas: ['直播连线断开的前三秒，他收到一条匿名信息：别相信通报里的第三句话。'],
     platforms: ['七猫', '番茄', '短篇'],
-    pattern: /官方|警方|通报|失踪|调查|法院|事故|案件|争议|回应|举报|曝光|辟谣|真相|纪委|审计|秘书|官场/,
+    pattern:
+      /官方|警方|通报|失踪|调查|法院|事故|案件|争议|回应|举报|曝光|辟谣|真相|纪委|审计|秘书|官场/,
     hook: '一个公共事件背后藏着私人秘密，主角追查时发现自己也在局中。'
   },
   {
@@ -285,7 +300,8 @@ const NOVEL_SIGNAL_RULES = [
     loglineIdeas: ['主角从微末家族出发，在资源稀缺和强敌压迫中建立自己的修行秩序。'],
     openingIdeas: ['家族祠堂坍塌那夜，他在碎裂铜镜里看见了三天后的灭门火光。'],
     platforms: ['起点', '番茄'],
-    pattern: /玄幻|奇幻|仙侠|修真|武道|成圣|神通|灵异|地下城|龙|诸天|无限|高武|穿越|重生|系统|命格|功力|妖族|宗门|脑洞|霸体|神棺|潜龙/,
+    pattern:
+      /玄幻|奇幻|仙侠|修真|武道|成圣|神通|灵异|地下城|龙|诸天|无限|高武|穿越|重生|系统|命格|功力|妖族|宗门|脑洞|霸体|神棺|潜龙/,
     hook: '微末出身遇到修行规则，主角用资源和情报差一步步变强。'
   },
   {
@@ -300,7 +316,8 @@ const NOVEL_SIGNAL_RULES = [
     loglineIdeas: ['主角从乱世低处开局，在军阵、朝堂和资源争夺中一步步改写命运。'],
     openingIdeas: ['烽火台失守前夜，他在军册最后一页看见了自己的死期。'],
     platforms: ['起点', '七猫'],
-    pattern: /边关|兵王|边军|武夫|王朝|争霸|架空历史|历史|将军|朝堂|沙场|烽火|封狼居胥|北伐|东晋|三国|皇朝|小卒/,
+    pattern:
+      /边关|兵王|边军|武夫|王朝|争霸|架空历史|历史|将军|朝堂|沙场|烽火|封狼居胥|北伐|东晋|三国|皇朝|小卒/,
     hook: '乱世压力压到小人物身上，主角用胆识和信息一步步夺回主动。'
   },
   {
@@ -315,7 +332,8 @@ const NOVEL_SIGNAL_RULES = [
     loglineIdeas: ['女主被卷入婚约与权力局，在危险关系中拿回选择权。'],
     openingIdeas: ['赐婚圣旨落下时，她正把绑匪的刀按回对方袖中。'],
     platforms: ['晋江', '番茄', '七猫'],
-    pattern: /古言|权谋|锦衣卫|侯府|县主|公主|王爷|嫁|赐婚|掌心|娇|乱世|谋妻|宅斗|宫廷|甜宠|先婚后爱|双强/,
+    pattern:
+      /古言|权谋|锦衣卫|侯府|县主|公主|王爷|嫁|赐婚|掌心|娇|乱世|谋妻|宅斗|宫廷|甜宠|先婚后爱|双强/,
     hook: '亲密关系和权力规则同时压来，女主先求生，再翻盘。'
   }
 ]
@@ -398,7 +416,12 @@ function staleAfterForSource(source) {
 
 function sourceCacheTtlMs(source, options = {}) {
   const sourceEnvKey = `MARKET_TREND_${String(source || '').toUpperCase()}_CACHE_TTL_MS`
-  const candidates = [options.cacheTtlMs, process.env[sourceEnvKey], process.env.MARKET_TREND_CACHE_TTL_MS, CACHE_TTL_MS]
+  const candidates = [
+    options.cacheTtlMs,
+    process.env[sourceEnvKey],
+    process.env.MARKET_TREND_CACHE_TTL_MS,
+    CACHE_TTL_MS
+  ]
   for (const candidate of candidates) {
     const value = Number(candidate)
     if (Number.isFinite(value) && value > 0) return value
@@ -433,7 +456,11 @@ export function pruneSourceCache(booksDir, options = {}) {
     seen.add(row.source)
     kept.push(row)
   }
-  if (removed > 0 || kept.length !== rows.length || kept.some((row, index) => row !== rows[index])) {
+  if (
+    removed > 0 ||
+    kept.length !== rows.length ||
+    kept.some((row, index) => row !== rows[index])
+  ) {
     writeRows(booksDir, SOURCE_CACHE_FILE, kept)
   }
   return { checked: rows.length, kept: kept.length, removed, updatedAt: nowIso() }
@@ -503,7 +530,9 @@ function writeSourceCache(booksDir, source, result, options = {}) {
   const now = Date.now()
   const createdAt = new Date(now).toISOString()
   const ttlMs = sourceCacheTtlMs(source, options)
-  const rows = readRows(booksDir, SOURCE_CACHE_FILE).filter((item) => item?.source && item.source !== source)
+  const rows = readRows(booksDir, SOURCE_CACHE_FILE).filter(
+    (item) => item?.source && item.source !== source
+  )
   rows.unshift({
     source,
     createdAt,
@@ -530,11 +559,17 @@ function asText(value) {
 }
 
 function stripHtml(value) {
-  return asText(value).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+  return asText(value)
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function cleanReadableText(value = '') {
-  const text = stripHtml(value).replace(/[\uE000-\uF8FF]/g, '').replace(/\s+/g, ' ').trim()
+  const text = stripHtml(value)
+    .replace(/[\uE000-\uF8FF]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
   if (!text) return ''
   const chineseCount = (text.match(/[\u4e00-\u9fa5]/g) || []).length
   return chineseCount >= Math.min(2, text.length) ? text : ''
@@ -549,11 +584,15 @@ function configuredUrls(envKey, defaults = []) {
 }
 
 function cleanBaseUrl(value) {
-  return String(value || '').trim().replace(/\/+$/, '')
+  return String(value || '')
+    .trim()
+    .replace(/\/+$/, '')
 }
 
 function dailyHotUrls() {
-  const base = cleanBaseUrl(process.env.DAILYHOT_API_BASE_URL || process.env.MARKET_DAILYHOT_API_BASE_URL)
+  const base = cleanBaseUrl(
+    process.env.DAILYHOT_API_BASE_URL || process.env.MARKET_DAILYHOT_API_BASE_URL
+  )
   if (!base) return []
   return ['weibo', 'baidu', 'zhihu', 'bilibili', 'douyin'].map((path) => `${base}/${path}`)
 }
@@ -561,7 +600,9 @@ function dailyHotUrls() {
 function rssHubUrls() {
   const base = cleanBaseUrl(process.env.RSSHUB_BASE_URL || process.env.MARKET_RSSHUB_BASE_URL)
   if (!base) return []
-  return ['/weibo/search/hot', '/baidu/top', '/zhihu/hotlist', '/bilibili/ranking/0/3'].map((path) => `${base}${path}`)
+  return ['/weibo/search/hot', '/baidu/top', '/zhihu/hotlist', '/bilibili/ranking/0/3'].map(
+    (path) => `${base}${path}`
+  )
 }
 
 function sourceUrls(source) {
@@ -579,7 +620,9 @@ function positiveNumber(value, fallback) {
 function requestIntervalMs(source, options = {}) {
   const sourceEnvKey = `MARKET_TREND_${String(source || '').toUpperCase()}_REQUEST_INTERVAL_MS`
   return positiveNumber(
-    options.requestIntervalMs ?? process.env[sourceEnvKey] ?? process.env.MARKET_TREND_REQUEST_INTERVAL_MS,
+    options.requestIntervalMs ??
+      process.env[sourceEnvKey] ??
+      process.env.MARKET_TREND_REQUEST_INTERVAL_MS,
     REQUEST_INTERVAL_MS
   )
 }
@@ -587,7 +630,10 @@ function requestIntervalMs(source, options = {}) {
 function requestRetryCount(source, options = {}) {
   const sourceEnvKey = `MARKET_TREND_${String(source || '').toUpperCase()}_RETRY_COUNT`
   const value = positiveNumber(
-    options.requestRetryCount ?? options.retryCount ?? process.env[sourceEnvKey] ?? process.env.MARKET_TREND_RETRY_COUNT,
+    options.requestRetryCount ??
+      options.retryCount ??
+      process.env[sourceEnvKey] ??
+      process.env.MARKET_TREND_RETRY_COUNT,
     REQUEST_RETRY_COUNT
   )
   return Math.min(3, Math.floor(value))
@@ -596,7 +642,10 @@ function requestRetryCount(source, options = {}) {
 function retryIntervalMs(source, options = {}) {
   const sourceEnvKey = `MARKET_TREND_${String(source || '').toUpperCase()}_RETRY_INTERVAL_MS`
   const value = positiveNumber(
-    options.requestRetryIntervalMs ?? options.retryIntervalMs ?? process.env[sourceEnvKey] ?? process.env.MARKET_TREND_RETRY_INTERVAL_MS,
+    options.requestRetryIntervalMs ??
+      options.retryIntervalMs ??
+      process.env[sourceEnvKey] ??
+      process.env.MARKET_TREND_RETRY_INTERVAL_MS,
     RETRY_INTERVAL_MS
   )
   return Math.min(30 * 1000, Math.floor(value))
@@ -618,7 +667,16 @@ function errorTypeFor(error = {}, fallback = '') {
   return 'network'
 }
 
-function fetchFailureDetail({ source, url, index = 0, error, message = '', errorType = '', attempts = 1, maxRetryCount = 0 }) {
+function fetchFailureDetail({
+  source,
+  url,
+  index = 0,
+  error,
+  message = '',
+  errorType = '',
+  attempts = 1,
+  maxRetryCount = 0
+}) {
   const text = String(message || error?.message || '采集失败').trim()
   const retryCount = Math.max(0, Number(attempts || 1) - 1)
   return {
@@ -690,12 +748,20 @@ function normalizeTopic(raw = {}, source, fallback = {}) {
     raw.value ??
     raw.rankValue ??
     fallback.heatIndex
-  const url = asText(raw.url || raw.link || raw.mobilUrl || raw.mobileUrl || raw.href || raw.sourceUrl)
+  const url = asText(
+    raw.url || raw.link || raw.mobilUrl || raw.mobileUrl || raw.href || raw.sourceUrl
+  )
   const rank = Number(raw.rank || raw.index || raw.no || fallback.rank || 0)
   const capturedAt = fallback.capturedAt || nowIso()
-  const tags = Array.isArray(raw.tags) ? raw.tags : Array.isArray(fallback.tags) ? fallback.tags : []
+  const tags = Array.isArray(raw.tags)
+    ? raw.tags
+    : Array.isArray(fallback.tags)
+      ? fallback.tags
+      : []
   const sourceType = raw.sourceType || fallback.sourceType || ''
-  const category = cleanReadableText(raw.category || raw.cat || raw.genre || fallback.category || '')
+  const category = cleanReadableText(
+    raw.category || raw.cat || raw.genre || fallback.category || ''
+  )
   const author = cleanReadableText(raw.author || fallback.author || '')
   const intro = cleanReadableText(raw.intro || raw.summary || fallback.intro || '')
   return {
@@ -731,7 +797,8 @@ function collectCandidateLists(payload, source, context = {}) {
         lists.push({ rows: value, context: localContext })
       }
       for (const item of value) {
-        if (item && typeof item === 'object' && !Array.isArray(item)) walk(item, depth + 1, localContext)
+        if (item && typeof item === 'object' && !Array.isArray(item))
+          walk(item, depth + 1, localContext)
       }
       return
     }
@@ -907,12 +974,16 @@ function parsePublicPageToPayload(html, url = '') {
   const rows = []
   $('script, style, noscript').remove()
   const title = stripHtml($('title').first().text())
-  $('a, li, .book-mid-info, .rank-view-list li, .rank-list li, .book-list li, .bookbox, .book-item, article').each((index, element) => {
+  $(
+    'a, li, .book-mid-info, .rank-view-list li, .rank-list li, .book-list li, .bookbox, .book-item, article'
+  ).each((index, element) => {
     if (rows.length >= 60) return false
     const node = $(element)
     const link = node.is('a') ? node : node.find('a').first()
     const text = stripHtml(node.text())
-    const name = stripHtml(link.text() || node.find('h2,h3,h4,.bookname,.book-name,.title').first().text())
+    const name = stripHtml(
+      link.text() || node.find('h2,h3,h4,.bookname,.book-name,.title').first().text()
+    )
     const cleanTitle = name || text.split(/[。；\n]/)[0]
     if (!cleanTitle || cleanTitle.length < 2 || cleanTitle.length > 80) return
     if (/登录|注册|充值|下载|客户端|用户协议|隐私|章节|目录|正文|阅读/.test(cleanTitle)) return
@@ -963,7 +1034,9 @@ function parseAggregatedPayload(html, url = '') {
 
 function parseQidianPayload(html, url = '') {
   const text = String(html || '')
-  const jsonText = text.match(/<script[^>]+id=["']vite-plugin-ssr_pageContext["'][^>]*>([\s\S]*?)<\/script>/i)?.[1]
+  const jsonText = text.match(
+    /<script[^>]+id=["']vite-plugin-ssr_pageContext["'][^>]*>([\s\S]*?)<\/script>/i
+  )?.[1]
   const rows = []
   if (jsonText) {
     try {
@@ -991,8 +1064,9 @@ function parseQidianPayload(html, url = '') {
     const $ = cheerio.load(text)
     $('a[href*="/book/"]').each((index, element) => {
       const node = $(element)
-      const title = stripHtml(node.find('h2,[class*="title"]').first().text() || node.attr('title') || '')
-        .replace(/最新章节在线阅读$/, '')
+      const title = stripHtml(
+        node.find('h2,[class*="title"]').first().text() || node.attr('title') || ''
+      ).replace(/最新章节在线阅读$/, '')
       if (!isGoodBookTitle(title)) return
       rows.push({
         title,
@@ -1015,13 +1089,10 @@ function parseJjwxcPayload(html, url = '') {
   const rows = []
   $('a[href*="novelid="]').each((index, element) => {
     const link = $(element)
-      const title = stripHtml(link.text()).replace(/^《|》$/g, '')
+    const title = stripHtml(link.text()).replace(/^《|》$/g, '')
     if (!isGoodBookTitle(title)) return
     const rowText = stripHtml(link.closest('tr').text())
-    const parts = rowText
-      .replace(`《${title}》`, '')
-      .split(/\s+/)
-      .filter(Boolean)
+    const parts = rowText.replace(`《${title}》`, '').split(/\s+/).filter(Boolean)
     const category = rowText.match(/(言情|纯爱|衍生|轻小说)[-－][^\s]+/)?.[0] || ''
     rows.push({
       title,
@@ -1045,7 +1116,9 @@ function parseFanqiePayload(html, url = '') {
   const books = state?.rank?.book_list || []
   const femaleCategories = state?.rank?.rankCategoryTypeList?.female || []
   const maleCategories = state?.rank?.rankCategoryTypeList?.male || []
-  const categoryMap = new Map([...femaleCategories, ...maleCategories].map((item) => [String(item.id), item.name]))
+  const categoryMap = new Map(
+    [...femaleCategories, ...maleCategories].map((item) => [String(item.id), item.name])
+  )
   ;[
     ...maleCategories.map((item) => ({ ...item, channel: '男频' })),
     ...femaleCategories.map((item) => ({ ...item, channel: '女频' }))
@@ -1063,7 +1136,11 @@ function parseFanqiePayload(html, url = '') {
     })
   })
   books.forEach((item, index) => {
-    const category = item.category || item.categoryV2 || categoryMap.get(String(item.curent_category_id || item.pos_category_id || '')) || ''
+    const category =
+      item.category ||
+      item.categoryV2 ||
+      categoryMap.get(String(item.curent_category_id || item.pos_category_id || '')) ||
+      ''
     rows.push({
       title: item.bookName,
       keyword: item.bookName,
@@ -1106,16 +1183,23 @@ function parseQimaoPayload(html, url = '') {
     const link = $(element)
     const href = link.attr('href') || ''
     if (!/\/shuku\/\d+\/?$/.test(href)) return
-    const title = stripHtml(link.find('h3,h4,[class*="title"],[class*="name"]').first().text() || link.text())
+    const title = stripHtml(
+      link.find('h3,h4,[class*="title"],[class*="name"]').first().text() || link.text()
+    )
     if (!isGoodBookTitle(title) || /^\d+$/.test(title)) return
-    const cardText = stripHtml(link.closest('li,div[class*="book"],div[class*="item"],section,article').text() || link.text())
+    const cardText = stripHtml(
+      link.closest('li,div[class*="book"],div[class*="item"],section,article').text() || link.text()
+    )
     rows.push({
       title,
       keyword: title,
       url: new URL(href, url).toString(),
       rank: index + 1,
       heatIndex: cardText.match(/(\d+(?:\.\d+)?\s*(?:万|亿)?(?:人气|热度|点击|收藏)?)/)?.[1] || '',
-      category: cardText.match(/(玄幻|都市|言情|悬疑|科幻|历史|古言|现言|甜宠|脑洞|总裁|种田|穿越|重生)/)?.[1] || '',
+      category:
+        cardText.match(
+          /(玄幻|都市|言情|悬疑|科幻|历史|古言|现言|甜宠|脑洞|总裁|种田|穿越|重生)/
+        )?.[1] || '',
       intro: cardText.slice(0, 180),
       tags: extractTagsFromText(cardText),
       sourceType: /activity|征文|活动/.test(url + cardText) ? 'activity' : 'novel_rank'
@@ -1203,7 +1287,16 @@ function parseJsLikeArray(arrayText = '') {
   }
   for (const objectText of objectTexts) {
     const row = {}
-    for (const key of ['book_id', 'title', 'book_url', 'author', 'category1_name', 'category2_name', 'words_num', 'intro']) {
+    for (const key of [
+      'book_id',
+      'title',
+      'book_url',
+      'author',
+      'category1_name',
+      'category2_name',
+      'words_num',
+      'intro'
+    ]) {
       const match = objectText.match(new RegExp(`${key}:"((?:\\\\.|[^"\\\\])*)"`))
       if (match) row[key] = unescapeJsString(match[1])
     }
@@ -1269,7 +1362,12 @@ function publicPagePayload(html = '', url = '', rows = []) {
 function isGoodBookTitle(title = '') {
   const text = stripHtml(title)
   if (!text || text.length < 2 || text.length > 80) return false
-  if (/登录|注册|充值|下载|客户端|用户协议|隐私|章节|目录|正文|阅读|首页|分类|排行榜|帮助中心|作家助手|搜索|提交|举报|联系我们|版权|ICP备/.test(text)) return false
+  if (
+    /登录|注册|充值|下载|客户端|用户协议|隐私|章节|目录|正文|阅读|首页|分类|排行榜|帮助中心|作家助手|搜索|提交|举报|联系我们|版权|ICP备/.test(
+      text
+    )
+  )
+    return false
   if (/^[\d\s]+$/.test(text)) return false
   if (/[�]{2,}/.test(text)) return false
   if (/[\uE000-\uF8FF]/.test(text)) return false
@@ -1321,7 +1419,12 @@ async function fetchSource(source, options = {}, booksDir = '') {
   }
   const cacheKey = `source:${source}`
   const cached = runtimeCache.get(cacheKey)
-  if (!options.force && options.runtimeCache !== false && cached && Date.now() - cached.createdAt < CACHE_TTL_MS) {
+  if (
+    !options.force &&
+    options.runtimeCache !== false &&
+    cached &&
+    Date.now() - cached.createdAt < CACHE_TTL_MS
+  ) {
     return { ...cached.result, fromCache: true, cacheType: 'memory' }
   }
   const stored = readSourceCache(booksDir, source, options)
@@ -1439,7 +1542,9 @@ function normalizeStoredTopic(raw = {}) {
 
 function upsertHotTopics(booksDir, incoming = [], options = {}) {
   const now = nowIso()
-  const replaceSources = new Set(Array.isArray(options.replaceSources) ? options.replaceSources : [])
+  const replaceSources = new Set(
+    Array.isArray(options.replaceSources) ? options.replaceSources : []
+  )
   const rows = readRows(booksDir, HOT_TOPICS_FILE)
     .map(normalizeStoredTopic)
     .filter((row) => isValidTopic(row))
@@ -1472,7 +1577,10 @@ function upsertHotTopics(booksDir, incoming = [], options = {}) {
     }
   }
   const items = Array.from(map.values())
-    .sort((a, b) => new Date(b.capturedAt || b.updatedAt || 0) - new Date(a.capturedAt || a.updatedAt || 0))
+    .sort(
+      (a, b) =>
+        new Date(b.capturedAt || b.updatedAt || 0) - new Date(a.capturedAt || a.updatedAt || 0)
+    )
     .slice(0, MAX_TOPIC_ROWS)
   writeRows(booksDir, HOT_TOPICS_FILE, items)
   updateTrendRecords(booksDir, incoming)
@@ -1482,7 +1590,11 @@ function upsertHotTopics(booksDir, incoming = [], options = {}) {
 function isValidTopic(row = {}) {
   if (!row.keyword || !row.title) return false
   if (!/[\u4e00-\u9fa5]/.test(`${row.keyword}${row.title}`)) return false
-  if (/登录|注册|充值|下载|客户端|用户协议|隐私|章节|目录|正文|阅读|首页|分类|排行榜|帮助中心|作家助手|搜索|提交|举报|联系我们|版权|ICP备|最近更新 第/.test(row.keyword)) {
+  if (
+    /登录|注册|充值|下载|客户端|用户协议|隐私|章节|目录|正文|阅读|首页|分类|排行榜|帮助中心|作家助手|搜索|提交|举报|联系我们|版权|ICP备|最近更新 第/.test(
+      row.keyword
+    )
+  ) {
     return false
   }
   if (/[�]{2,}/.test(`${row.keyword}${row.title}`)) return false
@@ -1600,7 +1712,9 @@ function appendCollectionLogs(booksDir, results = []) {
 
 export async function refreshHotTopics(booksDir, options = {}) {
   const cachePrune = pruneSourceCache(booksDir, options)
-  const sources = (Array.isArray(options.sources) && options.sources.length ? options.sources : DEFAULT_SOURCES)
+  const sources = (
+    Array.isArray(options.sources) && options.sources.length ? options.sources : DEFAULT_SOURCES
+  )
     .map((source) => String(source || '').trim())
     .filter((source) => SOURCE_CONFIG[source])
   const results = []
@@ -1625,14 +1739,19 @@ export async function refreshHotTopics(booksDir, options = {}) {
     cachePrune,
     message: results.some((result) => result.success)
       ? '热榜已刷新'
-      : results.map((result) => result.message).filter(Boolean).join('；') || '热榜刷新失败'
+      : results
+          .map((result) => result.message)
+          .filter(Boolean)
+          .join('；') || '热榜刷新失败'
   }
 }
 
 export function listHotTopics(booksDir, filter = {}) {
   const rows = readRows(booksDir, HOT_TOPICS_FILE).map(normalizeStoredTopic)
   const source = String(filter.source || '').trim()
-  const keyword = String(filter.keyword || '').trim().toLowerCase()
+  const keyword = String(filter.keyword || '')
+    .trim()
+    .toLowerCase()
   const limit = Math.max(1, Math.min(500, Number(filter.limit || filter.topN || 50)))
   return rows
     .filter(isValidTopic)
@@ -1654,9 +1773,15 @@ export function listHotTopics(booksDir, filter = {}) {
 }
 
 export function getTrendRecord(booksDir, keyword) {
-  const key = String(keyword || '').trim().toLowerCase()
+  const key = String(keyword || '')
+    .trim()
+    .toLowerCase()
   if (!key) return null
-  return readRows(booksDir, TREND_RECORDS_FILE).find((row) => String(row.keyword || '').toLowerCase() === key) || null
+  return (
+    readRows(booksDir, TREND_RECORDS_FILE).find(
+      (row) => String(row.keyword || '').toLowerCase() === key
+    ) || null
+  )
 }
 
 export function listTrendRecords(booksDir, filter = {}) {
@@ -1729,7 +1854,9 @@ function sourceStatusForTopic(topic = {}, sourceStatus = []) {
 function rawItemFromTopic(topic = {}, sourceStatus = []) {
   const rank = Number(topic.extra?.rank || 0)
   return {
-    id: topic.id || stableTopicId(topic.source || 'other', topic.keyword || topic.title || randomUUID()),
+    id:
+      topic.id ||
+      stableTopicId(topic.source || 'other', topic.keyword || topic.title || randomUUID()),
     source: topic.source || 'other',
     sourceType: extractRawSourceType(topic),
     title: topic.title || topic.keyword || '未命名热点',
@@ -1740,8 +1867,13 @@ function rawItemFromTopic(topic = {}, sourceStatus = []) {
     category: topic.extra?.category || '',
     author: topic.extra?.author || '',
     intro: topic.extra?.intro || '',
-    tags: Array.isArray(topic.tags) ? topic.tags : Array.isArray(topic.extra?.tags) ? topic.extra.tags : [],
-    platform: topic.extra?.platform || SOURCE_CONFIG[topic.source]?.platform || topic.source || '公开来源',
+    tags: Array.isArray(topic.tags)
+      ? topic.tags
+      : Array.isArray(topic.extra?.tags)
+        ? topic.extra.tags
+        : [],
+    platform:
+      topic.extra?.platform || SOURCE_CONFIG[topic.source]?.platform || topic.source || '公开来源',
     rawPayload: topic.extra?.raw || topic,
     status: sourceStatusForTopic(topic, sourceStatus),
     fetchedAt: topic.capturedAt || topic.updatedAt || nowIso()
@@ -1764,20 +1896,41 @@ function signalForTopic(topic = {}) {
     }
   }
   const matches = NOVEL_SIGNAL_RULES.filter((rule) => rule.pattern.test(text))
-  const signal = matches.sort((a, b) => signalPriority(b, text, topic) - signalPriority(a, text, topic))[0]
+  const signal = matches.sort(
+    (a, b) => signalPriority(b, text, topic) - signalPriority(a, text, topic)
+  )[0]
   return { signal: signal || null, riskPenalty: signal ? 0 : 30 }
 }
 
 function signalPriority(rule, text = '', topic = {}) {
   let score = 10
   const category = `${topic.extra?.category || ''} ${(topic.extra?.tags || []).join(' ')}`
-  if (rule.key === 'historical_strategy' && /历史|边关|边军|武夫|王朝|争霸|架空|将军|朝堂|沙场|烽火|北伐/.test(`${text} ${category}`)) score += 60
-  if (rule.key === 'xianxia_upgrade' && /玄幻|仙侠|修真|高武|神棺|潜龙|霸体|妖族|宗门|神通/.test(`${text} ${category}`)) score += 45
-  if (rule.key === 'ancient_romance' && /古言|言情|侯府|王爷|县主|赐婚|先婚后爱|双强|掌心|娇/.test(`${text} ${category}`)) score += 50
-  if (rule.key === 'entertainment' && /明星|演员|综艺|导演|票房|演唱会|粉丝|直播|金爵|歌手/.test(text)) score += 45
-  if (rule.key === 'youth_growth' && /大学|高中|考试|学生|老师|毕业|考研|就业|校园|青春/.test(text)) score += 40
-  if (rule.key === 'body_health' && /医院|医生|健康|癌|病房|手术|怀孕|生育|坐月子/.test(text)) score += 40
-  if (rule.key === 'public_event' && /纪委|审计|秘书|官场|调查|案件|通报|真相/.test(text)) score += 40
+  if (
+    rule.key === 'historical_strategy' &&
+    /历史|边关|边军|武夫|王朝|争霸|架空|将军|朝堂|沙场|烽火|北伐/.test(`${text} ${category}`)
+  )
+    score += 60
+  if (
+    rule.key === 'xianxia_upgrade' &&
+    /玄幻|仙侠|修真|高武|神棺|潜龙|霸体|妖族|宗门|神通/.test(`${text} ${category}`)
+  )
+    score += 45
+  if (
+    rule.key === 'ancient_romance' &&
+    /古言|言情|侯府|王爷|县主|赐婚|先婚后爱|双强|掌心|娇/.test(`${text} ${category}`)
+  )
+    score += 50
+  if (
+    rule.key === 'entertainment' &&
+    /明星|演员|综艺|导演|票房|演唱会|粉丝|直播|金爵|歌手/.test(text)
+  )
+    score += 45
+  if (rule.key === 'youth_growth' && /大学|高中|考试|学生|老师|毕业|考研|就业|校园|青春/.test(text))
+    score += 40
+  if (rule.key === 'body_health' && /医院|医生|健康|癌|病房|手术|怀孕|生育|坐月子/.test(text))
+    score += 40
+  if (rule.key === 'public_event' && /纪委|审计|秘书|官场|调查|案件|通报|真相/.test(text))
+    score += 40
   return score
 }
 
@@ -1853,18 +2006,37 @@ function buildInsightFromTopic(topic = {}, context = {}) {
   const channel = firstByChannel(signal.channels || ['all'], requestedChannel)
   const raw = rawItemFromTopic(topic, sourceStatus)
   const trendScore = trendScoreFor(trendMap.get(String(topic.keyword || '').toLowerCase()))
-  const heatScore = clampScore(topic.normalizedHeat || normalizeHeatScore(topic.heatIndex, topic.extra?.rank), 60)
+  const heatScore = clampScore(
+    topic.normalizedHeat || normalizeHeatScore(topic.heatIndex, topic.extra?.rank),
+    60
+  )
   const novelizeScore = 88
   const channelFitScore = scoreForChannel(channel, requestedChannel)
-  const riskPenalty = Math.max(baseRisk, HARD_NEWS_PATTERN.test(topic.keyword || topic.title || '') ? 24 : 0)
+  const riskPenalty = Math.max(
+    baseRisk,
+    HARD_NEWS_PATTERN.test(topic.keyword || topic.title || '') ? 24 : 0
+  )
   const opportunityScore = clampScore(
-    heatScore * 0.35 + trendScore * 0.25 + novelizeScore * 0.25 + channelFitScore * 0.15 - riskPenalty,
+    heatScore * 0.35 +
+      trendScore * 0.25 +
+      novelizeScore * 0.25 +
+      channelFitScore * 0.15 -
+      riskPenalty,
     60
   )
   const title = insightTitle(signal, topic, channel)
   const original = topic.title || topic.keyword || ''
   const openingIdeas = buildOpeningIdeas(signal)
-  const tags = uniqueList([channel === 'male' ? '男频' : channel === 'female' ? '女频' : '通用', signal.tags, raw.tags, signal.label, raw.platform], 8)
+  const tags = uniqueList(
+    [
+      channel === 'male' ? '男频' : channel === 'female' ? '女频' : '通用',
+      signal.tags,
+      raw.tags,
+      signal.label,
+      raw.platform
+    ],
+    8
+  )
   return {
     id: `insight_${signal.key}_${String(topic.id || stableTopicId(topic.source || 'other', topic.keyword || title)).replace(/[^\w\u4e00-\u9fa5-]/g, '_')}`,
     rawIds: [raw.id].filter(Boolean),
@@ -1881,12 +2053,15 @@ function buildInsightFromTopic(topic = {}, context = {}) {
     opportunityScore,
     novelizeScore,
     riskPenalty,
-    summary: raw.sourceType === 'novel_rank'
-      ? `${raw.platform || '公开来源'}榜单作品“${original}”提供了${signal.genre}的热门写法，可提炼成原创方向。`
-      : `${raw.platform || '公开来源'}出现“${topic.keyword || topic.title}”相关信号，可转成${signal.genre}方向。`,
+    summary:
+      raw.sourceType === 'novel_rank'
+        ? `${raw.platform || '公开来源'}榜单作品“${original}”提供了${signal.genre}的热门写法，可提炼成原创方向。`
+        : `${raw.platform || '公开来源'}出现“${topic.keyword || topic.title}”相关信号，可转成${signal.genre}方向。`,
     suitableWriting: `${signal.label} + ${signal.genre} + ${channel === 'male' ? '升级反击' : channel === 'female' ? '关系反转' : '悬念推进'}`,
     readerEmotion: uniqueList(signal.emotions || ['好奇', '期待', '爽感'], 4),
-    storyPotential: raw.intro ? `${signal.hook} 参考公开简介中的题材信号：${raw.intro.slice(0, 70)}。` : signal.hook,
+    storyPotential: raw.intro
+      ? `${signal.hook} 参考公开简介中的题材信号：${raw.intro.slice(0, 70)}。`
+      : signal.hook,
     conflict: signal.conflicts?.[0] || signal.hook,
     hook: openingIdeas[0],
     bookTitleIdeas: buildBookIdeas(signal, title),
@@ -1903,9 +2078,10 @@ function buildInsightFromTopic(topic = {}, context = {}) {
 function dedupeInsights(insights = []) {
   const byKey = new Map()
   for (const item of insights) {
-    const key = item.sourceType === 'novel_rank' || item.sourceType === 'activity'
-      ? `${item.channel}:${item.rawPayload?.source || item.source}:${item.originalTitle || item.title}`
-      : `${item.channel}:${item.genre}:${item.title}`
+    const key =
+      item.sourceType === 'novel_rank' || item.sourceType === 'activity'
+        ? `${item.channel}:${item.rawPayload?.source || item.source}:${item.originalTitle || item.title}`
+        : `${item.channel}:${item.genre}:${item.title}`
     const old = byKey.get(key)
     if (!old || item.opportunityScore > old.opportunityScore) byKey.set(key, item)
   }
@@ -1930,11 +2106,19 @@ function listMarketInsights(booksDir, filter = {}) {
   const channel = normalizeChannel(filter.channel || 'all')
   const sourceStatus = listSourceStatus(booksDir)
   const topics = listHotTopics(booksDir, { source: filter.source || 'all', limit: 240 })
-  const trendMap = new Map(listTrendRecords(booksDir, { limit: 240 }).map((row) => [String(row.keyword || '').toLowerCase(), row]))
+  const trendMap = new Map(
+    listTrendRecords(booksDir, { limit: 240 }).map((row) => [
+      String(row.keyword || '').toLowerCase(),
+      row
+    ])
+  )
   const insights = topics
     .map((topic) => buildInsightFromTopic(topic, { channel, sourceStatus, trendMap }))
     .filter(Boolean)
-  return diversifyInsights(dedupeInsights(insights).filter((item) => channelMatches(item.channel, channel)), Number(filter.limit || 30))
+  return diversifyInsights(
+    dedupeInsights(insights).filter((item) => channelMatches(item.channel, channel)),
+    Number(filter.limit || 30)
+  )
 }
 
 function genreDistribution(insights = []) {
@@ -1955,7 +2139,8 @@ function genreDistribution(insights = []) {
 
 function opportunityGrade(insights = []) {
   const avg = insights.length
-    ? insights.slice(0, 6).reduce((sum, item) => sum + Number(item.opportunityScore || 0), 0) / Math.min(6, insights.length)
+    ? insights.slice(0, 6).reduce((sum, item) => sum + Number(item.opportunityScore || 0), 0) /
+      Math.min(6, insights.length)
     : 0
   if (avg >= 84) return 'A+'
   if (avg >= 74) return 'A'
@@ -1992,7 +2177,10 @@ function buildMarketOverview(booksDir, filter = {}) {
     })),
     selectedInsight,
     sourceStatus,
-    lastUpdatedAt: directions[0]?.updatedAt || sourceStatus.find((item) => item.lastSuccessAt)?.lastSuccessAt || ''
+    lastUpdatedAt:
+      directions[0]?.updatedAt ||
+      sourceStatus.find((item) => item.lastSuccessAt)?.lastSuccessAt ||
+      ''
   }
 }
 
@@ -2019,25 +2207,38 @@ function buildSourceList(insights = [], sourceStatus = [], topics = []) {
   }
   for (const topic of topics) {
     const source = topic.source || 'other'
-    const row = ensure(source, SOURCE_CONFIG[source]?.label || topic.extra?.platform || source, sourceStatusForTopic(topic, sourceStatus))
+    const row = ensure(
+      source,
+      SOURCE_CONFIG[source]?.label || topic.extra?.platform || source,
+      sourceStatusForTopic(topic, sourceStatus)
+    )
     row.count += 1
     row.updatedAt = topic.updatedAt || topic.capturedAt || row.updatedAt
   }
   for (const insight of insights) {
     const raw = insight.rawPayload || {}
     const source = raw.source || insight.source || 'other'
-    const row = ensure(source, SOURCE_CONFIG[source]?.label || raw.platform || insight.source || source, insight.sourceStatus)
+    const row = ensure(
+      source,
+      SOURCE_CONFIG[source]?.label || raw.platform || insight.source || source,
+      insight.sourceStatus
+    )
     if (!topics.length) row.count += 1
     row.status = strongerSourceStatus(row.status, insight.sourceStatus || 'empty')
     row.updatedAt = insight.updatedAt || row.updatedAt
   }
   for (const profile of PLATFORM_PROFILES) {
     const profileStatus = sourceStatus.find((item) => item.source === profile.source)
-    const row = ensure(profile.source, profile.platform, profileStatus?.status || sourceStatusValue(profileStatus))
-    if (!topics.length) row.count += insights.filter((item) => {
-      const raw = item.rawPayload || {}
-      return raw.source === profile.source || raw.platform === profile.platform
-    }).length
+    const row = ensure(
+      profile.source,
+      profile.platform,
+      profileStatus?.status || sourceStatusValue(profileStatus)
+    )
+    if (!topics.length)
+      row.count += insights.filter((item) => {
+        const raw = item.rawPayload || {}
+        return raw.source === profile.source || raw.platform === profile.platform
+      }).length
     row.message = profileStatus?.lastMessage || row.message || ''
   }
   return Array.from(sourceMap.values()).sort((a, b) => b.count - a.count)
@@ -2045,12 +2246,22 @@ function buildSourceList(insights = [], sourceStatus = [], topics = []) {
 
 function buildHotRank(booksDir, filter = {}) {
   const channel = normalizeChannel(filter.channel || 'all')
-  const insights = listMarketInsights(booksDir, { channel, source: filter.source || 'all', limit: 60 })
+  const insights = listMarketInsights(booksDir, {
+    channel,
+    source: filter.source || 'all',
+    limit: 60
+  })
   const sourceStatus = listSourceStatus(booksDir)
   const source = String(filter.source || 'all')
   const topics = listHotTopics(booksDir, { limit: 500 })
   const cards = insights
-    .filter((item) => source === 'all' || item.rawPayload?.source === source || item.source === source || item.rawPayload?.platform === source)
+    .filter(
+      (item) =>
+        source === 'all' ||
+        item.rawPayload?.source === source ||
+        item.source === source ||
+        item.rawPayload?.platform === source
+    )
     .map((item, index) => ({
       ...item,
       rank: index + 1,
@@ -2071,7 +2282,10 @@ function buildHotRank(booksDir, filter = {}) {
 
 const KEYWORD_TYPE_RULES = [
   { type: 'emotion', pattern: /复仇|治愈|爽|遗憾|共情|压抑|反转|委屈|不甘|释然|心疼/ },
-  { type: 'character', pattern: /弃妇|霸总|天才|废柴|主理人|谈判专家|病弱|女主|主角|老板|演员|程序员/ },
+  {
+    type: 'character',
+    pattern: /弃妇|霸总|天才|废柴|主理人|谈判专家|病弱|女主|主角|老板|演员|程序员/
+  },
   { type: 'genre', pattern: /豪门|系统|末世|宫斗|直播|娱乐圈|年代|都市|科幻|悬疑|古言|校园|短剧/ },
   { type: 'conflict', pattern: /背叛|封杀|误解|夺权|身份|资源|危机|反击|争夺|破产|离婚/ },
   { type: 'platform', pattern: /微博|百度|番茄|七猫|晋江|起点|短剧|知乎|B站|抖音/ }
@@ -2086,7 +2300,10 @@ function buildKeywordClusters(booksDir, filter = {}) {
   const insights = listMarketInsights(booksDir, { channel, limit: 80 })
   const map = new Map()
   for (const insight of insights) {
-    for (const word of uniqueList([insight.genre, insight.tags, insight.readerEmotion, insight.rawPayload?.platform], 12)) {
+    for (const word of uniqueList(
+      [insight.genre, insight.tags, insight.readerEmotion, insight.rawPayload?.platform],
+      12
+    )) {
       const old = map.get(word) || {
         id: `kw_${word}`,
         name: word,
@@ -2105,13 +2322,18 @@ function buildKeywordClusters(booksDir, filter = {}) {
       map.set(word, old)
     }
   }
-  return Array.from(map.values()).sort((a, b) => b.heatScore + b.growthScore - (a.heatScore + a.growthScore)).slice(0, 36)
+  return Array.from(map.values())
+    .sort((a, b) => b.heatScore + b.growthScore - (a.heatScore + a.growthScore))
+    .slice(0, 36)
 }
 
 function combinationDetailFromKeywords(booksDir, keywords = [], channel = 'all') {
   const normalizedKeywords = uniqueList(keywords, 5)
   const insights = listMarketInsights(booksDir, { channel, limit: 80 })
-  const matched = insights.find((item) => normalizedKeywords.some((word) => item.tags.includes(word) || item.genre.includes(word))) || insights[0]
+  const matched =
+    insights.find((item) =>
+      normalizedKeywords.some((word) => item.tags.includes(word) || item.genre.includes(word))
+    ) || insights[0]
   const title = normalizedKeywords.length
     ? `${normalizedKeywords.join(' + ')}`
     : matched
@@ -2148,9 +2370,13 @@ function combinationDetailFromKeywords(booksDir, keywords = [], channel = 'all')
       '掌握关键资源的对手',
       '表面站队错误的盟友'
     ],
-    recommendedConflicts: uniqueList([matched?.conflict, '身份反转引发资源争夺', '公众误解逼出主角反击'], 4),
+    recommendedConflicts: uniqueList(
+      [matched?.conflict, '身份反转引发资源争夺', '公众误解逼出主角反击'],
+      4
+    ),
     readerPleasure: uniqueList([matched?.readerEmotion || [], '反转', '爽感'], 5),
-    openingExample: matched?.hook || '离婚当天，她被通知三小时内搬出别墅，但手机里多了一个品牌孵化系统。',
+    openingExample:
+      matched?.hook || '离婚当天，她被通知三小时内搬出别墅，但手机里多了一个品牌孵化系统。',
     novelizedResult: {
       direction: baseTitle,
       conflict: matched?.conflict || '前夫家族封杀 vs 女主用新消费品牌逆袭',
@@ -2203,13 +2429,24 @@ function activityStatus(deadline) {
 
 function activityFromTopic(topic = {}, sourceStatus = []) {
   const text = [topic.keyword, topic.title, topic.extra?.intro, topic.extra?.category].join(' ')
-  if (topic.extra?.sourceType !== 'activity' && !/征稿|征文|投稿|比赛|大赛|扶持计划|作者福利|创作活动|签约政策/.test(text)) return null
+  if (
+    topic.extra?.sourceType !== 'activity' &&
+    !/征稿|征文|投稿|比赛|大赛|扶持计划|作者福利|创作活动|签约政策/.test(text)
+  )
+    return null
   const title = cleanActivityTitle(topic.title || topic.keyword || '作者活动')
   if (!isUsefulActivityTitle(title, text)) return null
-  const platform = topic.extra?.platform || SOURCE_CONFIG[topic.source]?.platform || topic.source || '公开来源'
-  const rangeMatch = text.match(/20\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?\s+((?:20\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?))/)
+  const platform =
+    topic.extra?.platform || SOURCE_CONFIG[topic.source]?.platform || topic.source || '公开来源'
+  const rangeMatch = text.match(
+    /20\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?\s+((?:20\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?))/
+  )
   const deadlineMatch = text.match(/(20\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?|\d{1,2}月\d{1,2}日)/)
-  const deadline = rangeMatch ? normalizeActivityDate(rangeMatch[1]) : deadlineMatch ? normalizeActivityDate(deadlineMatch[1]) : ''
+  const deadline = rangeMatch
+    ? normalizeActivityDate(rangeMatch[1])
+    : deadlineMatch
+      ? normalizeActivityDate(deadlineMatch[1])
+      : ''
   const tags = uniqueList([topic.extra?.tags || [], topic.extra?.category, platform], 6)
   const summary = cleanActivitySummary(topic.extra?.intro || text)
   return {
@@ -2235,15 +2472,24 @@ function activityFromTopic(topic = {}, sourceStatus = []) {
 
 function cleanActivityTitle(value = '') {
   return stripHtml(value)
-    .replace(/\s*活动时间[:：]\s*20\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?\s+20\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?.*$/g, '')
+    .replace(
+      /\s*活动时间[:：]\s*20\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?\s+20\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?.*$/g,
+      ''
+    )
     .replace(/\s+/g, ' ')
     .trim()
 }
 
 function cleanActivitySummary(value = '') {
   return stripHtml(value)
-    .replace(/活动时间[:：]\s*(20\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?\s+20\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?)(?:\s*活动时间[:：]\s*\1)+/g, '活动时间：$1')
-    .replace(/(活动时间[:：]\s*20\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?\s+20\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?)\s+\1/g, '$1')
+    .replace(
+      /活动时间[:：]\s*(20\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?\s+20\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?)(?:\s*活动时间[:：]\s*\1)+/g,
+      '活动时间：$1'
+    )
+    .replace(
+      /(活动时间[:：]\s*20\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?\s+20\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?)\s+\1/g,
+      '$1'
+    )
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -2252,11 +2498,15 @@ function isUsefulActivityTitle(title = '', text = '') {
   const cleanTitle = stripHtml(title)
   if (!cleanTitle || cleanTitle.length < 6) return false
   if (/^(征文活动|签约政策|作家专区|作者福利|福利政策)$/.test(cleanTitle)) return false
-  return /征文|征稿|投稿|比赛|大赛|快闪|扶持|奖励|签约|活动时间|短篇|脑洞|投稿/.test(`${cleanTitle} ${text}`)
+  return /征文|征稿|投稿|比赛|大赛|快闪|扶持|奖励|签约|活动时间|短篇|脑洞|投稿/.test(
+    `${cleanTitle} ${text}`
+  )
 }
 
 function normalizeActivityDate(value = '') {
-  const text = String(value || '').replace(/[年月/.]/g, '-').replace(/日/g, '')
+  const text = String(value || '')
+    .replace(/[年月/.]/g, '-')
+    .replace(/日/g, '')
   if (/^\d{1,2}-\d{1,2}$/.test(text)) {
     const year = new Date().getFullYear()
     return new Date(`${year}-${text}`).toISOString()
@@ -2272,25 +2522,35 @@ function inferActivityChannel(text = '', platform = '') {
 }
 
 function extractWordCount(text = '') {
-  const match = String(text).match(/(\d+(?:\.\d+)?\s*[万千kK]?\s*[-~至到]\s*\d+(?:\.\d+)?\s*[万千kK]?字|\d+(?:\.\d+)?\s*[万千kK]字)/)
+  const match = String(text).match(
+    /(\d+(?:\.\d+)?\s*[万千kK]?\s*[-~至到]\s*\d+(?:\.\d+)?\s*[万千kK]?字|\d+(?:\.\d+)?\s*[万千kK]字)/
+  )
   return match ? match[1].replace(/\s+/g, '') : ''
 }
 
 function extractReward(text = '') {
-  const match = String(text).match(/(奖金[^，。；\n]{0,40}|奖励[^，。；\n]{0,40}|扶持[^，。；\n]{0,40}|流量[^，。；\n]{0,40})/)
+  const match = String(text).match(
+    /(奖金[^，。；\n]{0,40}|奖励[^，。；\n]{0,40}|扶持[^，。；\n]{0,40}|流量[^，。；\n]{0,40})/
+  )
   return match ? match[1] : ''
 }
 
 function buildActivityDirection(text = '', platform = '') {
   if (/短剧|IP|改编/.test(text)) return '适合先做强冲突短篇梗概，再扩展分集节奏。'
-  if (/征稿|征文|投稿/.test(text)) return `按 ${platform || '平台'} 公开要求提炼题材、字数和开篇方向。`
+  if (/征稿|征文|投稿/.test(text))
+    return `按 ${platform || '平台'} 公开要求提炼题材、字数和开篇方向。`
   return '请打开来源页确认细则后，再生成投稿方向。'
 }
 
 export function buildRuleOpportunities(booksDir, filter = {}) {
   const limit = Math.max(1, Math.min(50, Number(filter.limit || 10)))
   const topics = listHotTopics(booksDir, { limit: 200, source: filter.source || 'all' })
-  const trendMap = new Map(listTrendRecords(booksDir, { limit: 200 }).map((row) => [String(row.keyword || '').toLowerCase(), row]))
+  const trendMap = new Map(
+    listTrendRecords(booksDir, { limit: 200 }).map((row) => [
+      String(row.keyword || '').toLowerCase(),
+      row
+    ])
+  )
   const merged = new Map()
   for (const topic of topics) {
     const key = String(topic.keyword || '').toLowerCase()
@@ -2370,7 +2630,10 @@ function analyzeNovelSignals(topics = []) {
   const rows = Array.from(map.values())
     .map((row) => ({
       ...row,
-      opportunityScore: Math.max(35, Math.min(100, Math.round(row.heatScore * 0.72 + row.count * 5)))
+      opportunityScore: Math.max(
+        35,
+        Math.min(100, Math.round(row.heatScore * 0.72 + row.count * 5))
+      )
     }))
     .sort((a, b) => b.opportunityScore - a.opportunityScore)
   return rows
@@ -2378,8 +2641,13 @@ function analyzeNovelSignals(topics = []) {
 
 function buildPlatformRankings(signals = [], topics = []) {
   return PLATFORM_PROFILES.map((profile) => {
-    const matched = signals.filter((signal) => profile.genres.includes(signal.genre) || signal.platforms.includes(profile.platform))
-    const sourceTopics = topics.filter((item) => item.source === profile.source || item.extra?.platform === profile.platform)
+    const matched = signals.filter(
+      (signal) =>
+        profile.genres.includes(signal.genre) || signal.platforms.includes(profile.platform)
+    )
+    const sourceTopics = topics.filter(
+      (item) => item.source === profile.source || item.extra?.platform === profile.platform
+    )
     const score = matched.length
       ? Math.max(...matched.map((item) => item.opportunityScore))
       : sourceTopics.length
@@ -2394,10 +2662,17 @@ function buildPlatformRankings(signals = [], topics = []) {
       readerNeed: profile.readerNeed,
       heatScore: score,
       trend: matched.length ? 'rising' : 'steady',
-      keywords: keywords.length ? keywords : sourceTopics.map((item) => item.keyword).filter(Boolean).slice(0, 4),
+      keywords: keywords.length
+        ? keywords
+        : sourceTopics
+            .map((item) => item.keyword)
+            .filter(Boolean)
+            .slice(0, 4),
       suggestion: matched[0]?.hook || profile.readerNeed
     }
-  }).filter((item) => item.heatScore > 0 || item.keywords.length).sort((a, b) => b.heatScore - a.heatScore)
+  })
+    .filter((item) => item.heatScore > 0 || item.keywords.length)
+    .sort((a, b) => b.heatScore - a.heatScore)
 }
 
 function buildActivities(booksDir, filter = {}) {
@@ -2514,7 +2789,8 @@ export async function generateOpportunitiesWithLLM(booksDir, options = {}) {
       messages: [
         {
           role: 'system',
-          content: '你是中文小说市场观察助手。根据热点词给出简洁、原创、可写作的建议，不要复述原始数据。'
+          content:
+            '你是中文小说市场观察助手。根据热点词给出简洁、原创、可写作的建议，不要复述原始数据。'
         },
         {
           role: 'user',
@@ -2555,7 +2831,10 @@ export async function generateOpportunitiesWithLLM(booksDir, options = {}) {
 function parseJsonArray(text) {
   const raw = String(text || '').trim()
   if (!raw) return []
-  const cleaned = raw.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim()
+  const cleaned = raw
+    .replace(/^```(?:json)?/i, '')
+    .replace(/```$/i, '')
+    .trim()
   try {
     const parsed = JSON.parse(cleaned)
     return Array.isArray(parsed) ? parsed : Array.isArray(parsed.items) ? parsed.items : []
@@ -2578,7 +2857,9 @@ export function getMarketDashboard(booksDir, filter = {}) {
   const topics = listHotTopics(booksDir, { source: filter.source || 'all', limit })
   const hotspots = topics
   const recentTrends = listTrendRecords(booksDir, { limit: 12 })
-  const topOpportunities = buildRuleOpportunities(booksDir, { limit: filter.opportunityLimit || 10 })
+  const topOpportunities = buildRuleOpportunities(booksDir, {
+    limit: filter.opportunityLimit || 10
+  })
   const insights = listMarketInsights(booksDir, { channel, source: filter.source || 'all', limit })
   const novelSignals = analyzeNovelSignals(hotspots).filter((item) => {
     const rule = NOVEL_SIGNAL_RULES.find((rule) => rule.key === item.key)
@@ -2591,7 +2872,11 @@ export function getMarketDashboard(booksDir, filter = {}) {
   const overview = buildMarketOverview(booksDir, { ...filter, channel })
   const hotRank = buildHotRank(booksDir, { ...filter, channel })
   const keywordCloud = buildKeywordCloud(booksDir, { ...filter, channel })
-  const lastUpdatedAt = hotspots[0]?.capturedAt || sourceStatus.find((item) => item.lastSuccessAt)?.lastSuccessAt || overview.lastUpdatedAt || ''
+  const lastUpdatedAt =
+    hotspots[0]?.capturedAt ||
+    sourceStatus.find((item) => item.lastSuccessAt)?.lastSuccessAt ||
+    overview.lastUpdatedAt ||
+    ''
   return {
     success: true,
     channel,
@@ -2642,7 +2927,10 @@ export function startScheduler(getBooksDir, options = {}) {
 
 function sourceIntervalMs(source) {
   const envKey = `MARKET_TREND_${String(source || '').toUpperCase()}_MS`
-  return Math.max(60 * 1000, Number(process.env[envKey] || SOURCE_CONFIG[source]?.intervalMs || 5 * 60 * 1000))
+  return Math.max(
+    60 * 1000,
+    Number(process.env[envKey] || SOURCE_CONFIG[source]?.intervalMs || 5 * 60 * 1000)
+  )
 }
 
 export function stopScheduler() {

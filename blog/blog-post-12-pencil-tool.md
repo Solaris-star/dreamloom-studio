@@ -3,6 +3,7 @@
 > 💡 画笔工具是地图设计中最基础也最重要的工具之一。本文将带你探索 织梦书房 项目中画笔工具的实现思路，从点坐标收集到平滑曲线生成，从 perfect-freehand 算法到实时渲染优化，揭秘如何打造一个流畅自然的画笔体验。
 
 ## 📋 目录
+
 - [功能简介](#功能简介)
 - [核心算法：perfect-freehand](#核心算法perfect-freehand)
 - [技术挑战](#技术挑战)
@@ -25,13 +26,14 @@
 ### 🖼️ 使用场景
 
 在地图设计中，画笔工具常用于：
+
 - 🗺️ 绘制地形轮廓（山脉、河流、海岸线等）
 - ✍️ 手绘标记和注释
 - 🎨 自由创作和草图绘制
 
 ![地图设计](static/maps.png)
 
-*地图设计工具中的画笔工具 - 流畅自然的绘制体验*
+_地图设计工具中的画笔工具 - 流畅自然的绘制体验_
 
 ## 🔬 核心算法：perfect-freehand
 
@@ -59,16 +61,16 @@ import { getStroke } from 'perfect-freehand'
 
 // 配置参数
 const options = {
-  size: strokeWidth,        // 画笔大小
-  thinning: 0.6,            // 压力变化强度
-  smoothing: 0.5,           // 平滑度
-  streamline: 0.5,          // 流线化程度
-  easing: (t) => Math.sin((t * Math.PI) / 2),  // 缓动函数
-  simulatePressure: true    // 模拟压力
+  size: strokeWidth, // 画笔大小
+  thinning: 0.6, // 压力变化强度
+  smoothing: 0.5, // 平滑度
+  streamline: 0.5, // 流线化程度
+  easing: (t) => Math.sin((t * Math.PI) / 2), // 缓动函数
+  simulatePressure: true // 模拟压力
 }
 
 // 将点数组转换为路径
-const inputPoints = points.map(p => [p.x, p.y])
+const inputPoints = points.map((p) => [p.x, p.y])
 const stroke = getStroke(inputPoints, options)
 
 // 绘制路径
@@ -82,6 +84,7 @@ ctx.fill()
 ```
 
 **参数说明**:
+
 - `size`: 画笔的基础大小
 - `thinning`: 控制线条粗细变化，值越大变化越明显
 - `smoothing`: 控制平滑程度，值越大线条越平滑
@@ -101,7 +104,7 @@ function onMouseDown(pos) {
   // 开始新的画笔路径
   elements.currentFreeDrawPath.value = {
     type: 'freedraw',
-    points: [{ x: pos.x, y: pos.y }],  // 初始化第一个点
+    points: [{ x: pos.x, y: pos.y }], // 初始化第一个点
     color: color.value,
     strokeWidth: size.value,
     opacity: opacity.value,
@@ -118,6 +121,7 @@ function onMouseMove(pos) {
 ```
 
 **关键点**:
+
 - ✅ 使用数组存储点序列，保持顺序
 - ✅ 实时添加点，确保轨迹完整
 - ✅ 每次移动都触发渲染，保证流畅性
@@ -142,6 +146,7 @@ function onMouseUp() {
 ```
 
 **优化策略**:
+
 - ⚡ 绘制过程中不更新边界（`renderCanvas(false)`）
 - ⚡ 只在绘制完成时更新边界（`renderCanvas(true)`）
 - ⚡ 减少不必要的计算，提升渲染性能
@@ -152,13 +157,14 @@ function onMouseUp() {
 
 ```javascript
 const options = {
-  smoothing: 0.5,      // 平滑度：值越大越平滑
-  streamline: 0.5,     // 流线化：让线条更流畅
-  thinning: 0.6        // 压力变化：模拟真实画笔
+  smoothing: 0.5, // 平滑度：值越大越平滑
+  streamline: 0.5, // 流线化：让线条更流畅
+  thinning: 0.6 // 压力变化：模拟真实画笔
 }
 ```
 
 **效果对比**:
+
 - ❌ **未处理**: 线条锯齿明显，不够平滑
 - ✅ **处理后**: 线条流畅自然，接近手绘效果
 
@@ -192,11 +198,17 @@ export function usePencilTool({
   opacity
 }) {
   const drawingActive = ref(false)
-  
-  function onMouseDown(pos) { /* ... */ }
-  function onMouseMove(pos) { /* ... */ }
-  function onMouseUp() { /* ... */ }
-  
+
+  function onMouseDown(pos) {
+    /* ... */
+  }
+  function onMouseMove(pos) {
+    /* ... */
+  }
+  function onMouseUp() {
+    /* ... */
+  }
+
   return {
     drawingActive,
     onMouseDown,
@@ -207,6 +219,7 @@ export function usePencilTool({
 ```
 
 **优势**:
+
 - ✅ 代码组织清晰，易于维护
 - ✅ 功能独立，便于测试
 - ✅ 可复用性强，易于扩展
@@ -216,8 +229,8 @@ export function usePencilTool({
 使用响应式状态管理绘制状态：
 
 ```javascript
-const drawingActive = ref(false)  // 是否正在绘制
-const lastPoint = ref({ x: 0, y: 0 })  // 上一个点
+const drawingActive = ref(false) // 是否正在绘制
+const lastPoint = ref({ x: 0, y: 0 }) // 上一个点
 
 // 在绘制过程中更新状态
 function onMouseDown(pos) {
@@ -232,13 +245,13 @@ function onMouseDown(pos) {
 
 ```javascript
 function onMouseDown(pos) {
-  history.value.saveState()  // 开始绘制前保存状态
+  history.value.saveState() // 开始绘制前保存状态
 }
 
 function onMouseUp() {
   if (elements.currentFreeDrawPath.value.points.length > 1) {
     elements.freeDrawElements.value.push({ ...elements.currentFreeDrawPath.value })
-    history.value.saveState()  // 绘制完成后保存状态
+    history.value.saveState() // 绘制完成后保存状态
   }
 }
 ```
@@ -263,6 +276,7 @@ function onMouseUp() {
 ```
 
 **设计考虑**:
+
 - ✅ 使用点数组存储路径，便于序列化
 - ✅ 包含所有必要属性，支持完整恢复
 - ✅ 唯一 ID 便于元素管理
@@ -284,6 +298,7 @@ renderCanvas(true)
 ```
 
 **优化效果**:
+
 - ⚡ 减少边界计算次数
 - ⚡ 提升绘制流畅度
 - ⚡ 降低 CPU 占用
@@ -361,6 +376,7 @@ function onMouseUp() {
 ### 🚀 下一步探索
 
 如果你想深入了解：
+
 - 📖 **完整代码实现**: 查看 [usePencilTool.js](https://github.com/zhimeng-shufang/zhimeng-shufang/blob/main/src/renderer/src/composables/map/tools/usePencilTool.js)
 - 🎨 **渲染系统**: 查看 [useRender.js](https://github.com/zhimeng-shufang/zhimeng-shufang/blob/main/src/renderer/src/composables/map/useRender.js)
 - 🗺️ **地图设计工具**: 查看 [MapDesign.vue](https://github.com/zhimeng-shufang/zhimeng-shufang/blob/main/src/renderer/src/views/MapDesign.vue)
@@ -385,4 +401,3 @@ function onMouseUp() {
 > 💡 **如果这篇文章对你有帮助，请给个 ⭐️ 支持一下！**
 >
 > 💡 **想深入了解实现细节？欢迎查看 GitHub 上对应的代码文件，每个模块都有详细的注释说明！**
-

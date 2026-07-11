@@ -6,10 +6,22 @@
         <h2>{{ agentTitle }}</h2>
       </div>
       <div class="header-actions">
-        <button class="records-trigger icon-only" type="button" title="AI 记录" aria-label="AI 记录" @click="recordsDrawerVisible = true">
+        <button
+          class="records-trigger icon-only"
+          type="button"
+          title="AI 记录"
+          aria-label="AI 记录"
+          @click="recordsDrawerVisible = true"
+        >
           <History :size="15" />
         </button>
-        <button class="records-trigger icon-only" type="button" title="清理当前时间线" aria-label="清理当前时间线" @click="clearCurrentTimeline">
+        <button
+          class="records-trigger icon-only"
+          type="button"
+          title="清理当前时间线"
+          aria-label="清理当前时间线"
+          @click="clearCurrentTimeline"
+        >
           <Eraser :size="15" />
         </button>
         <el-popover
@@ -26,7 +38,11 @@
               :title="`当前模型：${selectedProviderLabel || '未选择供应商'} / ${selectedModelDisplayName || '未选择具体模型'}`"
               aria-label="选择 Agent 模型"
             >
-              <span class="model-status-dot" :class="{ error: lastError, empty: !selectedModel }" aria-hidden="true"></span>
+              <span
+                class="model-status-dot"
+                :class="{ error: lastError, empty: !selectedModel }"
+                aria-hidden="true"
+              ></span>
               <strong>{{ selectedModelDisplayName || '选择模型' }}</strong>
               <em>{{ selectedProviderLabel || '未绑定' }}</em>
             </button>
@@ -34,7 +50,12 @@
           <section class="model-panel">
             <header>
               <strong>选择模型</strong>
-              <span>用途：{{ defaultModelTaskText }} · 当前：{{ selectedProviderLabel || '无供应商' }} / {{ selectedModelDisplayName || '无模型' }}</span>
+              <span
+                >用途：{{ defaultModelTaskText }} · 当前：{{
+                  selectedProviderLabel || '无供应商'
+                }}
+                / {{ selectedModelDisplayName || '无模型' }}</span
+              >
             </header>
             <label>供应商</label>
             <el-select
@@ -45,7 +66,12 @@
               :disabled="!providerOptions.length"
               @change="handleProviderChange"
             >
-              <el-option v-for="provider in providerOptions" :key="provider.id" :label="provider.label" :value="provider.id" />
+              <el-option
+                v-for="provider in providerOptions"
+                :key="provider.id"
+                :label="provider.label"
+                :value="provider.id"
+              />
             </el-select>
             <label>具体模型</label>
             <el-select
@@ -63,8 +89,12 @@
                 :value="model.id"
               />
             </el-select>
-            <p v-if="modelPreferenceReadError" class="model-read-error">{{ modelPreferenceReadError }}</p>
-            <p v-if="modelPreferenceWriteError" class="model-read-error">{{ modelPreferenceWriteError }}</p>
+            <p v-if="modelPreferenceReadError" class="model-read-error">
+              {{ modelPreferenceReadError }}
+            </p>
+            <p v-if="modelPreferenceWriteError" class="model-read-error">
+              {{ modelPreferenceWriteError }}
+            </p>
             <p v-if="lastError">模型调用失败，可更换模型或重试。</p>
             <div v-if="lastError" class="model-error-actions">
               <button type="button" @click="retryLastTask">重试</button>
@@ -115,17 +145,31 @@
         />
       </header>
       <div class="consistency-actions">
-        <button class="primary" type="button" :disabled="isConsistencyChecking" @click="runChapterConsistencyCheck">
+        <button
+          class="primary"
+          type="button"
+          :disabled="isConsistencyChecking"
+          @click="runChapterConsistencyCheck"
+        >
           <Loader2 v-if="isConsistencyChecking" class="spinning" :size="15" />
           <ShieldCheck v-else :size="15" />
           {{ isConsistencyChecking ? '检查中' : '检查当前章' }}
         </button>
-        <button type="button" :disabled="isConsistencyChecking" title="读取最近检查" @click="loadConsistencyHistory">
+        <button
+          type="button"
+          :disabled="isConsistencyChecking"
+          title="读取最近检查"
+          @click="loadConsistencyHistory"
+        >
           <History :size="15" />
         </button>
       </div>
       <label class="consistency-auto-toggle">
-        <input v-model="autoCheckGeneratedChapter" type="checkbox" @change="persistAutoCheckGeneratedChapter" />
+        <input
+          v-model="autoCheckGeneratedChapter"
+          type="checkbox"
+          @change="persistAutoCheckGeneratedChapter"
+        />
         <span>正文生成后自动规则检查</span>
       </label>
       <p :class="{ error: consistencyReadError }">{{ consistencyHintText }}</p>
@@ -137,7 +181,12 @@
         <button type="button" @click="clearJoinedContext">清空</button>
       </header>
       <div>
-        <button v-for="item in joinedContextItems" :key="item.id" type="button" @click="removeJoinedContext(item.id)">
+        <button
+          v-for="item in joinedContextItems"
+          :key="item.id"
+          type="button"
+          @click="removeJoinedContext(item.id)"
+        >
           {{ item.title }}
         </button>
       </div>
@@ -146,7 +195,12 @@
     <section class="suggestions" :class="{ starter: isStarterChapter }">
       <header>
         <span>推荐下一步</span>
-        <button type="button" title="查看全部能力" aria-label="查看全部能力" @click="capabilityPanelVisible = true">
+        <button
+          type="button"
+          title="查看全部能力"
+          aria-label="查看全部能力"
+          @click="capabilityPanelVisible = true"
+        >
           <SlidersHorizontal :size="15" />
         </button>
       </header>
@@ -164,7 +218,11 @@
     </section>
 
     <section ref="timelineRef" class="timeline">
-      <article v-for="message in timelineMessages" :key="message.id" :class="['timeline-item', message.kind]">
+      <article
+        v-for="message in timelineMessages"
+        :key="message.id"
+        :class="['timeline-item', message.kind]"
+      >
         <span class="avatar">{{ messageAvatar(message) }}</span>
         <div class="message-body">
           <header v-if="message.kind !== 'result_card'" class="message-head">
@@ -175,7 +233,9 @@
           <div v-if="message.kind === 'error_card'" class="error-card">
             <strong>生成失败</strong>
             <p>原因：{{ message.content }}</p>
-            <p v-if="message.showDetail && message.detail" class="error-detail">{{ message.detail }}</p>
+            <p v-if="message.showDetail && message.detail" class="error-detail">
+              {{ message.detail }}
+            </p>
             <div>
               <button type="button" @click="retryLastTask">重试</button>
               <button type="button" @click="modelPanelVisible = true">更换模型</button>
@@ -236,8 +296,13 @@
               </div>
             </dl>
             <ol v-if="consistencyIssuesOf(message).length" class="consistency-issues">
-              <li v-for="issue in consistencyIssuesOf(message)" :key="issue.id || `${issue.type}-${issue.evidence}`">
-                <span :class="['severity-pill', issue.severity || 'medium']">{{ severityText(issue.severity) }}</span>
+              <li
+                v-for="issue in consistencyIssuesOf(message)"
+                :key="issue.id || `${issue.type}-${issue.evidence}`"
+              >
+                <span :class="['severity-pill', issue.severity || 'medium']">{{
+                  severityText(issue.severity)
+                }}</span>
                 <div>
                   <strong>{{ issue.message || issue.type || '发现可能矛盾' }}</strong>
                   <p v-if="issue.evidence">证据：{{ issue.evidence }}</p>
@@ -248,8 +313,13 @@
             </ol>
             <p v-else class="consistency-clean">未发现明确矛盾。</p>
             <footer v-if="message.llmChecked || usageSummaryText(message.usage)">
-              <span v-if="message.llmChecked">AI 复核：{{ message.providerId || '已调用' }} / {{ message.model || '默认模型' }}</span>
-              <span v-if="usageSummaryText(message.usage)">用量：{{ usageSummaryText(message.usage) }}</span>
+              <span v-if="message.llmChecked"
+                >AI 复核：{{ message.providerId || '已调用' }} /
+                {{ message.model || '默认模型' }}</span
+              >
+              <span v-if="usageSummaryText(message.usage)"
+                >用量：{{ usageSummaryText(message.usage) }}</span
+              >
             </footer>
           </div>
 
@@ -284,14 +354,38 @@
             <pre>{{ message.content }}</pre>
             <footer class="result-actions">
               <div class="result-actions-primary">
-                <button class="primary" type="button" @click="applyPrimaryResultAction(message)">{{ primaryResultActionLabel(message) }}</button>
-                <button type="button" @click="applyResult(message, 'save_material')">保存到素材箱</button>
-                <button type="button" @click="applyResult(message, 'save_snippet')">存为片段</button>
-                <button type="button" :disabled="!canApplyResultToChapter(message)" @click="applyResult(message, 'append')">追加章末</button>
+                <button class="primary" type="button" @click="applyPrimaryResultAction(message)">
+                  {{ primaryResultActionLabel(message) }}
+                </button>
+                <button type="button" @click="applyResult(message, 'save_material')">
+                  保存到素材箱
+                </button>
+                <button type="button" @click="applyResult(message, 'save_snippet')">
+                  存为片段
+                </button>
+                <button
+                  type="button"
+                  :disabled="!canApplyResultToChapter(message)"
+                  @click="applyResult(message, 'append')"
+                >
+                  追加章末
+                </button>
               </div>
               <div class="result-actions-secondary">
-                <button type="button" :disabled="!canApplyResultToChapter(message)" @click="applyResult(message, 'insert')">插入正文</button>
-                <button type="button" :disabled="!canApplyResultToChapter(message) || !selectionCount" @click="applyResult(message, 'replace')">替换选中</button>
+                <button
+                  type="button"
+                  :disabled="!canApplyResultToChapter(message)"
+                  @click="applyResult(message, 'insert')"
+                >
+                  插入正文
+                </button>
+                <button
+                  type="button"
+                  :disabled="!canApplyResultToChapter(message) || !selectionCount"
+                  @click="applyResult(message, 'replace')"
+                >
+                  替换选中
+                </button>
                 <button type="button" @click="joinTargetBook(message)">加入当前作品</button>
                 <button type="button" @click="convertToTemplate(message)">转成桥段模板</button>
                 <button type="button" @click="regenerateResult(message)">重新生成</button>
@@ -345,14 +439,31 @@
           <el-option label="保存素材" value="save_material" />
           <el-option label="提交队列" value="queue_write" />
         </el-select>
-        <div v-if="executionMode === 'queue_write'" class="queue-retry-controls" aria-label="队列重试设置">
+        <div
+          v-if="executionMode === 'queue_write'"
+          class="queue-retry-controls"
+          aria-label="队列重试设置"
+        >
           <label>
             <span>尝试</span>
-            <el-input-number v-model="queueAttempts" size="small" :min="1" :max="5" controls-position="right" />
+            <el-input-number
+              v-model="queueAttempts"
+              size="small"
+              :min="1"
+              :max="5"
+              controls-position="right"
+            />
           </label>
           <label>
             <span>等待 ms</span>
-            <el-input-number v-model="queueBackoffDelayMs" size="small" :min="100" :max="60000" :step="500" controls-position="right" />
+            <el-input-number
+              v-model="queueBackoffDelayMs"
+              size="small"
+              :min="100"
+              :max="60000"
+              :step="500"
+              controls-position="right"
+            />
           </label>
         </div>
         <el-popover
@@ -369,7 +480,11 @@
             </button>
           </template>
           <section class="capability-panel">
-            <el-input v-model="capabilityKeyword" size="small" placeholder="搜索能力，例如：黄金三章、角色绘图、时间线、润色" />
+            <el-input
+              v-model="capabilityKeyword"
+              size="small"
+              placeholder="搜索能力，例如：黄金三章、角色绘图、时间线、润色"
+            />
             <p v-if="writingSkillLoadError" class="skill-load-error">{{ writingSkillLoadError }}</p>
             <div v-if="!capabilityKeyword" class="capability-recommended">
               <strong>当前推荐</strong>
@@ -384,7 +499,11 @@
                 </button>
               </div>
             </div>
-            <div v-for="group in visibleCapabilityGroups" :key="group.name" class="capability-group">
+            <div
+              v-for="group in visibleCapabilityGroups"
+              :key="group.name"
+              class="capability-group"
+            >
               <strong>{{ group.name }}</strong>
               <button
                 v-for="item in group.items"
@@ -397,7 +516,14 @@
             </div>
           </section>
         </el-popover>
-        <button class="send-button" type="button" :disabled="isBusy" title="发送指令" aria-label="发送指令" @click="runCommand">
+        <button
+          class="send-button"
+          type="button"
+          :disabled="isBusy"
+          title="发送指令"
+          aria-label="发送指令"
+          @click="runCommand"
+        >
           <Loader2 v-if="isQueueSubmitting" class="spinning" :size="15" />
           <Send v-else :size="15" />
         </button>
@@ -430,7 +556,9 @@
           </button>
         </div>
         <div class="context-options">
-          <p v-if="contextPreferenceWriteError" class="context-write-error">{{ contextPreferenceWriteError }}</p>
+          <p v-if="contextPreferenceWriteError" class="context-write-error">
+            {{ contextPreferenceWriteError }}
+          </p>
           <label v-for="item in contextItems" :key="item.key" :class="{ disabled: item.disabled }">
             <input
               v-model="contextOptions[item.key]"
@@ -445,14 +573,24 @@
       </section>
     </el-drawer>
 
-    <el-drawer v-model="recordsDrawerVisible" title="AI 记录" direction="rtl" size="420px" @open="loadHistory">
+    <el-drawer
+      v-model="recordsDrawerVisible"
+      title="AI 记录"
+      direction="rtl"
+      size="420px"
+      @open="loadHistory"
+    >
       <section class="records-drawer">
         <header class="records-toolbar">
           <div>
             <strong>Agent 任务</strong>
             <span>{{ agentTaskHistory.length }} 条</span>
           </div>
-          <p class="records-live-state" :class="{ live: isAgentTaskProgressLive }" :title="agentTaskProgressTitle">
+          <p
+            class="records-live-state"
+            :class="{ live: isAgentTaskProgressLive }"
+            :title="agentTaskProgressTitle"
+          >
             {{ agentTaskProgressText }}
           </p>
           <button type="button" :disabled="isLoadingRecords" @click="loadHistory">
@@ -480,7 +618,9 @@
               <dd>{{ agentTaskReconnectText }}</dd>
             </div>
           </dl>
-          <p v-if="agentTaskProgressNotice" class="task-progress-notice">{{ agentTaskProgressNotice }}</p>
+          <p v-if="agentTaskProgressNotice" class="task-progress-notice">
+            {{ agentTaskProgressNotice }}
+          </p>
         </section>
         <section class="queue-status-card" aria-live="polite">
           <header>
@@ -558,15 +698,22 @@
               <dd>{{ formatQueueTime(selectedQueueJob.finishedOn) }}</dd>
             </div>
           </dl>
-          <p v-if="selectedQueueJob?.failedReason" class="queue-job-note">失败原因：{{ selectedQueueJob.failedReason }}</p>
-          <p v-if="selectedQueueJob?.returnvalue" class="queue-job-note">返回：{{ queueJobValueText(selectedQueueJob.returnvalue) }}</p>
+          <p v-if="selectedQueueJob?.failedReason" class="queue-job-note">
+            失败原因：{{ selectedQueueJob.failedReason }}
+          </p>
+          <p v-if="selectedQueueJob?.returnvalue" class="queue-job-note">
+            返回：{{ queueJobValueText(selectedQueueJob.returnvalue) }}
+          </p>
         </section>
         <p v-if="recordsError" class="records-error">{{ recordsError }}</p>
         <article v-for="task in agentTaskHistory" :key="task.id" class="task-record">
           <header>
             <div>
               <strong>{{ task.title || toolLabelFromType(task.type) || 'Agent 任务' }}</strong>
-              <span>{{ agentTaskStatusText(task.status) }} · {{ formatTime(task.updatedAt || task.createdAt) }}</span>
+              <span
+                >{{ agentTaskStatusText(task.status) }} ·
+                {{ formatTime(task.updatedAt || task.createdAt) }}</span
+              >
             </div>
             <em>{{ taskEventSummary(task) }}</em>
           </header>
@@ -592,36 +739,67 @@
               <dd>{{ linkedWriteTaskId(task) || '未记录' }}</dd>
             </div>
           </dl>
-          <div v-if="task.jobId || isQueueTaskCancellable(task) || isFailedAgentTask(task)" class="task-record-actions">
-            <button v-if="task.jobId" type="button" :disabled="isLoadingQueueJobId === task.jobId" @click="inspectQueuedTask(task)">
+          <div
+            v-if="task.jobId || isQueueTaskCancellable(task) || isFailedAgentTask(task)"
+            class="task-record-actions"
+          >
+            <button
+              v-if="task.jobId"
+              type="button"
+              :disabled="isLoadingQueueJobId === task.jobId"
+              @click="inspectQueuedTask(task)"
+            >
               <Loader2 v-if="isLoadingQueueJobId === task.jobId" class="spinning" :size="14" />
               <Search v-else :size="14" />
               <span>查看队列</span>
             </button>
-            <button v-if="isFailedAgentTask(task)" type="button" :disabled="isBusy" @click="retryAgentTask(task)">
+            <button
+              v-if="isFailedAgentTask(task)"
+              type="button"
+              :disabled="isBusy"
+              @click="retryAgentTask(task)"
+            >
               <RotateCcw :size="14" />
               <span>重试</span>
             </button>
-            <button v-if="isQueueTaskCancellable(task)" class="danger" type="button" :disabled="cancellingQueueJobId === task.jobId" @click="cancelQueuedTask(task)">
+            <button
+              v-if="isQueueTaskCancellable(task)"
+              class="danger"
+              type="button"
+              :disabled="cancellingQueueJobId === task.jobId"
+              @click="cancelQueuedTask(task)"
+            >
               <Loader2 v-if="cancellingQueueJobId === task.jobId" class="spinning" :size="14" />
               <span v-else>停止队列任务</span>
             </button>
           </div>
           <ol v-if="agentTaskEvents(task).length">
-            <li v-for="event in agentTaskEvents(task)" :key="event.id || `${task.id}:${event.type}:${event.finishedAt}`">
+            <li
+              v-for="event in agentTaskEvents(task)"
+              :key="event.id || `${task.id}:${event.type}:${event.finishedAt}`"
+            >
               <span>{{ agentTaskEventTitle(event) }}</span>
               <p>{{ agentTaskEventText(event) }}</p>
             </li>
           </ol>
           <p v-else>{{ task.resultPreview || task.error || '暂无事件。' }}</p>
         </article>
-        <div v-if="agentTaskHistory.length && toolHistory.length" class="records-divider">生成记录</div>
+        <div v-if="agentTaskHistory.length && toolHistory.length" class="records-divider">
+          生成记录
+        </div>
         <article v-for="item in toolHistory" :key="item.id || item.createdAt">
           <strong>{{ item.title || toolLabelFromType(item.type) || 'AI 记录' }}</strong>
           <span>{{ item.status || 'generated' }} · {{ formatTime(item.createdAt) }}</span>
           <p>{{ item.result || item.content || '暂无内容' }}</p>
         </article>
-        <p v-if="!agentTaskHistory.length && !toolHistory.length && !isLoadingRecords && !recordsError" class="records-empty">暂无记录。</p>
+        <p
+          v-if="
+            !agentTaskHistory.length && !toolHistory.length && !isLoadingRecords && !recordsError
+          "
+          class="records-empty"
+        >
+          暂无记录。
+        </p>
       </section>
     </el-drawer>
 
@@ -662,7 +840,12 @@
       </el-form>
       <template #footer>
         <el-button @click="joinDialogVisible = false">取消</el-button>
-        <el-button type="primary" :disabled="Boolean(bookOptionsError)" @click="confirmJoinTargetBook">确认加入</el-button>
+        <el-button
+          type="primary"
+          :disabled="Boolean(bookOptionsError)"
+          @click="confirmJoinTargetBook"
+          >确认加入</el-button
+        >
       </template>
     </el-dialog>
   </aside>
@@ -851,18 +1034,34 @@ const currentModeText = computed(() => {
   const modeMap = { write: '写作模式', read: '阅读模式', review: '校对模式', extract: '提取模式' }
   return modeMap[props.mode] || '写作模式'
 })
-const chapterName = computed(() => currentContext.value?.chapterName || currentContext.value?.title || '未打开章节')
+const chapterName = computed(
+  () => currentContext.value?.chapterName || currentContext.value?.title || '未打开章节'
+)
 const wordCount = computed(() => Number(currentContext.value?.wordCount || 0))
 const selectionCount = computed(() => countWords(currentContext.value?.selectedText || ''))
 const canWriteChapter = computed(() => agentMode.value === 'writing' && props.mode === 'write')
 const isBusy = computed(() => isGenerating.value || isQueueSubmitting.value)
 const isStarterChapter = computed(() => agentMode.value === 'writing' && wordCount.value < 80)
-const selectedModel = computed(() => availableModels.value.find((model) => model.id === selectedModelId.value) || null)
-const selectedModelName = computed(() => selectedModel.value?.modelName || selectedModel.value?.displayName || '')
-const selectedModelDisplayName = computed(() => selectedModel.value?.displayName || selectedModel.value?.modelName || '')
-const selectedProviderLabel = computed(() => providerOptions.value.find((item) => item.id === selectedProviderId.value)?.label || '')
+const selectedModel = computed(
+  () => availableModels.value.find((model) => model.id === selectedModelId.value) || null
+)
+const selectedModelName = computed(
+  () => selectedModel.value?.modelName || selectedModel.value?.displayName || ''
+)
+const selectedModelDisplayName = computed(
+  () => selectedModel.value?.displayName || selectedModel.value?.modelName || ''
+)
+const selectedProviderLabel = computed(
+  () => providerOptions.value.find((item) => item.id === selectedProviderId.value)?.label || ''
+)
 const defaultModelTaskText = computed(() => {
-  const map = { writing: '写作', extract: '拆书', summary: '摘要', image_prompt: '图片 Prompt', chat: '对话' }
+  const map = {
+    writing: '写作',
+    extract: '拆书',
+    summary: '摘要',
+    image_prompt: '图片 Prompt',
+    chat: '对话'
+  }
   return map[defaultModelTask()] || '写作'
 })
 const providerOptions = computed(() => {
@@ -872,7 +1071,12 @@ const providerOptions = computed(() => {
     if (!map.has(id)) {
       map.set(id, {
         id,
-        label: model.providerDisplayName || model.providerName || model.provider || model.raw?.name || '默认供应商'
+        label:
+          model.providerDisplayName ||
+          model.providerName ||
+          model.provider ||
+          model.raw?.name ||
+          '默认供应商'
       })
     }
   })
@@ -910,7 +1114,9 @@ const consistencySummaryText = computed(() => {
 })
 const consistencyHintText = computed(() => {
   if (consistencyReadError.value) return consistencyReadError.value
-  const autoText = autoCheckGeneratedChapter.value ? '正文生成后会自动做规则检查。' : '正文生成后不会自动检查。'
+  const autoText = autoCheckGeneratedChapter.value
+    ? '正文生成后会自动做规则检查。'
+    : '正文生成后不会自动检查。'
   if (useLlmConsistencyCheck.value) {
     const modelText = selectedModel.value
       ? `会调用 ${selectedModelDisplayName.value || selectedModelName.value || '当前模型'} 做复核。`
@@ -922,11 +1128,14 @@ const consistencyHintText = computed(() => {
 const agentTaskProgressText = computed(() => {
   if (!props.bookName) return '未选择作品'
   if (agentTaskProgressStatus.value === 'connected') {
-    return lastTaskProgressAt.value ? `实时更新 ${formatTime(lastTaskProgressAt.value)}` : '实时连接中'
+    return lastTaskProgressAt.value
+      ? `实时更新 ${formatTime(lastTaskProgressAt.value)}`
+      : '实时连接中'
   }
   if (agentTaskProgressStatus.value === 'connecting') return '正在连接实时进度'
   if (agentTaskProgressStatus.value === 'reconnecting') return '正在重连实时进度'
-  if (agentTaskProgressStatus.value === 'unavailable') return agentTaskProgressError.value || '实时进度服务不可用'
+  if (agentTaskProgressStatus.value === 'unavailable')
+    return agentTaskProgressError.value || '实时进度服务不可用'
   if (agentTaskProgressStatus.value === 'unsupported') return '当前环境不支持实时进度'
   if (agentTaskProgressError.value) return agentTaskProgressError.value
   return '实时进度未连接'
@@ -942,8 +1151,12 @@ const agentTaskProgressUrlText = computed(() => {
 })
 const agentTaskReconnectText = computed(() => {
   if (agentTaskProgressStatus.value !== 'reconnecting') return ''
-  const attemptText = agentTaskReconnectAttempt.value ? `第 ${agentTaskReconnectAttempt.value} 次` : '准备'
-  const timeText = nextAgentTaskReconnectAt.value ? `，下次 ${formatTime(nextAgentTaskReconnectAt.value)}` : ''
+  const attemptText = agentTaskReconnectAttempt.value
+    ? `第 ${agentTaskReconnectAttempt.value} 次`
+    : '准备'
+  const timeText = nextAgentTaskReconnectAt.value
+    ? `，下次 ${formatTime(nextAgentTaskReconnectAt.value)}`
+    : ''
   return `${attemptText}重连${timeText}`
 })
 const agentTaskProgressNotice = computed(() => {
@@ -973,12 +1186,14 @@ const queueStatusText = computed(() => {
   if (queueStatusError.value) return '队列状态读取失败'
   if (!queueStatus.value) return '未读取'
   const running = Number(queueStatus.value.counts?.active || 0)
-  const waiting = Number(queueStatus.value.counts?.waiting || 0) + Number(queueStatus.value.counts?.delayed || 0)
+  const waiting =
+    Number(queueStatus.value.counts?.waiting || 0) + Number(queueStatus.value.counts?.delayed || 0)
   return `运行 ${running} 个，等待 ${waiting} 个`
 })
 const queueWorkerText = computed(() => {
   if (!queueStatus.value) return 'worker 未知'
-  if (queueStatus.value.workerStatusError) return `worker 状态读取失败：${queueStatus.value.workerStatusError}`
+  if (queueStatus.value.workerStatusError)
+    return `worker 状态读取失败：${queueStatus.value.workerStatusError}`
   const count = Number(queueStatus.value.workerCount || 0)
   if (count > 0) {
     return queueStatus.value.localWorkerRunning
@@ -996,7 +1211,12 @@ const contextItems = computed(() => {
     { key: 'previousSummary', label: '上一章摘要' },
     { key: 'outline', label: '本书大纲' },
     { key: 'relatedCharacters', label: '相关角色', disabled: locked, reason: '完成整书解析后可用' },
-    { key: 'relatedWorldbuilding', label: '世界设定', disabled: locked, reason: '完成整书解析后可用' },
+    {
+      key: 'relatedWorldbuilding',
+      label: '世界设定',
+      disabled: locked,
+      reason: '完成整书解析后可用'
+    },
     { key: 'assetWorkspace', label: '资产台资料', disabled: locked, reason: '完成整书解析后可用' }
   ]
 })
@@ -1010,19 +1230,29 @@ const contextPresets = computed(() => {
   ]
 })
 const capabilityGroups = computed(() => {
-  return writingSkillGroups.value.map((group) => ({
-    name: group.name || group.category || '写作',
-    items: (Array.isArray(group.items) ? group.items : []).map((item) => normalizeCapability(item, group.name || group.category || '写作'))
-  })).filter((group) => group.items.length)
+  return writingSkillGroups.value
+    .map((group) => ({
+      name: group.name || group.category || '写作',
+      items: (Array.isArray(group.items) ? group.items : []).map((item) =>
+        normalizeCapability(item, group.name || group.category || '写作')
+      )
+    }))
+    .filter((group) => group.items.length)
 })
-const allCapabilities = computed(() => capabilityGroups.value.flatMap((group) => group.items.map((item) => ({ ...item, category: group.name }))))
+const allCapabilities = computed(() =>
+  capabilityGroups.value.flatMap((group) =>
+    group.items.map((item) => ({ ...item, category: group.name }))
+  )
+)
 const visibleCapabilityGroups = computed(() => {
   const keyword = capabilityKeyword.value.trim()
   if (!keyword) return capabilityGroups.value
   return capabilityGroups.value
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => item.label.includes(keyword) || item.instruction.includes(keyword))
+      items: group.items.filter(
+        (item) => item.label.includes(keyword) || item.instruction.includes(keyword)
+      )
     }))
     .filter((group) => group.items.length)
 })
@@ -1032,7 +1262,9 @@ const quickRecommendedCapabilities = computed(() => {
 const filteredSlashCapabilities = computed(() => {
   const keyword = commandInput.value.trim().replace(/^\//, '')
   return allCapabilities.value
-    .filter((item) => !keyword || item.label.includes(keyword) || item.instruction.includes(keyword))
+    .filter(
+      (item) => !keyword || item.label.includes(keyword) || item.instruction.includes(keyword)
+    )
     .slice(0, 8)
 })
 
@@ -1079,7 +1311,8 @@ async function initSession() {
   useLlmConsistencyCheck.value = readLocalJson(consistencyModeStorageKey(), false) === true
   autoCheckGeneratedChapter.value = readLocalJson(autoConsistencyStorageKey(), true) !== false
   const storedContext = readLocalJson(contextStorageKey(), null)
-  if (storedContext?.options) contextOptions.value = { ...contextOptions.value, ...storedContext.options }
+  if (storedContext?.options)
+    contextOptions.value = { ...contextOptions.value, ...storedContext.options }
   if (storedContext?.preset) contextPreset.value = storedContext.preset
   if (storedContext?.items) joinedContextItems.value = storedContext.items
   const opened = await openEditorSession({
@@ -1111,23 +1344,35 @@ async function loadModels() {
   const nextModel =
     availableModels.value.find((item) => item.id === saved) ||
     availableModels.value.find((item) => item.id === successful) ||
-    availableModels.value.find((item) => /deepseek.*flash/i.test(`${item.providerDisplayName || ''} ${item.displayName || ''} ${item.modelName || ''}`)) ||
+    availableModels.value.find((item) =>
+      /deepseek.*flash/i.test(
+        `${item.providerDisplayName || ''} ${item.displayName || ''} ${item.modelName || ''}`
+      )
+    ) ||
     availableModels.value.find((item) => item.defaultFor === defaultModelTask()) ||
     availableModels.value[0] ||
     null
   selectedModelId.value = nextModel?.id || ''
-  selectedProviderId.value = nextModel ? providerIdOf(nextModel) : providerOptions.value[0]?.id || ''
+  selectedProviderId.value = nextModel
+    ? providerIdOf(nextModel)
+    : providerOptions.value[0]?.id || ''
 }
 
 async function loadWritingSkills() {
   try {
     const response = await listWritingSkills()
-    writingSkills.value = Array.isArray(response.skills) ? response.skills.map((skill) => normalizeCapability(skill, skill.category)) : []
+    writingSkills.value = Array.isArray(response.skills)
+      ? response.skills.map((skill) => normalizeCapability(skill, skill.category))
+      : []
     writingSkillGroups.value = Array.isArray(response.groups)
-      ? response.groups.map((group) => ({
-          name: group.name || group.category || '写作',
-          items: (Array.isArray(group.items) ? group.items : []).map((skill) => normalizeCapability(skill, group.name || group.category || skill.category))
-        })).filter((group) => group.items.length)
+      ? response.groups
+          .map((group) => ({
+            name: group.name || group.category || '写作',
+            items: (Array.isArray(group.items) ? group.items : []).map((skill) =>
+              normalizeCapability(skill, group.name || group.category || skill.category)
+            )
+          }))
+          .filter((group) => group.items.length)
       : []
     writingSkillLoadError.value = ''
   } catch (error) {
@@ -1140,18 +1385,21 @@ async function loadWritingSkills() {
 async function resolveRecentlySuccessfulModel() {
   let directDefaults = null
   try {
-    directDefaults = await window.electronStore?.get?.('editorModelDefaults') ?? null
+    directDefaults = (await window.electronStore?.get?.('editorModelDefaults')) ?? null
   } catch (error) {
     throw new Error(error?.message || '读取编辑器模型默认设置失败')
   }
-  if (directDefaults != null && (typeof directDefaults !== 'object' || Array.isArray(directDefaults))) {
+  if (
+    directDefaults != null &&
+    (typeof directDefaults !== 'object' || Array.isArray(directDefaults))
+  ) {
     throw new Error('读取编辑器模型默认设置失败：本地配置格式不正确')
   }
   const defaultId = directDefaults?.[defaultModelTask()] || directDefaults?.writing || ''
   if (defaultId) return defaultId
   let logs = []
   try {
-    logs = await window.electronStore?.get?.('stats:ai_logs') ?? []
+    logs = (await window.electronStore?.get?.('stats:ai_logs')) ?? []
   } catch (error) {
     throw new Error(error?.message || '读取最近成功模型失败')
   }
@@ -1159,9 +1407,7 @@ async function resolveRecentlySuccessfulModel() {
     throw new Error('读取最近成功模型失败：本地日志格式不正确')
   }
   const rows = logs
-  const latest = [...rows]
-    .reverse()
-    .find((item) => item?.success && item.providerId && item.model)
+  const latest = [...rows].reverse().find((item) => item?.success && item.providerId && item.model)
   return latest ? `${latest.providerId}::${latest.model}` : ''
 }
 
@@ -1206,11 +1452,14 @@ async function persistContextOptions() {
     contextOptions.value.assetWorkspace = false
   }
   try {
-    localStorage.setItem(contextStorageKey(), JSON.stringify({
-      preset: contextPreset.value,
-      options: contextOptions.value,
-      items: joinedContextItems.value
-    }))
+    localStorage.setItem(
+      contextStorageKey(),
+      JSON.stringify({
+        preset: contextPreset.value,
+        options: contextOptions.value,
+        items: joinedContextItems.value
+      })
+    )
     if (sessionId.value) await updateEditorSessionContext(sessionId.value, contextOptions.value)
     contextPreferenceWriteError.value = ''
   } catch (error) {
@@ -1240,10 +1489,46 @@ async function applyContextPreset(preset, shouldPersist = true) {
   if (preset.disabled) return
   contextPreset.value = preset.key
   const map = {
-    light: { selectedText: true, currentParagraph: true, currentChapter: false, previousSummary: false, outline: false, relatedCharacters: false, relatedWorldbuilding: false, assetWorkspace: false },
-    standard: { selectedText: Boolean(currentContext.value?.selectedText), currentParagraph: false, currentChapter: true, previousSummary: true, outline: false, relatedCharacters: false, relatedWorldbuilding: false, assetWorkspace: false },
-    full: { selectedText: Boolean(currentContext.value?.selectedText), currentParagraph: false, currentChapter: true, previousSummary: true, outline: true, relatedCharacters: true, relatedWorldbuilding: true, assetWorkspace: true },
-    extract: { selectedText: false, currentParagraph: false, currentChapter: true, previousSummary: false, outline: false, relatedCharacters: false, relatedWorldbuilding: false, assetWorkspace: false }
+    light: {
+      selectedText: true,
+      currentParagraph: true,
+      currentChapter: false,
+      previousSummary: false,
+      outline: false,
+      relatedCharacters: false,
+      relatedWorldbuilding: false,
+      assetWorkspace: false
+    },
+    standard: {
+      selectedText: Boolean(currentContext.value?.selectedText),
+      currentParagraph: false,
+      currentChapter: true,
+      previousSummary: true,
+      outline: false,
+      relatedCharacters: false,
+      relatedWorldbuilding: false,
+      assetWorkspace: false
+    },
+    full: {
+      selectedText: Boolean(currentContext.value?.selectedText),
+      currentParagraph: false,
+      currentChapter: true,
+      previousSummary: true,
+      outline: true,
+      relatedCharacters: true,
+      relatedWorldbuilding: true,
+      assetWorkspace: true
+    },
+    extract: {
+      selectedText: false,
+      currentParagraph: false,
+      currentChapter: true,
+      previousSummary: false,
+      outline: false,
+      relatedCharacters: false,
+      relatedWorldbuilding: false,
+      assetWorkspace: false
+    }
   }
   contextOptions.value = { ...contextOptions.value, ...(map[preset.key] || map.standard) }
   if (shouldPersist) await persistContextOptions()
@@ -1271,7 +1556,9 @@ function fillSuggestion(item) {
 }
 
 function handleCommandInput(value) {
-  slashPanelVisible.value = String(value || '').trim().startsWith('/')
+  slashPanelVisible.value = String(value || '')
+    .trim()
+    .startsWith('/')
   if (!String(value || '').trim()) preparedTask.value = null
 }
 
@@ -1301,7 +1588,10 @@ function handleConsistencyModeChange(value) {
 }
 
 function persistAutoCheckGeneratedChapter() {
-  localStorage.setItem(autoConsistencyStorageKey(), JSON.stringify(Boolean(autoCheckGeneratedChapter.value)))
+  localStorage.setItem(
+    autoConsistencyStorageKey(),
+    JSON.stringify(Boolean(autoCheckGeneratedChapter.value))
+  )
 }
 
 async function runChapterConsistencyCheck() {
@@ -1427,7 +1717,10 @@ async function maybeRunAppliedChapterConsistencyCheck(message = {}, action = '',
   if (!['insert', 'replace', 'append', 'replace_chapter'].includes(action)) return null
   if (applied?.success !== true) return null
 
-  const ctx = applied.context && typeof applied.context === 'object' ? applied.context : currentContext.value || {}
+  const ctx =
+    applied.context && typeof applied.context === 'object'
+      ? applied.context
+      : currentContext.value || {}
   const text = String(applied.text || ctx.content || '').trim()
   if (!text) return null
 
@@ -1477,7 +1770,16 @@ async function maybeRunAppliedChapterConsistencyCheck(message = {}, action = '',
   }
 }
 
-function buildConsistencyCheckPayload({ id, ctx = {}, text = '', useLlm = false, source = '', generationId = '', taskType = '', applyAction = '' }) {
+function buildConsistencyCheckPayload({
+  id,
+  ctx = {},
+  text = '',
+  useLlm = false,
+  source = '',
+  generationId = '',
+  taskType = '',
+  applyAction = ''
+}) {
   return {
     id,
     bookName: props.bookName,
@@ -1562,7 +1864,10 @@ function isAssetOnlyType(type = '') {
 async function loadLatestConsistencyCheck() {
   if (!props.bookName) return
   try {
-    const response = await listConsistencyChecks({ bookName: props.bookName, bookId: props.bookName })
+    const response = await listConsistencyChecks({
+      bookName: props.bookName,
+      bookId: props.bookName
+    })
     const checks = response.checks
     latestConsistencyCheck.value = checks[0] || null
     consistencyReadError.value = ''
@@ -1578,7 +1883,10 @@ async function loadConsistencyHistory() {
     return
   }
   try {
-    const response = await listConsistencyChecks({ bookName: props.bookName, bookId: props.bookName })
+    const response = await listConsistencyChecks({
+      bookName: props.bookName,
+      bookId: props.bookName
+    })
     const checks = response.checks
     latestConsistencyCheck.value = checks[0] || null
     consistencyReadError.value = ''
@@ -1635,7 +1943,12 @@ function shouldRepairAppliedConsistencyIssues(message = {}, check = {}) {
   return mediumOrHighConsistencyIssues(check).length > 0
 }
 
-async function maybeRepairAppliedConsistencyIssues(message = {}, action = '', applied = {}, check = {}) {
+async function maybeRepairAppliedConsistencyIssues(
+  message = {},
+  action = '',
+  applied = {},
+  check = {}
+) {
   if (!shouldRepairAppliedConsistencyIssues(message, check)) return null
   const issues = mediumOrHighConsistencyIssues(check)
   const repairId = `repair:${check.id || generationIdOf(message)}`
@@ -1731,14 +2044,16 @@ async function maybeRepairAppliedConsistencyIssues(message = {}, action = '', ap
           references: payload.references,
           executionMode: 'preview',
           status: response.status || 'queued',
-          events: [{
-            type: 'queue_queued',
-            title: '队列已接收',
-            status: response.status || 'queued',
-            content: '返修任务已写入 Redis 队列，等待 BullMQ worker 执行。',
-            queueName: response.queueName || '',
-            jobId: response.jobId || ''
-          }]
+          events: [
+            {
+              type: 'queue_queued',
+              title: '队列已接收',
+              status: response.status || 'queued',
+              content: '返修任务已写入 Redis 队列，等待 BullMQ worker 执行。',
+              queueName: response.queueName || '',
+              jobId: response.jobId || ''
+            }
+          ]
         }).slice(0, 80)
       }
       await loadQueueStatus()
@@ -1754,24 +2069,9 @@ async function maybeRepairAppliedConsistencyIssues(message = {}, action = '', ap
     )
     if (resultIssue) throw new Error(resultIssue)
     replaceTimelineMessageWithSteps(stepMessageId, generation.agentSteps)
-    addResultCard({
-      label: payload.title,
-      type: payload.type,
-      instruction: payload.instruction,
-      skillId: payload.skillId,
-      skillKey: payload.skillKey,
-      outputMode: payload.outputMode,
-      canWriteChapter: payload.canWriteChapter,
-      inputScopes: payload.inputScopes,
-      requiredContext: payload.requiredContext,
-      references: payload.references
-    }, payload, generation)
-    await appendMessage(
-      'assistant',
-      payload.title,
-      generation.result || '',
-      'result_card',
-      resultCardMessageMeta({
+    addResultCard(
+      {
+        label: payload.title,
         type: payload.type,
         instruction: payload.instruction,
         skillId: payload.skillId,
@@ -1781,14 +2081,41 @@ async function maybeRepairAppliedConsistencyIssues(message = {}, action = '', ap
         inputScopes: payload.inputScopes,
         requiredContext: payload.requiredContext,
         references: payload.references
-      }, payload, generation)
+      },
+      payload,
+      generation
+    )
+    await appendMessage(
+      'assistant',
+      payload.title,
+      generation.result || '',
+      'result_card',
+      resultCardMessageMeta(
+        {
+          type: payload.type,
+          instruction: payload.instruction,
+          skillId: payload.skillId,
+          skillKey: payload.skillKey,
+          outputMode: payload.outputMode,
+          canWriteChapter: payload.canWriteChapter,
+          inputScopes: payload.inputScopes,
+          requiredContext: payload.requiredContext,
+          references: payload.references
+        },
+        payload,
+        generation
+      )
     )
     await loadHistory()
     ElMessage.success('已生成返修结果卡，正文尚未修改')
     return generation
   } catch (error) {
     if (isGenerationCancelledError(error)) {
-      updateTimelineMessage(stepMessageId, { content: '生成已停止。', streamStatus: 'cancelled', streaming: false })
+      updateTimelineMessage(stepMessageId, {
+        content: '生成已停止。',
+        streamStatus: 'cancelled',
+        streaming: false
+      })
       ElMessage.info('生成已停止')
       return null
     }
@@ -1867,7 +2194,9 @@ async function runQueuedWrite(task) {
     buildInstruction(task.instruction),
     '请按当前章节上下文写成可直接写入正文的完整内容。',
     buildContextText()
-  ].filter(Boolean).join('\n\n')
+  ]
+    .filter(Boolean)
+    .join('\n\n')
   const payload = {
     bookName: props.bookName,
     bookId: props.bookName,
@@ -1946,13 +2275,15 @@ async function runQueuedWrite(task) {
         requiredContext: payload.requiredContext,
         references: payload.references,
         status: response.status || 'queued',
-        events: [{
-          type: 'queue_queued',
-          title: '队列已接收',
-          status: response.status || 'queued',
-          content: '任务已写入 Redis 队列，等待 BullMQ worker 执行。',
-          createdAt: new Date().toISOString()
-        }],
+        events: [
+          {
+            type: 'queue_queued',
+            title: '队列已接收',
+            status: response.status || 'queued',
+            content: '任务已写入 Redis 队列，等待 BullMQ worker 执行。',
+            createdAt: new Date().toISOString()
+          }
+        ],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }).slice(0, 80)
@@ -2049,7 +2380,13 @@ async function runGeneration(task) {
     if (resultIssue) throw new Error(resultIssue)
     replaceTimelineMessageWithSteps(stepMessageId, generation.agentSteps)
     addResultCard(task, payload, generation)
-    await appendMessage('assistant', task.label, generation.result || '', 'result_card', resultCardMessageMeta(task, payload, generation))
+    await appendMessage(
+      'assistant',
+      task.label,
+      generation.result || '',
+      'result_card',
+      resultCardMessageMeta(task, payload, generation)
+    )
     await maybeRunGeneratedConsistencyCheck(task, payload, generation)
     await loadHistory()
     commandInput.value = ''
@@ -2064,7 +2401,11 @@ async function runGeneration(task) {
     if (isGenerationCancelledError(error)) {
       lastError.value = ''
       lastErrorDetail.value = ''
-      updateTimelineMessage(stepMessageId, { content: '生成已停止。', streamStatus: 'cancelled', streaming: false })
+      updateTimelineMessage(stepMessageId, {
+        content: '生成已停止。',
+        streamStatus: 'cancelled',
+        streaming: false
+      })
       ElMessage.info('生成已停止')
       return
     }
@@ -2080,7 +2421,9 @@ async function runGeneration(task) {
     if (timelineMessages.value.some((message) => message.id === stepMessageId)) {
       const message = timelineMessages.value.find((item) => item.id === stepMessageId)
       if (message?.streamStatus !== 'cancelled') {
-        updateTimelineMessage(stepMessageId, { content: lastError.value ? '生成失败，已写入错误卡。' : '结果卡已生成，等待用户确认。' })
+        updateTimelineMessage(stepMessageId, {
+          content: lastError.value ? '生成失败，已写入错误卡。' : '结果卡已生成，等待用户确认。'
+        })
       }
     }
     stopActiveAgentStream()
@@ -2093,7 +2436,10 @@ async function runGeneration(task) {
 
 function createAgentStreamChannel(seed = '') {
   const random = Math.random().toString(16).slice(2)
-  const cleanSeed = String(seed || 'task').replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 48) || 'task'
+  const cleanSeed =
+    String(seed || 'task')
+      .replace(/[^A-Za-z0-9_-]/g, '_')
+      .slice(0, 48) || 'task'
   return `editor-agent-stream:${Date.now()}_${random}_${cleanSeed}`
 }
 
@@ -2182,7 +2528,8 @@ function generationResultIssue(task, payload, generation) {
   const text = String(generation?.result || '')
   if (!isStarterLikeTask(task, payload) && !isPromptLikeTask(payload.type || task.type)) return ''
   if (isUnusableEmptyResult(text)) return '模型返回内容为空或不可用，请更换模型或补充上下文后重试'
-  if (isClearlyWrongTaskResult(payload.type || task.type, text)) return '模型返回内容与当前任务不匹配，请更换模型或重试'
+  if (isClearlyWrongTaskResult(payload.type || task.type, text))
+    return '模型返回内容与当前任务不匹配，请更换模型或重试'
   return ''
 }
 
@@ -2270,7 +2617,8 @@ function generationIdOf(message = {}) {
 }
 
 function skillMetaFromSources(...sources) {
-  const getText = (key) => sources.map((source) => String(source?.[key] || '').trim()).find(Boolean) || ''
+  const getText = (key) =>
+    sources.map((source) => String(source?.[key] || '').trim()).find(Boolean) || ''
   const getList = (key) => {
     const source = sources.find((item) => Array.isArray(item?.[key]))
     return source ? source[key] : []
@@ -2280,7 +2628,8 @@ function skillMetaFromSources(...sources) {
     skillId: getText('skillId'),
     skillKey: getText('skillKey'),
     outputMode,
-    canWriteChapter: sources.some((source) => source?.canWriteChapter === true) && outputMode === 'chapter_write',
+    canWriteChapter:
+      sources.some((source) => source?.canWriteChapter === true) && outputMode === 'chapter_write',
     inputScopes: getList('inputScopes'),
     requiredContext: getList('requiredContext'),
     references: getList('references')
@@ -2299,13 +2648,16 @@ async function maybeApplyGenerated(generation, action) {
     ElMessage.info('已保留在时间线，正文尚未修改')
     return
   }
-  await applyResult({
-    id: generation.id,
-    content: generation.result,
-    title: generation.title || 'AI 结果',
-    type: generation.type,
-    ...skillMetaFromSources(generation)
-  }, action)
+  await applyResult(
+    {
+      id: generation.id,
+      content: generation.result,
+      title: generation.title || 'AI 结果',
+      type: generation.type,
+      ...skillMetaFromSources(generation)
+    },
+    action
+  )
 }
 
 async function applyResult(message, action) {
@@ -2339,16 +2691,27 @@ async function applyResult(message, action) {
       applied = await applyTextToChapter(message, action)
       applied = requireAppliedChapterWriteResult(applied)
     }
-    if (action === 'save_snippet') emit('save-snippet', { title: message.title || 'AI 片段', content: message.content })
+    if (action === 'save_snippet')
+      emit('save-snippet', { title: message.title || 'AI 片段', content: message.content })
     if (action === 'save_material') await saveAsMaterial(message)
     if (action === 'send_to_asset_workspace') await sendToAssetWorkspace(message)
     const nextStatus = statusForApplyAction(action)
     await markGenerationApplied(generationId, action, nextStatus)
     updateTimelineMessage(message.id, { status: nextStatus, applyAction: action })
-    addTimelineMessage({ kind: 'save_record', role: 'tool', title: '已完成', content: saveRecordText(action) })
+    addTimelineMessage({
+      kind: 'save_record',
+      role: 'tool',
+      title: '已完成',
+      content: saveRecordText(action)
+    })
     await maybeRunAppliedChapterConsistencyCheck(message, action, applied)
   } catch (error) {
-    addTimelineMessage({ kind: 'error_card', role: 'assistant', title: '操作失败', content: error?.message || '操作失败' })
+    addTimelineMessage({
+      kind: 'error_card',
+      role: 'assistant',
+      title: '操作失败',
+      content: error?.message || '操作失败'
+    })
     ElMessage.error(error?.message || '操作失败')
   }
 }
@@ -2408,7 +2771,8 @@ async function confirmApply(action) {
     replace: '这会替换当前选中文本。系统会先保存快照。',
     replace_chapter: '这会替换整章。系统会先保存快照，请确认结果内容无误。',
     send_to_asset_workspace: '这会把 AI 结果写入作品资产台，请确认内容属于当前作品。',
-    join_target_book: '下载书提取结果不能直接成为原创作品正式设定。请确认后作为 reference / inspiration / draft 加入。'
+    join_target_book:
+      '下载书提取结果不能直接成为原创作品正式设定。请确认后作为 reference / inspiration / draft 加入。'
   }
   if (!map[action]) return true
   try {
@@ -2429,11 +2793,15 @@ async function confirmGeneratedAction(action) {
     save_material: '结果卡已生成。确认后会保存为素材。'
   }
   try {
-    await ElMessageBox.confirm(map[action] || '结果卡已生成。确认后执行所选操作。', '确认应用 AI 结果', {
-      confirmButtonText: '确认',
-      cancelButtonText: '先看看结果',
-      type: 'info'
-    })
+    await ElMessageBox.confirm(
+      map[action] || '结果卡已生成。确认后执行所选操作。',
+      '确认应用 AI 结果',
+      {
+        confirmButtonText: '确认',
+        cancelButtonText: '先看看结果',
+        type: 'info'
+      }
+    )
     return true
   } catch {
     return false
@@ -2507,11 +2875,16 @@ function regenerateResult(message) {
 async function discardResult(message) {
   try {
     await markGenerationApplied(generationIdOf(message), 'discard', 'discarded')
-    timelineMessages.value = timelineMessages.value.map((item) => (
+    timelineMessages.value = timelineMessages.value.map((item) =>
       item.id === message.id ? { ...item, status: 'discarded' } : item
-    ))
+    )
   } catch (error) {
-    addTimelineMessage({ kind: 'error_card', role: 'assistant', title: '丢弃失败', content: error?.message || '丢弃记录失败' })
+    addTimelineMessage({
+      kind: 'error_card',
+      role: 'assistant',
+      title: '丢弃失败',
+      content: error?.message || '丢弃记录失败'
+    })
     ElMessage.error(error?.message || '丢弃记录失败')
   }
 }
@@ -2628,25 +3001,35 @@ function buildContextText() {
     `【书籍类型】${bookTypeText()}`,
     `【当前章节】${chapterName.value}`
   ]
-  if (effectiveOptions.selectedText && ctx.selectedText) parts.push(`【选中文本】\n${ctx.selectedText}`)
-  if (effectiveOptions.currentParagraph && ctx.currentParagraph) parts.push(`【当前段落】\n${ctx.currentParagraph}`)
+  if (effectiveOptions.selectedText && ctx.selectedText)
+    parts.push(`【选中文本】\n${ctx.selectedText}`)
+  if (effectiveOptions.currentParagraph && ctx.currentParagraph)
+    parts.push(`【当前段落】\n${ctx.currentParagraph}`)
   if (effectiveOptions.currentChapter) parts.push(`【当前章节正文】\n${ctx.content || ''}`)
-  if (effectiveOptions.previousSummary) parts.push(`【上一章摘要】\n${ctx.previousSummary || '暂无'}`)
+  if (effectiveOptions.previousSummary)
+    parts.push(`【上一章摘要】\n${ctx.previousSummary || '暂无'}`)
   if (effectiveOptions.outline) parts.push(`【本书大纲】\n${ctx.outline || '暂无'}`)
-  if (effectiveOptions.relatedCharacters) parts.push(`【相关角色】\n${ctx.relatedCharacters || '暂无'}`)
-  if (effectiveOptions.relatedWorldbuilding) parts.push(`【世界设定】\n${ctx.relatedWorldbuilding || '暂无'}`)
+  if (effectiveOptions.relatedCharacters)
+    parts.push(`【相关角色】\n${ctx.relatedCharacters || '暂无'}`)
+  if (effectiveOptions.relatedWorldbuilding)
+    parts.push(`【世界设定】\n${ctx.relatedWorldbuilding || '暂无'}`)
   if (effectiveOptions.assetWorkspace) parts.push(`【资产台资料】\n${ctx.assetWorkspace || '暂无'}`)
   if (joinedContextItems.value.length) {
-    parts.push(`【已加入资料】\n${joinedContextItems.value.map((item) => `${item.title}：${item.summary}`).join('\n')}`)
+    parts.push(
+      `【已加入资料】\n${joinedContextItems.value.map((item) => `${item.title}：${item.summary}`).join('\n')}`
+    )
   }
   return parts.join('\n\n')
 }
 
 function buildInstruction(instruction) {
   const systemRule = {
-    writing: '你是专业网文小说写作助手。你只服务当前章节写作。不要擅自修改用户正文，所有结果先返回结果卡，等待用户确认。',
-    reading_extract: '你是小说阅读分析助手。只基于当前下载书章节做局部分析，不把内容自动变成用户原创作品设定。',
-    reference_extract: '你是资料提炼助手。可以摘要资料、提取概念、转成灵感卡，不输出无来源的设定结论。'
+    writing:
+      '你是专业网文小说写作助手。你只服务当前章节写作。不要擅自修改用户正文，所有结果先返回结果卡，等待用户确认。',
+    reading_extract:
+      '你是小说阅读分析助手。只基于当前下载书章节做局部分析，不把内容自动变成用户原创作品设定。',
+    reference_extract:
+      '你是资料提炼助手。可以摘要资料、提取概念、转成灵感卡，不输出无来源的设定结论。'
   }[agentMode.value]
   return [systemRule, instruction].filter(Boolean).join('\n')
 }
@@ -2675,14 +3058,18 @@ function buildSuggestions() {
   }
   if (isDownloadedBook.value) {
     return pickCapabilitySuggestions(
-      (item) => ['拆书', '素材', '导入'].includes(item.category) || item.inputScopes.includes('current_chapter'),
+      (item) =>
+        ['拆书', '素材', '导入'].includes(item.category) ||
+        item.inputScopes.includes('current_chapter'),
       6,
       'current_chapter'
     )
   }
   if (isReferenceBook.value) {
     return pickCapabilitySuggestions(
-      (item) => ['导入', '素材', '拆书'].includes(item.category) || item.inputScopes.includes('reference_items'),
+      (item) =>
+        ['导入', '素材', '拆书'].includes(item.category) ||
+        item.inputScopes.includes('reference_items'),
       5,
       'current_chapter'
     )
@@ -2695,7 +3082,10 @@ function buildSuggestions() {
     )
   }
   return pickCapabilitySuggestions(
-    (item) => item.outputMode === 'chapter_write' || ['写作', '审稿', '设定'].includes(item.category) || item.inputScopes.includes('current_chapter'),
+    (item) =>
+      item.outputMode === 'chapter_write' ||
+      ['写作', '审稿', '设定'].includes(item.category) ||
+      item.inputScopes.includes('current_chapter'),
     6,
     'current_chapter'
   )
@@ -2721,7 +3111,8 @@ function pickCapabilitySuggestions(predicate, limit = 6, scope = '') {
 
 function preferredCapabilityScope(capability = {}) {
   const scopes = Array.isArray(capability.inputScopes) ? capability.inputScopes : []
-  if ((capability.requireSelection || scopes.includes('selected_text')) && selectionCount.value) return 'selected_text'
+  if ((capability.requireSelection || scopes.includes('selected_text')) && selectionCount.value)
+    return 'selected_text'
   if (scopes.includes('current_paragraph')) return 'current_paragraph'
   if (scopes.includes('current_book')) return 'current_book'
   return 'current_chapter'
@@ -2755,56 +3146,63 @@ function normalizeMessages(messages) {
   const seenFailures = new Set()
   const seenUserMessages = new Set()
   const clearedAt = Number(localStorage.getItem(timelineClearStorageKey()) || 0)
-  return (messages || []).filter((message) => {
-    if (!clearedAt) return true
-    const createdAt = new Date(message.createdAt || 0).getTime()
-    return Number.isFinite(createdAt) && createdAt > clearedAt
-  }).map((message) => {
-    const blockType = message.blocks?.[0]?.type
-    const blockContent = message.blocks?.[0]?.content || {}
-    const content = message.content || blockContent.text || ''
-    const title = message.title || blockContent.title || ''
-    const isLegacyPreview = message.role === 'assistant' && (title.includes('已生成预览') || blockType === 'preview')
-    const isLegacyFailure = message.role === 'assistant' && (title.includes('生成失败') || content.includes('生成失败') || content.includes('重试'))
-    const kind = blockType === 'error' || isLegacyFailure
-      ? 'error_card'
-      : blockType === 'result_card' || isLegacyPreview
-        ? 'result_card'
-        : message.role === 'tool'
-          ? 'tool_call'
-          : `${message.role}_message`
-    const failureKey = kind === 'error_card' ? `${message.title || '生成失败'}:${content}` : ''
-    if (failureKey && seenFailures.has(failureKey)) return null
-    if (failureKey) seenFailures.add(failureKey)
-    if (kind === 'result_card' && isUnusableEmptyResult(content)) return null
-    const userKey = kind === 'user_message' ? `${title}:${content}` : ''
-    if (userKey && seenUserMessages.has(userKey)) return null
-    if (userKey) seenUserMessages.add(userKey)
-    const generationId = message.generationId || blockContent.generationId || ''
-    const id = kind === 'result_card' ? generationId || message.id : message.id
-    return {
-      id,
-      generationId,
-      kind,
-      role: message.role,
-      title: isLegacyPreview ? title.replace('已生成预览', '').trim() || 'AI 结果' : title,
-      content: isLegacyFailure ? errorReasonFromText(content) : content,
-      createdAt: message.createdAt,
-      status: blockContent.status || 'generated',
-      type: blockContent.type || message.type || '',
-      skillId: blockContent.skillId || message.skillId || '',
-      skillKey: blockContent.skillKey || message.skillKey || '',
-      outputMode: blockContent.outputMode || message.outputMode || 'preview',
-      canWriteChapter: blockContent.canWriteChapter === true || message.canWriteChapter === true,
-      inputScopes: normalizeTextList(blockContent.inputScopes || message.inputScopes),
-      requiredContext: normalizeTextList(blockContent.requiredContext || message.requiredContext),
-      references: normalizeTextList(blockContent.references || message.references),
-      prompt: blockContent.prompt || message.prompt || '',
-      modelId: blockContent.modelId || message.modelId || '',
-      modelUsed: blockContent.modelUsed || message.modelUsed || '',
-      contextLabel: blockContent.contextLabel || message.contextLabel || contextSummaryText.value
-    }
-  }).filter(Boolean)
+  return (messages || [])
+    .filter((message) => {
+      if (!clearedAt) return true
+      const createdAt = new Date(message.createdAt || 0).getTime()
+      return Number.isFinite(createdAt) && createdAt > clearedAt
+    })
+    .map((message) => {
+      const blockType = message.blocks?.[0]?.type
+      const blockContent = message.blocks?.[0]?.content || {}
+      const content = message.content || blockContent.text || ''
+      const title = message.title || blockContent.title || ''
+      const isLegacyPreview =
+        message.role === 'assistant' && (title.includes('已生成预览') || blockType === 'preview')
+      const isLegacyFailure =
+        message.role === 'assistant' &&
+        (title.includes('生成失败') || content.includes('生成失败') || content.includes('重试'))
+      const kind =
+        blockType === 'error' || isLegacyFailure
+          ? 'error_card'
+          : blockType === 'result_card' || isLegacyPreview
+            ? 'result_card'
+            : message.role === 'tool'
+              ? 'tool_call'
+              : `${message.role}_message`
+      const failureKey = kind === 'error_card' ? `${message.title || '生成失败'}:${content}` : ''
+      if (failureKey && seenFailures.has(failureKey)) return null
+      if (failureKey) seenFailures.add(failureKey)
+      if (kind === 'result_card' && isUnusableEmptyResult(content)) return null
+      const userKey = kind === 'user_message' ? `${title}:${content}` : ''
+      if (userKey && seenUserMessages.has(userKey)) return null
+      if (userKey) seenUserMessages.add(userKey)
+      const generationId = message.generationId || blockContent.generationId || ''
+      const id = kind === 'result_card' ? generationId || message.id : message.id
+      return {
+        id,
+        generationId,
+        kind,
+        role: message.role,
+        title: isLegacyPreview ? title.replace('已生成预览', '').trim() || 'AI 结果' : title,
+        content: isLegacyFailure ? errorReasonFromText(content) : content,
+        createdAt: message.createdAt,
+        status: blockContent.status || 'generated',
+        type: blockContent.type || message.type || '',
+        skillId: blockContent.skillId || message.skillId || '',
+        skillKey: blockContent.skillKey || message.skillKey || '',
+        outputMode: blockContent.outputMode || message.outputMode || 'preview',
+        canWriteChapter: blockContent.canWriteChapter === true || message.canWriteChapter === true,
+        inputScopes: normalizeTextList(blockContent.inputScopes || message.inputScopes),
+        requiredContext: normalizeTextList(blockContent.requiredContext || message.requiredContext),
+        references: normalizeTextList(blockContent.references || message.references),
+        prompt: blockContent.prompt || message.prompt || '',
+        modelId: blockContent.modelId || message.modelId || '',
+        modelUsed: blockContent.modelUsed || message.modelUsed || '',
+        contextLabel: blockContent.contextLabel || message.contextLabel || contextSummaryText.value
+      }
+    })
+    .filter(Boolean)
 }
 
 function clearCurrentTimeline() {
@@ -2857,9 +3255,9 @@ function addOrUpdateTimelineMessage(message) {
 
 function updateTimelineMessage(id, patch) {
   if (!id) return
-  timelineMessages.value = timelineMessages.value.map((message) => (
+  timelineMessages.value = timelineMessages.value.map((message) =>
     message.id === id ? { ...message, ...patch } : message
-  ))
+  )
 }
 
 function upsertErrorCard(message) {
@@ -2930,7 +3328,10 @@ function toggleErrorDetail(message) {
 }
 
 async function copyErrorDetail() {
-  const text = lastError.value || timelineMessages.value.find((item) => item.kind === 'error_card')?.detail || '模型请求失败'
+  const text =
+    lastError.value ||
+    timelineMessages.value.find((item) => item.kind === 'error_card')?.detail ||
+    '模型请求失败'
   try {
     if (typeof navigator.clipboard?.writeText !== 'function') {
       throw new Error('当前环境不支持剪贴板写入')
@@ -2946,8 +3347,10 @@ function errorReasonText(error) {
   const text = String(error?.message || '')
   if (!selectedModelId.value) return '未绑定模型'
   if (text.includes('token') || text.includes('limit')) return 'token 超限'
-  if (text.includes('network') || text.includes('fetch') || text.includes('Failed to load')) return '网络错误'
-  if (text.includes('刷新页面') || text.includes('temporarily') || text.includes('unavailable')) return '当前模型不可用'
+  if (text.includes('network') || text.includes('fetch') || text.includes('Failed to load'))
+    return '网络错误'
+  if (text.includes('刷新页面') || text.includes('temporarily') || text.includes('unavailable'))
+    return '当前模型不可用'
   return '模型请求失败'
 }
 
@@ -2960,7 +3363,8 @@ function errorReasonFromText(text = '') {
   const value = String(text || '')
   if (value.includes('未绑定')) return '未绑定模型'
   if (value.includes('token') || value.includes('超限')) return 'token 超限'
-  if (value.includes('网络') || value.includes('fetch') || value.includes('Failed to load')) return '网络错误'
+  if (value.includes('网络') || value.includes('fetch') || value.includes('Failed to load'))
+    return '网络错误'
   return value.includes('模型') ? '模型请求失败' : value || '模型请求失败'
 }
 
@@ -2993,12 +3397,13 @@ async function loadHistory() {
   isLoadingQueueStatus.value = true
   recordsError.value = ''
   try {
-    const [historyResponse, taskResponse, queueResponse, queueJobsResponse] = await Promise.allSettled([
-      listAgentHistory(props.bookName),
-      listAgentTasks({ bookName: props.bookName, bookId: props.bookName }),
-      getAgentQueueStatus(),
-      listAgentQueueJobs({ limit: 12 })
-    ])
+    const [historyResponse, taskResponse, queueResponse, queueJobsResponse] =
+      await Promise.allSettled([
+        listAgentHistory(props.bookName),
+        listAgentTasks({ bookName: props.bookName, bookId: props.bookName }),
+        getAgentQueueStatus(),
+        listAgentQueueJobs({ limit: 12 })
+      ])
     if (historyResponse.status === 'fulfilled') {
       toolHistory.value = historyResponse.value.items
     } else {
@@ -3073,7 +3478,8 @@ async function inspectQueueJob(jobId) {
   try {
     const response = await getAgentQueueJob(jobId)
     if (!response?.job) {
-      queueJobError.value = '未在 Redis 队列中找到这个任务，可能已经完成、清理或使用了不同的队列配置。'
+      queueJobError.value =
+        '未在 Redis 队列中找到这个任务，可能已经完成、清理或使用了不同的队列配置。'
       return
     }
     selectedQueueJob.value = response.job
@@ -3104,7 +3510,9 @@ function handleAgentTaskProgress(task = {}) {
 
 function restoreHistoryCards() {
   if (timelineMessages.value.some((message) => message.kind === 'result_card')) return
-  const latest = toolHistory.value.find((item) => item?.status === 'generated' && item?.result && !isUnusableEmptyResult(item.result))
+  const latest = toolHistory.value.find(
+    (item) => item?.status === 'generated' && item?.result && !isUnusableEmptyResult(item.result)
+  )
   if (!latest) return
   const skillMeta = skillMetaFromSources(latest)
   addTimelineMessage({
@@ -3144,7 +3552,9 @@ function openModelBinding() {
 
 function promptMissingModel() {
   modelPanelVisible.value = true
-  const message = availableModels.value.length ? '请选择 Agent 模型后再发送' : '请先添加文本 AI Provider 和模型'
+  const message = availableModels.value.length
+    ? '请选择 Agent 模型后再发送'
+    : '请先添加文本 AI Provider 和模型'
   modelHintText.value = `${commandInput.value ? '已填入指令，' : ''}${message}`
   ElMessage.warning(message)
 }
@@ -3159,7 +3569,9 @@ function normalizeCapability(item = {}, category = '') {
   const hasSkillId = Object.prototype.hasOwnProperty.call(item, 'skillId')
   const label = String(item.label || key || '未命名能力').trim()
   const instruction = String(item.instruction || '').trim()
-  const type = String(item.type || inferGenerationType(`${label}\n${instruction}`) || key || 'custom').trim()
+  const type = String(
+    item.type || inferGenerationType(`${label}\n${instruction}`) || key || 'custom'
+  ).trim()
   const outputMode = String(item.outputMode || 'preview').trim() || 'preview'
   return {
     id: id || key || type,
@@ -3226,7 +3638,13 @@ function messageAvatar(message) {
 }
 
 function statusText(status) {
-  const map = { generated: '待处理', saved: '已保存', applied: '已应用', discarded: '已丢弃', failed: '失败' }
+  const map = {
+    generated: '待处理',
+    saved: '已保存',
+    applied: '已应用',
+    discarded: '已丢弃',
+    failed: '失败'
+  }
   return map[status] || '待处理'
 }
 
@@ -3346,7 +3764,9 @@ function linkedWriteTaskId(task = {}) {
 
 function isQueueTaskCancellable(task = {}) {
   if (!task.jobId) return false
-  return ['queued', 'waiting', 'delayed', 'paused', 'running', 'retrying'].includes(String(task.status || '').trim())
+  return ['queued', 'waiting', 'delayed', 'paused', 'running', 'retrying'].includes(
+    String(task.status || '').trim()
+  )
 }
 
 function agentTaskEventTitle(event = {}) {
@@ -3466,7 +3886,8 @@ function inferGenerationType(instruction = '') {
   if (instruction.includes('场景绘图')) return 'scene_prompt'
   if (instruction.includes('封面')) return 'cover_prompt'
   if (instruction.includes('地图')) return 'map_prompt'
-  if (instruction.includes('角色绘图') || instruction.includes('立绘')) return 'character_image_prompt'
+  if (instruction.includes('角色绘图') || instruction.includes('立绘'))
+    return 'character_image_prompt'
   if (instruction.includes('图片 Prompt')) return 'image_prompt'
   if (instruction.includes('人物关系')) return 'relationship'
   if (instruction.includes('人物设定')) return 'character_card'
@@ -3476,7 +3897,8 @@ function inferGenerationType(instruction = '') {
   if (instruction.includes('检查节奏') || instruction.includes('节奏检查')) return 'rhythm_check'
   if (instruction.includes('提炼写法') || instruction.includes('写作技法')) return 'extract_style'
   if (instruction.includes('转成灵感卡')) return 'idea_card'
-  if (instruction.includes('保存素材') || instruction.includes('保存到素材箱')) return 'material_card'
+  if (instruction.includes('保存素材') || instruction.includes('保存到素材箱'))
+    return 'material_card'
   if (instruction.includes('发送到资产台')) return 'asset_draft'
   if (instruction.includes('续写')) return 'continue'
   if (instruction.includes('润色')) return 'polish'
@@ -3495,17 +3917,38 @@ function inferCapabilityKey(instruction = '') {
 }
 
 function labelFromInstruction(instruction = '') {
-  return allCapabilities.value.find((item) => instruction.includes(item.label))?.label || instruction.slice(0, 18) || '自定义指令'
+  return (
+    allCapabilities.value.find((item) => instruction.includes(item.label))?.label ||
+    instruction.slice(0, 18) ||
+    '自定义指令'
+  )
 }
 
 function inferAssetType(message) {
   const text = `${message?.type || ''}${message?.title || ''}`
-  if (text.includes('golden') || text.includes('黄金三章') || text.includes('outline') || text.includes('大纲')) return 'plot_outline'
+  if (
+    text.includes('golden') ||
+    text.includes('黄金三章') ||
+    text.includes('outline') ||
+    text.includes('大纲')
+  )
+    return 'plot_outline'
   if (text.includes('timeline') || text.includes('时间线')) return 'timeline'
-  if (text.includes('image') || text.includes('cover') || text.includes('prompt') || text.includes('Prompt') || text.includes('绘图') || text.includes('封面') || text.includes('地图')) return 'image_prompt'
+  if (
+    text.includes('image') ||
+    text.includes('cover') ||
+    text.includes('prompt') ||
+    text.includes('Prompt') ||
+    text.includes('绘图') ||
+    text.includes('封面') ||
+    text.includes('地图')
+  )
+    return 'image_prompt'
   if (text.includes('relationship') || text.includes('人物关系')) return 'relationship'
-  if (text.includes('character') || text.includes('人物') || text.includes('角色')) return 'character_setting'
-  if (text.includes('world') || text.includes('世界') || text.includes('设定')) return 'world_setting'
+  if (text.includes('character') || text.includes('人物') || text.includes('角色'))
+    return 'character_setting'
+  if (text.includes('world') || text.includes('世界') || text.includes('设定'))
+    return 'world_setting'
   if (text.includes('foreshadowing') || text.includes('伏笔')) return 'plot_fragment'
   return isDownloadedBook.value ? 'book_analysis' : 'plot_fragment'
 }
@@ -3551,7 +3994,9 @@ function canRunWithoutChapterText(task = {}) {
   const key = String(task.key || task.type || '')
   const instruction = String(task.instruction || '')
   const scopes = Array.isArray(task.inputScopes) ? task.inputScopes : []
-  const needsLocalText = scopes.some((scope) => ['selected_text', 'current_paragraph', 'current_chapter'].includes(scope))
+  const needsLocalText = scopes.some((scope) =>
+    ['selected_text', 'current_paragraph', 'current_chapter'].includes(scope)
+  )
   if (scopes.length && !needsLocalText) return true
   return [
     'golden',
@@ -3639,7 +4084,13 @@ function isUnusableEmptyResult(text = '') {
 }
 
 function isPromptLikeTask(type = '') {
-  return ['image_prompt', 'character_image_prompt', 'scene_prompt', 'cover_prompt', 'map_prompt'].includes(type)
+  return [
+    'image_prompt',
+    'character_image_prompt',
+    'scene_prompt',
+    'cover_prompt',
+    'map_prompt'
+  ].includes(type)
 }
 
 function isClearlyWrongTaskResult(type = '', text = '') {
@@ -3672,7 +4123,13 @@ function applyPrimaryResultAction(message = {}) {
 function normalizeBookKind(meta = {}) {
   if (meta?.type === 'reference' || meta?.sourceType === 'reference') return 'reference'
   if (meta?.type === 'imported' || meta?.sourceType === 'imported') return 'reference'
-  if (meta?.type === 'downloaded' || meta?.bookRole === 'downloaded' || meta?.downloaded === true || meta?.sourceType === 'downloadedNovel' || meta?.importedFrom === 'novelDownload') {
+  if (
+    meta?.type === 'downloaded' ||
+    meta?.bookRole === 'downloaded' ||
+    meta?.downloaded === true ||
+    meta?.sourceType === 'downloadedNovel' ||
+    meta?.importedFrom === 'novelDownload'
+  ) {
     return 'downloaded'
   }
   return 'original'

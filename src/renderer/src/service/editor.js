@@ -26,7 +26,11 @@ function requireSuccessResult(response, label) {
 
 function requireObjectResult(response, fieldName, label) {
   const result = requireSuccessResult(response, label)
-  if (!result?.[fieldName] || typeof result[fieldName] !== 'object' || Array.isArray(result[fieldName])) {
+  if (
+    !result?.[fieldName] ||
+    typeof result[fieldName] !== 'object' ||
+    Array.isArray(result[fieldName])
+  ) {
     throw new Error(`${label}失败：接口返回格式不正确`)
   }
   return result
@@ -112,14 +116,17 @@ function requireAgentGenerationResult(response, label) {
   if (!Array.isArray(generation.agentSteps) || generation.agentSteps.length === 0) {
     throw new Error(`${label}失败：接口没有返回真实执行步骤`)
   }
-  if (!generation.agentSteps.every((step) =>
-    step &&
-    typeof step === 'object' &&
-    typeof step.stage === 'string' &&
-    step.stage.trim() &&
-    typeof step.status === 'string' &&
-    step.status.trim()
-  )) {
+  if (
+    !generation.agentSteps.every(
+      (step) =>
+        step &&
+        typeof step === 'object' &&
+        typeof step.stage === 'string' &&
+        step.stage.trim() &&
+        typeof step.status === 'string' &&
+        step.status.trim()
+    )
+  ) {
     throw new Error(`${label}失败：执行步骤格式不正确`)
   }
   return result
@@ -156,13 +163,19 @@ function requireWritingSkillRunResult(response) {
   const result = requireSuccessResult(response, '执行 writing skill')
   if (
     result.mode === 'preview' &&
-    (!result.skill || !isWritingSkillRow(result.skill) || !result.payload || typeof result.payload !== 'object')
+    (!result.skill ||
+      !isWritingSkillRow(result.skill) ||
+      !result.payload ||
+      typeof result.payload !== 'object')
   ) {
     throw new Error('执行 writing skill 失败：接口返回格式不正确')
   }
   if (
     result.mode === 'chapter_write' &&
-    (!result.skill || !isWritingSkillRow(result.skill) || typeof result.skillId !== 'string' || !result.skillId.trim())
+    (!result.skill ||
+      !isWritingSkillRow(result.skill) ||
+      typeof result.skillId !== 'string' ||
+      !result.skillId.trim())
   ) {
     throw new Error('执行 writing skill 失败：接口返回写章结果格式不正确')
   }
@@ -215,8 +228,7 @@ function normalizeChapterSettings(rawSettings = {}) {
   return {
     chapterFormat: rawSettings.chapterFormat === 'hanzi' ? 'hanzi' : 'number',
     suffixType: rawSettings.suffixType || '章',
-    targetWords:
-      Number.isFinite(targetWordsValue) && targetWordsValue > 0 ? targetWordsValue : 2000
+    targetWords: Number.isFinite(targetWordsValue) && targetWordsValue > 0 ? targetWordsValue : 2000
   }
 }
 
@@ -516,12 +528,10 @@ function requireMapWriteResult(response, expected = {}) {
   }
   if (
     hasDataDocument &&
-    (
-      result.dataDatabaseSync?.success !== true ||
+    (result.dataDatabaseSync?.success !== true ||
       result.dataDatabaseSync.documentType !== `map_data:${mapName}` ||
       typeof result.dataDatabaseSync.documentPath !== 'string' ||
-      !result.dataDatabaseSync.documentPath.trim()
-    )
+      !result.dataDatabaseSync.documentPath.trim())
   ) {
     throw new Error(`${label}失败：数据库没有记录地图画板数据`)
   }
@@ -879,10 +889,7 @@ function requireOutlineChapterUpsertResult(response, expected = {}) {
   if (result.databaseSync?.success !== true) {
     throw new Error('写入章节失败：数据库未记录章节')
   }
-  if (
-    result.databaseSync.chapterName &&
-    result.databaseSync.chapterName !== expectedChapterName
-  ) {
+  if (result.databaseSync.chapterName && result.databaseSync.chapterName !== expectedChapterName) {
     throw new Error('写入章节失败：数据库记录的章节不匹配')
   }
   return result
@@ -915,7 +922,9 @@ function requireSavedChapterDocumentResult(response, expected = {}) {
     result.volumeName !== expectedVolumeName ||
     chapterName !== expectedChapterName ||
     typeof result.filePath !== 'string' ||
-    !normalizeReadPath(result.filePath).includes(`/${expectedBookName}/正文/${expectedVolumeName}/`) ||
+    !normalizeReadPath(result.filePath).includes(
+      `/${expectedBookName}/正文/${expectedVolumeName}/`
+    ) ||
     !Number.isFinite(Number(result.wordCount)) ||
     Number(result.wordCount) !== expectedContent.replace(/[\s\n\r\t]/g, '').length
   ) {
@@ -924,10 +933,7 @@ function requireSavedChapterDocumentResult(response, expected = {}) {
   if (result.databaseSync?.success !== true) {
     throw new Error('保存章节失败：数据库未记录章节')
   }
-  if (
-    result.databaseSync.chapterName &&
-    result.databaseSync.chapterName !== expectedChapterName
-  ) {
+  if (result.databaseSync.chapterName && result.databaseSync.chapterName !== expectedChapterName) {
     throw new Error('保存章节失败：数据库记录的章节不匹配')
   }
   return { ...result, chapterName }
@@ -1008,7 +1014,11 @@ function normalizeBannedWords(words) {
 
 function requireBannedWordsResult(response, expected = {}) {
   const result = requireSuccessResult(response, expected.label || '读取禁词')
-  const words = Array.isArray(result.data) ? result.data : Array.isArray(result.words) ? result.words : null
+  const words = Array.isArray(result.data)
+    ? result.data
+    : Array.isArray(result.words)
+      ? result.words
+      : null
   if (!words) {
     throw new Error(`${expected.label || '读取禁词'}失败：接口返回格式不正确`)
   }
@@ -1103,12 +1113,17 @@ function requireReformatChapterNumbersResult(result, expected = {}) {
 function normalizeProvider(provider = {}) {
   const providerId = provider.id || provider.provider || provider.name || 'custom_text'
   const providerName = provider.provider || provider.name || provider.apiType || 'custom'
-  const providerDisplayName = provider.displayName || provider.name || providerName || '自定义供应商'
-  const models = Array.from(new Set([
-    ...(Array.isArray(provider.models) ? provider.models : []),
-    provider.model,
-    provider.modelName
-  ].filter(Boolean)))
+  const providerDisplayName =
+    provider.displayName || provider.name || providerName || '自定义供应商'
+  const models = Array.from(
+    new Set(
+      [
+        ...(Array.isArray(provider.models) ? provider.models : []),
+        provider.model,
+        provider.modelName
+      ].filter(Boolean)
+    )
+  )
   const names = models.length ? models : ['']
   return names.map((modelName) => ({
     id: `${providerId}::${modelName || 'default'}`,
@@ -1241,10 +1256,7 @@ export async function addBannedWord(bookName, word) {
   if (!targetWord) {
     throw new Error('添加禁词失败：缺少禁词')
   }
-  const response = await requireElectronApi('addBannedWord', '禁词接口')(
-    targetBookName,
-    targetWord
-  )
+  const response = await requireElectronApi('addBannedWord', '禁词接口')(targetBookName, targetWord)
   return requireBannedWordsResult(response, {
     bookName: targetBookName,
     word: targetWord,
@@ -1310,7 +1322,10 @@ export async function checkChapterExistsForOutline(payload = {}) {
   if (!targetChapterName) {
     throw new Error('检查章节是否存在失败：缺少章节名')
   }
-  const response = await requireElectronApi('checkChapterExists', '章节检查接口')({
+  const response = await requireElectronApi(
+    'checkChapterExists',
+    '章节检查接口'
+  )({
     bookName: targetBookName,
     volumeName: targetVolumeName,
     chapterName: targetChapterName
@@ -1339,7 +1354,10 @@ export async function upsertOutlineChapter(payload = {}) {
   if (!content) {
     throw new Error('写入章节失败：正文为空')
   }
-  const response = await requireElectronApi('upsertChapter', '章节写入接口')({
+  const response = await requireElectronApi(
+    'upsertChapter',
+    '章节写入接口'
+  )({
     bookName: targetBookName,
     volumeName: targetVolumeName,
     chapterName: targetChapterName,
@@ -1368,7 +1386,10 @@ export async function upsertChapterDocument(payload = {}) {
   if (!targetChapterName) {
     throw new Error('写入章节失败：缺少章节名')
   }
-  const response = await requireElectronApi('upsertChapter', '章节写入接口')({
+  const response = await requireElectronApi(
+    'upsertChapter',
+    '章节写入接口'
+  )({
     bookName: targetBookName,
     volumeName: targetVolumeName,
     chapterName: targetChapterName,
@@ -1418,7 +1439,10 @@ export async function saveChapterDocument(payload = {}) {
   if (!targetChapterName) {
     throw new Error('保存章节失败：缺少章节名')
   }
-  const response = await requireElectronApi('saveChapter', '章节写入接口')({
+  const response = await requireElectronApi(
+    'saveChapter',
+    '章节写入接口'
+  )({
     bookName: targetBookName,
     volumeName: targetVolumeName,
     chapterName: targetChapterName,
@@ -1465,9 +1489,10 @@ export async function readOutlineAiSessionsDocument(bookName) {
   if (!targetBookName) {
     throw new Error('读取 AI 大纲会话失败：缺少作品名')
   }
-  const response = await requireElectronApi('readOutlineAiSessions', 'AI 大纲会话读取接口')(
-    targetBookName
-  )
+  const response = await requireElectronApi(
+    'readOutlineAiSessions',
+    'AI 大纲会话读取接口'
+  )(targetBookName)
   return requireOutlineAiSessionsReadResult(response)
 }
 
@@ -1614,7 +1639,10 @@ export async function writeNoteDocument(payload = {}) {
   if (!targetNoteName) {
     throw new Error('写入笔记失败：缺少笔记名称')
   }
-  const response = await requireElectronApi('editNote', '笔记写入接口')({
+  const response = await requireElectronApi(
+    'editNote',
+    '笔记写入接口'
+  )({
     bookName: targetBookName,
     notebookName: targetNotebookName,
     noteName: targetNoteName,
@@ -1681,10 +1709,7 @@ export async function writeTimelineDocument(bookName, rows = []) {
   if (!Array.isArray(rows)) {
     throw new Error('保存时间线失败：时间线内容格式不正确')
   }
-  const response = await requireElectronApi('writeTimeline', '时间线写入接口')(
-    targetBookName,
-    rows
-  )
+  const response = await requireElectronApi('writeTimeline', '时间线写入接口')(targetBookName, rows)
   return requireTimelineDocumentWriteResult(response, rows)
 }
 
@@ -1693,9 +1718,7 @@ export async function readSequenceChartsDocument(bookName) {
   if (!targetBookName) {
     throw new Error('读取事序图失败：缺少作品名')
   }
-  const response = await requireElectronApi('readSequenceCharts', '事序图读取接口')(
-    targetBookName
-  )
+  const response = await requireElectronApi('readSequenceCharts', '事序图读取接口')(targetBookName)
   return requireSequenceChartsRowsResult(response)
 }
 
@@ -1765,7 +1788,10 @@ export async function createMapDocument(payload = {}) {
   if (!imageData) {
     throw new Error('创建地图失败：缺少图片数据')
   }
-  const response = await requireElectronApi('createMap', '地图创建接口')({
+  const response = await requireElectronApi(
+    'createMap',
+    '地图创建接口'
+  )({
     bookName: targetBookName,
     mapName: targetMapName,
     description: String(payload.description || ''),
@@ -1790,7 +1816,10 @@ export async function updateMapDocument(payload = {}) {
   if (!imageData) {
     throw new Error('保存地图失败：缺少图片数据')
   }
-  const response = await requireElectronApi('updateMap', '地图写入接口')({
+  const response = await requireElectronApi(
+    'updateMap',
+    '地图写入接口'
+  )({
     bookName: targetBookName,
     mapName: targetMapName,
     imageData,
@@ -1812,7 +1841,10 @@ export async function readMapDataDocument(bookName, mapName) {
   if (!targetMapName) {
     throw new Error('读取地图画板数据失败：缺少地图名')
   }
-  const response = await requireElectronApi('loadMapData', '地图画板读取接口')({
+  const response = await requireElectronApi(
+    'loadMapData',
+    '地图画板读取接口'
+  )({
     bookName: targetBookName,
     mapName: targetMapName
   })
@@ -1828,7 +1860,10 @@ export async function deleteMapDocument(bookName, mapName) {
   if (!targetMapName) {
     throw new Error('删除地图失败：缺少地图名')
   }
-  const response = await requireElectronApi('deleteMap', '地图删除接口')({
+  const response = await requireElectronApi(
+    'deleteMap',
+    '地图删除接口'
+  )({
     bookName: targetBookName,
     mapName: targetMapName
   })
@@ -1874,7 +1909,10 @@ export async function createRelationshipGraph(bookName, graphName, graphData = {
   if (!graphData || typeof graphData !== 'object' || Array.isArray(graphData)) {
     throw new Error('创建关系图失败：图谱内容格式不正确')
   }
-  const response = await requireElectronApi('createRelationship', '关系图创建接口')({
+  const response = await requireElectronApi(
+    'createRelationship',
+    '关系图创建接口'
+  )({
     bookName: targetBookName,
     relationshipName: targetGraphName,
     relationshipData: graphData
@@ -1928,7 +1966,10 @@ export async function writeRelationshipGraphThumbnail(bookName, graphName, thumb
   if (typeof thumbnailData !== 'string' || !thumbnailData.trim()) {
     throw new Error('保存关系图缩略图失败：缺少图片数据')
   }
-  const response = await requireElectronApi('updateRelationshipThumbnail', '关系图缩略图写入接口')({
+  const response = await requireElectronApi(
+    'updateRelationshipThumbnail',
+    '关系图缩略图写入接口'
+  )({
     bookName: targetBookName,
     relationshipName: targetGraphName,
     thumbnailData
@@ -1950,7 +1991,10 @@ export async function readRelationshipGraphImage(bookName, imageName) {
   if (!targetImageName) {
     throw new Error('读取关系图缩略图失败：缺少图片名')
   }
-  const response = await requireElectronApi('readRelationshipImage', '关系图缩略图读取接口')({
+  const response = await requireElectronApi(
+    'readRelationshipImage',
+    '关系图缩略图读取接口'
+  )({
     bookName: targetBookName,
     imageName: targetImageName
   })
@@ -1966,7 +2010,10 @@ export async function deleteRelationshipGraph(bookName, graphName) {
   if (!targetGraphName) {
     throw new Error('删除关系图失败：缺少图谱名')
   }
-  const response = await requireElectronApi('deleteRelationship', '关系图删除接口')({
+  const response = await requireElectronApi(
+    'deleteRelationship',
+    '关系图删除接口'
+  )({
     bookName: targetBookName,
     relationshipName: targetGraphName
   })
@@ -2015,7 +2062,10 @@ export async function createOrganizationGraph(bookName, graphName, graphData = {
   if (!graphData || typeof graphData !== 'object' || Array.isArray(graphData)) {
     throw new Error('创建势力图失败：图谱内容格式不正确')
   }
-  const response = await requireElectronApi('createOrganization', '势力图创建接口')({
+  const response = await requireElectronApi(
+    'createOrganization',
+    '势力图创建接口'
+  )({
     bookName: targetBookName,
     organizationName: targetGraphName,
     organizationData: graphData
@@ -2069,7 +2119,10 @@ export async function writeOrganizationGraphThumbnail(bookName, graphName, thumb
   if (typeof thumbnailData !== 'string' || !thumbnailData.trim()) {
     throw new Error('保存势力图缩略图失败：缺少图片数据')
   }
-  const response = await requireElectronApi('updateOrganizationThumbnail', '势力图缩略图写入接口')({
+  const response = await requireElectronApi(
+    'updateOrganizationThumbnail',
+    '势力图缩略图写入接口'
+  )({
     bookName: targetBookName,
     organizationId: targetGraphName,
     thumbnailData
@@ -2091,7 +2144,10 @@ export async function readOrganizationGraphImage(bookName, imageName) {
   if (!targetImageName) {
     throw new Error('读取势力图缩略图失败：缺少图片名')
   }
-  const response = await requireElectronApi('readOrganizationImage', '势力图缩略图读取接口')({
+  const response = await requireElectronApi(
+    'readOrganizationImage',
+    '势力图缩略图读取接口'
+  )({
     bookName: targetBookName,
     imageName: targetImageName
   })
@@ -2107,7 +2163,10 @@ export async function deleteOrganizationGraph(bookName, graphName) {
   if (!targetGraphName) {
     throw new Error('删除势力图失败：缺少图谱名')
   }
-  const response = await requireElectronApi('deleteOrganization', '势力图删除接口')({
+  const response = await requireElectronApi(
+    'deleteOrganization',
+    '势力图删除接口'
+  )({
     bookName: targetBookName,
     organizationName: targetGraphName
   })
@@ -2129,7 +2188,10 @@ export async function exportOrganizationGraphToNote(payload = {}) {
   if (!targetGraphName) {
     throw new Error('导出势力图到笔记失败：缺少图谱名')
   }
-  const response = await requireElectronApi('exportOrganizationToNote', '势力图导出笔记接口')({
+  const response = await requireElectronApi(
+    'exportOrganizationToNote',
+    '势力图导出笔记接口'
+  )({
     bookName: targetBookName,
     organizationName: targetGraphName,
     content
@@ -2145,9 +2207,10 @@ export async function readEntityProfilesDocument(bookName) {
   if (!targetBookName) {
     throw new Error('读取扩展档案失败：缺少作品名')
   }
-  const response = await requireElectronApi('readEntityProfiles', '扩展档案读取接口')(
-    targetBookName
-  )
+  const response = await requireElectronApi(
+    'readEntityProfiles',
+    '扩展档案读取接口'
+  )(targetBookName)
   return requireEntityProfilesResult(response)
 }
 
@@ -2183,10 +2246,7 @@ export async function writeDictionaryDocument(bookName, rows = []) {
   if (!Array.isArray(rows)) {
     throw new Error('保存词典失败：词条内容格式不正确')
   }
-  const response = await requireElectronApi('writeDictionary', '词典写入接口')(
-    targetBookName,
-    rows
-  )
+  const response = await requireElectronApi('writeDictionary', '词典写入接口')(targetBookName, rows)
   return requireDictionaryDocumentWriteResult(response, rows)
 }
 
@@ -2219,7 +2279,10 @@ export async function writeExportFile(filePath, content) {
   if (!text.trim()) {
     throw new Error('写入导出文件失败：导出内容为空')
   }
-  const response = await requireElectronApi('writeExportFile', '导出文件写入接口')({
+  const response = await requireElectronApi(
+    'writeExportFile',
+    '导出文件写入接口'
+  )({
     filePath: targetFilePath,
     content: text
   })
@@ -2289,7 +2352,10 @@ export async function openEditorSession(payload = {}) {
 }
 
 export async function updateEditorSessionContext(sessionId, contextOptions = {}) {
-  const response = await requireElectronApi('updateEditorSessionContext', '编辑器会话接口')({
+  const response = await requireElectronApi(
+    'updateEditorSessionContext',
+    '编辑器会话接口'
+  )({
     sessionId,
     contextOptions
   })
@@ -2302,7 +2368,10 @@ export async function listAgentMessages(sessionId) {
 }
 
 export async function appendAgentMessage(sessionId, message) {
-  const response = await requireElectronApi('appendEditorMessage', '编辑器消息接口')({
+  const response = await requireElectronApi(
+    'appendEditorMessage',
+    '编辑器消息接口'
+  )({
     sessionId,
     message
   })
@@ -2370,7 +2439,10 @@ export async function enqueueAgentWriteTask(payload = {}) {
 }
 
 export async function enqueueAgentRepairTask(payload = {}) {
-  const enqueueEditorAgentRepairTask = getElectronApi('enqueueEditorAgentRepairTask', '返修队列后端')
+  const enqueueEditorAgentRepairTask = getElectronApi(
+    'enqueueEditorAgentRepairTask',
+    '返修队列后端'
+  )
   if (!enqueueEditorAgentRepairTask) {
     throw new Error('当前环境没有可用的返修队列后端')
   }
@@ -2436,7 +2508,10 @@ export async function cancelAgentQueueJob(payload = {}) {
   }
   const response = await cancelEditorAgentQueueJob(payload)
   if (response?.success === true) {
-    if (!response?.jobId || (response.cancelled !== true && response.cancellationRequested !== true)) {
+    if (
+      !response?.jobId ||
+      (response.cancelled !== true && response.cancellationRequested !== true)
+    ) {
       throw new Error('停止写作队列任务失败：接口返回格式不正确')
     }
     if (String(response.jobId) !== String(payload.jobId || '')) {
@@ -2468,7 +2543,10 @@ export async function listConsistencyChecks(payload = {}) {
 export async function markGenerationApplied(generationId, applyAction, status = '') {
   const id = String(generationId || '').trim()
   if (!id) return { success: false, message: '缺少生成记录 ID' }
-  const response = await requireElectronApi('markEditorGenerationApplied', '生成记录接口')({
+  const response = await requireElectronApi(
+    'markEditorGenerationApplied',
+    '生成记录接口'
+  )({
     generationId: id,
     applyAction,
     status
@@ -2491,7 +2569,10 @@ export async function listAgentTasks(payload = {}) {
 }
 
 export async function getAgentProgressServer() {
-  const getEditorAgentProgressServer = getElectronApi('getEditorAgentProgressServer', 'Agent 进度服务状态')
+  const getEditorAgentProgressServer = getElectronApi(
+    'getEditorAgentProgressServer',
+    'Agent 进度服务状态'
+  )
   if (getEditorAgentProgressServer) {
     return requireAgentProgressServerResult(await getEditorAgentProgressServer())
   }
@@ -2501,6 +2582,21 @@ export async function getAgentProgressServer() {
 export async function createEditorSnapshot(payload = {}) {
   const response = await requireElectronApi('createEditorSnapshot', '编辑器快照接口')(payload)
   return requireObjectResult(response, 'snapshot', '保存编辑器快照')
+}
+
+export async function listEditorSnapshots(filter = {}) {
+  const response = await requireElectronApi('listEditorSnapshots', '编辑器快照接口')(filter)
+  return requireArrayResult(response, 'snapshots', '读取编辑器快照')
+}
+
+export async function deleteEditorSnapshot(snapshotId) {
+  const response = await requireElectronApi('deleteEditorSnapshot', '编辑器快照接口')(
+    snapshotId
+  )
+  if (response?.success !== true || response.snapshotId !== snapshotId) {
+    throw new Error(response?.message || '删除编辑器快照失败')
+  }
+  return response
 }
 
 export async function saveEditorMaterial(payload = {}) {

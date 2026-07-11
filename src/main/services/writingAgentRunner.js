@@ -117,7 +117,9 @@ async function runChapterWriteSkill(skill, input = {}, adapters = {}) {
 
 export async function runWritingSkill(input = {}, adapters = {}) {
   const skill = resolveSkill(input)
-  const requestedMode = normalizeOutputMode(input.outputMode || input.executionMode || skill.outputMode)
+  const requestedMode = normalizeOutputMode(
+    input.outputMode || input.executionMode || skill.outputMode
+  )
 
   if (requestedMode === 'preview' || skill.outputMode !== 'chapter_write') {
     return previewResult(skill, input)

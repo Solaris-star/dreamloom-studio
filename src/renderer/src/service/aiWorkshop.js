@@ -58,7 +58,11 @@ function requirePromptPresetResult(result, fallback = '保存 Prompt 模板失�
   return ok
 }
 
-function requirePromptPresetDeleteResult(result, expectedId = '', fallback = '删除 Prompt 模板失败') {
+function requirePromptPresetDeleteResult(
+  result,
+  expectedId = '',
+  fallback = '删除 Prompt 模板失败'
+) {
   const ok = requireAiWorkshopSuccess(result, fallback)
   const presetId = String(ok.presetId || '').trim()
   if (!presetId || (expectedId && presetId !== String(expectedId))) {
@@ -115,7 +119,10 @@ export async function createPromptPreset(payload = {}) {
 }
 
 export async function updatePromptPreset(payload = {}) {
-  return requirePromptPresetResult(await ensureElectronApi('updatePromptPreset')(payload), '更新 Prompt 模板失败')
+  return requirePromptPresetResult(
+    await ensureElectronApi('updatePromptPreset')(payload),
+    '更新 Prompt 模板失败'
+  )
 }
 
 export async function deletePromptPreset(payload = {}) {

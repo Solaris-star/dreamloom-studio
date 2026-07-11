@@ -26,22 +26,24 @@ const availableTypes = [
 ]
 
 {
-  const fake = fakeTextProvider(JSON.stringify({
-    plans: [
-      {
-        id: 'plan-a',
-        title: '青云册',
-        type: 'dushi',
-        intro: '年轻主角在城市里寻找真相，并用自己的方式改变处境。',
-        protagonist: '林知远',
-        coreHook: '普通人发现旧案新证据',
-        worldRules: ['现实都市', '线索来自公开资料'],
-        conflicts: ['主角追查真相', '对手试图掩盖证据'],
-        settings: ['旧档案室', '匿名来信'],
-        firstChapters: ['收到来信', '发现矛盾', '第一次交锋']
-      }
-    ]
-  }))
+  const fake = fakeTextProvider(
+    JSON.stringify({
+      plans: [
+        {
+          id: 'plan-a',
+          title: '青云册',
+          type: 'dushi',
+          intro: '年轻主角在城市里寻找真相，并用自己的方式改变处境。',
+          protagonist: '林知远',
+          coreHook: '普通人发现旧案新证据',
+          worldRules: ['现实都市', '线索来自公开资料'],
+          conflicts: ['主角追查真相', '对手试图掩盖证据'],
+          settings: ['旧档案室', '匿名来信'],
+          firstChapters: ['收到来信', '发现矛盾', '第一次交锋']
+        }
+      ]
+    })
+  )
   const result = await bookIdeaAiService.generateBookIdeas(
     {
       idea: '都市悬疑新书',
@@ -63,7 +65,9 @@ const availableTypes = [
 }
 
 {
-  const fake = fakeTextProvider('```json\n{"plans":[{"title":"雪夜灯","type":"unknown","intro":"雪夜里，主角发现灯塔传来的求救信号。"}]}\n```')
+  const fake = fakeTextProvider(
+    '```json\n{"plans":[{"title":"雪夜灯","type":"unknown","intro":"雪夜里，主角发现灯塔传来的求救信号。"}]}\n```'
+  )
   const result = await bookIdeaAiService.generateBookIdeas(
     { idea: '灯塔求救', availableTypes, model: 'fenced-model' },
     fake.provider

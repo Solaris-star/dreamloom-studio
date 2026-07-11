@@ -80,7 +80,7 @@ function createSseStream(response, abortMeta, parseData) {
       let model = ''
       let providerId = ''
 
-      const handleLine = async function * (rawLine) {
+      const handleLine = async function* (rawLine) {
         const line = String(rawLine || '').trim()
         if (!line || !line.startsWith('data:')) return
         const data = line.slice(5).trim()
@@ -150,7 +150,7 @@ export class CustomTextApiService {
 
   initConfig(config) {
     if (config.apiKeys && Array.isArray(config.apiKeys)) {
-      this.apiKeys = config.apiKeys.filter(k => k && String(k).trim())
+      this.apiKeys = config.apiKeys.filter((k) => k && String(k).trim())
     } else if (config.apiKey) {
       this.apiKeys = [config.apiKey]
     } else {
@@ -189,8 +189,17 @@ export class CustomTextApiService {
         if (error?.cancelled || error?.message === CUSTOM_TEXT_REQUEST_STOPPED) throw error
         lastError = error
         const msg = error.message || ''
-        if (msg.includes('401') || msg.includes('403') || msg.includes('Unauthorized') || msg.includes('Invalid') || msg.includes('invalid') || msg.includes('Key')) {
-          console.log(`[CustomTextApi] Key ${this._currentKeyIndex + 1}/${this.apiKeys.length} 失败: ${msg}，尝试下一个`)
+        if (
+          msg.includes('401') ||
+          msg.includes('403') ||
+          msg.includes('Unauthorized') ||
+          msg.includes('Invalid') ||
+          msg.includes('invalid') ||
+          msg.includes('Key')
+        ) {
+          console.log(
+            `[CustomTextApi] Key ${this._currentKeyIndex + 1}/${this.apiKeys.length} 失败: ${msg}，尝试下一个`
+          )
           if (!this._advanceKey()) break
           continue
         }
@@ -224,11 +233,11 @@ export class CustomTextApiService {
       const data = await response.json()
       let models = []
       if (data.data && Array.isArray(data.data)) {
-        models = data.data.map(m => m.id).filter(Boolean)
+        models = data.data.map((m) => m.id).filter(Boolean)
       } else if (Array.isArray(data)) {
-        models = data.map(m => typeof m === 'string' ? m : m.id).filter(Boolean)
+        models = data.map((m) => (typeof m === 'string' ? m : m.id)).filter(Boolean)
       } else if (data.models && Array.isArray(data.models)) {
-        models = data.models.map(m => typeof m === 'string' ? m : m.id).filter(Boolean)
+        models = data.models.map((m) => (typeof m === 'string' ? m : m.id)).filter(Boolean)
       }
       return { success: true, models }
     } catch (error) {
@@ -251,7 +260,15 @@ export class CustomTextApiService {
       if (this.apiType === 'openai') {
         return this._callOpenAIApi(key, messages, model, temperature, max_tokens, timeoutMs, signal)
       } else {
-        return this._callAnthropicApi(key, messages, model, temperature, max_tokens, timeoutMs, signal)
+        return this._callAnthropicApi(
+          key,
+          messages,
+          model,
+          temperature,
+          max_tokens,
+          timeoutMs,
+          signal
+        )
       }
     })
   }
@@ -268,13 +285,37 @@ export class CustomTextApiService {
       } = options
       if (!model) throw new Error('请先选择或输入模型名称')
       if (this.apiType === 'openai') {
-        return this._streamOpenAIApi(key, messages, model, temperature, max_tokens, timeoutMs, signal)
+        return this._streamOpenAIApi(
+          key,
+          messages,
+          model,
+          temperature,
+          max_tokens,
+          timeoutMs,
+          signal
+        )
       }
-      return this._streamAnthropicApi(key, messages, model, temperature, max_tokens, timeoutMs, signal)
+      return this._streamAnthropicApi(
+        key,
+        messages,
+        model,
+        temperature,
+        max_tokens,
+        timeoutMs,
+        signal
+      )
     })
   }
 
-  async _callOpenAIApi(key, messages, model, temperature, max_tokens, timeoutMs = 180000, signal = null) {
+  async _callOpenAIApi(
+    key,
+    messages,
+    model,
+    temperature,
+    max_tokens,
+    timeoutMs = 180000,
+    signal = null
+  ) {
     const url = `${this.baseUrl.replace(/\/$/, '')}/v1/chat/completions`
     const abortMeta = createRequestAbortController(timeoutMs, signal)
     let response
@@ -297,7 +338,9 @@ export class CustomTextApiService {
     }
     if (!response.ok) {
       try {
-        const error = await response.json().catch(() => ({ error: { message: response.statusText } }))
+        const error = await response
+          .json()
+          .catch(() => ({ error: { message: response.statusText } }))
         const msg = error.error?.message || `API 请求失败: ${response.status}`
         if (response.status === 401 || response.status === 403) throw new Error(msg)
         throw new Error(msg)
@@ -321,7 +364,15 @@ export class CustomTextApiService {
     }
   }
 
-  async _streamOpenAIApi(key, messages, model, temperature, max_tokens, timeoutMs = 180000, signal = null) {
+  async _streamOpenAIApi(
+    key,
+    messages,
+    model,
+    temperature,
+    max_tokens,
+    timeoutMs = 180000,
+    signal = null
+  ) {
     const url = `${this.baseUrl.replace(/\/$/, '')}/v1/chat/completions`
     const abortMeta = createRequestAbortController(timeoutMs, signal)
     let response
@@ -363,9 +414,17 @@ export class CustomTextApiService {
     })
   }
 
-  async _callAnthropicApi(key, messages, model, temperature, max_tokens, timeoutMs = 180000, signal = null) {
+  async _callAnthropicApi(
+    key,
+    messages,
+    model,
+    temperature,
+    max_tokens,
+    timeoutMs = 180000,
+    signal = null
+  ) {
     const url = `${this.baseUrl.replace(/\/$/, '')}/v1/messages`
-    const anthropicMessages = messages.map(msg => ({
+    const anthropicMessages = messages.map((msg) => ({
       role: msg.role === 'assistant' ? 'assistant' : msg.role === 'system' ? 'user' : msg.role,
       content: msg.content
     }))
@@ -382,7 +441,12 @@ export class CustomTextApiService {
           'x-api-key': key,
           'anthropic-version': '2023-06-01'
         },
-        body: JSON.stringify({ model, messages: anthropicMessages.slice(-20), temperature, max_tokens }),
+        body: JSON.stringify({
+          model,
+          messages: anthropicMessages.slice(-20),
+          temperature,
+          max_tokens
+        }),
         signal: abortMeta.signal
       })
     } catch (error) {
@@ -394,7 +458,9 @@ export class CustomTextApiService {
     }
     if (!response.ok) {
       try {
-        const error = await response.json().catch(() => ({ error: { message: response.statusText } }))
+        const error = await response
+          .json()
+          .catch(() => ({ error: { message: response.statusText } }))
         const msg = error.error?.message || `API 请求失败: ${response.status}`
         if (response.status === 401 || response.status === 403) throw new Error(msg)
         throw new Error(msg)
@@ -418,9 +484,17 @@ export class CustomTextApiService {
     }
   }
 
-  async _streamAnthropicApi(key, messages, model, temperature, max_tokens, timeoutMs = 180000, signal = null) {
+  async _streamAnthropicApi(
+    key,
+    messages,
+    model,
+    temperature,
+    max_tokens,
+    timeoutMs = 180000,
+    signal = null
+  ) {
     const url = `${this.baseUrl.replace(/\/$/, '')}/v1/messages`
-    const anthropicMessages = messages.map(msg => ({
+    const anthropicMessages = messages.map((msg) => ({
       role: msg.role === 'assistant' ? 'assistant' : msg.role === 'system' ? 'user' : msg.role,
       content: msg.content
     }))
@@ -437,7 +511,13 @@ export class CustomTextApiService {
           'x-api-key': key,
           'anthropic-version': '2023-06-01'
         },
-        body: JSON.stringify({ model, messages: anthropicMessages.slice(-20), temperature, max_tokens, stream: true }),
+        body: JSON.stringify({
+          model,
+          messages: anthropicMessages.slice(-20),
+          temperature,
+          max_tokens,
+          stream: true
+        }),
         signal: abortMeta.signal
       })
     } catch (error) {
@@ -489,19 +569,35 @@ export class CustomTextApiService {
             response = await fetch(`${this.baseUrl.replace(/\/$/, '')}/v1/chat/completions`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-              body: JSON.stringify({ model: modelName, messages: [{ role: 'user', content: 'hi' }], max_tokens: 10, temperature: 0 }),
+              body: JSON.stringify({
+                model: modelName,
+                messages: [{ role: 'user', content: 'hi' }],
+                max_tokens: 10,
+                temperature: 0
+              }),
               signal: controller.signal
             })
           } else {
             response = await fetch(`${this.baseUrl.replace(/\/$/, '')}/v1/messages`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-              body: JSON.stringify({ model: modelName, messages: [{ role: 'user', content: 'hi' }], max_tokens: 10, temperature: 0 }),
+              headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': key,
+                'anthropic-version': '2023-06-01'
+              },
+              body: JSON.stringify({
+                model: modelName,
+                messages: [{ role: 'user', content: 'hi' }],
+                max_tokens: 10,
+                temperature: 0
+              }),
               signal: controller.signal
             })
           }
           if (!response.ok) {
-            const error = await response.json().catch(() => ({ error: { message: response.statusText } }))
+            const error = await response
+              .json()
+              .catch(() => ({ error: { message: response.statusText } }))
             const msg = error.error?.message || `请求失败: ${response.status}`
             if (response.status === 401 || response.status === 403) {
               lastError = new Error(msg)
@@ -520,7 +616,12 @@ export class CustomTextApiService {
         }
         lastError = error
         const msg = error.message || ''
-        if (msg.includes('401') || msg.includes('403') || msg.includes('Invalid') || msg.includes('Key')) {
+        if (
+          msg.includes('401') ||
+          msg.includes('403') ||
+          msg.includes('Invalid') ||
+          msg.includes('Key')
+        ) {
           if (this._advanceKey()) continue
           break
         }

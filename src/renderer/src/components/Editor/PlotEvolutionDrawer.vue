@@ -13,17 +13,17 @@
       <div class="plot-evolution-body">
         <el-form label-width="80px" class="plot-evolution-form">
           <el-form-item :label="t('plotEvolution.modelSelect')">
-            <el-checkbox-group v-model="selectedProviders" :disabled="providerLoading || !!providerLoadError">
-              <el-checkbox
-                v-for="p in textProviders"
-                :key="p.id"
-                :label="p.name"
-                :value="p.id"
-              />
+            <el-checkbox-group
+              v-model="selectedProviders"
+              :disabled="providerLoading || !!providerLoadError"
+            >
+              <el-checkbox v-for="p in textProviders" :key="p.id" :label="p.name" :value="p.id" />
             </el-checkbox-group>
             <div v-if="providerLoadError" class="provider-read-error">
               <span>{{ providerLoadError }}</span>
-              <button type="button" :disabled="providerLoading" @click="loadProviders">{{ t('common.retry') }}</button>
+              <button type="button" :disabled="providerLoading" @click="loadProviders">
+                {{ t('common.retry') }}
+              </button>
             </div>
             <div v-else-if="textProviders.length === 0" class="no-provider-hint">
               {{ t('plotEvolution.noProviderHint') }}
@@ -63,7 +63,10 @@
                 <span class="label">{{ t('plotEvolution.emotion') }}</span>
                 {{ proposal.emotion }}
               </div>
-              <div v-if="proposal.keyEvents && proposal.keyEvents.length > 0" class="proposal-events">
+              <div
+                v-if="proposal.keyEvents && proposal.keyEvents.length > 0"
+                class="proposal-events"
+              >
                 <span class="label">{{ t('plotEvolution.keyEvents') }}</span>
                 <el-tag
                   v-for="(evt, eIdx) in proposal.keyEvents"
@@ -157,7 +160,9 @@ function requireTextProvidersResult(result) {
   if (!Array.isArray(result.providers)) {
     throw new Error('读取文本 AI 服务失败：接口返回格式不正确')
   }
-  return result.providers.filter((provider) => provider.category === 'text' || provider.type === 'text')
+  return result.providers.filter(
+    (provider) => provider.category === 'text' || provider.type === 'text'
+  )
 }
 
 async function handleEvolve() {
@@ -171,12 +176,15 @@ async function handleEvolve() {
   }
   evolving.value = true
   try {
-    resultGroups.value = await evolvePlot({
-      bookPath: props.bookPath,
-      chapterContent: props.chapterContent,
-      outlineContent: props.outlineContent,
-      providerIds: selectedProviders.value
-    }, t('plotEvolution.evolveFailed'))
+    resultGroups.value = await evolvePlot(
+      {
+        bookPath: props.bookPath,
+        chapterContent: props.chapterContent,
+        outlineContent: props.outlineContent,
+        providerIds: selectedProviders.value
+      },
+      t('plotEvolution.evolveFailed')
+    )
   } catch (e) {
     ElMessage.error(e?.message || t('plotEvolution.evolveError'))
   } finally {
@@ -188,13 +196,16 @@ async function handleRegenerate(providerId, proposalIndex) {
   const key = `${providerId}-${proposalIndex}`
   regeneratingMap.value[key] = true
   try {
-    const proposal = await regeneratePlotProposal({
-      bookPath: props.bookPath,
-      chapterContent: props.chapterContent,
-      outlineContent: props.outlineContent,
-      providerId,
-      proposalIndex
-    }, t('plotEvolution.regenerateFailed'))
+    const proposal = await regeneratePlotProposal(
+      {
+        bookPath: props.bookPath,
+        chapterContent: props.chapterContent,
+        outlineContent: props.outlineContent,
+        providerId,
+        proposalIndex
+      },
+      t('plotEvolution.regenerateFailed')
+    )
     const group = resultGroups.value.find((g) => g.providerId === providerId)
     if (!group || !Array.isArray(group.proposals)) {
       throw new Error(t('plotEvolution.regenerateFailed'))

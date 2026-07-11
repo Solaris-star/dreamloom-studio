@@ -3,7 +3,13 @@ import { randomUUID } from 'node:crypto'
 import { isAbsolute, join, relative, resolve } from 'node:path'
 import { createTextProvider } from './textGenerationRouter.js'
 import { loadEnvFile } from './envConfig.js'
-import { createBook, readOutlines, upsertChapter, writeOutlines, writeSettings } from './webBooksApi.js'
+import {
+  createBook,
+  readOutlines,
+  upsertChapter,
+  writeOutlines,
+  writeSettings
+} from './webBooksApi.js'
 import { runConsistencyCheck } from './consistencyCheckService.js'
 import { exportBook } from './importExportService.js'
 import bookIdeaAiService from './bookIdeaAi.js'
@@ -157,7 +163,11 @@ function requireCliExportResult(result) {
 
 function requireCliMarketRefreshResult(result) {
   const output = requireCliSuccessResult(result, '市场数据刷新失败')
-  if (!Array.isArray(output.sources) || !Array.isArray(output.results) || !Array.isArray(output.topics)) {
+  if (
+    !Array.isArray(output.sources) ||
+    !Array.isArray(output.results) ||
+    !Array.isArray(output.topics)
+  ) {
     throw new Error('市场数据刷新失败：返回数据结构不完整')
   }
   if (!Array.isArray(output.sourceStatus) || !Array.isArray(output.collectionLogs)) {
@@ -174,7 +184,11 @@ function requireCliMarketRefreshResult(result) {
 
 function requireCliMarketDashboardResult(result) {
   const output = requireCliSuccessResult(result, '读取市场看板失败')
-  if (!Array.isArray(output.hotspots) || !Array.isArray(output.topOpportunities) || !Array.isArray(output.sourceStatus)) {
+  if (
+    !Array.isArray(output.hotspots) ||
+    !Array.isArray(output.topOpportunities) ||
+    !Array.isArray(output.sourceStatus)
+  ) {
     throw new Error('读取市场看板失败：返回数据结构不完整')
   }
   return output
@@ -281,7 +295,9 @@ function parseEditorReview(raw = '') {
     passed,
     score: Number.isFinite(score) ? score : null,
     issues,
-    revisionInstruction: cleanText(parsed.revisionInstruction || parsed.revision_instruction || parsed.fix),
+    revisionInstruction: cleanText(
+      parsed.revisionInstruction || parsed.revision_instruction || parsed.fix
+    ),
     raw: cleanText(raw)
   }
 }
@@ -312,7 +328,13 @@ function stepRecord(stage, role, title, response = {}, content = '', startedAt =
 function bookContextStep(context = {}, title = '读取作品资料') {
   const record = editorAgentBookContextRecord(context)
   return {
-    ...stepRecord('agent_context_loaded', 'tool', title, {}, summarizeEditorAgentBookContext(context)),
+    ...stepRecord(
+      'agent_context_loaded',
+      'tool',
+      title,
+      {},
+      summarizeEditorAgentBookContext(context)
+    ),
     bookContext: record,
     sourceCount: record.sourceCount,
     contextChars: record.contextChars,
@@ -379,17 +401,21 @@ function summarizeMarketTopics(topics = [], limit = 8) {
 function cloneSettingsCategories(value = {}) {
   const categories = Array.isArray(value?.categories) ? value.categories : []
   return {
-    categories: categories.map((category) => ({
-      name: cleanText(category?.name),
-      introduction: cleanText(category?.introduction),
-      items: Array.isArray(category?.items)
-        ? category.items.map((item) => ({
-            name: cleanText(item?.name),
-            introduction: cleanText(item?.introduction)
-          })).filter((item) => item.name)
-        : [],
-      children: Array.isArray(category?.children) ? category.children : []
-    })).filter((category) => category.name)
+    categories: categories
+      .map((category) => ({
+        name: cleanText(category?.name),
+        introduction: cleanText(category?.introduction),
+        items: Array.isArray(category?.items)
+          ? category.items
+              .map((item) => ({
+                name: cleanText(item?.name),
+                introduction: cleanText(item?.introduction)
+              }))
+              .filter((item) => item.name)
+          : [],
+        children: Array.isArray(category?.children) ? category.children : []
+      }))
+      .filter((category) => category.name)
   }
 }
 
@@ -397,17 +423,18 @@ function buildBookIdeaPayload(input = {}) {
   return {
     idea: cleanText(input.idea || input.prompt || input.instruction),
     tags: textArray(input.tags),
-    availableTypes: Array.isArray(input.availableTypes) && input.availableTypes.length
-      ? input.availableTypes
-      : [
-          { value: 'xuanhua', label: '玄幻（通用）' },
-          { value: 'dushi', label: '都市（通用）' },
-          { value: 'yanqing', label: '言情（通用）' },
-          { value: 'kehuan', label: '科幻（通用）' },
-          { value: 'xuanyi', label: '悬疑（通用）' },
-          { value: 'lishi', label: '历史（通用）' },
-          { value: 'tongren', label: '同人' }
-        ],
+    availableTypes:
+      Array.isArray(input.availableTypes) && input.availableTypes.length
+        ? input.availableTypes
+        : [
+            { value: 'xuanhua', label: '玄幻（通用）' },
+            { value: 'dushi', label: '都市（通用）' },
+            { value: 'yanqing', label: '言情（通用）' },
+            { value: 'kehuan', label: '科幻（通用）' },
+            { value: 'xuanyi', label: '悬疑（通用）' },
+            { value: 'lishi', label: '历史（通用）' },
+            { value: 'tongren', label: '同人' }
+          ],
     model: input.model || input.modelName || '',
     providerId: input.providerId || '',
     textProviderId: input.textProviderId || ''
@@ -482,9 +509,12 @@ function buildOutlineSeed({ idea, topics = [], opportunities = [] }) {
       .filter(Boolean)
       .join('，')
   )
-  const opportunityLines = opportunities.slice(0, 6).map((item, index) =>
-    `${index + 1}. ${item.keyword || item.title || '热点'}：${item.suggestion || item.summary || ''}`
-  )
+  const opportunityLines = opportunities
+    .slice(0, 6)
+    .map(
+      (item, index) =>
+        `${index + 1}. ${item.keyword || item.title || '热点'}：${item.suggestion || item.summary || ''}`
+    )
   return [
     idea ? `创作方向：${idea}` : '',
     topicLines.length ? `真实市场信号：\n${topicLines.join('\n')}` : '',
@@ -592,7 +622,9 @@ function resolveChapterPlans(input, booksDir, bookName) {
   if (injectedPlans.length) return injectedPlans.map(normalizeChapterPlan)
 
   const outlines = requireOutlineReadData(readOutlines(safeName(bookName), booksDir))
-  const root = input.outlineId ? findOutlineNode(outlines, input.outlineId) : latestOutlineRoot(outlines)
+  const root = input.outlineId
+    ? findOutlineNode(outlines, input.outlineId)
+    : latestOutlineRoot(outlines)
   const plans = collectOutlineLeaves(root).map(normalizeChapterPlan)
   if (!plans.length) throw new Error('没有可写章节计划，请先生成大纲')
   return plans
@@ -669,7 +701,9 @@ async function generateNovelChapterOutlines(input = {}) {
     : Array.isArray(input.outline?.items)
       ? input.outline.items
       : []
-  const requestedCount = Number(input.chapterOutlineCount || input.count || input.chapters || outlineItems.length)
+  const requestedCount = Number(
+    input.chapterOutlineCount || input.count || input.chapters || outlineItems.length
+  )
   const plans = limitChapterPlans(outlineItems.map(normalizeChapterPlan), {
     start: input.chapterOutlineStart || input.start,
     writeChapters: requestedCount,
@@ -763,7 +797,8 @@ async function generateNovelChapterOutlines(input = {}) {
     bookPath,
     count: chapterOutlines.length,
     chapterOutlines,
-    providerId: chapterOutlines.find((item) => item.providerId)?.providerId || provider.providerId || '',
+    providerId:
+      chapterOutlines.find((item) => item.providerId)?.providerId || provider.providerId || '',
     model: chapterOutlines.find((item) => item.model)?.model || provider.model || '',
     usage
   }
@@ -801,7 +836,9 @@ function resolveTextProvider(options = {}) {
       model: options.model
     })
   } catch (error) {
-    throw new Error(`${error.message || '请先配置文本 AI 服务'}。请在 .env 中配置 DEEPSEEK_API_KEY，或 CUSTOM_TEXT_*。`)
+    throw new Error(
+      `${error.message || '请先配置文本 AI 服务'}。请在 .env 中配置 DEEPSEEK_API_KEY，或 CUSTOM_TEXT_*。`
+    )
   }
 }
 
@@ -851,7 +888,15 @@ async function callStreamChat(service, request, hooks = {}) {
   }
 }
 
-function buildWriterMessages({ bookName, volumeName, chapterName, prompt, targetWords, bookContextText, taskMemoryText }) {
+function buildWriterMessages({
+  bookName,
+  volumeName,
+  chapterName,
+  prompt,
+  targetWords,
+  bookContextText,
+  taskMemoryText
+}) {
   return [
     {
       role: 'system',
@@ -874,7 +919,17 @@ function buildWriterMessages({ bookName, volumeName, chapterName, prompt, target
   ]
 }
 
-function buildReviewMessages({ bookName, volumeName, chapterName, prompt, targetWords, draft, bookContextText, taskMemoryText, draftToolCheckText }) {
+function buildReviewMessages({
+  bookName,
+  volumeName,
+  chapterName,
+  prompt,
+  targetWords,
+  draft,
+  bookContextText,
+  taskMemoryText,
+  draftToolCheckText
+}) {
   return [
     {
       role: 'system',
@@ -900,7 +955,17 @@ function buildReviewMessages({ bookName, volumeName, chapterName, prompt, target
   ]
 }
 
-function buildRewriteMessages({ bookName, volumeName, chapterName, prompt, targetWords, draft, review, bookContextText, taskMemoryText }) {
+function buildRewriteMessages({
+  bookName,
+  volumeName,
+  chapterName,
+  prompt,
+  targetWords,
+  draft,
+  review,
+  bookContextText,
+  taskMemoryText
+}) {
   return [
     {
       role: 'system',
@@ -938,7 +1003,17 @@ function issuePrompt(issues = []) {
     .join('\n\n')
 }
 
-function buildRepairMessages({ bookName, volumeName, chapterName, prompt, targetWords, currentText, issues, bookContextText, taskMemoryText }) {
+function buildRepairMessages({
+  bookName,
+  volumeName,
+  chapterName,
+  prompt,
+  targetWords,
+  currentText,
+  issues,
+  bookContextText,
+  taskMemoryText
+}) {
   return [
     {
       role: 'system',
@@ -975,7 +1050,24 @@ async function notifyTaskProgress(onTaskProgress, bookPath, task) {
   }
 }
 
-function createStreamRecorder({ bookPath, taskId, generationId, skillId, skillKey, outputMode, canWriteChapter, inputScopes, requiredContext, references, stage, role, title, enabled, onChunk, onTaskProgress }) {
+function createStreamRecorder({
+  bookPath,
+  taskId,
+  generationId,
+  skillId,
+  skillKey,
+  outputMode,
+  canWriteChapter,
+  inputScopes,
+  requiredContext,
+  references,
+  stage,
+  role,
+  title,
+  enabled,
+  onChunk,
+  onTaskProgress
+}) {
   if (!enabled || !bookPath || !taskId) {
     return {
       async onChunk(event) {
@@ -1063,7 +1155,9 @@ async function runWriterReviewLoop(input, provider, generationId, context = {}) 
     })
   )
   let draft = writerResponse.content
-  steps.push(stepRecord('writer', 'writer', 'Writer 生成初稿', writerResponse, draft, writerStartedAt))
+  steps.push(
+    stepRecord('writer', 'writer', 'Writer 生成初稿', writerResponse, draft, writerStartedAt)
+  )
 
   throwIfAborted(input.signal)
   const draftCheck = await runAgentDraftConsistencyTool(
@@ -1087,7 +1181,16 @@ async function runWriterReviewLoop(input, provider, generationId, context = {}) 
     stageName: 'Editor'
   })
   let review = parseEditorReview(reviewResponse.content)
-  steps.push(stepRecord('editor_review', 'editor', 'Editor 审核初稿', reviewResponse, reviewSummary(review), reviewStartedAt))
+  steps.push(
+    stepRecord(
+      'editor_review',
+      'editor',
+      'Editor 审核初稿',
+      reviewResponse,
+      reviewSummary(review),
+      reviewStartedAt
+    )
+  )
 
   if (review.passed || !input.autoEdit) {
     return { text: draft, review, steps }
@@ -1120,7 +1223,16 @@ async function runWriterReviewLoop(input, provider, generationId, context = {}) 
     })
   )
   draft = writerResponse.content
-  steps.push(stepRecord('writer_rewrite', 'writer', 'Writer 按审核意见重写', writerResponse, draft, rewriteStartedAt))
+  steps.push(
+    stepRecord(
+      'writer_rewrite',
+      'writer',
+      'Writer 按审核意见重写',
+      writerResponse,
+      draft,
+      rewriteStartedAt
+    )
+  )
 
   throwIfAborted(input.signal)
   const rewriteCheck = await runAgentDraftConsistencyTool(
@@ -1144,7 +1256,16 @@ async function runWriterReviewLoop(input, provider, generationId, context = {}) 
     stageName: 'Editor 复核'
   })
   review = parseEditorReview(rewriteReviewResponse.content)
-  steps.push(stepRecord('editor_rewrite_review', 'editor', 'Editor 复核重写稿', rewriteReviewResponse, reviewSummary(review), rewriteReviewStartedAt))
+  steps.push(
+    stepRecord(
+      'editor_rewrite_review',
+      'editor',
+      'Editor 复核重写稿',
+      rewriteReviewResponse,
+      reviewSummary(review),
+      rewriteReviewStartedAt
+    )
+  )
 
   return { text: draft, review, steps }
 }
@@ -1187,7 +1308,16 @@ async function runRepairLoop(input, provider, sourceGenerationId, check, issues,
     })
   )
   const repairedText = repairResponse.content
-  steps.push(stepRecord('writer_repair', 'writer', 'Writer 修正一致性问题', repairResponse, repairedText, writerStartedAt))
+  steps.push(
+    stepRecord(
+      'writer_repair',
+      'writer',
+      'Writer 修正一致性问题',
+      repairResponse,
+      repairedText,
+      writerStartedAt
+    )
+  )
 
   throwIfAborted(input.signal)
   const repairCheck = await runAgentDraftConsistencyTool(
@@ -1202,7 +1332,11 @@ async function runRepairLoop(input, provider, sourceGenerationId, check, issues,
   throwIfAborted(input.signal)
   const reviewStartedAt = Date.now()
   const reviewResponse = await callChat(service, {
-    messages: buildReviewMessages({ ...input, draft: repairedText, draftToolCheckText: repairCheck.text }),
+    messages: buildReviewMessages({
+      ...input,
+      draft: repairedText,
+      draftToolCheckText: repairCheck.text
+    }),
     model: model || undefined,
     temperature: 0.1,
     max_tokens: 1800,
@@ -1211,7 +1345,16 @@ async function runRepairLoop(input, provider, sourceGenerationId, check, issues,
     stageName: 'Editor 返修复核'
   })
   const review = parseEditorReview(reviewResponse.content)
-  steps.push(stepRecord('editor_repair_review', 'editor', 'Editor 复核返修稿', reviewResponse, reviewSummary(review), reviewStartedAt))
+  steps.push(
+    stepRecord(
+      'editor_repair_review',
+      'editor',
+      'Editor 复核返修稿',
+      reviewResponse,
+      reviewSummary(review),
+      reviewStartedAt
+    )
+  )
 
   return {
     repairGenerationId,
@@ -1309,7 +1452,9 @@ export async function researchNovelMarket(input = {}) {
     updated: refreshResult.updated || 0,
     hotspotSync: refreshResult.hotspotSync || {},
     fromCache: (refreshResult.results || []).some((item) => item.fromCache),
-    cacheTypes: Array.from(new Set((refreshResult.results || []).map((item) => item.cacheType).filter(Boolean))),
+    cacheTypes: Array.from(
+      new Set((refreshResult.results || []).map((item) => item.cacheType).filter(Boolean))
+    ),
     topics,
     opportunities: (dashboard.topOpportunities || []).slice(0, Math.max(1, Math.min(12, limit))),
     sourceStatus: dashboard.sourceStatus || [],
@@ -1865,7 +2010,9 @@ export async function repairNovelChapter(input = {}) {
   const volumeName = cleanText(input.volumeName || input.volume) || DEFAULT_VOLUME_NAME
   const chapterName = cleanText(input.chapterName || input.chapter) || DEFAULT_CHAPTER_NAME
   const prompt = cleanText(input.prompt || input.instruction) || '请根据一致性检查结果返修正文。'
-  const currentText = cleanText(input.currentText || input.currentChapterText || input.text || input.content)
+  const currentText = cleanText(
+    input.currentText || input.currentChapterText || input.text || input.content
+  )
   const sourceGenerationId = cleanText(input.sourceGenerationId || input.generationId)
   const sourceText = cleanText(input.sourceText || input.sourceResult || input.sourceContent)
   const skill = skillRecord(input)
@@ -1874,7 +2021,9 @@ export async function repairNovelChapter(input = {}) {
     id: cleanText(input.checkId),
     summary: cleanText(input.checkSummary || input.summary)
   }
-  const targetWords = Number(input.targetWords || input.words || countWords(currentText) || DEFAULT_TARGET_WORDS)
+  const targetWords = Number(
+    input.targetWords || input.words || countWords(currentText) || DEFAULT_TARGET_WORDS
+  )
 
   if (!bookName) throw new Error('缺少书籍名称')
   if (!currentText && !sourceText) throw new Error('缺少要返修的正文')
@@ -2133,7 +2282,11 @@ export async function runNovelLifecycle(input = {}) {
   let extraction = null
   throwIfAborted(input.signal)
   if (hasLifecycleExtractionSource(input)) {
-    const extractionPayload = buildLifecycleExtractionPayload(input, initialized.bookPath, initialized.bookName)
+    const extractionPayload = buildLifecycleExtractionPayload(
+      input,
+      initialized.bookPath,
+      initialized.bookName
+    )
     const extractionSummary = await extractionAiService.createExtraction(
       {
         ...extractionPayload,
@@ -2141,7 +2294,10 @@ export async function runNovelLifecycle(input = {}) {
       },
       provider.service
     )
-    const extractionRecord = extractionAiService.getExtractionRecord(initialized.bookPath, extractionSummary.id)
+    const extractionRecord = extractionAiService.getExtractionRecord(
+      initialized.bookPath,
+      extractionSummary.id
+    )
     recordNovelExtractionRun({
       booksDir,
       bookName: initialized.bookName,
@@ -2168,9 +2324,21 @@ export async function runNovelLifecycle(input = {}) {
   }
 
   throwIfAborted(input.signal)
-  const settingPayload = buildSettingTreePayload(input, resolvedIntro, initialized.bookPath, selectedPlan)
-  const settingTree = await settingTreeAiService.generateSettingTree(settingPayload, provider.service)
-  const settingsDocument = writeSettingsDocument(booksDir, initialized.bookName, cloneSettingsCategories(settingTree))
+  const settingPayload = buildSettingTreePayload(
+    input,
+    resolvedIntro,
+    initialized.bookPath,
+    selectedPlan
+  )
+  const settingTree = await settingTreeAiService.generateSettingTree(
+    settingPayload,
+    provider.service
+  )
+  const settingsDocument = writeSettingsDocument(
+    booksDir,
+    initialized.bookName,
+    cloneSettingsCategories(settingTree)
+  )
   stages.push({
     name: 'setting',
     status: 'done',
@@ -2207,11 +2375,17 @@ export async function runNovelLifecycle(input = {}) {
       model: provider.model || input.model || input.modelName || '',
       providerId: provider.providerId || input.providerId || ''
     })
-    stages.push({ name: 'outline', status: 'done', outlineId: outline.outlineId, count: outline.count })
+    stages.push({
+      name: 'outline',
+      status: 'done',
+      outlineId: outline.outlineId,
+      count: outline.count
+    })
   }
 
   throwIfAborted(input.signal)
-  const plannedWriteCount = Number.isFinite(writeChapters) && writeChapters > 0 ? writeChapters : outline.items.length
+  const plannedWriteCount =
+    Number.isFinite(writeChapters) && writeChapters > 0 ? writeChapters : outline.items.length
   const chapterOutlineCount = Math.min(plannedWriteCount, outline.items.length)
   const chapterOutlineResult = await generateNovelChapterOutlines({
     ...input,
@@ -2247,9 +2421,17 @@ export async function runNovelLifecycle(input = {}) {
     textProvider: provider.service,
     signal: input.signal
   })
-  stages.push({ name: 'write', status: 'done', count: writing.count, totalWordCount: writing.totalWordCount })
+  stages.push({
+    name: 'write',
+    status: 'done',
+    count: writing.count,
+    totalWordCount: writing.totalWordCount
+  })
 
-  const issueCount = writing.chapters.reduce((sum, item) => sum + Number(item.issues?.length || 0), 0)
+  const issueCount = writing.chapters.reduce(
+    (sum, item) => sum + Number(item.issues?.length || 0),
+    0
+  )
   stages.push({
     name: 'check',
     status: 'done',

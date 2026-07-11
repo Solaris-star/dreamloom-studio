@@ -81,7 +81,9 @@ function calculateBookTextStats(bookName, booksDir) {
       if (!file.isFile() || !file.name.endsWith('.txt')) continue
       stats.chapterCount += 1
       try {
-        stats.totalWords += countChapterWords(fs.readFileSync(join(currentVolumePath, file.name), 'utf-8'))
+        stats.totalWords += countChapterWords(
+          fs.readFileSync(join(currentVolumePath, file.name), 'utf-8')
+        )
       } catch (error) {
         console.warn('统计章节字数失败:', error.message)
       }
@@ -118,7 +120,8 @@ function normalizeBookStorageMeta(meta = {}) {
     ...meta,
     type: meta.type === 'imported' ? 'original' : meta.type || 'original',
     typeName: meta.typeName === '导入' ? '导入作品' : meta.typeName || '导入作品',
-    sourceType: meta.sourceType === 'downloaded' ? 'user_imported' : meta.sourceType || 'user_imported',
+    sourceType:
+      meta.sourceType === 'downloaded' ? 'user_imported' : meta.sourceType || 'user_imported',
     downloaded: false,
     bookRole
   }
@@ -129,8 +132,25 @@ function normalizeBookStorageMeta(meta = {}) {
 // ---------------------------------------------------------------------------
 
 const CHINESE_NUMBERS = {
-  零: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10,
-  百: 100, 千: 1000, 万: 10000, 两: 2, 廿: 20, 卅: 30, 卌: 40, 皕: 200
+  零: 0,
+  一: 1,
+  二: 2,
+  三: 3,
+  四: 4,
+  五: 5,
+  六: 6,
+  七: 7,
+  八: 8,
+  九: 9,
+  十: 10,
+  百: 100,
+  千: 1000,
+  万: 10000,
+  两: 2,
+  廿: 20,
+  卅: 30,
+  卌: 40,
+  皕: 200
 }
 
 function parseChineseNumber(str) {
@@ -200,7 +220,10 @@ function formatSection(num, digits, units) {
     if (digit === 0) {
       if (!zero && result) zero = true
     } else {
-      if (zero) { result += '零'; zero = false }
+      if (zero) {
+        result += '零'
+        zero = false
+      }
       result += digits[digit] + units[i]
     }
   }
@@ -311,6 +334,34 @@ function resolveBookDirPath(booksDir, bookName) {
   return target
 }
 
+function requirePathSegment(value, label) {
+  const segment = String(value || '').trim()
+  if (
+    !segment ||
+    segment === '.' ||
+    segment === '..' ||
+    segment.includes('/') ||
+    segment.includes('\\') ||
+    segment.includes('\0') ||
+    isAbsolute(segment)
+  ) {
+    throw new Error(`${label}无效`)
+  }
+  return segment
+}
+
+function resolveBookChildPath(booksDir, bookName, ...parts) {
+  const root = resolve(booksDir)
+  const safeBookName = requirePathSegment(bookName, '书籍名称')
+  const safeParts = parts.map((part, index) => requirePathSegment(part, `路径名称 ${index + 1}`))
+  const target = resolve(root, safeBookName, ...safeParts)
+  const relativePath = relative(root, target)
+  if (!relativePath || relativePath.startsWith('..') || isAbsolute(relativePath)) {
+    throw new Error('文件路径不在当前书库内')
+  }
+  return target
+}
+
 function extensionFromImageMime(mimeType, fallback = 'jpg') {
   return IMAGE_CONTENT_TYPE_EXTENSION[String(mimeType || '').split(';')[0]] || fallback
 }
@@ -370,7 +421,7 @@ function saveCoverImageSource(bookPath, source, existingCoverUrl = '') {
 }
 
 function getBookPath(booksDir, bookName) {
-  return join(booksDir, safeAssetName(bookName))
+  return resolveBookChildPath(booksDir, safeAssetName(bookName))
 }
 
 function ensureBookPath(booksDir, bookName) {
@@ -406,7 +457,14 @@ function documentItemCount(data) {
   return Array.isArray(data) ? data.length : undefined
 }
 
-function bookDocumentWriteResult({ bookName, bookPath, fileName, documentType, documentRecord, data }) {
+function bookDocumentWriteResult({
+  bookName,
+  bookPath,
+  fileName,
+  documentType,
+  documentRecord,
+  data
+}) {
   const resolvedType = documentRecord?.documentType || documentType || ''
   const documentPath = documentRecord?.documentPath || join(bookPath, fileName)
   const result = {
@@ -467,7 +525,10 @@ function bookMetadataWriteResult({ bookName, originalName, bookPath, project, do
   return result
 }
 
-function syncWrittenChapter(booksDir, { bookName, volumeName, chapterName, previousChapterName, content, filePath }) {
+function syncWrittenChapter(
+  booksDir,
+  { bookName, volumeName, chapterName, previousChapterName, content, filePath }
+) {
   if (!bookName || !volumeName || !chapterName || content == null) return null
   const safeBookName = safeAssetName(bookName)
   const text = String(content)
@@ -584,7 +645,14 @@ function writeBookJson(booksDir, bookName, fileName, data) {
   if (documentType) {
     documentRecord = syncNovelDocument(booksDir, bookName, documentType, fileName)
   }
-  return bookDocumentWriteResult({ bookName, bookPath, fileName, documentType, documentRecord, data })
+  return bookDocumentWriteResult({
+    bookName,
+    bookPath,
+    fileName,
+    documentType,
+    documentRecord,
+    data
+  })
 }
 
 function getDirCreateTimeMs(dirPath) {
@@ -634,7 +702,12 @@ function ensureVolumeOrder(bookName, bookPath, volumeNames) {
 export async function createBook(bookInfo, booksDir) {
   const safeName = String(bookInfo.name || '').replace(/[\\/:*?"<>|]/g, '_')
   if (!safeName) return { success: false, message: '书籍名称不能为空' }
-  const bookPath = join(booksDir, safeName)
+  let bookPath
+  try {
+    bookPath = resolveBookChildPath(booksDir, safeName)
+  } catch (error) {
+    return { success: false, message: error.message || '书籍名称无效' }
+  }
   if (!fs.existsSync(bookPath)) {
     fs.mkdirSync(bookPath)
   }
@@ -647,12 +720,12 @@ export async function createBook(bookInfo, booksDir) {
   if (!coverUrl && bookInfo.coverRemoteUrl) {
     try {
       const cover = await fetch(String(bookInfo.coverRemoteUrl))
-        if (cover.ok) {
-          const arrayBuffer = await cover.arrayBuffer()
-          if (arrayBuffer.byteLength < 8 * 1024) {
-            throw new Error('封面图片过小，可能是站点占位图')
-          }
-          const urlExt = String(bookInfo.coverRemoteUrl).split('?')[0].split('.').pop()?.toLowerCase()
+      if (cover.ok) {
+        const arrayBuffer = await cover.arrayBuffer()
+        if (arrayBuffer.byteLength < 8 * 1024) {
+          throw new Error('封面图片过小，可能是站点占位图')
+        }
+        const urlExt = String(bookInfo.coverRemoteUrl).split('?')[0].split('.').pop()?.toLowerCase()
         const contentType = cover.headers.get('content-type')?.split(';')[0] || ''
         const contentTypeExt = IMAGE_CONTENT_TYPE_EXTENSION[contentType]
         const ext = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'].includes(urlExt)
@@ -698,7 +771,12 @@ export async function createBook(bookInfo, booksDir) {
   fs.writeFileSync(join(bookPath, '正文', '正文', '第1章.txt'), '')
 
   const project = syncNovelProject(booksDir, safeName, { meta })
-  const documentRecord = syncNovelDocument(booksDir, safeName, BOOK_DOCUMENT_TYPES['mazi.json'], 'mazi.json')
+  const documentRecord = syncNovelDocument(
+    booksDir,
+    safeName,
+    BOOK_DOCUMENT_TYPES['mazi.json'],
+    'mazi.json'
+  )
   let bookIdeaRun = null
   if (bookInfo.bookIdeaRunId || bookInfo.selectedPlanId) {
     try {
@@ -803,7 +881,13 @@ export async function deleteBook(bookName, booksDir) {
     const bookPath = resolveBookDirPath(booksDir, bookName)
     if (!bookPath) return { success: false, message: '书籍目录无效', bookName: safeBookName }
     if (!fs.existsSync(bookPath)) {
-      return { success: false, message: '书籍不存在', bookName: safeBookName, bookPath, existed: false }
+      return {
+        success: false,
+        message: '书籍不存在',
+        bookName: safeBookName,
+        bookPath,
+        existed: false
+      }
     }
     fs.rmSync(bookPath, { recursive: true, force: true })
     return {
@@ -836,7 +920,11 @@ export async function editBook(bookInfo = {}, booksDir) {
 
     let coverUrl = bookInfo.coverUrl || existingMeta.coverUrl || null
     if (bookInfo.coverImagePath) {
-      const savedCoverUrl = saveCoverImageSource(bookPath, bookInfo.coverImagePath, existingMeta.coverUrl)
+      const savedCoverUrl = saveCoverImageSource(
+        bookPath,
+        bookInfo.coverImagePath,
+        existingMeta.coverUrl
+      )
       if (savedCoverUrl) coverUrl = savedCoverUrl
     } else if (bookInfo.coverUrl === null || bookInfo.coverUrl === '') {
       removeBookCover(bookPath, existingMeta.coverUrl)
@@ -879,7 +967,12 @@ export async function editBook(bookInfo = {}, booksDir) {
       meta: mergedMeta,
       previousBookName: originalName
     })
-    const documentRecord = syncNovelDocument(booksDir, nextFolderName, BOOK_DOCUMENT_TYPES['mazi.json'], 'mazi.json')
+    const documentRecord = syncNovelDocument(
+      booksDir,
+      nextFolderName,
+      BOOK_DOCUMENT_TYPES['mazi.json'],
+      'mazi.json'
+    )
     return bookMetadataWriteResult({
       bookName: nextFolderName,
       originalName,
@@ -895,7 +988,7 @@ export async function editBook(bookInfo = {}, booksDir) {
 async function updateBookMetadata(bookName, booksDir) {
   if (!bookName || !booksDir) return null
   const safeBookName = safeAssetName(bookName)
-  const metaPath = join(booksDir, safeBookName, 'mazi.json')
+  const metaPath = join(getBookPath(booksDir, safeBookName), 'mazi.json')
   if (!fs.existsSync(metaPath)) return null
   const meta = readJson(metaPath, null)
   if (!meta || typeof meta !== 'object') return null
@@ -908,10 +1001,14 @@ async function updateBookMetadata(bookName, booksDir) {
   return syncNovelProject(booksDir, safeBookName, { meta })
 }
 
-export async function saveChapter({ bookName, volumeName, chapterName, newName, content }, booksDir) {
-  const volumePath = join(booksDir, bookName, '正文', volumeName)
-  const oldPath = join(volumePath, `${chapterName}.txt`)
-  const finalName = String(newName || chapterName || '').trim()
+export async function saveChapter(
+  { bookName, volumeName, chapterName, newName, content },
+  booksDir
+) {
+  const volumePath = resolveBookChildPath(booksDir, bookName, '正文', volumeName)
+  const safeChapterName = requirePathSegment(chapterName, '章节名称')
+  const oldPath = join(volumePath, `${safeChapterName}.txt`)
+  const finalName = requirePathSegment(newName || chapterName, '章节名称')
   const targetPath = join(volumePath, `${finalName}.txt`)
 
   if (!fs.existsSync(oldPath)) {
@@ -924,9 +1021,7 @@ export async function saveChapter({ bookName, volumeName, chapterName, newName, 
   const oldContent = fs.readFileSync(oldPath, 'utf-8')
   const nextContent = content === undefined || content === null ? '' : String(content)
   const isClearingExistingChapter =
-    oldContent.trim().length > 0 &&
-    nextContent.trim().length === 0 &&
-    !String(newName || '').trim()
+    oldContent.trim().length > 0 && nextContent.trim().length === 0 && !String(newName || '').trim()
 
   if (isClearingExistingChapter) {
     return { success: false, message: '已阻止空内容覆盖已有章节' }
@@ -971,8 +1066,8 @@ export async function saveChapter({ bookName, volumeName, chapterName, newName, 
 }
 
 export async function createChapter({ bookName, volumeId }, booksDir) {
-  const bookPath = join(booksDir, bookName)
-  const volumePath = join(bookPath, '正文', volumeId)
+  const bookPath = resolveBookChildPath(booksDir, bookName)
+  const volumePath = resolveBookChildPath(booksDir, bookName, '正文', volumeId)
   if (!fs.existsSync(volumePath)) {
     fs.mkdirSync(volumePath, { recursive: true })
   }
@@ -1007,13 +1102,17 @@ export async function createChapter({ bookName, volumeId }, booksDir) {
   return { success: true, chapterName, filePath }
 }
 
-export async function upsertChapter({ bookName, volumeName, chapterName, content, overwrite = false }, booksDir) {
+export async function upsertChapter(
+  { bookName, volumeName, chapterName, content, overwrite = false },
+  booksDir
+) {
   const cleanChapterName = String(chapterName || '').trim()
   if (!bookName || !volumeName || !cleanChapterName) {
     return { success: false, exists: false, message: '参数不完整' }
   }
 
-  const volumePath = join(booksDir, bookName, '正文', volumeName)
+  requirePathSegment(cleanChapterName, '章节名称')
+  const volumePath = resolveBookChildPath(booksDir, bookName, '正文', volumeName)
   if (!fs.existsSync(volumePath)) {
     fs.mkdirSync(volumePath, { recursive: true })
   }
@@ -1061,7 +1160,7 @@ export async function upsertChapter({ bookName, volumeName, chapterName, content
 export async function loadChapters(bookName, booksDir) {
   if (!bookName) return { success: false, message: '书籍名称不能为空', chapters: [] }
   if (!booksDir) return { success: false, message: '请先选择书库目录', bookName, chapters: [] }
-  const bookPath = join(booksDir, bookName)
+  const bookPath = resolveBookChildPath(booksDir, bookName)
   const volumeRootPath = join(bookPath, '正文')
   if (!fs.existsSync(volumeRootPath)) return { success: true, bookName, chapters: [] }
 
@@ -1121,7 +1220,13 @@ export async function loadChapters(bookName, booksDir) {
 }
 
 export async function readChapter({ bookName, volumeName, chapterName }, booksDir) {
-  const chapterPath = join(booksDir, bookName, '正文', volumeName, `${chapterName}.txt`)
+  const chapterPath = resolveBookChildPath(
+    booksDir,
+    bookName,
+    '正文',
+    volumeName,
+    `${requirePathSegment(chapterName, '章节名称')}.txt`
+  )
   if (!fs.existsSync(chapterPath)) {
     return { success: false, message: '章节不存在' }
   }
@@ -1138,7 +1243,7 @@ export async function readChapter({ bookName, volumeName, chapterName }, booksDi
 }
 
 export async function createVolume(bookName, booksDir) {
-  const bookPath = join(booksDir, bookName)
+  const bookPath = resolveBookChildPath(booksDir, bookName)
   const volumeRootPath = join(bookPath, '正文')
   if (!fs.existsSync(volumeRootPath)) {
     fs.mkdirSync(volumeRootPath, { recursive: true })
@@ -1162,8 +1267,8 @@ export async function createVolume(bookName, booksDir) {
 export async function editNode({ bookName, type, volume, chapter, newName }, booksDir) {
   try {
     if (type === 'volume') {
-      const volumePath = join(booksDir, bookName, '正文', volume)
-      const newVolumePath = join(booksDir, bookName, '正文', newName)
+      const volumePath = resolveBookChildPath(booksDir, bookName, '正文', volume)
+      const newVolumePath = resolveBookChildPath(booksDir, bookName, '正文', newName)
       if (!fs.existsSync(volumePath)) return { success: false, message: '原卷不存在' }
       if (volume === newName) {
         return {
@@ -1185,8 +1290,20 @@ export async function editNode({ bookName, type, volume, chapter, newName }, boo
       writeVolumeOrder(bookName, order)
       return { success: true, type: 'volume', oldName: volume, newName, volumeName: newName }
     } else if (type === 'chapter') {
-      const chapterPath = join(booksDir, bookName, '正文', volume, `${chapter}.txt`)
-      const newChapterPath = join(booksDir, bookName, '正文', volume, `${newName}.txt`)
+      const chapterPath = resolveBookChildPath(
+        booksDir,
+        bookName,
+        '正文',
+        volume,
+        `${requirePathSegment(chapter, '章节名称')}.txt`
+      )
+      const newChapterPath = resolveBookChildPath(
+        booksDir,
+        bookName,
+        '正文',
+        volume,
+        `${requirePathSegment(newName, '章节名称')}.txt`
+      )
       if (!fs.existsSync(chapterPath)) return { success: false, message: '原章节不存在' }
       if (chapter === newName) {
         return {
@@ -1220,7 +1337,7 @@ export async function editNode({ bookName, type, volume, chapter, newName }, boo
 
 export async function deleteNode({ bookName, type, volume, chapter }, booksDir) {
   if (type === 'volume') {
-    const volumePath = join(booksDir, bookName, '正文', volume)
+    const volumePath = resolveBookChildPath(booksDir, bookName, '正文', volume)
     if (!fs.existsSync(volumePath)) return { success: false, message: '卷不存在' }
     const order = readVolumeOrder(bookName, '删除卷').filter((name) => name !== volume)
     fs.rmSync(volumePath, { recursive: true, force: true })
@@ -1228,7 +1345,13 @@ export async function deleteNode({ bookName, type, volume, chapter }, booksDir) 
     return { success: true, type: 'volume', volumeName: volume }
   }
   if (type === 'chapter') {
-    const chapterPath = join(booksDir, bookName, '正文', volume, `${chapter}.txt`)
+    const chapterPath = resolveBookChildPath(
+      booksDir,
+      bookName,
+      '正文',
+      volume,
+      `${requirePathSegment(chapter, '章节名称')}.txt`
+    )
     if (!fs.existsSync(chapterPath)) return { success: false, message: '章节不存在' }
     fs.rmSync(chapterPath)
     return { success: true, type: 'chapter', volumeName: volume, chapterName: chapter }
@@ -1260,9 +1383,7 @@ export function getChapterSettings(bookName) {
   return {
     suffixType: settings.suffixType || '章',
     chapterFormat: settings.chapterFormat || 'number',
-    targetWords: Number.isFinite(Number(settings.targetWords))
-      ? Number(settings.targetWords)
-      : 2000
+    targetWords: Number.isFinite(Number(settings.targetWords)) ? Number(settings.targetWords) : 2000
   }
 }
 
@@ -1281,7 +1402,7 @@ export function setChapterTargetWords({ bookName, targetWords }) {
 
 export async function updateChapterFormat({ bookName, settings: rawSettings }, booksDir) {
   try {
-    const bookPath = join(booksDir, bookName)
+    const bookPath = resolveBookChildPath(booksDir, bookName)
     const volumeRootPath = join(bookPath, '正文')
     if (!fs.existsSync(volumeRootPath)) {
       return { success: false, message: '正文目录不存在' }
@@ -1291,8 +1412,8 @@ export async function updateChapterFormat({ bookName, settings: rawSettings }, b
       suffixType: rawSettings?.suffixType || '章',
       targetWords:
         Number.isFinite(Number(rawSettings?.targetWords)) && Number(rawSettings.targetWords) > 0
-        ? Number(rawSettings.targetWords)
-        : 2000
+          ? Number(rawSettings.targetWords)
+          : 2000
     }
     const settingsKey = `chapterSettings:${bookName}`
     storeSet(settingsKey, cleanSettings)
@@ -1303,8 +1424,8 @@ export async function updateChapterFormat({ bookName, settings: rawSettings }, b
       targetWords:
         Number.isFinite(Number(persistedSettings?.targetWords)) &&
         Number(persistedSettings.targetWords) > 0
-        ? Number(persistedSettings.targetWords)
-        : 2000
+          ? Number(persistedSettings.targetWords)
+          : 2000
     }
 
     const volumes = fs.readdirSync(volumeRootPath, { withFileTypes: true })
@@ -1349,8 +1470,8 @@ export async function updateChapterFormat({ bookName, settings: rawSettings }, b
 
 export async function reformatChapterNumbers({ bookName, volumeName, settings }, booksDir) {
   try {
-    const bookPath = join(booksDir, bookName)
-    const volumePath = join(bookPath, '正文', volumeName)
+    const bookPath = resolveBookChildPath(booksDir, bookName)
+    const volumePath = resolveBookChildPath(booksDir, bookName, '正文', volumeName)
     if (!fs.existsSync(volumePath)) {
       return { success: false, message: '卷目录不存在' }
     }
@@ -1414,7 +1535,7 @@ export async function reformatChapterNumbers({ bookName, volumeName, settings },
 export async function loadNotes(bookName, booksDir) {
   if (!bookName) return { success: false, message: '书籍名称不能为空', notes: [] }
   if (!booksDir) return { success: false, message: '请先选择书库目录', bookName, notes: [] }
-  const bookPath = join(booksDir, bookName)
+  const bookPath = resolveBookChildPath(booksDir, bookName)
   const notesPath = join(bookPath, '笔记')
   if (!fs.existsSync(notesPath)) return { success: true, bookName, notes: [] }
 
@@ -1449,7 +1570,7 @@ export async function loadNotes(bookName, booksDir) {
 }
 
 export async function createNotebook({ bookName }, booksDir) {
-  const notesPath = join(booksDir, bookName, '笔记')
+  const notesPath = resolveBookChildPath(booksDir, bookName, '笔记')
   if (!fs.existsSync(notesPath)) {
     fs.mkdirSync(notesPath, { recursive: true })
   }
@@ -1465,7 +1586,7 @@ export async function createNotebook({ bookName }, booksDir) {
 }
 
 export async function deleteNotebook({ bookName, notebookName }, booksDir) {
-  const notebookPath = join(booksDir, bookName, '笔记', notebookName)
+  const notebookPath = resolveBookChildPath(booksDir, bookName, '笔记', notebookName)
   if (!fs.existsSync(notebookPath)) {
     return { success: false, message: '笔记本不存在' }
   }
@@ -1474,9 +1595,9 @@ export async function deleteNotebook({ bookName, notebookName }, booksDir) {
 }
 
 export async function renameNotebook({ bookName, oldName, newName }, booksDir) {
-  const notesPath = join(booksDir, bookName, '笔记')
-  const oldPath = join(notesPath, oldName)
-  const newPath = join(notesPath, newName)
+  const notesPath = resolveBookChildPath(booksDir, bookName, '笔记')
+  const oldPath = resolveBookChildPath(booksDir, bookName, '笔记', oldName)
+  const newPath = resolveBookChildPath(booksDir, bookName, '笔记', newName)
   if (!fs.existsSync(oldPath)) return { success: false, message: '原笔记本不存在' }
   if (oldName === newName) {
     return { success: true, oldName, newName, notebookName: newName, message: '名称未变化' }
@@ -1487,9 +1608,9 @@ export async function renameNotebook({ bookName, oldName, newName }, booksDir) {
 }
 
 export async function createNote({ bookName, notebookName, noteName }, booksDir) {
-  const notebookPath = join(booksDir, bookName, '笔记', notebookName)
+  const notebookPath = resolveBookChildPath(booksDir, bookName, '笔记', notebookName)
   if (!fs.existsSync(notebookPath)) return { success: false, message: '笔记本不存在' }
-  const baseName = noteName || '新建笔记'
+  const baseName = requirePathSegment(noteName || '新建笔记', '笔记名称')
   let fileName = `${baseName}.txt`
   let index = 1
   while (fs.existsSync(join(notebookPath, fileName))) {
@@ -1501,19 +1622,44 @@ export async function createNote({ bookName, notebookName, noteName }, booksDir)
 }
 
 export async function deleteNote({ bookName, notebookName, noteName }, booksDir) {
-  const notePath = join(booksDir, bookName, '笔记', notebookName, `${noteName}.txt`)
+  const notePath = resolveBookChildPath(
+    booksDir,
+    bookName,
+    '笔记',
+    notebookName,
+    `${requirePathSegment(noteName, '笔记名称')}.txt`
+  )
   if (!fs.existsSync(notePath)) return { success: false, message: '笔记不存在' }
   fs.rmSync(notePath)
   return { success: true, notebookName, noteName }
 }
 
 export async function renameNote({ bookName, notebookName, oldName, newName }, booksDir) {
-  const notebookPath = join(booksDir, bookName, '笔记', notebookName)
-  const oldPath = join(notebookPath, `${oldName}.txt`)
-  const newPath = join(notebookPath, `${newName}.txt`)
+  const notebookPath = resolveBookChildPath(booksDir, bookName, '笔记', notebookName)
+  const oldPath = resolveBookChildPath(
+    booksDir,
+    bookName,
+    '笔记',
+    notebookName,
+    `${requirePathSegment(oldName, '笔记名称')}.txt`
+  )
+  const newPath = resolveBookChildPath(
+    booksDir,
+    bookName,
+    '笔记',
+    notebookName,
+    `${requirePathSegment(newName, '笔记名称')}.txt`
+  )
   if (!fs.existsSync(oldPath)) return { success: false, message: '原笔记不存在' }
   if (oldName === newName) {
-    return { success: true, notebookName, oldName, newName, noteName: newName, message: '名称未变化' }
+    return {
+      success: true,
+      notebookName,
+      oldName,
+      newName,
+      noteName: newName,
+      message: '名称未变化'
+    }
   }
   if (fs.existsSync(newPath)) return { success: false, message: '新笔记名已存在' }
   fs.renameSync(oldPath, newPath)
@@ -1521,16 +1667,28 @@ export async function renameNote({ bookName, notebookName, oldName, newName }, b
 }
 
 export async function readNote({ bookName, notebookName, noteName }, booksDir) {
-  const notePath = join(booksDir, bookName, '笔记', notebookName, `${noteName}.txt`)
+  const notePath = resolveBookChildPath(
+    booksDir,
+    bookName,
+    '笔记',
+    notebookName,
+    `${requirePathSegment(noteName, '笔记名称')}.txt`
+  )
   if (!fs.existsSync(notePath)) return { success: false, message: '笔记不存在' }
   const content = fs.readFileSync(notePath, 'utf-8')
   return { success: true, bookName, notebookName, noteName, filePath: notePath, content }
 }
 
 export async function editNote({ bookName, notebookName, noteName, newName, content }, booksDir) {
-  const notebookPath = join(booksDir, bookName, '笔记', notebookName)
-  const oldPath = join(notebookPath, `${noteName}.txt`)
-  const finalName = String(newName || noteName || '').trim()
+  const notebookPath = resolveBookChildPath(booksDir, bookName, '笔记', notebookName)
+  const oldPath = resolveBookChildPath(
+    booksDir,
+    bookName,
+    '笔记',
+    notebookName,
+    `${requirePathSegment(noteName, '笔记名称')}.txt`
+  )
+  const finalName = requirePathSegment(newName || noteName, '笔记名称')
   const newPath = join(notebookPath, `${finalName}.txt`)
   if (!fs.existsSync(oldPath)) return { success: false, message: '笔记不存在' }
   if (newName && finalName !== noteName && fs.existsSync(newPath)) {
@@ -1569,7 +1727,9 @@ export async function exportOrganizationToNote({ bookName, organizationName, con
     const notebookPath = join(bookPath, '笔记', notebookName)
     fs.mkdirSync(notebookPath, { recursive: true })
 
-    const safeNoteName = String(organizationName).trim().replace(/[\\/:*?"<>|]/g, '_')
+    const safeNoteName = String(organizationName)
+      .trim()
+      .replace(/[\\/:*?"<>|]/g, '_')
     if (!safeNoteName) {
       return { success: false, message: '组织架构名称无效' }
     }
@@ -1605,7 +1765,13 @@ export async function checkChapterExists({ bookName, volumeName, chapterName }, 
   if (!bookName || !volumeName || !cleanChapterName) {
     return { success: false, exists: false, message: '参数不完整' }
   }
-  const chapterPath = join(booksDir, bookName, '正文', volumeName, `${cleanChapterName}.txt`)
+  const chapterPath = resolveBookChildPath(
+    booksDir,
+    bookName,
+    '正文',
+    volumeName,
+    `${requirePathSegment(cleanChapterName, '章节名称')}.txt`
+  )
   return { success: true, exists: fs.existsSync(chapterPath) }
 }
 
@@ -1848,7 +2014,13 @@ export function writeDictionary({ bookName, data }, booksDir) {
 }
 
 export function readSettings(bookName, booksDir) {
-  const result = readBookJsonResult(booksDir, bookName, 'settings.json', cloneDefaultSettingsData(), '设定管理')
+  const result = readBookJsonResult(
+    booksDir,
+    bookName,
+    'settings.json',
+    cloneDefaultSettingsData(),
+    '设定管理'
+  )
   if (!result.success) return result
   return { success: true, data: normalizeSettingsData(result.data) }
 }
@@ -1912,7 +2084,12 @@ export function createMap({ bookName, mapName, description, imageData }, booksDi
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   })
-  const metaRecord = syncNovelDocument(booksDir, bookName, `map:${safeName}`, join('maps', `${safeName}.json`))
+  const metaRecord = syncNovelDocument(
+    booksDir,
+    bookName,
+    `map:${safeName}`,
+    join('maps', `${safeName}.json`)
+  )
   return mapWriteResult({
     booksDir,
     bookName,
@@ -1941,9 +2118,19 @@ export function updateMap({ bookName, mapName, imageData, mapData }, booksDir) {
     createdAt: meta.createdAt || now,
     updatedAt: now
   })
-  const metaRecord = syncNovelDocument(booksDir, bookName, `map:${safeName}`, join('maps', `${safeName}.json`))
+  const metaRecord = syncNovelDocument(
+    booksDir,
+    bookName,
+    `map:${safeName}`,
+    join('maps', `${safeName}.json`)
+  )
   const dataRecord = mapData
-    ? syncNovelDocument(booksDir, bookName, `map_data:${safeName}`, join('maps', `${safeName}.data.json`))
+    ? syncNovelDocument(
+        booksDir,
+        bookName,
+        `map_data:${safeName}`,
+        join('maps', `${safeName}.data.json`)
+      )
     : null
   return mapWriteResult({
     booksDir,
@@ -1963,7 +2150,12 @@ export function saveMapData({ bookName, mapName, mapData }, booksDir) {
   const safeName = safeAssetName(mapName, '新地图')
   const dataFilePath = join(mapsDir, `${safeName}.data.json`)
   writeJson(dataFilePath, mapData || null)
-  const dataRecord = syncNovelDocument(booksDir, bookName, `map_data:${safeName}`, join('maps', `${safeName}.data.json`))
+  const dataRecord = syncNovelDocument(
+    booksDir,
+    bookName,
+    `map_data:${safeName}`,
+    join('maps', `${safeName}.data.json`)
+  )
   const result = mapWriteResult({
     booksDir,
     bookName,
@@ -1971,7 +2163,12 @@ export function saveMapData({ bookName, mapName, mapData }, booksDir) {
     imagePath: join(mapsDir, `${safeName}.png`),
     metaPath: join(mapsDir, `${safeName}.json`),
     dataPath: dataFilePath,
-    metaRecord: syncNovelDocument(booksDir, bookName, `map:${safeName}`, join('maps', `${safeName}.json`)),
+    metaRecord: syncNovelDocument(
+      booksDir,
+      bookName,
+      `map:${safeName}`,
+      join('maps', `${safeName}.json`)
+    ),
     dataRecord
   })
   result.path = dataFilePath
@@ -1980,12 +2177,18 @@ export function saveMapData({ bookName, mapName, mapData }, booksDir) {
 }
 
 export function loadMapData({ bookName, mapName }, booksDir) {
-  const dataFilePath = join(getBookPath(booksDir, bookName), 'maps', `${safeAssetName(mapName, '新地图')}.data.json`)
+  const dataFilePath = join(
+    getBookPath(booksDir, bookName),
+    'maps',
+    `${safeAssetName(mapName, '新地图')}.data.json`
+  )
   return readJson(dataFilePath, null)
 }
 
 export function readMapImage({ bookName, mapName }, booksDir) {
-  return readImageAsDataUrl(join(getBookPath(booksDir, bookName), 'maps', `${safeAssetName(mapName, '新地图')}.png`))
+  return readImageAsDataUrl(
+    join(getBookPath(booksDir, bookName), 'maps', `${safeAssetName(mapName, '新地图')}.png`)
+  )
 }
 
 export function deleteMap({ bookName, mapName }, booksDir) {
@@ -2040,17 +2243,30 @@ function readGraphList(booksDir, bookName, dirName) {
 }
 
 function readGraphData(booksDir, bookName, dirName, graphName) {
-  return readJson(join(getBookPath(booksDir, bookName), dirName, `${safeAssetName(graphName)}.json`), null)
+  return readJson(
+    join(getBookPath(booksDir, bookName), dirName, `${safeAssetName(graphName)}.json`),
+    null
+  )
 }
 
 function graphAssetType(dirName) {
   return dirName === 'relationships' ? 'relationship' : 'organization'
 }
 
-function graphDataWriteResult({ booksDir, bookName, dirName, graphName, filePath, data, created, documentRecord }) {
+function graphDataWriteResult({
+  booksDir,
+  bookName,
+  dirName,
+  graphName,
+  filePath,
+  data,
+  created,
+  documentRecord
+}) {
   const safeBookName = safeAssetName(bookName)
   const safeName = safeAssetName(graphName)
-  const documentType = documentRecord?.documentType || `${graphAssetType(dirName)}_graph:${safeName}`
+  const documentType =
+    documentRecord?.documentType || `${graphAssetType(dirName)}_graph:${safeName}`
   return {
     success: true,
     bookName: safeBookName,
@@ -2108,7 +2324,14 @@ function graphDeleteResult({ booksDir, bookName, dirName, graphName, deletedFile
   }
 }
 
-function writeGraphData(booksDir, bookName, dirName, graphName, graphData, shouldFailIfExists = false) {
+function writeGraphData(
+  booksDir,
+  bookName,
+  dirName,
+  graphName,
+  graphData,
+  shouldFailIfExists = false
+) {
   const graphDir = join(ensureBookPath(booksDir, bookName), dirName)
   fs.mkdirSync(graphDir, { recursive: true })
   const safeName = safeAssetName(graphName)
@@ -2119,14 +2342,23 @@ function writeGraphData(booksDir, bookName, dirName, graphName, graphData, shoul
   const previous = readJson(filePath, {})
   const created = !fs.existsSync(filePath)
   const now = new Date().toISOString()
-  const data = graphData && typeof graphData === 'object' && !Array.isArray(graphData) ? graphData : {}
+  const data =
+    graphData && typeof graphData === 'object' && !Array.isArray(graphData) ? graphData : {}
   const savedData = {
     ...data,
     id: data.id || previous.id || safeName,
     name: data.name || previous.name || safeName,
     description: data.description ?? previous.description ?? '',
-    nodes: Array.isArray(data.nodes) ? data.nodes : Array.isArray(previous.nodes) ? previous.nodes : [],
-    lines: Array.isArray(data.lines) ? data.lines : Array.isArray(previous.lines) ? previous.lines : [],
+    nodes: Array.isArray(data.nodes)
+      ? data.nodes
+      : Array.isArray(previous.nodes)
+        ? previous.nodes
+        : [],
+    lines: Array.isArray(data.lines)
+      ? data.lines
+      : Array.isArray(previous.lines)
+        ? previous.lines
+        : [],
     createdAt: data.createdAt || previous.createdAt || now,
     updatedAt: now
   }
@@ -2161,7 +2393,9 @@ function updateGraphThumbnail(booksDir, bookName, dirName, graphName, thumbnailD
 }
 
 function readGraphImage(booksDir, bookName, dirName, imageName) {
-  return readImageAsDataUrl(join(getBookPath(booksDir, bookName), dirName, safeAssetName(imageName)))
+  return readImageAsDataUrl(
+    join(getBookPath(booksDir, bookName), dirName, safeAssetName(imageName))
+  )
 }
 
 function deleteGraph(booksDir, bookName, dirName, graphName) {
@@ -2191,7 +2425,14 @@ export function readRelationshipData({ bookName, relationshipName }, booksDir) {
 }
 
 export function createRelationship({ bookName, relationshipName, relationshipData }, booksDir) {
-  const result = writeGraphData(booksDir, bookName, 'relationships', relationshipName, relationshipData, true)
+  const result = writeGraphData(
+    booksDir,
+    bookName,
+    'relationships',
+    relationshipName,
+    relationshipData,
+    true
+  )
   return result.success ? result : { success: false, message: '已存在同名关系图' }
 }
 
@@ -2199,7 +2440,10 @@ export function saveRelationshipData({ bookName, relationshipName, relationshipD
   return writeGraphData(booksDir, bookName, 'relationships', relationshipName, relationshipData)
 }
 
-export function updateRelationshipThumbnail({ bookName, relationshipName, thumbnailData }, booksDir) {
+export function updateRelationshipThumbnail(
+  { bookName, relationshipName, thumbnailData },
+  booksDir
+) {
   return updateGraphThumbnail(booksDir, bookName, 'relationships', relationshipName, thumbnailData)
 }
 
@@ -2221,7 +2465,14 @@ export function readOrganization({ bookName, organizationName }, booksDir) {
 }
 
 export function createOrganization({ bookName, organizationName, organizationData }, booksDir) {
-  const result = writeGraphData(booksDir, bookName, 'organizations', organizationName, organizationData, true)
+  const result = writeGraphData(
+    booksDir,
+    bookName,
+    'organizations',
+    organizationName,
+    organizationData,
+    true
+  )
   return result.success ? result : { success: false, error: '已存在同名组织架构' }
 }
 

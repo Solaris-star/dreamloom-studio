@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict'
 import plotEvolutionAiService from '../src/main/services/plotEvolutionAi.js'
 
-function fakeTextProvider({ id = 'fake-provider', name = 'Fake Provider', model = 'fake-model', content, error }) {
+function fakeTextProvider({
+  id = 'fake-provider',
+  name = 'Fake Provider',
+  model = 'fake-model',
+  content,
+  error
+}) {
   const calls = []
   return {
     id,
@@ -94,7 +100,8 @@ function fakeTextProvider({ id = 'fake-provider', name = 'Fake Provider', model 
     id: 'plot-json-ok',
     name: 'Plot JSON OK',
     model: 'plot-model-json-ok',
-    content: '[{"title":"借局破局","summary":"主角顺势接受对手邀约，暗中把局势引到自己熟悉的地盘。"}]'
+    content:
+      '[{"title":"借局破局","summary":"主角顺势接受对手邀约，暗中把局势引到自己熟悉的地盘。"}]'
   })
 
   const result = await plotEvolutionAiService.evolvePlot({
@@ -163,7 +170,11 @@ await assert.rejects(
 )
 
 await assert.rejects(
-  () => plotEvolutionAiService.evolvePlot({ outlineContent: '', providers: [fakeTextProvider({ content: '[]' })] }),
+  () =>
+    plotEvolutionAiService.evolvePlot({
+      outlineContent: '',
+      providers: [fakeTextProvider({ content: '[]' })]
+    }),
   /章纲内容为空/
 )
 

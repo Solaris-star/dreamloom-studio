@@ -13,7 +13,10 @@ import {
   syncImportResult,
   syncRestoreResult
 } from '../src/main/services/mainBookDatabaseSyncService.js'
-import { getNovelDatabasePath, openNovelDatabase } from '../src/main/services/novelDatabaseService.js'
+import {
+  getNovelDatabasePath,
+  openNovelDatabase
+} from '../src/main/services/novelDatabaseService.js'
 
 const rootDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-main-book-db-'))
 const booksDir = join(rootDir, 'books')
@@ -252,8 +255,16 @@ try {
   writeJson(join(importedBookPath, 'mazi.json'), importedMeta)
   const importedFirstChapter = '钟离在长夜里醒来，听见城墙外传来铁铃声。'
   const importedSecondChapter = '他沿着旧河道追踪线索，发现守夜人的名单被人改过。'
-  fs.writeFileSync(join(importedBookPath, '正文', '第一卷', '第一章.txt'), importedFirstChapter, 'utf-8')
-  fs.writeFileSync(join(importedBookPath, '正文', '第一卷', '第二章.txt'), importedSecondChapter, 'utf-8')
+  fs.writeFileSync(
+    join(importedBookPath, '正文', '第一卷', '第一章.txt'),
+    importedFirstChapter,
+    'utf-8'
+  )
+  fs.writeFileSync(
+    join(importedBookPath, '正文', '第一卷', '第二章.txt'),
+    importedSecondChapter,
+    'utf-8'
+  )
   const importSyncResult = syncImportResult({
     booksDir,
     result: {
@@ -312,19 +323,25 @@ try {
   writeJson(join(restoredBookPath, 'characters.json'), [{ name: '林照', role: '领航员' }])
   writeJson(join(restoredBookPath, 'outlines.json'), [{ title: '第一卷', children: [] }])
   const restoredChapterContent = '林照在星河港口确认航线，准备带队穿越暗区。'
-  fs.writeFileSync(join(restoredBookPath, '正文', '第一卷', '第一章.txt'), restoredChapterContent, 'utf-8')
+  fs.writeFileSync(
+    join(restoredBookPath, '正文', '第一卷', '第一章.txt'),
+    restoredChapterContent,
+    'utf-8'
+  )
   const restoreSyncResult = syncRestoreResult({
     booksDir,
     result: {
       success: true,
       mode: 'library',
       targetDir: booksDir,
-      restoredBooks: [{
-        bookName: restoredBookName,
-        folderName: restoredBookName,
-        path: restoredBookPath,
-        fileCount: 4
-      }],
+      restoredBooks: [
+        {
+          bookName: restoredBookName,
+          folderName: restoredBookName,
+          path: restoredBookPath,
+          fileCount: 4
+        }
+      ],
       bookCount: 1,
       task: {
         id: 'restore_task_main_sync',
@@ -401,7 +418,10 @@ try {
     assert.equal(backups[0].taskId, 'backup_task_main_sync')
 
     const allBackups = repository.listBackups('')
-    assert.equal(allBackups.some((item) => item.id === 'backup_library_task_main_sync'), true)
+    assert.equal(
+      allBackups.some((item) => item.id === 'backup_library_task_main_sync'),
+      true
+    )
 
     const importedProject = repository.getProjectByName(importedBookName)
     assert.equal(Boolean(importedProject), true)
@@ -411,14 +431,14 @@ try {
     const importedChapters = repository.listChapters(importedProject.id)
     assert.equal(importedChapters.length, 2)
     assert.equal(
-      importedChapters.some((chapter) =>
-        chapter.chapterName === '第一章' && chapter.content === importedFirstChapter
+      importedChapters.some(
+        (chapter) => chapter.chapterName === '第一章' && chapter.content === importedFirstChapter
       ),
       true
     )
     assert.equal(
-      importedChapters.some((chapter) =>
-        chapter.chapterName === '第二章' && chapter.content === importedSecondChapter
+      importedChapters.some(
+        (chapter) => chapter.chapterName === '第二章' && chapter.content === importedSecondChapter
       ),
       true
     )

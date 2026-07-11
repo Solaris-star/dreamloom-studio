@@ -23,9 +23,7 @@ function providerCategory(provider = {}) {
 function providerApiKeys(provider = {}) {
   const keys = Array.isArray(provider.apiKeys) ? provider.apiKeys : []
   const single = provider.apiKey ? [provider.apiKey] : []
-  return (keys.length ? keys : single)
-    .map((key) => String(key || '').trim())
-    .filter(Boolean)
+  return (keys.length ? keys : single).map((key) => String(key || '').trim()).filter(Boolean)
 }
 
 function normalizeTextModelName(modelName = '') {
@@ -51,7 +49,9 @@ function resolveTextProviderSelection(options = {}) {
   const normalizedModel = normalizeTextModelName(options.model)
   const useProviderDefault = rawModelName === 'default' || (!rawModelName && rawModel === 'default')
   return {
-    providerId: String(options.providerId || options.textProviderId || parsed.providerId || '').trim(),
+    providerId: String(
+      options.providerId || options.textProviderId || parsed.providerId || ''
+    ).trim(),
     modelName: useProviderDefault ? '' : normalizedModelName || normalizedModel || parsed.modelName
   }
 }
@@ -115,13 +115,18 @@ function buildDeepSeekProvider(store, provider = {}, modelName = '') {
   if (!apiKey) throw new Error('请先配置 DeepSeek API Key')
   deepseekService.setApiKey(apiKey)
   deepseekService.setBaseUrl(provider.baseUrl || configuredValue(store, 'deepseek.baseUrl', ''))
-  const model = modelName || provider.model || configuredValue(store, 'deepseek.model', '') || 'deepseek-chat'
+  const model =
+    modelName || provider.model || configuredValue(store, 'deepseek.model', '') || 'deepseek-chat'
   deepseekService.setModel(model)
   return {
     providerId: provider.id || TEXT_PROVIDER_LEGACY_DEEPSEEK,
     provider,
     model,
-    service: withProviderResultMeta(deepseekService, provider.id || TEXT_PROVIDER_LEGACY_DEEPSEEK, model)
+    service: withProviderResultMeta(
+      deepseekService,
+      provider.id || TEXT_PROVIDER_LEGACY_DEEPSEEK,
+      model
+    )
   }
 }
 
@@ -151,7 +156,9 @@ function withProviderResultMeta(service, providerId, modelName = '') {
         max_tokens: maxTokens == null ? undefined : maxTokens,
         stream: true
       }
-      const stream = service.streamChat ? await service.streamChat(request) : await service.chat(request)
+      const stream = service.streamChat
+        ? await service.streamChat(request)
+        : await service.chat(request)
       return withStreamResultMeta(stream, providerId, request.model || '')
     },
     rawService: service
@@ -184,7 +191,11 @@ export function createTextProvider(store, options = {}) {
   if (!provider) {
     const deepseekKey = configuredValue(store, 'deepseek.apiKey', '')
     if (deepseekKey) {
-      return buildDeepSeekProvider(store, { id: TEXT_PROVIDER_LEGACY_DEEPSEEK, apiKeys: [deepseekKey] }, modelName)
+      return buildDeepSeekProvider(
+        store,
+        { id: TEXT_PROVIDER_LEGACY_DEEPSEEK, apiKeys: [deepseekKey] },
+        modelName
+      )
     }
     throw new Error('请先配置文本 AI 服务')
   }
@@ -225,7 +236,9 @@ export async function chatWithTextProvider(store, options = {}) {
 export function buildLegacyCustomTextProvider(store, payload = {}) {
   const apiKey = configuredValue(store, 'customTextApi.apiKey', '')
   const apiKeys = splitConfigList(apiKey)
-  const model = String(payload?.model || payload?.modelName || configuredValue(store, 'customTextApi.model', '') || '').trim()
+  const model = String(
+    payload?.model || payload?.modelName || configuredValue(store, 'customTextApi.model', '') || ''
+  ).trim()
   const service = new CustomTextApiService()
   service.initConfig({
     apiType: configuredValue(store, 'customTextApi.apiType', 'openai'),

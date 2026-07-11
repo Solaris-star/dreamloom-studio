@@ -125,11 +125,11 @@ class TongyiwanxiangService {
 
 主进程注册三个 IPC Handler，对应前端三个操作：
 
-| 操作       | IPC Channel                        | 作用 |
-|------------|------------------------------------|------|
-| 生成封面   | `tongyiwanxiang:generate-cover`   | 调服务 → 拿 URL → 下载 → 保存到书籍目录 `ai_cover1.png`、`ai_cover2.png`… |
-| 确认使用   | `tongyiwanxiang:confirm-cover`     | 把用户选中的那张复制为 `cover.png` |
-| 取消/关闭  | `tongyiwanxiang:discard-ai-covers` | 当前实现不删文件，仅关闭弹框 |
+| 操作      | IPC Channel                        | 作用                                                                      |
+| --------- | ---------------------------------- | ------------------------------------------------------------------------- |
+| 生成封面  | `tongyiwanxiang:generate-cover`    | 调服务 → 拿 URL → 下载 → 保存到书籍目录 `ai_cover1.png`、`ai_cover2.png`… |
+| 确认使用  | `tongyiwanxiang:confirm-cover`     | 把用户选中的那张复制为 `cover.png`                                        |
+| 取消/关闭 | `tongyiwanxiang:discard-ai-covers` | 当前实现不删文件，仅关闭弹框                                              |
 
 生成封面的主流程示例（逻辑在主进程）：
 
@@ -215,4 +215,4 @@ if (process.contextIsolated) {
 
 > 💡 **如果这篇文章对你有帮助，请在GitHub上给个 ⭐️ 支持一下！**
 
-*本文基于 织梦书房 开源项目，通义万相文生图接入方案*
+_本文基于 织梦书房 开源项目，通义万相文生图接入方案_

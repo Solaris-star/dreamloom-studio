@@ -26,7 +26,7 @@
 
 ![织梦书房 下载小说页面](static/novelDownload.png)
 
-*搜索「火影」后的结果：多书源列表、选中书籍的章节数与「下载并加入书架 / 导出为 TXT / 取消」操作 — 全部在写作软件内完成，无需切浏览器*
+_搜索「火影」后的结果：多书源列表、选中书籍的章节数与「下载并加入书架 / 导出为 TXT / 取消」操作 — 全部在写作软件内完成，无需切浏览器_
 
 流程很简单：**选书源 → 输入书名或作者 → 搜索 → 点某本书的「下载」→ 拉取目录后选择「下载并加入书架」或「导出为 TXT」**。下面从实现角度拆解：规则从哪来、谁在请求、谁在解析、以及我们踩了哪些坑。文末有完整代码地图与 GitHub 链接，方便你直接对照源码或给项目点个 Star。
 
@@ -38,8 +38,8 @@
 
 目标很明确：
 
-- 用户输入书名或作者 → 当前书源搜索 → 展示结果列表  
-- 用户点某本书 → 拉取目录 → 可选「下载并加入书架」或「导出为 TXT」  
+- 用户输入书名或作者 → 当前书源搜索 → 展示结果列表
+- 用户点某本书 → 拉取目录 → 可选「下载并加入书架」或「导出为 TXT」
 - 正文要能去广告、去站内推广文案，尽量干净
 
 下面就从架构到实现、从配置到坑，捋一遍。
@@ -91,8 +91,8 @@ so-novel 的规则是 JSON：搜索 URL、GET/POST、搜索参数模板、列表
 }
 ```
 
-- **GET / POST**：`searchMethod` 为 `get` 时用 URL 拼 `%s`（关键词）；为 `post` 时用 `searchData` 模板，`%s` 替换为 JSON 转义后的关键词，再 `fetch(..., { method: 'POST', body })`。  
-- **目录 URL 不一定等于书籍页**：有的书源目录是单独路径，用 `tocUrlPattern: 'https://xxx/read/%s/'`，从书籍 URL 里抽出 bookId 再拼成目录页。  
+- **GET / POST**：`searchMethod` 为 `get` 时用 URL 拼 `%s`（关键词）；为 `post` 时用 `searchData` 模板，`%s` 替换为 JSON 转义后的关键词，再 `fetch(..., { method: 'POST', body })`。
+- **目录 URL 不一定等于书籍页**：有的书源目录是单独路径，用 `tocUrlPattern: 'https://xxx/read/%s/'`，从书籍 URL 里抽出 bookId 再拼成目录页。
 - **encoding**：不少站是 GBK，用 `iconv-lite` 在拿到 `ArrayBuffer` 后解码成字符串再交给 Cheerio。
 
 这样，新增书源就是往 `BOOK_SOURCES` 里推一个对象，不用改业务逻辑。
@@ -142,8 +142,8 @@ return new TextDecoder('utf-8').decode(bytes)
 
 很多站会在正文里插「一秒记住本站」「手机用户请…」「本章完」等。我们在 so-novel 里看到用 `filterTxt` 存一串正则，用 `|` 分隔，在正文里逐个替换掉。实现方式：
 
-- 先把 HTML 变成纯文本：去 `<script>` / `<style>`，`<br>` 换行，其他标签去壳，HTML 实体解码。  
-- 若配置了 `filterTxt`，按 `|` 拆成多条正则，对文本做 `replace(re, '')`，无效正则静默跳过。  
+- 先把 HTML 变成纯文本：去 `<script>` / `<style>`，`<br>` 换行，其他标签去壳，HTML 实体解码。
+- 若配置了 `filterTxt`，按 `|` 拆成多条正则，对文本做 `replace(re, '')`，无效正则静默跳过。
 - 最后把连续多个换行压成双换行，trim。
 
 这样导出的 TXT 和加入书架后的正文会干净很多。
@@ -180,9 +180,9 @@ return window.electron.novelDownloadChapters({ chapterList: plainList, sourceId 
 
 ## 🎨 前端体验：进度、取消与免责
 
-- **进度**：主进程在每章抓取完成后 `event.sender.send('novel-download-progress', { current, total })`，渲染进程监听 `novel-download-progress`，更新进度条并禁用按钮，避免重复点击。  
-- **取消 / 换书**：用户取消或切换书籍时，除了清空当前选中书和目录，还要把「下载中」状态和进度重置，否则会一直卡在「下载中」。  
-- **导出 TXT**：和「下载并加入书架」共用同一套章节拉取逻辑，只是最后一步改为写单个 TXT 文件到用户选择目录。  
+- **进度**：主进程在每章抓取完成后 `event.sender.send('novel-download-progress', { current, total })`，渲染进程监听 `novel-download-progress`，更新进度条并禁用按钮，避免重复点击。
+- **取消 / 换书**：用户取消或切换书籍时，除了清空当前选中书和目录，还要把「下载中」状态和进度重置，否则会一直卡在「下载中」。
+- **导出 TXT**：和「下载并加入书架」共用同一套章节拉取逻辑，只是最后一步改为写单个 TXT 文件到用户选择目录。
 - **免责声明**：页面顶部保留醒目免责说明：个人非商业使用、用户对内容合法性自负、禁止传播侵权内容等，既合规又降低法律风险。
 
 ---
@@ -201,13 +201,13 @@ return window.electron.novelDownloadChapters({ chapterList: plainList, sourceId 
 
 **核心文件一览：**
 
-| 文件 | 职责 |
-|------|------|
-| `src/main/services/novelDownloader.js` | 书源配置、fetchHtml、搜索/目录/正文解析、cleanContent |
-| `src/main/index.js` | `novel:get-sources` / `novel:search` / `novel:get-chapter-list` / `novel:download-chapters`，进度事件 |
-| `src/preload/index.js` | 暴露 `novel*` API，转发 `novel-download-progress` |
-| `src/renderer/src/service/novel.js` | 封装 IPC，章节列表序列化后再传主进程 |
-| `src/renderer/src/views/NovelDownload.vue` | 搜索 UI、结果表、下载区、进度条、免责声明 |
+| 文件                                       | 职责                                                                                                  |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `src/main/services/novelDownloader.js`     | 书源配置、fetchHtml、搜索/目录/正文解析、cleanContent                                                 |
+| `src/main/index.js`                        | `novel:get-sources` / `novel:search` / `novel:get-chapter-list` / `novel:download-chapters`，进度事件 |
+| `src/preload/index.js`                     | 暴露 `novel*` API，转发 `novel-download-progress`                                                     |
+| `src/renderer/src/service/novel.js`        | 封装 IPC，章节列表序列化后再传主进程                                                                  |
+| `src/renderer/src/views/NovelDownload.vue` | 搜索 UI、结果表、下载区、进度条、免责声明                                                             |
 
 如果你也在给桌面应用加「从网页抓内容」的能力，希望这篇从 so-novel 到 织梦书房 的实践能帮你少踩一点坑。**织梦书房 完全开源**，欢迎直接拿代码、提 Issue、提 PR；使用本功能时请务必遵守当地法律法规与版权要求，仅限个人学习与合规使用。
 

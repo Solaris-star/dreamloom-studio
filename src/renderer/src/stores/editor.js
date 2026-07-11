@@ -25,6 +25,9 @@ export const useEditorStore = defineStore('editor', () => {
   const lastSyncedChapterWords = ref(0) // 上一次同步到书籍总字数的章节字数
   const pendingBookWordDelta = ref(0)
   const chapterTargetWords = ref(2000)
+  const saveStatus = ref('idle')
+  const saveError = ref('')
+  const lastSavedAt = ref(null)
   let externalSaveHandler = null
 
   // 新增：计算实际内容字数（排除空格、换行符等格式字符）
@@ -256,6 +259,12 @@ export const useEditorStore = defineStore('editor', () => {
     return false
   }
 
+  function setSaveState(status, { error = '', savedAt = null } = {}) {
+    saveStatus.value = status
+    saveError.value = error ? String(error) : ''
+    if (savedAt) lastSavedAt.value = savedAt
+  }
+
   async function fetchBookTotalWords(bookName, { force = false } = {}) {
     const normalizedName = bookName ? String(bookName) : ''
     if (!normalizedName) return bookTotalWords.value
@@ -317,6 +326,10 @@ export const useEditorStore = defineStore('editor', () => {
     resetBookWordStats,
     fetchBookTotalWords,
     chapterTargetWords,
+    saveStatus,
+    saveError,
+    lastSavedAt,
+    setSaveState,
     setChapterTargetWords,
     registerExternalSaveHandler,
     saveCurrentFileThroughHandler

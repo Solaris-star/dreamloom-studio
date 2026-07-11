@@ -3,6 +3,7 @@
 ## 已完成
 
 ### 基础 Composables
+
 - ✅ `useCanvasState.js` - 画布状态管理（缩放、平移、边界等）
 - ✅ `useCoordinate.js` - 坐标转换工具
 - ✅ `useHistory.js` - 历史记录管理
@@ -10,12 +11,14 @@
 - ✅ `useRender.js` - 渲染函数集合
 
 ### 工具 Composables（示例）
+
 - ✅ `tools/usePencilTool.js` - 画笔工具（示例实现）
 - ✅ `tools/useEraserTool.js` - 橡皮擦工具（示例实现）
 
 ## 待完成
 
 ### 工具 Composables
+
 - [ ] `tools/useLineTool.js` - 线条工具
 - [ ] `tools/useRectTool.js` - 矩形工具
 - [ ] `tools/useTextTool.js` - 文字工具
@@ -26,11 +29,13 @@
 - [ ] `tools/useBackgroundTool.js` - 背景工具
 
 ### 工具函数
+
 - [ ] `utils/elementBounds.js` - 元素边界计算
 - [ ] `utils/elementDetection.js` - 元素检测（点击检测等）
 - [ ] `utils/selection.js` - 选框相关工具函数
 
 ### 画布管理
+
 - [ ] `useCanvas.js` - 画布渲染逻辑（需要整合 useRender 和 useElements）
 
 ## 使用示例
@@ -55,7 +60,7 @@ export default {
     const canvasState = useCanvasState()
     const elements = useElements()
     const { history } = useHistory(canvasRef)
-    
+
     // 坐标转换
     const { getCanvasPos } = useCoordinate(
       canvasRef,
@@ -64,10 +69,10 @@ export default {
       canvasState.scrollX,
       canvasState.scrollY
     )
-    
+
     // 渲染
     const renderFunctions = useRender(canvasRef, canvasState.scale)
-    
+
     // 工具
     const pencilTool = usePencilTool({
       canvasRef,
@@ -78,13 +83,13 @@ export default {
       size,
       opacity
     })
-    
+
     const eraserTool = useEraserTool({
       canvasRef,
       history,
       size
     })
-    
+
     // 根据当前工具调用对应的方法
     function handleCanvasMouseDown(e) {
       const pos = getCanvasPos(e)
@@ -95,7 +100,7 @@ export default {
       }
       // ... 其他工具
     }
-    
+
     // ...
   }
 }
@@ -117,4 +122,3 @@ export default {
 3. 完成 useCanvas.js（整合渲染逻辑）
 4. 重构 MapDesign.vue，使用所有 composables
 5. 测试确保功能正常
-

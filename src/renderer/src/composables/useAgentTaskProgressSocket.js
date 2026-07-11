@@ -38,7 +38,8 @@ function normalizeBaseUrl(options = {}) {
   const env = runtimeEnv()
   const configuredUrl = cleanText(options.baseUrl || env.VITE_AGENT_TASK_WS_URL)
   if (configuredUrl) return configuredUrl
-  const protocol = cleanText(options.protocol || env.VITE_AGENT_TASK_WS_PROTOCOL) || inferWsProtocol()
+  const protocol =
+    cleanText(options.protocol || env.VITE_AGENT_TASK_WS_PROTOCOL) || inferWsProtocol()
   const host = cleanText(options.host || env.VITE_AGENT_TASK_WS_HOST) || inferWsHost()
   const port = cleanText(options.port || env.VITE_AGENT_TASK_WS_PORT) || DEFAULT_PORT
   return `${protocol}://${host}:${port}${cleanText(options.path || env.VITE_AGENT_TASK_WS_PATH) || DEFAULT_PATH}`
@@ -104,7 +105,7 @@ export function useAgentTaskProgressSocket(options = {}) {
 
   function scheduleReconnect() {
     if (manualClose || typeof window === 'undefined') return
-    const delay = Math.min(RECONNECT_MAX_DELAY_MS, RECONNECT_BASE_DELAY_MS * (2 ** reconnectAttempt))
+    const delay = Math.min(RECONNECT_MAX_DELAY_MS, RECONNECT_BASE_DELAY_MS * 2 ** reconnectAttempt)
     reconnectAttempt += 1
     reconnectAttemptCount.value = reconnectAttempt
     status.value = 'reconnecting'
@@ -117,8 +118,7 @@ export function useAgentTaskProgressSocket(options = {}) {
 
   async function resolveServerInfo() {
     const resolver =
-      options.getServerInfo ||
-      (typeof window !== 'undefined' ? getAgentProgressServer : null)
+      options.getServerInfo || (typeof window !== 'undefined' ? getAgentProgressServer : null)
     if (typeof resolver !== 'function') return null
     try {
       const info = await resolver()
@@ -156,7 +156,8 @@ export function useAgentTaskProgressSocket(options = {}) {
       nextReconnectAt.value = ''
       lastCloseReason.value = ''
       status.value = 'connected'
-      error.value = serverInfo.value?.fallbackUsed && serverInfo.value?.message ? serverInfo.value.message : ''
+      error.value =
+        serverInfo.value?.fallbackUsed && serverInfo.value?.message ? serverInfo.value.message : ''
     }
     socket.onmessage = handleMessage
     socket.onerror = () => {
@@ -196,7 +197,14 @@ export function useAgentTaskProgressSocket(options = {}) {
     clearReconnectTimer()
     manualClose = false
 
-    if (!cleanText(latestFilters.bookName || latestFilters.bookPath || latestFilters.bookId || latestFilters.taskId)) {
+    if (
+      !cleanText(
+        latestFilters.bookName ||
+          latestFilters.bookPath ||
+          latestFilters.bookId ||
+          latestFilters.taskId
+      )
+    ) {
       disconnect()
       return
     }

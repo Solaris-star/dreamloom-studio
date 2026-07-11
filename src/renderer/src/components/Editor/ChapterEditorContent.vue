@@ -6,6 +6,7 @@ import TextAlign from '@tiptap/extension-text-align'
 import Highlight from '@tiptap/extension-highlight'
 import { createDocument, Extension } from '@tiptap/core'
 import { Collapsible } from '@renderer/extensions/Collapsible'
+import { TextHintDecorations } from '@renderer/extensions/TextHintDecorations'
 
 const props = defineProps({
   editorStore: {
@@ -82,6 +83,7 @@ function getChapterExtensions() {
       }
     }),
     TabInsert,
+    TextHintDecorations,
     Collapsible // Collapsible 扩展只在章节模式下使用
   ]
 }

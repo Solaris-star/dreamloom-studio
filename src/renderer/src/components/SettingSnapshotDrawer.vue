@@ -55,7 +55,11 @@
                 >
                   {{ t('settingSnapshot.restore') }}
                 </el-button>
-                <el-button size="small" :disabled="snapshotActionRunning" @click="openDiffDialog(snap)">
+                <el-button
+                  size="small"
+                  :disabled="snapshotActionRunning"
+                  @click="openDiffDialog(snap)"
+                >
                   {{ t('settingSnapshot.diff') }}
                 </el-button>
                 <el-button
@@ -84,22 +88,20 @@
       append-to-body
     >
       <div class="diff-select-row">
-        <el-select v-model="diffLeftId" :placeholder="t('settingSnapshot.selectLeft')" style="width: 45%">
-          <el-option
-            v-for="s in snapshotList"
-            :key="s.id"
-            :label="s.name"
-            :value="s.id"
-          />
+        <el-select
+          v-model="diffLeftId"
+          :placeholder="t('settingSnapshot.selectLeft')"
+          style="width: 45%"
+        >
+          <el-option v-for="s in snapshotList" :key="s.id" :label="s.name" :value="s.id" />
         </el-select>
         <span class="diff-vs">VS</span>
-        <el-select v-model="diffRightId" :placeholder="t('settingSnapshot.selectRight')" style="width: 45%">
-          <el-option
-            v-for="s in snapshotList"
-            :key="s.id"
-            :label="s.name"
-            :value="s.id"
-          />
+        <el-select
+          v-model="diffRightId"
+          :placeholder="t('settingSnapshot.selectRight')"
+          style="width: 45%"
+        >
+          <el-option v-for="s in snapshotList" :key="s.id" :label="s.name" :value="s.id" />
         </el-select>
       </div>
       <el-button
@@ -116,7 +118,11 @@
           <div class="diff-pane-title">新增 {{ diffResult.added.length }}</div>
           <el-scrollbar max-height="400px">
             <div v-if="diffResult.added.length" class="diff-list">
-              <div v-for="item in diffResult.added" :key="`added-${item.path}`" class="diff-row diff-added-row">
+              <div
+                v-for="item in diffResult.added"
+                :key="`added-${item.path}`"
+                class="diff-row diff-added-row"
+              >
                 <span class="diff-path">{{ item.path }}</span>
                 <span class="diff-desc">{{ item.introduction || '无简介' }}</span>
               </div>
@@ -128,7 +134,11 @@
           <div class="diff-pane-title">删除 {{ diffResult.removed.length }}</div>
           <el-scrollbar max-height="400px">
             <div v-if="diffResult.removed.length" class="diff-list">
-              <div v-for="item in diffResult.removed" :key="`removed-${item.path}`" class="diff-row diff-removed-row">
+              <div
+                v-for="item in diffResult.removed"
+                :key="`removed-${item.path}`"
+                class="diff-row diff-removed-row"
+              >
                 <span class="diff-path">{{ item.path }}</span>
                 <span class="diff-desc">{{ item.introduction || '无简介' }}</span>
               </div>
@@ -140,7 +150,11 @@
           <div class="diff-pane-title">修改 {{ diffResult.modified.length }}</div>
           <el-scrollbar max-height="400px">
             <div v-if="diffResult.modified.length" class="diff-list">
-              <div v-for="item in diffResult.modified" :key="`modified-${item.path}`" class="diff-row diff-modified-row">
+              <div
+                v-for="item in diffResult.modified"
+                :key="`modified-${item.path}`"
+                class="diff-row diff-modified-row"
+              >
                 <span class="diff-path">{{ item.path }}</span>
                 <span class="diff-desc">{{ item.introduction || '无简介' }}</span>
               </div>
@@ -187,7 +201,10 @@ const creatingSnapshot = ref(false)
 const restoringSnapshotId = ref('')
 const deletingSnapshotId = ref('')
 const snapshotActionRunning = computed(
-  () => creatingSnapshot.value || Boolean(restoringSnapshotId.value) || Boolean(deletingSnapshotId.value)
+  () =>
+    creatingSnapshot.value ||
+    Boolean(restoringSnapshotId.value) ||
+    Boolean(deletingSnapshotId.value)
 )
 
 watch(

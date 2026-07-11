@@ -20,9 +20,7 @@ function isInside(parentPath, candidatePath) {
 
 export function metadataPathForImage(imagePath) {
   const ext = extname(imagePath)
-  return ext
-    ? imagePath.slice(0, -ext.length) + '.json'
-    : `${imagePath}.json`
+  return ext ? imagePath.slice(0, -ext.length) + '.json' : `${imagePath}.json`
 }
 
 export function buildCharacterImageMetadata(input = {}) {

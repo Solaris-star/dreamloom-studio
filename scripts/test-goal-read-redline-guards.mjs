@@ -17,7 +17,7 @@ const goalServiceSource = readProjectFile('src/main/services/goalService.js')
 const statisticsServiceSource = readProjectFile('src/renderer/src/service/statisticsService.js')
 
 for (const expected of [
-  "throw new Error(`写作目标本地记录读取失败：${error.message}`)",
+  'throw new Error(`写作目标本地记录读取失败：${error.message}`)',
   "throw new Error('写作目标本地记录格式异常，已停止读取写作目标')",
   "throw new Error('写作目标列表格式异常，已停止读取写作目标以免掩盖原始记录问题')",
   "throw new Error('写作目标列表格式异常，已停止写入以免覆盖原始记录')",
@@ -33,7 +33,7 @@ for (const expected of [
 
 for (const forbidden of [
   'const store = readJson(STORE_FILE, {})',
-  'return store && typeof store === \'object\' ? store : {}',
+  "return store && typeof store === 'object' ? store : {}",
   'function asArray(value)',
   'asArray(storeGet(GOALS_KEY, []))',
   'storeSet(GOALS_KEY, asArray(goals).map(normalizeGoal))'
@@ -44,10 +44,10 @@ for (const forbidden of [
 for (const expected of [
   'result?.success !== true',
   "throw new Error('写作目标接口返回格式异常')",
-  "throw new Error(result?.message || `${label}失败`)",
+  'throw new Error(result?.message || `${label}失败`)',
   'requireArray(result.items, `${label}列表`)',
-  "throw new Error(`${label}接口返回目标不匹配`)",
-  "throw new Error(`${label}后目标仍在列表中`)",
+  'throw new Error(`${label}接口返回目标不匹配`)',
+  'throw new Error(`${label}后目标仍在列表中`)',
   "return requireGoalWriteResult(result, '删除目标', { expectedId: id, requireDeletedId: true })"
 ]) {
   assertIncludes(statisticsServiceSource, expected, `statistics goal client missing ${expected}`)
@@ -93,10 +93,16 @@ try {
     /写作目标列表格式异常/,
     'goal writes should stop when the stored goal list is malformed'
   )
-  assert.equal(readFileSync('.store.json', 'utf8'), JSON.stringify({ 'stats:goals': { broken: true } }))
+  assert.equal(
+    readFileSync('.store.json', 'utf8'),
+    JSON.stringify({ 'stats:goals': { broken: true } })
+  )
 
   writeFileSync('.store.json', JSON.stringify({}), 'utf8')
-  const createResult = goalService.createGoal({ title: '本月目标', targetValue: 1000 }, join(tempRoot, 'books'))
+  const createResult = goalService.createGoal(
+    { title: '本月目标', targetValue: 1000 },
+    join(tempRoot, 'books')
+  )
   assert.equal(createResult.success, true)
   assert.equal(createResult.item.title, '本月目标')
   assert.equal(Array.isArray(JSON.parse(readFileSync('.store.json', 'utf8'))['stats:goals']), true)

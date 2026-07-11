@@ -77,14 +77,8 @@ try {
     expectedHeight: 1600,
     valid: true
   })
-  assert.throws(
-    () => router.validateGeneratedImageSize(coverPng, '600x800'),
-    /生成图片尺寸不符/
-  )
-  assert.throws(
-    () => router.readPngDimensions(Buffer.from('not a png')),
-    /不是 PNG/
-  )
+  assert.throws(() => router.validateGeneratedImageSize(coverPng, '600x800'), /生成图片尺寸不符/)
+  assert.throws(() => router.readPngDimensions(Buffer.from('not a png')), /不是 PNG/)
 
   assert.deepEqual(router.listConfiguredImageProviders(store), [
     'tongyi',
@@ -142,17 +136,20 @@ try {
   const activeProvider = router.resolveImageProviderConfig(store, {})
   assert.equal(activeProvider.providerId, 'store-image-provider')
 
-  const plainStoreProvider = router.resolveImageProviderConfig({
-    aiProviders: [
-      {
-        id: 'plain-image-provider',
-        category: 'image',
-        baseUrl: 'https://plain-image-provider.example',
-        model: 'plain-image-model',
-        apiKey: 'plain-image-key'
-      }
-    ]
-  }, { providerId: 'plain-image-provider' })
+  const plainStoreProvider = router.resolveImageProviderConfig(
+    {
+      aiProviders: [
+        {
+          id: 'plain-image-provider',
+          category: 'image',
+          baseUrl: 'https://plain-image-provider.example',
+          model: 'plain-image-model',
+          apiKey: 'plain-image-key'
+        }
+      ]
+    },
+    { providerId: 'plain-image-provider' }
+  )
   assert.equal(plainStoreProvider.providerId, 'plain-image-provider')
   assert.equal(plainStoreProvider.model, 'plain-image-model')
 
@@ -174,15 +171,20 @@ try {
     /读取 Provider 失败：本地配置格式不正确/
   )
   assert.throws(
-    () => router.resolveImageProviderConfig(fakeStore({
-      aiProviders: [],
-      'aiProviders.activeImageId': { id: 'bad-active' },
-      'tongyiwanxiang.apiKey': 'store-tongyi-key'
-    }), {}),
+    () =>
+      router.resolveImageProviderConfig(
+        fakeStore({
+          aiProviders: [],
+          'aiProviders.activeImageId': { id: 'bad-active' },
+          'tongyiwanxiang.apiKey': 'store-tongyi-key'
+        }),
+        {}
+      ),
     /读取当前图像 Provider 失败：本地配置格式不正确/
   )
 
-  const customImageApi = (await import(`../src/main/services/customImageApi.js?case=${Date.now()}`)).default
+  const customImageApi = (await import(`../src/main/services/customImageApi.js?case=${Date.now()}`))
+    .default
   const originalFetch = globalThis.fetch
   const requestedBodies = []
   try {

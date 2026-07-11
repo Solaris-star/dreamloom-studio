@@ -1,6 +1,14 @@
 <template>
   <section class="novel-import-panel">
-    <el-alert v-if="errorMsg" class="inline-alert" type="error" :title="errorMsg" show-icon closable @close="errorMsg = ''" />
+    <el-alert
+      v-if="errorMsg"
+      class="inline-alert"
+      type="error"
+      :title="errorMsg"
+      show-icon
+      closable
+      @close="errorMsg = ''"
+    />
     <el-alert
       v-if="sourceWarningText"
       class="inline-alert"
@@ -16,7 +24,11 @@
         <div class="panel-title">
           <div>
             <h3>搜索结果</h3>
-            <p>{{ searchResult.length ? `${searchResult.length} 本书` : '选择书源并搜索书名或作者。' }}</p>
+            <p>
+              {{
+                searchResult.length ? `${searchResult.length} 本书` : '选择书源并搜索书名或作者。'
+              }}
+            </p>
           </div>
         </div>
 
@@ -25,14 +37,22 @@
             v-for="book in searchResult"
             :key="`${book.sourceId}:${book.url}`"
             class="result-item"
-            :class="{ selected: selectedBook?.url === book.url && selectedBook?.sourceId === book.sourceId }"
+            :class="{
+              selected: selectedBook?.url === book.url && selectedBook?.sourceId === book.sourceId
+            }"
             @click="handleSelectBook(book)"
           >
             <div>
               <h4>{{ book.title || '未命名小说' }}</h4>
-              <p>{{ book.author || '未知作者' }} · {{ book.sourceName || sourceName(book.sourceId) }}</p>
+              <p>
+                {{ book.author || '未知作者' }} · {{ book.sourceName || sourceName(book.sourceId) }}
+              </p>
             </div>
-            <el-button size="small" :loading="loadingChapters && selectedBook?.url === book.url" @click.stop="handleSelectBook(book)">
+            <el-button
+              size="small"
+              :loading="loadingChapters && selectedBook?.url === book.url"
+              @click.stop="handleSelectBook(book)"
+            >
               选择
             </el-button>
           </article>
@@ -45,15 +65,21 @@
       </section>
 
       <aside v-if="selectedBook" class="download-panel">
-        <span class="type-pill">{{ selectedBook.sourceName || sourceName(selectedBook.sourceId) }}</span>
+        <span class="type-pill">{{
+          selectedBook.sourceName || sourceName(selectedBook.sourceId)
+        }}</span>
         <h3>《{{ selectedBook.title }}》</h3>
         <p>{{ selectedBook.author || '未知作者' }} · {{ chapterList.length || '正在读取' }} 章</p>
         <div class="chapter-preview">
-          <span v-for="chapter in chapterList.slice(0, 5)" :key="chapter.url">{{ chapter.title }}</span>
+          <span v-for="chapter in chapterList.slice(0, 5)" :key="chapter.url">{{
+            chapter.title
+          }}</span>
         </div>
         <div v-if="chapterList.length" class="chapter-range">
           <div class="range-head">
-            <el-checkbox v-model="limitChapterCount" @change="markLimitTouched">只导入前</el-checkbox>
+            <el-checkbox v-model="limitChapterCount" @change="markLimitTouched"
+              >只导入前</el-checkbox
+            >
             <el-input-number
               v-model="chapterLimit"
               :disabled="!limitChapterCount"
@@ -75,9 +101,15 @@
             :disabled="!chapterList.length"
             @click="handleDownloadToBookshelf"
           >
-            {{ downloading ? `导入中 ${downloadProgress.current}/${downloadProgress.total}` : '下载并加入书架' }}
+            {{
+              downloading
+                ? `导入中 ${downloadProgress.current}/${downloadProgress.total}`
+                : '下载并加入书架'
+            }}
           </el-button>
-          <el-button :loading="downloading" :disabled="!chapterList.length" @click="handleExportTxt">导出 TXT</el-button>
+          <el-button :loading="downloading" :disabled="!chapterList.length" @click="handleExportTxt"
+            >导出 TXT</el-button
+          >
           <el-button @click="clearSelection">取消选择</el-button>
         </div>
       </aside>
@@ -184,7 +216,8 @@ async function loadSources() {
   try {
     sources.value = await getNovelSources()
     if (sources.value.length && !currentSourceId.value) {
-      currentSourceId.value = sources.value.find((source) => source.id === 'all')?.id || sources.value[0].id
+      currentSourceId.value =
+        sources.value.find((source) => source.id === 'all')?.id || sources.value[0].id
     }
   } catch (error) {
     errorMsg.value = error?.message || '读取书源失败'
@@ -240,7 +273,9 @@ async function handleSelectBook(book) {
   try {
     const [chapterResult, infoResult] = await Promise.allSettled([
       getNovelChapterList(book.url, book.sourceId),
-      book.coverUrl ? Promise.resolve({ success: true, info: { coverUrl: book.coverUrl } }) : getNovelBookInfo(book.url, book.sourceId)
+      book.coverUrl
+        ? Promise.resolve({ success: true, info: { coverUrl: book.coverUrl } })
+        : getNovelBookInfo(book.url, book.sourceId)
     ])
     if (infoResult.status === 'fulfilled') {
       selectedBook.value = {
@@ -373,8 +408,12 @@ function requireImportedBookVisible(books, expected = {}) {
   const expectedName = String(expected.name || '').trim()
   const expectedId = String(expected.id || '').trim()
   const found = books.some((book) => {
-    const names = [book?.name, book?.folderName, book?.id].map((value) => String(value || '').trim())
-    return (expectedName && names.includes(expectedName)) || (expectedId && names.includes(expectedId))
+    const names = [book?.name, book?.folderName, book?.id].map((value) =>
+      String(value || '').trim()
+    )
+    return (
+      (expectedName && names.includes(expectedName)) || (expectedId && names.includes(expectedId))
+    )
   })
   if (!found) {
     throw new Error('导入失败：书架刷新后未找到新作品')
@@ -409,14 +448,19 @@ async function handleDownloadToBookshelf() {
   }
 
   try {
-    const rangeText = targetChapters.length === chapterList.value.length
-      ? `共 ${targetChapters.length} 章`
-      : `本次导入前 ${targetChapters.length} 章，原书共 ${chapterList.value.length} 章`
-    await ElMessageBox.confirm(`确定下载《${book.title}》并加入书架吗？${rangeText}。`, '确认导入', {
-      confirmButtonText: '导入',
-      cancelButtonText: '取消',
-      type: 'info'
-    })
+    const rangeText =
+      targetChapters.length === chapterList.value.length
+        ? `共 ${targetChapters.length} 章`
+        : `本次导入前 ${targetChapters.length} 章，原书共 ${chapterList.value.length} 章`
+    await ElMessageBox.confirm(
+      `确定下载《${book.title}》并加入书架吗？${rangeText}。`,
+      '确认导入',
+      {
+        confirmButtonText: '导入',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    )
   } catch {
     return
   }
@@ -433,7 +477,9 @@ async function handleDownloadToBookshelf() {
       return
     }
     if (chapters.length < downloadedChapters.length) {
-      ElMessage.warning(`已跳过 ${downloadedChapters.length - chapters.length} 章失败或空正文，保存 ${chapters.length} 章`)
+      ElMessage.warning(
+        `已跳过 ${downloadedChapters.length - chapters.length} 章失败或空正文，保存 ${chapters.length} 章`
+      )
     }
     const imported = await createDownloadedBook(book, chapters)
     requireImportedBookVisible(await readBooksDir(), imported)
@@ -450,7 +496,9 @@ async function handleDownloadToBookshelf() {
 async function downloadChapters(book, chaptersToDownload = selectedChapterList.value) {
   const targetChapters = chaptersToDownload || []
   if (window.electron?.novelDownloadChapters) {
-    const result = requireDownloadedChaptersResult(await downloadNovelChapters(targetChapters, book.sourceId))
+    const result = requireDownloadedChaptersResult(
+      await downloadNovelChapters(targetChapters, book.sourceId)
+    )
     return result.chapters
   }
   const rows = []
@@ -458,7 +506,9 @@ async function downloadChapters(book, chaptersToDownload = selectedChapterList.v
     const chapter = targetChapters[index]
     downloadProgress.value = { current: index + 1, total: targetChapters.length }
     try {
-      const result = requireDownloadedChapterContentResult(await downloadNovelChapter(chapter.url, book.sourceId))
+      const result = requireDownloadedChapterContentResult(
+        await downloadNovelChapter(chapter.url, book.sourceId)
+      )
       rows.push({
         title: chapter.title,
         content: result.content,
@@ -483,7 +533,10 @@ async function createDownloadedBook(book, chapters) {
   const bookId = Date.now().toString() + Math.floor(Math.random() * 10000).toString()
   const type = 'xuanhua'
   const typeName = BOOK_TYPES.find((item) => item.value === type)?.label || '玄幻'
-  const totalWords = chapters.reduce((sum, chapter) => sum + (chapter.content || '').replace(/[\s\n\r\t]/g, '').length, 0)
+  const totalWords = chapters.reduce(
+    (sum, chapter) => sum + (chapter.content || '').replace(/[\s\n\r\t]/g, '').length,
+    0
+  )
 
   const createResult = await createBook({
     id: bookId,
@@ -545,7 +598,9 @@ async function handleExportTxt() {
   downloading.value = true
   downloadProgress.value = { current: 0, total: targetChapters.length }
   try {
-    const result = requireDownloadedChaptersResult(await downloadNovelChapters(targetChapters, book.sourceId))
+    const result = requireDownloadedChaptersResult(
+      await downloadNovelChapters(targetChapters, book.sourceId)
+    )
     const chapters = normalizeDownloadedChapters(result.chapters)
     if (!chapters.length) {
       ElMessage.error('没有下载到可导出的正文')

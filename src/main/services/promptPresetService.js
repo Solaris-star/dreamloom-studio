@@ -655,7 +655,8 @@ function numberOrDefault(value, fallback) {
 }
 
 function normalizeModelParams(preset = {}) {
-  const source = preset.modelParams && typeof preset.modelParams === 'object' ? preset.modelParams : preset
+  const source =
+    preset.modelParams && typeof preset.modelParams === 'object' ? preset.modelParams : preset
   return {
     temperature: numberOrDefault(source.temperature, 0.7),
     maxTokens: numberOrDefault(source.maxTokens, 2000),
@@ -667,7 +668,8 @@ function normalizeScopeFields(preset = {}, fallback = {}) {
   const bookPath = cleanPresetText(preset.bookPath) || cleanPresetText(fallback.bookPath)
   const bookId = cleanPresetText(preset.bookId) || cleanPresetText(fallback.bookId)
   const bookName = cleanPresetText(preset.bookName) || cleanPresetText(fallback.bookName)
-  const bookFolderName = cleanPresetText(preset.bookFolderName) || cleanPresetText(fallback.bookFolderName)
+  const bookFolderName =
+    cleanPresetText(preset.bookFolderName) || cleanPresetText(fallback.bookFolderName)
   const sourceScope = cleanPresetText(preset.scope) || cleanPresetText(fallback.scope)
   const hasBook = Boolean(bookPath || bookId || bookName || bookFolderName)
   const scope = sourceScope === 'book' || hasBook ? 'book' : 'global'
@@ -709,11 +711,17 @@ function buildCustomPreset(preset = {}, fallback = {}, existing = {}) {
   const now = new Date().toISOString()
   const modelParams = normalizeModelParams({ ...existing, ...preset })
   const scopeFields = normalizeScopeFields(preset, fallback)
-  const favorite = Boolean(preset.favorite ?? preset.isFavorite ?? existing.favorite ?? existing.isFavorite ?? false)
-  const sourcePresetId = cleanPresetText(preset.sourcePresetId) || cleanPresetText(existing.sourcePresetId)
+  const favorite = Boolean(
+    preset.favorite ?? preset.isFavorite ?? existing.favorite ?? existing.isFavorite ?? false
+  )
+  const sourcePresetId =
+    cleanPresetText(preset.sourcePresetId) || cleanPresetText(existing.sourcePresetId)
 
   return {
-    id: cleanPresetText(preset.id) || cleanPresetText(existing.id) || `preset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    id:
+      cleanPresetText(preset.id) ||
+      cleanPresetText(existing.id) ||
+      `preset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     name: preset.name || existing.name || '',
     category: preset.category || existing.category || 'chat',
     systemPrompt: preset.systemPrompt ?? existing.systemPrompt ?? '',
@@ -741,10 +749,13 @@ function saveCustomPresets(bookPath, presets) {
 }
 
 function listPresets(bookPath, options = {}) {
-  const custom = loadCustomPresets(bookPath).map((preset) => normalizePresetForRead(preset, options.scope || options))
-  const builtins = options.includeBuiltins === false
-    ? []
-    : BUILTIN_PRESETS.map((preset) => normalizePresetForRead(preset, { scope: 'builtin' }))
+  const custom = loadCustomPresets(bookPath).map((preset) =>
+    normalizePresetForRead(preset, options.scope || options)
+  )
+  const builtins =
+    options.includeBuiltins === false
+      ? []
+      : BUILTIN_PRESETS.map((preset) => normalizePresetForRead(preset, { scope: 'builtin' }))
   return [...builtins, ...custom]
 }
 

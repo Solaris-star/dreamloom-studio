@@ -136,7 +136,9 @@
     <template #footer>
       <div class="dialog-footer delete-confirm-footer">
         <el-button @click="deleteConfirmVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="danger" @click="confirmDeleteNode">{{ t('organizationDesign.confirmDelete') }}</el-button>
+        <el-button type="danger" @click="confirmDeleteNode">{{
+          t('organizationDesign.confirmDelete')
+        }}</el-button>
       </div>
     </template>
   </el-dialog>
@@ -440,7 +442,9 @@ const getNodePosition = (nodeId) => {
 }
 
 const getNewChildPosition = (parentNodeId) => {
-  const childCount = organizationData.value.lines.filter((line) => line.from === parentNodeId).length
+  const childCount = organizationData.value.lines.filter(
+    (line) => line.from === parentNodeId
+  ).length
   const parentPosition = getNodePosition(parentNodeId)
   const direction = childCount % 2 === 0 ? 1 : -1
   const horizontalOffset = Math.ceil(childCount / 2) * 140 * direction
@@ -706,7 +710,8 @@ const buildOrganizationNoteContent = () => {
     childrenMap.get(line.from).push(line.to)
   })
 
-  const rootNode = nodes.find((node) => node.type === 'root') || nodes.find((node) => !childNodeIds.has(node.id))
+  const rootNode =
+    nodes.find((node) => node.type === 'root') || nodes.find((node) => !childNodeIds.has(node.id))
   const visitedNodeIds = new Set()
   const paragraphs = [
     `<p data-note-outline data-level="0"><strong>${escapeHtml(organizationName.value || organizationId || t('organizationDesign.titleFallback'))}</strong></p>`,

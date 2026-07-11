@@ -248,7 +248,9 @@ async function handleConfirm() {
   } catch (error) {
     if (error !== 'cancel') {
       console.error('设置修改失败:', error)
-      ElMessage.error(t('chapterSettings.actionFailed', { reason: error.message || t('common.unknownError') }))
+      ElMessage.error(
+        t('chapterSettings.actionFailed', { reason: error.message || t('common.unknownError') })
+      )
     }
   } finally {
     loading.value = false
@@ -282,7 +284,9 @@ async function handleReformat() {
   } catch (error) {
     if (error !== 'cancel') {
       console.error('重新格式化失败:', error)
-      ElMessage.error(t('chapterSettings.actionFailed', { reason: error.message || t('common.unknownError') }))
+      ElMessage.error(
+        t('chapterSettings.actionFailed', { reason: error.message || t('common.unknownError') })
+      )
     }
   } finally {
     reformatLoading.value = false

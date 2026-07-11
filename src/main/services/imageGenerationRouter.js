@@ -13,11 +13,7 @@ export const IMAGE_PROVIDER_TONGYI = 'tongyi'
 export const IMAGE_PROVIDER_GEMINI = 'gemini'
 export const IMAGE_PROVIDER_DOUBAO = 'doubao'
 
-export const IMAGE_PROVIDERS = [
-  IMAGE_PROVIDER_TONGYI,
-  IMAGE_PROVIDER_GEMINI,
-  IMAGE_PROVIDER_DOUBAO
-]
+export const IMAGE_PROVIDERS = [IMAGE_PROVIDER_TONGYI, IMAGE_PROVIDER_GEMINI, IMAGE_PROVIDER_DOUBAO]
 
 export function normalizeImageProviderId(providerId) {
   const value = String(providerId || '').trim()
@@ -58,7 +54,9 @@ export function validateGeneratedImageSize(buffer, sizeStr) {
   }
   const valid = dims.width === expected.width && dims.height === expected.height
   if (!valid) {
-    throw new Error(`生成图片尺寸不符，期望: ${expected.width}x${expected.height}，实际: ${dims.width}x${dims.height}`)
+    throw new Error(
+      `生成图片尺寸不符，期望: ${expected.width}x${expected.height}，实际: ${dims.width}x${dims.height}`
+    )
   }
   return {
     width: dims.width,
@@ -80,7 +78,7 @@ function getValue(store, key, fallback = '') {
 
 function storedAiProviders(store) {
   if (!store) return []
-  const stored = (typeof store.get === 'function') ? store.get('aiProviders') : store.aiProviders
+  const stored = typeof store.get === 'function' ? store.get('aiProviders') : store.aiProviders
   if (stored === undefined || stored === null) return []
   if (Array.isArray(stored)) return stored
   if (Array.isArray(stored?.providers)) return stored.providers
@@ -139,7 +137,10 @@ export function resolveImageProviderConfig(store, options = {}) {
   // Validate store's aiProviders array structure
   const providers = storedAiProviders(store)
 
-  const activeImageId = (typeof store?.get === 'function') ? store?.get?.('aiProviders.activeImageId') : store?.['aiProviders.activeImageId']
+  const activeImageId =
+    typeof store?.get === 'function'
+      ? store?.get?.('aiProviders.activeImageId')
+      : store?.['aiProviders.activeImageId']
   if (activeImageId !== undefined && activeImageId !== null && typeof activeImageId !== 'string') {
     throw new Error('读取当前图像 Provider 失败：本地配置格式不正确')
   }

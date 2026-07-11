@@ -6,17 +6,17 @@ import { join } from 'node:path'
 
 const root = process.cwd()
 const registryPath = pathToFileURL(join(root, 'src/main/services/writingSkillRegistry.js')).href
-const {
-  getWritingSkill,
-  groupWritingSkills,
-  listWritingSkills,
-  normalizeWritingSkill
-} = await import(registryPath)
+const { getWritingSkill, groupWritingSkills, listWritingSkills, normalizeWritingSkill } =
+  await import(registryPath)
 
 const workspaceSkills = listWritingSkills()
 const workspaceDeslop = workspaceSkills.find((skill) => skill.id === 'story-deslop')
 assert.equal(workspaceDeslop?.source, 'external')
-assert.ok(workspaceDeslop.sourcePath.endsWith(join('resources', 'writing-skills', 'story-deslop', 'skill.json')))
+assert.ok(
+  workspaceDeslop.sourcePath.endsWith(
+    join('resources', 'writing-skills', 'story-deslop', 'skill.json')
+  )
+)
 assert.deepEqual(workspaceDeslop.references, ['resources/writing-skills/story-deslop/SKILL.md'])
 assert.equal(workspaceDeslop.label, '去 AI 味')
 assert.equal(getWritingSkill('deslop')?.id, 'story-deslop')

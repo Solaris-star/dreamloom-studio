@@ -36,7 +36,12 @@ try {
     id: 'gen_001',
     modelUsed: 'offline-model',
     result: '林青在夜色里赶到山门，借月影术避开追兵。',
-    review: { passed: false, score: 62, issues: ['初稿偏离写作要求'], revisionInstruction: '改成完整正文。' },
+    review: {
+      passed: false,
+      score: 62,
+      issues: ['初稿偏离写作要求'],
+      revisionInstruction: '改成完整正文。'
+    },
     usage: { calls: 2 },
     agentSteps: [
       {
@@ -113,7 +118,10 @@ try {
   assert.equal(memory.loaded, true)
   assert.equal(memory.taskCount, 1)
   assert.equal(memory.tasks[0].id, firstTask.id)
-  assert.equal(memory.tasks.some((item) => item.id === secondTask.id), false)
+  assert.equal(
+    memory.tasks.some((item) => item.id === secondTask.id),
+    false
+  )
   assert.equal(memory.eventCount > 0, true)
   assert.equal(memory.sources[0].type, 'agent_task')
 

@@ -8,19 +8,16 @@ import {
 } from '../src/renderer/src/service/localBookImport.js'
 
 const txtBook = parseLocalBookText(
-  [
-    '第1章 初见',
-    '风从窗外吹进来。',
-    '',
-    '第2章 再会',
-    '灯火亮了起来。'
-  ].join('\n'),
+  ['第1章 初见', '风从窗外吹进来。', '', '第2章 再会', '灯火亮了起来。'].join('\n'),
   { fileName: '旧城故事.txt', extension: 'txt' }
 )
 
 assert.equal(txtBook.title, '旧城故事')
 assert.equal(txtBook.chapterCount, 2)
-assert.deepEqual(txtBook.chapters.map((chapter) => chapter.title), ['第1章 初见', '第2章 再会'])
+assert.deepEqual(
+  txtBook.chapters.map((chapter) => chapter.title),
+  ['第1章 初见', '第2章 再会']
+)
 assert.equal(txtBook.totalWords, 15)
 
 const markdownBook = parseLocalBookText(
@@ -38,7 +35,10 @@ const markdownBook = parseLocalBookText(
 
 assert.equal(markdownBook.title, '风灯手记')
 assert.equal(markdownBook.chapterCount, 2)
-assert.deepEqual(markdownBook.chapters.map((chapter) => chapter.title), ['Chapter 1', 'Chapter 2'])
+assert.deepEqual(
+  markdownBook.chapters.map((chapter) => chapter.title),
+  ['Chapter 1', 'Chapter 2']
+)
 assert.equal(markdownBook.chapters[0].content, 'Hello reader')
 assert.equal(markdownBook.chapters[1].content, 'first item')
 

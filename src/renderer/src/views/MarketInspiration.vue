@@ -18,14 +18,24 @@
         </div>
         <label class="target-book-picker">
           <span>目标作品</span>
-          <select v-model="selectedBookId" :disabled="books.length === 0" @change="rememberSelectedBook">
+          <select
+            v-model="selectedBookId"
+            :disabled="books.length === 0"
+            @change="rememberSelectedBook"
+          >
             <option value="">{{ books.length ? '请选择作品' : '暂无作品' }}</option>
             <option v-for="book in books" :key="bookIdentity(book)" :value="bookIdentity(book)">
               {{ book.name || book.folderName || book.id }}
             </option>
           </select>
         </label>
-        <button v-motion-feedback class="dark-button" type="button" :disabled="refreshing" @click="handleRefresh">
+        <button
+          v-motion-feedback
+          class="dark-button"
+          type="button"
+          :disabled="refreshing"
+          @click="handleRefresh"
+        >
           <RefreshCw :size="16" :class="{ spin: refreshing }" />
           {{ refreshing ? '刷新中' : '刷新灵感' }}
         </button>
@@ -74,7 +84,10 @@
 
     <section v-else-if="activeTab === 'overview'" class="overview-grid">
       <aside
-        v-motion-list="{ selector: '.direction-card', key: `directions:${channel}:${overview.writableDirections.length}` }"
+        v-motion-list="{
+          selector: '.direction-card',
+          key: `directions:${channel}:${overview.writableDirections.length}`
+        }"
         class="paper-panel writable-list"
       >
         <div class="panel-title">
@@ -123,7 +136,10 @@
       </aside>
 
       <main
-        v-motion-list="{ selector: ':scope > section', key: `overview-center:${channel}:${overview.inspirationExpress.length}` }"
+        v-motion-list="{
+          selector: ':scope > section',
+          key: `overview-center:${channel}:${overview.inspirationExpress.length}`
+        }"
         class="overview-center"
       >
         <section class="opportunity-card">
@@ -212,7 +228,10 @@
 
     <section v-else-if="activeTab === 'rankings'" class="rank-grid">
       <aside
-        v-motion-list="{ selector: '.source-row', key: `sources:${selectedSource}:${hotRank.sources.length}` }"
+        v-motion-list="{
+          selector: '.source-row',
+          key: `sources:${selectedSource}:${hotRank.sources.length}`
+        }"
         class="paper-panel source-filter"
       >
         <div class="panel-title">
@@ -244,12 +263,18 @@
         <div class="source-summary">
           <strong>今日可转化热点</strong>
           <b>{{ hotRank.items.length }}</b>
-          <span>男频 {{ countByChannel('male') }} · 女频 {{ countByChannel('female') }} · 通用 {{ countByChannel('all') }}</span>
+          <span
+            >男频 {{ countByChannel('male') }} · 女频 {{ countByChannel('female') }} · 通用
+            {{ countByChannel('all') }}</span
+          >
         </div>
       </aside>
 
       <main
-        v-motion-list="{ selector: '.hot-card', key: `rank:${selectedSource}:${hotRank.items.length}` }"
+        v-motion-list="{
+          selector: '.hot-card',
+          key: `rank:${selectedSource}:${hotRank.items.length}`
+        }"
         class="paper-panel hot-rank-list"
       >
         <div class="panel-title">
@@ -341,7 +366,10 @@
         </div>
 
         <div
-          v-motion-list="{ selector: '.combo-card', key: `combos:${keywordCloud.popularCombinations.length}` }"
+          v-motion-list="{
+            selector: '.combo-card',
+            key: `combos:${keywordCloud.popularCombinations.length}`
+          }"
           class="popular-combos"
         >
           <div class="panel-title slim">
@@ -359,7 +387,11 @@
             <span>热度 {{ combo.heatScore }} · 增长 {{ combo.growthScore }}</span>
             <p>{{ combo.direction }}</p>
             <i v-if="showKeywordTrend">
-              <em v-for="(point, index) in combo.trend" :key="index" :style="{ height: `${point}%` }"></em>
+              <em
+                v-for="(point, index) in combo.trend"
+                :key="index"
+                :style="{ height: `${point}%` }"
+              ></em>
             </i>
           </button>
         </div>
@@ -397,7 +429,10 @@
 
     <section v-else class="activity-grid">
       <main
-        v-motion-list="{ selector: '.activity-card', key: `activities:${activityBoard.activities.length}` }"
+        v-motion-list="{
+          selector: '.activity-card',
+          key: `activities:${activityBoard.activities.length}`
+        }"
         class="paper-panel activity-list-panel"
       >
         <div class="activity-note">
@@ -424,9 +459,15 @@
                 <span :class="activity.status">{{ activityStatusLabel(activity.status) }}</span>
               </div>
               <div class="activity-columns">
-                <span>适合频道：{{ activity.platform }} / {{ channelLabel(activity.channel) }}</span>
-                <span>投稿截止：{{ formatDate(activity.deadline || activity.endDate) || '未知' }}</span>
-                <span>推荐题材：{{ (activity.genres || activity.categories || []).join(' / ') }}</span>
+                <span
+                  >适合频道：{{ activity.platform }} / {{ channelLabel(activity.channel) }}</span
+                >
+                <span
+                  >投稿截止：{{ formatDate(activity.deadline || activity.endDate) || '未知' }}</span
+                >
+                <span
+                  >推荐题材：{{ (activity.genres || activity.categories || []).join(' / ') }}</span
+                >
                 <span>字数：{{ activity.wordCountRequirement || '按官方要求' }}</span>
               </div>
               <p>{{ activity.summary }}</p>
@@ -438,7 +479,9 @@
           </button>
           <div class="card-actions">
             <button type="button" @click.stop="handleSaveActivityPlan(activity)">存入计划</button>
-            <button type="button" @click.stop="handleActivityDirection(activity)">生成投稿方向</button>
+            <button type="button" @click.stop="handleActivityDirection(activity)">
+              生成投稿方向
+            </button>
             <button type="button" @click.stop="selectedActivity = activity">匹配我的作品</button>
           </div>
         </article>
@@ -447,18 +490,34 @@
       <aside class="paper-panel activity-detail-panel">
         <div class="panel-title">
           <h2>活动匹配详情</h2>
-          <span>{{ selectedActivity ? activityStatusLabel(selectedActivity.status) : '未选择' }}</span>
+          <span>{{
+            selectedActivity ? activityStatusLabel(selectedActivity.status) : '未选择'
+          }}</span>
         </div>
         <template v-if="selectedActivity">
           <h3>{{ selectedActivity.title }}</h3>
-          <InfoRow label="投稿截止" :items="[formatDate(selectedActivity.deadline || selectedActivity.endDate) || '未知']" />
-          <InfoRow label="适合频道" :items="[selectedActivity.platform, channelLabel(selectedActivity.channel)]" />
+          <InfoRow
+            label="投稿截止"
+            :items="[formatDate(selectedActivity.deadline || selectedActivity.endDate) || '未知']"
+          />
+          <InfoRow
+            label="适合频道"
+            :items="[selectedActivity.platform, channelLabel(selectedActivity.channel)]"
+          />
           <InfoRow label="活动规则摘要" :items="[selectedActivity.summary]" />
-          <InfoRow label="推荐题材方向" :items="selectedActivity.genres || selectedActivity.categories" />
-          <InfoRow label="字数建议" :items="[selectedActivity.wordCountRequirement || '按官方要求']" />
+          <InfoRow
+            label="推荐题材方向"
+            :items="selectedActivity.genres || selectedActivity.categories"
+          />
+          <InfoRow
+            label="字数建议"
+            :items="[selectedActivity.wordCountRequirement || '按官方要求']"
+          />
           <section class="translation-result">
             <h4>推荐切入方式</h4>
-            <p>{{ selectedActivity.recommendedDirection || selectedActivity.requirementSummary }}</p>
+            <p>
+              {{ selectedActivity.recommendedDirection || selectedActivity.requirementSummary }}
+            </p>
           </section>
           <section class="matched-books">
             <h4>选择目标作品</h4>
@@ -471,7 +530,11 @@
               @click="selectTargetBook(book)"
             >
               <b>{{ book.name }}</b>
-              <span>{{ selectedBookId === bookIdentity(book) ? '已选为目标作品' : `${selectedActivity.fitScore || 82}% · 可按活动题材微调开篇和简介` }}</span>
+              <span>{{
+                selectedBookId === bookIdentity(book)
+                  ? '已选为目标作品'
+                  : `${selectedActivity.fitScore || 82}% · 可按活动题材微调开篇和简介`
+              }}</span>
             </button>
           </section>
           <MarketActionBar
@@ -576,7 +639,7 @@ const overview = reactive({
   opportunityIndex: {},
   genreDistribution: [],
   inspirationExpress: [],
-  selectedInsight: null,
+  selectedInsight: null
 })
 
 const hotRank = reactive({
@@ -604,12 +667,13 @@ const activeTab = computed(() => {
   return 'overview'
 })
 
-const hasAnyData = computed(() => (
-  overview.writableDirections.length ||
-  hotRank.items.length ||
-  keywordCloud.keywordClusters.length ||
-  activityBoard.activities.length
-))
+const hasAnyData = computed(
+  () =>
+    overview.writableDirections.length ||
+    hotRank.items.length ||
+    keywordCloud.keywordClusters.length ||
+    activityBoard.activities.length
+)
 
 const lastUpdatedAt = computed(() => dashboard.lastUpdatedAt || overview.lastUpdatedAt || '')
 
@@ -687,7 +751,11 @@ function requireMarketBookResult(result) {
 
 function requireMarketDashboardResult(result) {
   const ok = requireMarketSuccess(result, '市场概览读取失败')
-  if (!Array.isArray(ok.sourceStatus) || !Array.isArray(ok.topOpportunities) || !Array.isArray(ok.recentTrends)) {
+  if (
+    !Array.isArray(ok.sourceStatus) ||
+    !Array.isArray(ok.topOpportunities) ||
+    !Array.isArray(ok.recentTrends)
+  ) {
     throw new Error('市场概览读取失败：接口返回格式不正确')
   }
   return ok
@@ -755,13 +823,14 @@ async function loadMarket() {
   pageError.value = ''
   try {
     const payload = { channel: channel.value, source: selectedSource.value }
-    const [dashboardResult, overviewResult, rankResult, keywordResult, activityResult] = await Promise.all([
-      getMarketDashboard(payload),
-      getMarketOverview(payload),
-      getMarketHotRank(payload),
-      getMarketKeywordCloud(payload),
-      getMarketActivitiesBoard(payload)
-    ])
+    const [dashboardResult, overviewResult, rankResult, keywordResult, activityResult] =
+      await Promise.all([
+        getMarketDashboard(payload),
+        getMarketOverview(payload),
+        getMarketHotRank(payload),
+        getMarketKeywordCloud(payload),
+        getMarketActivitiesBoard(payload)
+      ])
     const dashboardPayload = requireMarketDashboardResult(dashboardResult)
     const overviewPayload = requireMarketOverviewResult(overviewResult)
     const rankPayload = requireMarketHotRankResult(rankResult)
@@ -778,7 +847,8 @@ async function loadMarket() {
     Object.assign(activityBoard, normalizeActivityBoard(activityPayload))
     selectedInsight.value = overview.selectedInsight || overview.writableDirections[0] || null
     selectedHotRank.value = hotRank.selectedItem || hotRank.items[0] || null
-    selectedActivity.value = activityBoard.selectedActivityDetail || activityBoard.activities[0] || null
+    selectedActivity.value =
+      activityBoard.selectedActivityDetail || activityBoard.activities[0] || null
     combinationDetail.value = keywordCloud.defaultCombinationDetail || combinationDetail.value || {}
   } catch (error) {
     pageError.value = error?.message || '市场灵感加载失败'
@@ -834,7 +904,10 @@ function sortByChannel(rows, target = 'all') {
     const bi = order.indexOf(b.channel)
     const channelDiff = (ai === -1 ? 9 : ai) - (bi === -1 ? 9 : bi)
     if (channelDiff !== 0) return channelDiff
-    return Number(b.opportunityScore || b.fitScore || b.score || 0) - Number(a.opportunityScore || a.fitScore || a.score || 0)
+    return (
+      Number(b.opportunityScore || b.fitScore || b.score || 0) -
+      Number(a.opportunityScore || a.fitScore || a.score || 0)
+    )
   })
 }
 
@@ -910,7 +983,11 @@ async function handleSaveInsight(insight = selectedInsight.value) {
   if (!insight) return
   actionLoading.value = 'save'
   try {
-    const result = await saveMarketInspiration({ insightId: insight.id, insight, channel: channel.value })
+    const result = await saveMarketInspiration({
+      insightId: insight.id,
+      insight,
+      channel: channel.value
+    })
     const saved = requireMarketKnowledgeResult(result, '保存失败')
     const title = saved.duplicate ? '灵感库已有该题材，已刷新' : '已存入灵感库'
     ElMessage.success(title)
@@ -931,26 +1008,33 @@ async function handleGenerateOutline(insight = selectedInsight.value) {
   if (!insight) return
   actionLoading.value = 'outline'
   try {
-    const result = await generateMarketOutline({ insightId: insight.id, insight, mode: 'save_only', channel: channel.value })
+    const result = await generateMarketOutline({
+      insightId: insight.id,
+      insight,
+      mode: 'save_only',
+      channel: channel.value
+    })
     const outlineResult = requireMarketOutlineResult(result)
-    const job = requireMarketJobResult(await createCreationStarterJob({
-      prompt: `基于市场灵感“${insight.title}”和模板草案继续细化大纲。`,
-      references: [
-        {
-          key: `market-outline:${Date.now()}`,
-          type: 'market_outline',
-          typeLabel: outlineResult.outline.generatorLabel || '市场灵感模板草案',
-          title: insight.title,
-          summary: outlineResult.outline.logline || insight.hook,
-          raw: outlineResult.outline,
-          source: outlineResult.outline.generator || 'template'
+    const job = requireMarketJobResult(
+      await createCreationStarterJob({
+        prompt: `基于市场灵感“${insight.title}”和模板草案继续细化大纲。`,
+        references: [
+          {
+            key: `market-outline:${Date.now()}`,
+            type: 'market_outline',
+            typeLabel: outlineResult.outline.generatorLabel || '市场灵感模板草案',
+            title: insight.title,
+            summary: outlineResult.outline.logline || insight.hook,
+            raw: outlineResult.outline,
+            source: outlineResult.outline.generator || 'template'
+          }
+        ],
+        advanced: {
+          source: 'market_inspiration',
+          marketOutlineGenerator: outlineResult.outline.generator || 'template'
         }
-      ],
-      advanced: {
-        source: 'market_inspiration',
-        marketOutlineGenerator: outlineResult.outline.generator || 'template'
-      }
-    }))
+      })
+    )
     ElMessage.success('模板草案已生成，并已保存为灵感任务')
     setActionResult({
       title: '模板草案已生成',
@@ -991,7 +1075,10 @@ async function handleApplyToBook(insight = selectedInsight.value) {
       title: '已带入目标作品',
       description: `结果在《${bookName}》的作品资产里。`,
       actionText: '打开作品资产',
-      route: { path: `/knowledge/books/${encodeURIComponent(bookIdentity(book))}`, query: { tab: 'chapters' } }
+      route: {
+        path: `/knowledge/books/${encodeURIComponent(bookIdentity(book))}`,
+        query: { tab: 'chapters' }
+      }
     })
   } catch (error) {
     ElMessage.error(error?.message || '带入失败')
@@ -1220,13 +1307,15 @@ function sourceConnectionState(row = {}) {
 }
 
 function sourceStateText(state, successText = '正常', errorText = '异常', emptyText = '未配置') {
-  return {
-    success: successText,
-    stale: '资料过期',
-    error: errorText,
-    empty: emptyText,
-    skipped: emptyText
-  }[state] || '未知'
+  return (
+    {
+      success: successText,
+      stale: '资料过期',
+      error: errorText,
+      empty: emptyText,
+      skipped: emptyText
+    }[state] || '未知'
+  )
 }
 
 function countByChannel(target) {
@@ -1238,23 +1327,27 @@ function channelLabel(value) {
 }
 
 function sourceStatusText(value) {
-  return {
-    success: '正常',
-    stale: '资料过期',
-    error: '异常',
-    empty: '空',
-    skipped: '跳过'
-  }[value] || '未知'
+  return (
+    {
+      success: '正常',
+      stale: '资料过期',
+      error: '异常',
+      empty: '空',
+      skipped: '跳过'
+    }[value] || '未知'
+  )
 }
 
 function activityStatusLabel(value) {
-  return {
-    ongoing: '进行中',
-    upcoming: '即将开始',
-    ending_soon: '截止临近',
-    ended: '已结束',
-    unknown: '未知'
-  }[value] || '未知'
+  return (
+    {
+      ongoing: '进行中',
+      upcoming: '即将开始',
+      ending_soon: '截止临近',
+      ended: '已结束',
+      unknown: '未知'
+    }[value] || '未知'
+  )
 }
 
 function formatDateTime(value) {
@@ -1321,7 +1414,9 @@ const InfoRow = defineComponent({
   },
   setup(props) {
     return () => {
-      const values = Array.isArray(props.items) ? props.items.filter(Boolean) : [props.items].filter(Boolean)
+      const values = Array.isArray(props.items)
+        ? props.items.filter(Boolean)
+        : [props.items].filter(Boolean)
       return h('div', { class: 'info-row' }, [
         h('span', props.label),
         h('div', values.length ? values.map((item) => h('em', String(item))) : [h('em', '暂无')])
@@ -1341,21 +1436,26 @@ const MarketActionBar = defineComponent({
   emits: ['save', 'outline', 'apply', 'create-book'],
   setup(props, { emit }) {
     const btn = (key, label, primary = false) =>
-      h('button', {
-        type: 'button',
-        class: { primary, loading: props.loadingKey === key, 'motion-feedback-button': true },
-        disabled: Boolean(props.loadingKey),
-        onClick: (event) => {
-          animateBounce(event.currentTarget)
-          emit(key === 'create' ? 'create-book' : key)
-        }
-      }, props.loadingKey === key ? '处理中' : label)
-  return () => h('div', { class: 'market-action-bar' }, [
-      btn('save', props.saveLabel, true),
-      btn('outline', props.outlineLabel),
-      btn('apply', props.applyLabel),
-      btn('create', props.createLabel, true)
-    ])
+      h(
+        'button',
+        {
+          type: 'button',
+          class: { primary, loading: props.loadingKey === key, 'motion-feedback-button': true },
+          disabled: Boolean(props.loadingKey),
+          onClick: (event) => {
+            animateBounce(event.currentTarget)
+            emit(key === 'create' ? 'create-book' : key)
+          }
+        },
+        props.loadingKey === key ? '处理中' : label
+      )
+    return () =>
+      h('div', { class: 'market-action-bar' }, [
+        btn('save', props.saveLabel, true),
+        btn('outline', props.outlineLabel),
+        btn('apply', props.applyLabel),
+        btn('create', props.createLabel, true)
+      ])
   }
 })
 
@@ -1368,37 +1468,48 @@ const InsightDetailPanel = defineComponent({
   },
   emits: ['save', 'outline', 'apply', 'create-book'],
   setup(props, { emit }) {
-    return () => h('aside', { class: 'paper-panel insight-detail-panel' }, [
-      h('div', { class: 'panel-title' }, [
-        h('div', [h('h2', props.title), h('p', '点击左侧方向查看详情')]),
+    return () =>
+      h('aside', { class: 'paper-panel insight-detail-panel' }, [
+        h('div', { class: 'panel-title' }, [
+          h('div', [h('h2', props.title), h('p', '点击左侧方向查看详情')]),
+          props.insight
+            ? h('b', { class: 'heat-mark' }, [
+                h(Flame, { size: 15, strokeWidth: 2 }),
+                String(props.insight.heatScore || 0)
+              ])
+            : null
+        ]),
         props.insight
-          ? h('b', { class: 'heat-mark' }, [
-              h(Flame, { size: 15, strokeWidth: 2 }),
-              String(props.insight.heatScore || 0)
+          ? h('div', { class: 'detail-body' }, [
+              h('h3', props.insight.title),
+              h(
+                'div',
+                { class: 'tag-line' },
+                (props.insight.tags || []).slice(0, 6).map((tag) => h('span', tag))
+              ),
+              h(InfoRow, {
+                label: '热点来源',
+                items: [props.insight.sourceSummary || props.insight.source]
+              }),
+              h(InfoRow, { label: '读者情绪', items: props.insight.readerEmotion || [] }),
+              h(InfoRow, { label: '核心冲突', items: [props.insight.conflict] }),
+              h(InfoRow, { label: '故事潜力', items: [props.insight.storyPotential] }),
+              h(InfoRow, { label: '书名方向', items: props.insight.bookTitleIdeas || [] }),
+              h(InfoRow, { label: '一句话简介', items: props.insight.loglineIdeas || [] }),
+              h(InfoRow, { label: '开篇切入点', items: props.insight.openingIdeas || [] }),
+              h(MarketActionBar, {
+                loadingKey: props.loadingKey,
+                onSave: () => emit('save', props.insight),
+                onOutline: () => emit('outline', props.insight),
+                onApply: () => emit('apply', props.insight),
+                onCreateBook: () => emit('create-book', props.insight)
+              })
             ])
-          : null
-      ]),
-      props.insight
-        ? h('div', { class: 'detail-body' }, [
-            h('h3', props.insight.title),
-            h('div', { class: 'tag-line' }, (props.insight.tags || []).slice(0, 6).map((tag) => h('span', tag))),
-            h(InfoRow, { label: '热点来源', items: [props.insight.sourceSummary || props.insight.source] }),
-            h(InfoRow, { label: '读者情绪', items: props.insight.readerEmotion || [] }),
-            h(InfoRow, { label: '核心冲突', items: [props.insight.conflict] }),
-            h(InfoRow, { label: '故事潜力', items: [props.insight.storyPotential] }),
-            h(InfoRow, { label: '书名方向', items: props.insight.bookTitleIdeas || [] }),
-            h(InfoRow, { label: '一句话简介', items: props.insight.loglineIdeas || [] }),
-            h(InfoRow, { label: '开篇切入点', items: props.insight.openingIdeas || [] }),
-            h(MarketActionBar, {
-              loadingKey: props.loadingKey,
-              onSave: () => emit('save', props.insight),
-              onOutline: () => emit('outline', props.insight),
-              onApply: () => emit('apply', props.insight),
-              onCreateBook: () => emit('create-book', props.insight)
+          : h(MarketEmptyState, {
+              title: '请选择题材方向。',
+              description: '点击任意卡片后，这里会显示小说化转写结果。'
             })
-          ])
-        : h(MarketEmptyState, { title: '请选择题材方向。', description: '点击任意卡片后，这里会显示小说化转写结果。' })
-    ])
+      ])
   }
 })
 
@@ -1408,16 +1519,22 @@ const MarketEmptyState = defineComponent({
     description: { type: String, default: '' }
   },
   setup(props) {
-    return () => h('div', { class: 'market-empty' }, [
-      h('strong', props.title),
-      props.description ? h('p', props.description) : null
-    ])
+    return () =>
+      h('div', { class: 'market-empty' }, [
+        h('strong', props.title),
+        props.description ? h('p', props.description) : null
+      ])
   }
 })
 
 const MarketLoadingSkeleton = defineComponent({
   setup() {
-    return () => h('div', { class: 'market-skeleton' }, Array.from({ length: 9 }).map((_, index) => h('i', { key: index })))
+    return () =>
+      h(
+        'div',
+        { class: 'market-skeleton' },
+        Array.from({ length: 9 }).map((_, index) => h('i', { key: index }))
+      )
   }
 })
 </script>
@@ -1521,10 +1638,18 @@ button {
   border-radius: 999px;
 }
 
-.source-chip i.success { background: var(--wabi-moss); }
-.source-chip i.stale { background: var(--wabi-earth); }
-.source-chip i.error { background: var(--wabi-rust); }
-.source-chip i.empty { background: var(--wabi-muted-2); }
+.source-chip i.success {
+  background: var(--wabi-moss);
+}
+.source-chip i.stale {
+  background: var(--wabi-earth);
+}
+.source-chip i.error {
+  background: var(--wabi-rust);
+}
+.source-chip i.empty {
+  background: var(--wabi-muted-2);
+}
 
 .target-book-picker {
   display: grid;
@@ -1568,7 +1693,9 @@ button {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .error-banner {
@@ -1685,8 +1812,7 @@ button {
   border-radius: 12px;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.34), transparent 58%),
-    linear-gradient(180deg, rgba(251, 250, 246, 0.96), rgba(240, 236, 227, 0.84)),
-    var(--paper);
+    linear-gradient(180deg, rgba(251, 250, 246, 0.96), rgba(240, 236, 227, 0.84)), var(--paper);
   box-shadow: var(--shadow);
 }
 
@@ -1748,7 +1874,10 @@ button {
   color: inherit;
   cursor: pointer;
   text-align: left;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .writable-list {
@@ -2217,8 +2346,7 @@ button {
     radial-gradient(ellipse at 72% 26%, rgba(72, 81, 92, 0.1) 0 21%, transparent 36%),
     radial-gradient(ellipse at 44% 70%, rgba(111, 122, 104, 0.12) 0 19%, transparent 34%),
     radial-gradient(ellipse at 56% 48%, rgba(138, 115, 93, 0.1) 0 23%, transparent 38%),
-    linear-gradient(130deg, rgba(255, 255, 255, 0.72), rgba(240, 236, 227, 0.46)),
-    #fbfaf6;
+    linear-gradient(130deg, rgba(255, 255, 255, 0.72), rgba(240, 236, 227, 0.46)), #fbfaf6;
 }
 
 .keyword-universe::before,
@@ -2253,19 +2381,39 @@ button {
   animation: floatWord 5s ease-in-out infinite;
 }
 
-.keyword-orbit.emotion { color: var(--wabi-rust); background: rgba(154, 96, 74, 0.08); }
-.keyword-orbit.character { color: var(--wabi-indigo); background: rgba(72, 81, 92, 0.08); }
-.keyword-orbit.genre { color: var(--wabi-earth); background: rgba(138, 115, 93, 0.1); }
-.keyword-orbit.conflict { color: #6d6258; background: rgba(109, 98, 88, 0.08); }
-.keyword-orbit.platform { color: var(--wabi-moss-dark); background: rgba(111, 122, 104, 0.1); }
+.keyword-orbit.emotion {
+  color: var(--wabi-rust);
+  background: rgba(154, 96, 74, 0.08);
+}
+.keyword-orbit.character {
+  color: var(--wabi-indigo);
+  background: rgba(72, 81, 92, 0.08);
+}
+.keyword-orbit.genre {
+  color: var(--wabi-earth);
+  background: rgba(138, 115, 93, 0.1);
+}
+.keyword-orbit.conflict {
+  color: #6d6258;
+  background: rgba(109, 98, 88, 0.08);
+}
+.keyword-orbit.platform {
+  color: var(--wabi-moss-dark);
+  background: rgba(111, 122, 104, 0.1);
+}
 .keyword-orbit.selected {
   outline: 3px solid rgba(111, 122, 104, 0.22);
   transform: translate(-50%, -50%) scale(1.08);
 }
 
 @keyframes floatWord {
-  0%, 100% { margin-top: 0; }
-  50% { margin-top: -10px; }
+  0%,
+  100% {
+    margin-top: 0;
+  }
+  50% {
+    margin-top: -10px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2310,11 +2458,25 @@ button {
   transform: rotate(-8deg);
 }
 
-.combo-card em:nth-child(1) { left: 0; }
-.combo-card em:nth-child(2) { left: 19%; transform: rotate(7deg); }
-.combo-card em:nth-child(3) { left: 38%; transform: rotate(-4deg); }
-.combo-card em:nth-child(4) { left: 57%; transform: rotate(6deg); }
-.combo-card em:nth-child(5) { left: 76%; transform: rotate(-5deg); }
+.combo-card em:nth-child(1) {
+  left: 0;
+}
+.combo-card em:nth-child(2) {
+  left: 19%;
+  transform: rotate(7deg);
+}
+.combo-card em:nth-child(3) {
+  left: 38%;
+  transform: rotate(-4deg);
+}
+.combo-card em:nth-child(4) {
+  left: 57%;
+  transform: rotate(6deg);
+}
+.combo-card em:nth-child(5) {
+  left: 76%;
+  transform: rotate(-5deg);
+}
 
 .combination-panel,
 .activity-detail-panel {
@@ -2383,9 +2545,18 @@ button {
   font-size: 13px;
 }
 
-.activity-head span.ongoing { background: rgba(111, 122, 104, 0.12); color: var(--wabi-moss-dark); }
-.activity-head span.ending_soon { background: rgba(138, 115, 93, 0.12); color: var(--wabi-earth); }
-.activity-head span.ended { background: rgba(58, 55, 49, 0.08); color: var(--wabi-muted); }
+.activity-head span.ongoing {
+  background: rgba(111, 122, 104, 0.12);
+  color: var(--wabi-moss-dark);
+}
+.activity-head span.ending_soon {
+  background: rgba(138, 115, 93, 0.12);
+  color: var(--wabi-earth);
+}
+.activity-head span.ended {
+  background: rgba(58, 55, 49, 0.08);
+  color: var(--wabi-muted);
+}
 
 .fit-score {
   display: grid;
@@ -2453,7 +2624,9 @@ button {
 }
 
 @keyframes pulse {
-  50% { opacity: 0.56; }
+  50% {
+    opacity: 0.56;
+  }
 }
 
 @media (max-width: 1180px) {

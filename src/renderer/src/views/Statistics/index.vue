@@ -112,7 +112,11 @@
               <span>输出 {{ formatNumber(tokenStats.completionTokens) }}</span>
             </div>
             <div v-if="tokenStats.byFeature?.length" class="usage-list">
-              <div v-for="row in tokenStats.byFeature.slice(0, 5)" :key="row.feature" class="usage-row">
+              <div
+                v-for="row in tokenStats.byFeature.slice(0, 5)"
+                :key="row.feature"
+                class="usage-row"
+              >
                 <span>{{ featureLabel(row.feature) }}</span>
                 <b>{{ formatNumber(row.totalTokens) }}</b>
               </div>
@@ -153,9 +157,7 @@
                 {{ t('statistics.createGoal') }}
               </el-button>
             </div>
-            <div v-if="goals.length === 0" class="goal-empty">
-              暂无目标
-            </div>
+            <div v-if="goals.length === 0" class="goal-empty">暂无目标</div>
             <div v-else class="goal-list">
               <article v-for="goal in goals" :key="goal.id" class="goal-item">
                 <div class="goal-main">
@@ -173,11 +175,16 @@
                 </div>
                 <el-progress :percentage="goal.percent" :stroke-width="8" />
                 <div class="goal-footer">
-                  <span>{{ formatNumber(goal.currentValue) }} / {{ formatNumber(goal.targetValue) }} 字</span>
+                  <span
+                    >{{ formatNumber(goal.currentValue) }} /
+                    {{ formatNumber(goal.targetValue) }} 字</span
+                  >
                   <span>还差 {{ formatNumber(goal.remaining) }} 字</span>
                   <div class="goal-actions">
                     <el-button size="small" link @click="handleEditGoal(goal)">编辑</el-button>
-                    <el-button size="small" link type="danger" @click="handleDeleteGoal(goal)">删除</el-button>
+                    <el-button size="small" link type="danger" @click="handleDeleteGoal(goal)"
+                      >删除</el-button
+                    >
                   </div>
                 </div>
               </article>
@@ -210,7 +217,10 @@
         </div>
       </div>
 
-      <div v-else-if="activeSection === 'tokens' || activeSection === 'goals'" class="bottom-section single">
+      <div
+        v-else-if="activeSection === 'tokens' || activeSection === 'goals'"
+        class="bottom-section single"
+      >
         <div v-if="activeSection === 'tokens'" class="info-card ai-usage">
           <div class="card-header">
             <h3>{{ t('statistics.aiUsage') }}</h3>
@@ -233,7 +243,11 @@
             <span>输出 {{ formatNumber(tokenStats.completionTokens) }}</span>
           </div>
           <div v-if="tokenStats.byFeature?.length" class="usage-list">
-            <div v-for="row in tokenStats.byFeature.slice(0, 5)" :key="row.feature" class="usage-row">
+            <div
+              v-for="row in tokenStats.byFeature.slice(0, 5)"
+              :key="row.feature"
+              class="usage-row"
+            >
               <span>{{ featureLabel(row.feature) }}</span>
               <b>{{ formatNumber(row.totalTokens) }}</b>
             </div>
@@ -248,9 +262,7 @@
               {{ t('statistics.createGoal') }}
             </el-button>
           </div>
-          <div v-if="goals.length === 0" class="goal-empty">
-            暂无目标
-          </div>
+          <div v-if="goals.length === 0" class="goal-empty">暂无目标</div>
           <div v-else class="goal-list">
             <article v-for="goal in goals" :key="goal.id" class="goal-item">
               <div class="goal-main">
@@ -268,11 +280,16 @@
               </div>
               <el-progress :percentage="goal.percent" :stroke-width="8" />
               <div class="goal-footer">
-                <span>{{ formatNumber(goal.currentValue) }} / {{ formatNumber(goal.targetValue) }} 字</span>
+                <span
+                  >{{ formatNumber(goal.currentValue) }} /
+                  {{ formatNumber(goal.targetValue) }} 字</span
+                >
                 <span>还差 {{ formatNumber(goal.remaining) }} 字</span>
                 <div class="goal-actions">
                   <el-button size="small" link @click="handleEditGoal(goal)">编辑</el-button>
-                  <el-button size="small" link type="danger" @click="handleDeleteGoal(goal)">删除</el-button>
+                  <el-button size="small" link type="danger" @click="handleDeleteGoal(goal)"
+                    >删除</el-button
+                  >
                 </div>
               </div>
             </article>
@@ -330,13 +347,22 @@
         </div>
       </div>
 
-      <div v-if="(activeSection === 'overview' || activeSection === 'books') && overview.bookStats?.length" class="book-section info-card">
+      <div
+        v-if="
+          (activeSection === 'overview' || activeSection === 'books') && overview.bookStats?.length
+        "
+        class="book-section info-card"
+      >
         <div class="card-header">
           <h3>书籍字数</h3>
           <span class="muted">{{ overview.bookStats.length }} 本</span>
         </div>
         <div class="book-stat-list">
-          <div v-for="book in overview.bookStats" :key="book.folderName || book.name" class="book-stat-row">
+          <div
+            v-for="book in overview.bookStats"
+            :key="book.folderName || book.name"
+            class="book-stat-row"
+          >
             <span>{{ book.name }}</span>
             <b>{{ formatNumber(book.totalWords) }} 字</b>
             <small>{{ book.chapterCount }} 章</small>
@@ -357,7 +383,12 @@
     >
       <el-form label-position="top">
         <el-form-item :label="t('statistics.goalName')">
-          <el-input v-model="goalForm.title" maxlength="40" show-word-limit placeholder="例如：本月完成 6 万字" />
+          <el-input
+            v-model="goalForm.title"
+            maxlength="40"
+            show-word-limit
+            placeholder="例如：本月完成 6 万字"
+          />
         </el-form-item>
         <div class="form-grid">
           <el-form-item label="目标类型">
@@ -368,11 +399,21 @@
             </el-select>
           </el-form-item>
           <el-form-item :label="t('statistics.goalTarget')">
-            <el-input-number v-model="goalForm.targetValue" :min="1" :step="1000" controls-position="right" />
+            <el-input-number
+              v-model="goalForm.targetValue"
+              :min="1"
+              :step="1000"
+              controls-position="right"
+            />
           </el-form-item>
         </div>
         <el-form-item :label="t('statistics.selectBook')">
-          <el-select v-model="goalForm.bookId" clearable filterable :placeholder="t('statistics.allBooks')">
+          <el-select
+            v-model="goalForm.bookId"
+            clearable
+            filterable
+            :placeholder="t('statistics.allBooks')"
+          >
             <el-option :label="t('statistics.allBooks')" value="" />
             <el-option
               v-for="book in bookList"
@@ -387,11 +428,22 @@
             <el-date-picker v-model="goalForm.startDate" type="date" value-format="YYYY-MM-DD" />
           </el-form-item>
           <el-form-item :label="t('statistics.goalDeadline')">
-            <el-date-picker v-model="goalForm.endDate" type="date" value-format="YYYY-MM-DD" clearable />
+            <el-date-picker
+              v-model="goalForm.endDate"
+              type="date"
+              value-format="YYYY-MM-DD"
+              clearable
+            />
           </el-form-item>
         </div>
         <el-form-item label="备注">
-          <el-input v-model="goalForm.note" type="textarea" :rows="3" resize="none" placeholder="可选" />
+          <el-input
+            v-model="goalForm.note"
+            type="textarea"
+            :rows="3"
+            resize="none"
+            placeholder="可选"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -408,7 +460,7 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from 'lucide-vue-next'
-import * as echarts from 'echarts'
+import { echarts } from '@renderer/utils/statisticsEcharts'
 import { statisticsService } from '../../service/statisticsService'
 import { readBooksDir } from '../../service/books'
 import StatCard from './components/StatCard.vue'
@@ -583,13 +635,7 @@ async function loadAllData() {
       bookStats: result.bookStats
     })
 
-    await Promise.all([
-      loadTrend(),
-      loadHeatmap(),
-      loadUsageData(),
-      loadGoals(),
-      loadReports()
-    ])
+    await Promise.all([loadTrend(), loadHeatmap(), loadUsageData(), loadGoals(), loadReports()])
   } catch (error) {
     statisticsReadError.value = error?.message || t('statistics.loadFailed')
     throw error

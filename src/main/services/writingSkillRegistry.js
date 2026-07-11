@@ -3,7 +3,14 @@ import { join, resolve } from 'node:path'
 
 const OUTPUT_MODES = ['preview', 'chapter_write', 'asset', 'import']
 
-const DEFAULT_CONTEXT_SCOPES = ['book_meta', 'characters', 'dictionary', 'settings', 'timelines', 'knowledge']
+const DEFAULT_CONTEXT_SCOPES = [
+  'book_meta',
+  'characters',
+  'dictionary',
+  'settings',
+  'timelines',
+  'knowledge'
+]
 const WRITING_SKILL_DIR = join('resources', 'writing-skills')
 
 const BUILTIN_WRITING_SKILLS = [
@@ -13,7 +20,8 @@ const BUILTIN_WRITING_SKILLS = [
     label: '黄金三章',
     category: '起书',
     description: '生成开书方案、前三章安排和第一章开篇提示。',
-    instruction: '帮我基于当前作品生成一版黄金三章方案，包含主角、金手指、世界观、前三章大纲和第一章开篇钩子。',
+    instruction:
+      '帮我基于当前作品生成一版黄金三章方案，包含主角、金手指、世界观、前三章大纲和第一章开篇钩子。',
     inputScopes: ['current_book'],
     requiredContext: ['book_meta', 'settings', 'characters', 'knowledge'],
     references: ['skills/story-start', 'agents/writer', 'agents/editor'],
@@ -61,7 +69,12 @@ const BUILTIN_WRITING_SKILLS = [
     instruction: '请承接当前章节继续写，只输出新增正文。',
     inputScopes: ['current_chapter', 'previous_summary', 'outline'],
     requiredContext: DEFAULT_CONTEXT_SCOPES,
-    references: ['skills/story-long-write', 'agents/writer', 'agents/editor', 'hooks/chapter-write-guard'],
+    references: [
+      'skills/story-long-write',
+      'agents/writer',
+      'agents/editor',
+      'hooks/chapter-write-guard'
+    ],
     canWriteChapter: true,
     outputMode: 'chapter_write',
     runner: 'chapter_write',
@@ -152,7 +165,8 @@ const BUILTIN_WRITING_SKILLS = [
     label: '去 AI 味',
     category: '写作',
     description: '把文本改得更像自然中文小说表达，保留剧情事实。',
-    instruction: '请处理选中文本的 AI 味，减少空泛表达和机械句式，保留剧情事实，只输出改写后的正文。',
+    instruction:
+      '请处理选中文本的 AI 味，减少空泛表达和机械句式，保留剧情事实，只输出改写后的正文。',
     inputScopes: ['selected_text'],
     requiredContext: ['book_meta', 'characters', 'dictionary', 'settings'],
     references: ['skills/story-deslop', 'agents/writer', 'references/style'],
@@ -514,9 +528,7 @@ function cleanText(value) {
 }
 
 function arrayOfText(value) {
-  return Array.isArray(value)
-    ? value.map(cleanText).filter(Boolean)
-    : []
+  return Array.isArray(value) ? value.map(cleanText).filter(Boolean) : []
 }
 
 function normalizeSkill(skill = {}) {
@@ -568,9 +580,7 @@ export function normalizeWritingSkill(skill = {}) {
 }
 
 function candidateSkillRoots() {
-  const roots = [
-    resolve(process.cwd(), WRITING_SKILL_DIR)
-  ]
+  const roots = [resolve(process.cwd(), WRITING_SKILL_DIR)]
   if (process.resourcesPath) {
     roots.push(resolve(process.resourcesPath, WRITING_SKILL_DIR))
   }

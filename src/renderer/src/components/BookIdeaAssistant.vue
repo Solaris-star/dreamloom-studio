@@ -26,10 +26,20 @@
       </div>
 
       <div class="assistant-controls">
-        <el-select v-model="selectedProviderId" class="provider-select" placeholder="选择 Provider" @change="handleProviderChange">
+        <el-select
+          v-model="selectedProviderId"
+          class="provider-select"
+          placeholder="选择 Provider"
+          @change="handleProviderChange"
+        >
           <el-option v-for="p in textProviders" :key="p.id" :label="p.name" :value="p.id" />
         </el-select>
-        <el-select v-model="selectedModel" class="model-select" placeholder="选择模型" :disabled="!selectedProviderId">
+        <el-select
+          v-model="selectedModel"
+          class="model-select"
+          placeholder="选择模型"
+          :disabled="!selectedProviderId"
+        >
           <el-option v-for="model in modelOptions" :key="model" :label="model" :value="model" />
         </el-select>
         <el-cascader
@@ -52,7 +62,12 @@
             {{ tag }}
           </button>
         </div>
-        <el-button type="primary" :loading="generating" :disabled="!selectedProviderId || !selectedModel" @click="handleGenerate">
+        <el-button
+          type="primary"
+          :loading="generating"
+          :disabled="!selectedProviderId || !selectedModel"
+          @click="handleGenerate"
+        >
           <el-icon><MagicStick /></el-icon>
           生成方案
         </el-button>
@@ -111,7 +126,11 @@ import { ElMessage } from 'element-plus'
 import { MagicStick } from '@element-plus/icons-vue'
 import { BOOK_TYPES, BOOK_TYPE_GROUPS } from '@renderer/constants/config'
 import { generateBookIdeasWithAI } from '@renderer/service/deepseek'
-import { getAiProvidersByCategory, setActiveTextProvider, getActiveTextProvider } from '@renderer/service/aiProvider'
+import {
+  getAiProvidersByCategory,
+  setActiveTextProvider,
+  getActiveTextProvider
+} from '@renderer/service/aiProvider'
 
 const emit = defineEmits(['create-book'])
 
@@ -140,7 +159,7 @@ const selectedPlan = computed(() => plans.value[selectedIndex.value] || null)
 function handleProviderChange(providerId) {
   selectedModel.value = ''
   modelOptions.value = []
-  const provider = textProviders.value.find(p => p.id === providerId)
+  const provider = textProviders.value.find((p) => p.id === providerId)
   if (provider?.models?.length) {
     // 关键修改：只展示用户在设置中填写的模型
     modelOptions.value = [...provider.models]
@@ -157,7 +176,9 @@ async function loadProviders() {
     if (textProviders.value.length) {
       const activeRes = await getActiveTextProvider()
       const activeId = activeRes?.providerId
-      const foundProvider = textProviders.value.find(p => p.id === (activeId || textProviders.value[0].id))
+      const foundProvider = textProviders.value.find(
+        (p) => p.id === (activeId || textProviders.value[0].id)
+      )
 
       if (foundProvider) {
         selectedProviderId.value = foundProvider.id
@@ -212,12 +233,19 @@ async function handleGenerate() {
 
   generating.value = true
   try {
-    const provider = textProviders.value.find(p => p.id === selectedProviderId.value)
+    const provider = textProviders.value.find((p) => p.id === selectedProviderId.value)
     const preferredType = BOOK_TYPES.find((item) => item.value === selectedType.value)
     const result = await generateBookIdeasWithAI({
       idea: rawIdea,
       model: selectedModel.value,
-      provider: provider ? { id: provider.id, apiType: provider.apiType, baseUrl: provider.baseUrl, apiKey: provider.apiKey } : undefined,
+      provider: provider
+        ? {
+            id: provider.id,
+            apiType: provider.apiType,
+            baseUrl: provider.baseUrl,
+            apiKey: provider.apiKey
+          }
+        : undefined,
       tags: [
         ...selectedTags.value,
         preferredType?.label ? `偏向${preferredType.label}` : ''
@@ -262,8 +290,7 @@ onMounted(() => {
   border: 1px solid var(--border-color);
   border-radius: 8px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.48)),
-    var(--bg-soft);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.48)), var(--bg-soft);
   padding: 16px;
 }
 

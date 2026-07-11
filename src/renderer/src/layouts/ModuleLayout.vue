@@ -124,8 +124,7 @@ function isActive(tab) {
     border: 1px solid var(--wabi-line);
     border-radius: 8px;
     background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.28), transparent 54%),
-      rgba(251, 250, 246, 0.98);
+      linear-gradient(135deg, rgba(255, 255, 255, 0.28), transparent 54%), rgba(251, 250, 246, 0.98);
     box-shadow: var(--wabi-shadow-soft);
     color: var(--wabi-ink-soft);
     line-height: 1.7;

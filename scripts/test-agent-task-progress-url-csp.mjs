@@ -20,17 +20,19 @@ assert.match(indexHtml, /connect-src/)
 assert.match(indexHtml, /ws:\/\/127\.0\.0\.1:\*/)
 assert.match(indexHtml, /ws:\/\/localhost:\*/)
 
-const progressUrl = new URL(buildAgentTaskProgressUrl(
-  {
-    bookName: '风雪试剑',
-    bookId: 'book-001',
-    chapterId: '第一章',
-    generationId: 'gen-001'
-  },
-  {
-    baseUrl: 'ws://127.0.0.1:8788/agent-tasks'
-  }
-))
+const progressUrl = new URL(
+  buildAgentTaskProgressUrl(
+    {
+      bookName: '风雪试剑',
+      bookId: 'book-001',
+      chapterId: '第一章',
+      generationId: 'gen-001'
+    },
+    {
+      baseUrl: 'ws://127.0.0.1:8788/agent-tasks'
+    }
+  )
+)
 
 assert.equal(progressUrl.protocol, 'ws:')
 assert.equal(progressUrl.host, '127.0.0.1:8788')

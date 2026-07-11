@@ -35,7 +35,10 @@ export function normalizeAiUsage(usage = {}) {
 
 export function estimateAiCost(provider = {}, usage = {}) {
   const normalized = normalizeAiUsage(usage)
-  const explicitCost = toNumber(usage.estimatedCost ?? usage.cost ?? usage.estimated_cost, Number.NaN)
+  const explicitCost = toNumber(
+    usage.estimatedCost ?? usage.cost ?? usage.estimated_cost,
+    Number.NaN
+  )
   if (Number.isFinite(explicitCost)) return explicitCost
 
   const inputPrice = toNumber(provider.inputPricePerMillionTokens, 0)

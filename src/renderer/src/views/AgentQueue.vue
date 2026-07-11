@@ -42,7 +42,12 @@
             <h2>最近任务</h2>
             <p>{{ jobsSummaryText }}</p>
           </div>
-          <el-select v-model="selectedType" class="type-select" :disabled="loading" @change="refreshQueue">
+          <el-select
+            v-model="selectedType"
+            class="type-select"
+            :disabled="loading"
+            @change="refreshQueue"
+          >
             <el-option label="全部状态" value="all" />
             <el-option label="等待中" value="waiting" />
             <el-option label="运行中" value="active" />
@@ -172,10 +177,9 @@ const workerText = computed(() => {
   const count = Number(queueStatus.value.workerCount || 0)
   return count > 0 ? `${count} 个` : '无'
 })
-const canCancelSelectedJob = computed(() => (
-  selectedJob.value &&
-  !['completed', 'failed'].includes(selectedJob.value.state)
-))
+const canCancelSelectedJob = computed(
+  () => selectedJob.value && !['completed', 'failed'].includes(selectedJob.value.state)
+)
 const jobsSummaryText = computed(() => {
   if (loading.value) return '正在读取 Redis 任务'
   if (errorText.value) return '队列读取失败'

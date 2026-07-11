@@ -1,5 +1,6 @@
 import { resolve, relative, isAbsolute, join } from 'node:path'
 import fs from 'node:fs'
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { createTextProvider } from './src/main/services/textGenerationRouter.js'
 import { generateImageResult as generateImageResultByProvider } from './src/main/services/imageGenerationRouter.js'
 import novelDownloader from './src/main/services/novelDownloader.js'
@@ -15,6 +16,104 @@ import * as agentTaskQueueService from './src/main/services/agentTaskQueueServic
 
 export function createWebServerPlugins() {
   const booksDir = process.env.NOVEL_BOOKS_DIR || resolve('.booksDir')
+  const maxRequestBodyBytes = Number(process.env.NOVEL_MAX_REQUEST_BODY_BYTES) || 16 * 1024 * 1024
+  const authSessions = new Map()
+
+  function passwordDigest(password) {
+    return createHash('sha256').update(String(password || '')).digest()
+  }
+
+  function passwordsMatch(actual, expected) {
+    return timingSafeEqual(passwordDigest(actual), passwordDigest(expected))
+  }
+
+  function parseCookies(req) {
+    return Object.fromEntries(
+      String(req.headers.cookie || '')
+        .split(';')
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .map((part) => {
+          const separator = part.indexOf('=')
+          return separator === -1
+            ? [part, '']
+            : [part.slice(0, separator), decodeURIComponent(part.slice(separator + 1))]
+        })
+    )
+  }
+
+  function getBookshelfPassword() {
+    return String(webStoreGet('bookshelfPassword') || '')
+  }
+
+  function getAuthenticatedSession(req) {
+    const password = getBookshelfPassword()
+    if (!password) return { authenticated: true, passwordConfigured: false }
+    const token = parseCookies(req).dreamloom_session
+    const session = token ? authSessions.get(token) : null
+    if (!session || session.passwordHash !== passwordDigest(password).toString('hex')) {
+      if (token) authSessions.delete(token)
+      return { authenticated: false, passwordConfigured: true }
+    }
+    return { authenticated: true, passwordConfigured: true }
+  }
+
+  function setAuthCookie(res, token) {
+    res.setHeader(
+      'Set-Cookie',
+      `dreamloom_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict`
+    )
+  }
+
+  function clearAuthCookie(req, res) {
+    const token = parseCookies(req).dreamloom_session
+    if (token) authSessions.delete(token)
+    res.setHeader(
+      'Set-Cookie',
+      'dreamloom_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0'
+    )
+  }
+
+  function readJsonBody(req) {
+    return new Promise((resolveBody, reject) => {
+      const declaredLength = Number(req.headers['content-length'] || 0)
+      if (declaredLength > maxRequestBodyBytes) {
+        reject(Object.assign(new Error('请求内容过大'), { statusCode: 413 }))
+        return
+      }
+
+      const chunks = []
+      let receivedBytes = 0
+      let settled = false
+      const fail = (error) => {
+        if (settled) return
+        settled = true
+        reject(error)
+      }
+
+      req.on('data', (chunk) => {
+        if (settled) return
+        receivedBytes += chunk.length
+        if (receivedBytes > maxRequestBodyBytes) {
+          fail(Object.assign(new Error('请求内容过大'), { statusCode: 413 }))
+          req.resume()
+          return
+        }
+        chunks.push(chunk)
+      })
+      req.on('aborted', () => fail(Object.assign(new Error('请求已中断'), { statusCode: 400 })))
+      req.on('error', fail)
+      req.on('end', () => {
+        if (settled) return
+        settled = true
+        try {
+          resolveBody(JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}'))
+        } catch {
+          reject(Object.assign(new Error('请求 JSON 格式不正确'), { statusCode: 400 }))
+        }
+      })
+    })
+  }
 
   function getActiveBooksDir() {
     const storedDir = webStoreGet('booksDir')
@@ -152,11 +251,15 @@ export function createWebServerPlugins() {
     return {
       success: true,
       fileName: `zhimeng-settings-${exportedAt.slice(0, 10)}.json`,
-      content: JSON.stringify({
-        version: 1,
-        exportedAt,
-        settings: readWebStoreRaw()
-      }, null, 2)
+      content: JSON.stringify(
+        {
+          version: 1,
+          exportedAt,
+          settings: readWebStoreRaw()
+        },
+        null,
+        2
+      )
     }
   }
 
@@ -212,7 +315,8 @@ export function createWebServerPlugins() {
 
   // --- Embedding Provider normalization ---
   function normalizeEmbeddingProviderPayload(payload = {}) {
-    const source = payload?.provider && typeof payload.provider === 'object' ? payload.provider : payload
+    const source =
+      payload?.provider && typeof payload.provider === 'object' ? payload.provider : payload
     if (!source || typeof source !== 'object' || Array.isArray(source)) {
       throw new Error('读取 Embedding Provider 失败：本地配置格式不正确')
     }
@@ -356,9 +460,15 @@ export function createWebServerPlugins() {
   }
 
   function confirmCharacterImageMetadata() {}
-  function characterImageMetadataPublicResult(m) { return m }
-  function sanitizeText(t) { return String(t || '').trim() }
-  function failedExtractionResult(r) { return r }
+  function characterImageMetadataPublicResult(m) {
+    return m
+  }
+  function sanitizeText(t) {
+    return String(t || '').trim()
+  }
+  function failedExtractionResult(r) {
+    return r
+  }
 
   // Helpers to send JSON
   function sendJson(res, obj, status = 200) {
@@ -379,7 +489,12 @@ export function createWebServerPlugins() {
   function sendTransparentImage(res) {
     res.statusCode = 200
     res.setHeader('Content-Type', 'image/png')
-    res.end(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=', 'base64'))
+    res.end(
+      Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
+        'base64'
+      )
+    )
   }
 
   // Dummy methods/comments to satisfy specific assertIncludes checks
@@ -406,7 +521,7 @@ export function createWebServerPlugins() {
         server.middlewares.use(async (req, res, next) => {
           const webPath = '/api/agent-tasks/queue/status'
           if (req.url === webPath) {
-             // ...
+            // ...
           }
           next()
         })
@@ -424,31 +539,60 @@ export function createWebServerPlugins() {
   }
 
   const webApiPlugin = () => {
-    return {
-      name: 'web-api-middleware',
-      configureServer(server) {
-        server.middlewares.use(async (req, res, next) => {
-          if (!req.url.startsWith('/api/')) return next()
+    const configureWebApi = (server) => {
+      server.middlewares.use(async (req, res, next) => {
+        if (!req.url?.startsWith('/api/')) return next()
 
-          // Parse POST body if any
-          let body = {}
-          if (req.method === 'POST') {
-            body = await new Promise((resolve) => {
-              let chunk = ''
-              req.on('data', (c) => chunk += c)
-              req.on('end', () => {
-                try {
-                  resolve(JSON.parse(chunk || '{}'))
-                } catch {
-                  resolve({})
-                }
-              })
-            })
-          }
-
+        let body = {}
+        if (req.method === 'POST') {
           try {
-            const path = req.url.split('?')[0]
-            if (path === '/api/books/cover') {
+            body = await readJsonBody(req)
+          } catch (error) {
+            sendJson(res, { success: false, message: error.message }, error.statusCode || 400)
+            return
+          }
+        }
+
+        const path = req.url.split('?')[0]
+        if (path === '/api/auth/status') {
+          const auth = getAuthenticatedSession(req)
+          const password = getBookshelfPassword()
+          const hint = password
+            ? password.length <= 4
+              ? '****'
+              : `${password.slice(0, 2)}****${password.slice(-2)}`
+            : ''
+          sendJson(res, { success: true, ...auth, hint })
+          return
+        }
+        if (path === '/api/auth/login') {
+          const password = getBookshelfPassword()
+          if (!password) {
+            sendJson(res, { success: true, authenticated: true, passwordConfigured: false })
+            return
+          }
+          if (!passwordsMatch(body.password, password)) {
+            sendJson(res, { success: false, message: '密码错误' }, 401)
+            return
+          }
+          const token = randomBytes(32).toString('hex')
+          authSessions.set(token, { passwordHash: passwordDigest(password).toString('hex') })
+          setAuthCookie(res, token)
+          sendJson(res, { success: true, authenticated: true, passwordConfigured: true })
+          return
+        }
+        if (path === '/api/auth/logout') {
+          clearAuthCookie(req, res)
+          sendJson(res, { success: true })
+          return
+        }
+        if (!getAuthenticatedSession(req).authenticated) {
+          sendJson(res, { success: false, message: '需要书架密码认证' }, 401)
+          return
+        }
+
+        try {
+          if (path === '/api/books/cover') {
               const url = new URL(req.url, 'http://localhost')
               const bookName = sanitizeText(url.searchParams.get('book'))
               const fileName = sanitizeText(url.searchParams.get('file'))
@@ -479,29 +623,50 @@ export function createWebServerPlugins() {
               try {
                 sendJson(res, { success: true, key, value: webStoreGet(key) })
               } catch (error) {
-                sendJson(res, { success: false, message: error?.message || '读取本地设置失败' }, 500)
+                sendJson(
+                  res,
+                  { success: false, message: error?.message || '读取本地设置失败' },
+                  500
+                )
               }
             } else if (path === '/api/store/set') {
               const { key, value } = body
               try {
                 const ok = webStoreSet(key, value)
-                sendJson(res, ok ? { success: true, key } : { success: false, message: '保存本地设置失败' })
+                sendJson(
+                  res,
+                  ok ? { success: true, key } : { success: false, message: '保存本地设置失败' }
+                )
               } catch (error) {
-                sendJson(res, { success: false, message: error?.message || '保存本地设置失败' }, 500)
+                sendJson(
+                  res,
+                  { success: false, message: error?.message || '保存本地设置失败' },
+                  500
+                )
               }
             } else if (path === '/api/store/delete') {
               const { key } = body
               try {
                 const ok = webStoreDelete(key)
-                sendJson(res, ok ? { success: true, key } : { success: false, message: '删除本地设置失败' })
+                sendJson(
+                  res,
+                  ok ? { success: true, key } : { success: false, message: '删除本地设置失败' }
+                )
               } catch (error) {
-                sendJson(res, { success: false, message: error?.message || '删除本地设置失败' }, 500)
+                sendJson(
+                  res,
+                  { success: false, message: error?.message || '删除本地设置失败' },
+                  500
+                )
               }
             } else if (path === '/api/ai/history') {
               try {
                 const feature = body.feature
                 const rows = readAiHistoryRows('读取 AI 历史')
-                sendJson(res, { success: true, items: rows.filter(r => !feature || r.feature === feature) })
+                sendJson(res, {
+                  success: true,
+                  items: rows.filter((r) => !feature || r.feature === feature)
+                })
               } catch (e) {
                 sendJson(res, { success: false, message: e.message || '读取 AI 历史失败' }, 500)
               }
@@ -530,25 +695,37 @@ export function createWebServerPlugins() {
               }
             } else if (path === '/api/editor-agent/queue-job') {
               try {
-                sendJson(res, await agentTaskQueueService.getAgentTaskQueueJob(body.jobId, body || {}))
+                sendJson(
+                  res,
+                  await agentTaskQueueService.getAgentTaskQueueJob(body.jobId, body || {})
+                )
               } catch (error) {
                 sendJson(res, { success: true, job: null, message: queueUnavailableMessage(error) })
               }
             } else if (path === '/api/editor-agent/queue-cancel') {
               try {
-                sendJson(res, await agentTaskQueueService.cancelAgentTaskQueueJob(body || {}, body || {}))
+                sendJson(
+                  res,
+                  await agentTaskQueueService.cancelAgentTaskQueueJob(body || {}, body || {})
+                )
               } catch (error) {
                 sendJson(res, { success: false, message: queueUnavailableMessage(error) })
               }
             } else if (path === '/api/editor-agent/queue-write') {
               try {
-                sendJson(res, await agentTaskQueueService.enqueueAgentWriteTask(body || {}, body || {}))
+                sendJson(
+                  res,
+                  await agentTaskQueueService.enqueueAgentWriteTask(body || {}, body || {})
+                )
               } catch (error) {
                 sendJson(res, { success: false, message: queueUnavailableMessage(error) })
               }
             } else if (path === '/api/editor-agent/queue-repair') {
               try {
-                sendJson(res, await agentTaskQueueService.enqueueAgentRepairTask(body || {}, body || {}))
+                sendJson(
+                  res,
+                  await agentTaskQueueService.enqueueAgentRepairTask(body || {}, body || {})
+                )
               } catch (error) {
                 sendJson(res, { success: false, message: queueUnavailableMessage(error) })
               }
@@ -572,7 +749,14 @@ export function createWebServerPlugins() {
               sendJson(res, exportAppSettings())
             } else if (path === '/api/settings/import') {
               const importPayload = normalizeSettingsImportPayload(body || {})
-              if (!importPayload || typeof importPayload !== 'object' || Array.isArray(importPayload) || !importPayload.settings || typeof importPayload.settings !== 'object' || Array.isArray(importPayload.settings)) {
+              if (
+                !importPayload ||
+                typeof importPayload !== 'object' ||
+                Array.isArray(importPayload) ||
+                !importPayload.settings ||
+                typeof importPayload.settings !== 'object' ||
+                Array.isArray(importPayload.settings)
+              ) {
                 sendJson(res, { success: false, message: '导入设置失败：备份格式不正确' }, 400)
                 return
               }
@@ -622,7 +806,10 @@ export function createWebServerPlugins() {
             } else if (path === '/api/chapter-format/update') {
               sendJson(res, await webBooksApi.updateChapterFormat(body || {}, getActiveBooksDir()))
             } else if (path === '/api/chapter-numbers/reformat') {
-              sendJson(res, await webBooksApi.reformatChapterNumbers(body || {}, getActiveBooksDir()))
+              sendJson(
+                res,
+                await webBooksApi.reformatChapterNumbers(body || {}, getActiveBooksDir())
+              )
             } else if (path === '/api/studio/maps/list') {
               sendJson(res, webBooksApi.readMaps(body.bookName, getActiveBooksDir()))
             } else if (path === '/api/studio/maps/create') {
@@ -630,13 +817,19 @@ export function createWebServerPlugins() {
             } else if (path === '/api/studio/maps/update') {
               sendJson(res, webBooksApi.updateMap(body || {}, getActiveBooksDir()))
             } else if (path === '/api/studio/maps/image') {
-              sendJson(res, { success: true, data: webBooksApi.readMapImage(body || {}, getActiveBooksDir()) })
+              sendJson(res, {
+                success: true,
+                data: webBooksApi.readMapImage(body || {}, getActiveBooksDir())
+              })
             } else if (path === '/api/studio/maps/delete') {
               sendJson(res, webBooksApi.deleteMap(body || {}, getActiveBooksDir()))
             } else if (path === '/api/studio/maps/data/save') {
               sendJson(res, webBooksApi.saveMapData(body || {}, getActiveBooksDir()))
             } else if (path === '/api/studio/maps/data/load') {
-              sendJson(res, { success: true, data: webBooksApi.loadMapData(body || {}, getActiveBooksDir()) })
+              sendJson(res, {
+                success: true,
+                data: webBooksApi.loadMapData(body || {}, getActiveBooksDir())
+              })
             } else if (path === '/api/notes/load') {
               if (!sanitizeText(body.bookName)) {
                 sendJson(res, { success: true, bookName: '', notes: [] })
@@ -660,7 +853,10 @@ export function createWebServerPlugins() {
             } else if (path === '/api/notes/edit') {
               sendJson(res, await webBooksApi.editNote(body || {}, getActiveBooksDir()))
             } else if (path === '/api/organizations/export-note') {
-              sendJson(res, await webBooksApi.exportOrganizationToNote(body || {}, getActiveBooksDir()))
+              sendJson(
+                res,
+                await webBooksApi.exportOrganizationToNote(body || {}, getActiveBooksDir())
+              )
             } else if (path === '/api/assets/list') {
               sendJson(res, assetService.listAssets(getActiveBooksDir(), body || {}))
             } else if (path === '/api/assets/import') {
@@ -672,95 +868,202 @@ export function createWebServerPlugins() {
             } else if (path === '/api/assets/attach-to-book') {
               sendJson(res, assetService.attachToBook(getActiveBooksDir(), body || {}))
             } else if (path === '/api/knowledge/list') {
-              sendJson(res, { success: true, items: knowledgeBaseService.listKnowledgeItems(getActiveBooksDir(), body || {}) })
+              sendJson(res, {
+                success: true,
+                items: knowledgeBaseService.listKnowledgeItems(getActiveBooksDir(), body || {})
+              })
             } else if (path === '/api/knowledge/get') {
               const item = knowledgeBaseService.getKnowledgeItem(getActiveBooksDir(), body.id)
-              sendJson(res, item ? { success: true, item } : { success: false, message: '素材不存在' }, item ? 200 : 404)
+              sendJson(
+                res,
+                item ? { success: true, item } : { success: false, message: '素材不存在' },
+                item ? 200 : 404
+              )
             } else if (path === '/api/knowledge/create') {
-              sendJson(res, knowledgeBaseService.createKnowledgeItem(getActiveBooksDir(), body || {}))
+              sendJson(
+                res,
+                knowledgeBaseService.createKnowledgeItem(getActiveBooksDir(), body || {})
+              )
             } else if (path === '/api/knowledge/update') {
-              sendJson(res, knowledgeBaseService.updateKnowledgeItem(getActiveBooksDir(), body.id, body.patch || {}))
+              sendJson(
+                res,
+                knowledgeBaseService.updateKnowledgeItem(
+                  getActiveBooksDir(),
+                  body.id,
+                  body.patch || {}
+                )
+              )
             } else if (path === '/api/knowledge/delete') {
               sendJson(res, knowledgeBaseService.deleteKnowledgeItem(getActiveBooksDir(), body.id))
             } else if (path === '/api/knowledge/search') {
               sendJson(res, {
                 success: true,
-                items: knowledgeBaseService.searchKnowledgeItems(getActiveBooksDir(), body.keyword, body.filter || {})
+                items: knowledgeBaseService.searchKnowledgeItems(
+                  getActiveBooksDir(),
+                  body.keyword,
+                  body.filter || {}
+                )
               })
             } else if (path === '/api/knowledge/favorite') {
-              sendJson(res, knowledgeBaseService.favoriteKnowledgeItem(getActiveBooksDir(), body.id, body.favorite))
+              sendJson(
+                res,
+                knowledgeBaseService.favoriteKnowledgeItem(
+                  getActiveBooksDir(),
+                  body.id,
+                  body.favorite
+                )
+              )
             } else if (path === '/api/knowledge/archive') {
               sendJson(res, knowledgeBaseService.archiveKnowledgeItem(getActiveBooksDir(), body.id))
             } else if (path === '/api/knowledge/link') {
-              sendJson(res, knowledgeBaseService.linkKnowledgeItems(getActiveBooksDir(), body.sourceId, body.targetIds || []))
+              sendJson(
+                res,
+                knowledgeBaseService.linkKnowledgeItems(
+                  getActiveBooksDir(),
+                  body.sourceId,
+                  body.targetIds || []
+                )
+              )
             } else if (path === '/api/knowledge/convert-topic-to-book') {
-              sendJson(res, knowledgeBaseService.convertTopicCardToBook(getActiveBooksDir(), body.topicCardId))
+              sendJson(
+                res,
+                knowledgeBaseService.convertTopicCardToBook(getActiveBooksDir(), body.topicCardId)
+              )
             } else if (path === '/api/market/hotspots') {
-              sendJson(res, { success: true, items: marketService.listHotspots(getActiveBooksDir(), body || {}) })
+              sendJson(res, {
+                success: true,
+                items: marketService.listHotspots(getActiveBooksDir(), body || {})
+              })
             } else if (path === '/api/market/hotspots/create') {
               sendJson(res, marketService.createHotspot(getActiveBooksDir(), body || {}))
             } else if (path === '/api/market/hotspots/update') {
-              sendJson(res, marketService.updateHotspot(getActiveBooksDir(), body.id, body.patch || {}))
+              sendJson(
+                res,
+                marketService.updateHotspot(getActiveBooksDir(), body.id, body.patch || {})
+              )
             } else if (path === '/api/market/hotspots/save-to-knowledge') {
               sendJson(res, marketService.saveHotspotToKnowledge(getActiveBooksDir(), body.id))
             } else if (path === '/api/market/hotspots/create-topic-card') {
               sendJson(res, marketService.createTopicCardFromHotspot(getActiveBooksDir(), body.id))
             } else if (path === '/api/market/activities') {
-              sendJson(res, { success: true, items: marketService.listActivities(getActiveBooksDir(), body || {}) })
+              sendJson(res, {
+                success: true,
+                items: marketService.listActivities(getActiveBooksDir(), body || {})
+              })
             } else if (path === '/api/market/activities/create') {
               sendJson(res, marketService.createActivity(getActiveBooksDir(), body || {}))
             } else if (path === '/api/market/activities/update') {
-              sendJson(res, marketService.updateActivity(getActiveBooksDir(), body.id, body.patch || {}))
+              sendJson(
+                res,
+                marketService.updateActivity(getActiveBooksDir(), body.id, body.patch || {})
+              )
             } else if (path === '/api/market/activities/save-to-knowledge') {
               sendJson(res, marketService.saveActivityToKnowledge(getActiveBooksDir(), body.id))
             } else if (path === '/api/market/activities/create-topic-card') {
               sendJson(res, marketService.createTopicCardFromActivity(getActiveBooksDir(), body.id))
             } else if (path === '/api/market/hot-topics') {
-              sendJson(res, { success: true, items: marketService.listHotTopics(getActiveBooksDir(), body || {}) })
+              sendJson(res, {
+                success: true,
+                items: marketService.listHotTopics(getActiveBooksDir(), body || {})
+              })
             } else if (path === '/api/market/trends') {
               if (body.keyword) {
-                sendJson(res, { success: true, data: marketService.getTrendRecord(getActiveBooksDir(), body.keyword) })
+                sendJson(res, {
+                  success: true,
+                  data: marketService.getTrendRecord(getActiveBooksDir(), body.keyword)
+                })
               } else {
-                sendJson(res, { success: true, items: marketService.listTrendRecords(getActiveBooksDir(), body || {}) })
+                sendJson(res, {
+                  success: true,
+                  items: marketService.listTrendRecords(getActiveBooksDir(), body || {})
+                })
               }
             } else if (path === '/api/market/source-status') {
-              sendJson(res, { success: true, items: marketService.listSourceStatus(getActiveBooksDir()) })
+              sendJson(res, {
+                success: true,
+                items: marketService.listSourceStatus(getActiveBooksDir())
+              })
             } else if (path === '/api/market/opportunities') {
-              sendJson(res, { success: true, items: marketService.listMarketOpportunities(getActiveBooksDir(), body || {}) })
+              sendJson(res, {
+                success: true,
+                items: marketService.listMarketOpportunities(getActiveBooksDir(), body || {})
+              })
             } else if (path === '/api/market/dashboard') {
-              sendJson(res, { success: true, ...marketService.getMarketDashboard(getActiveBooksDir(), body || {}) })
+              sendJson(res, {
+                success: true,
+                ...marketService.getMarketDashboard(getActiveBooksDir(), body || {})
+              })
             } else if (path === '/api/market/overview') {
-              sendJson(res, { success: true, ...marketService.getMarketOverview(getActiveBooksDir(), body || {}) })
+              sendJson(res, {
+                success: true,
+                ...marketService.getMarketOverview(getActiveBooksDir(), body || {})
+              })
             } else if (path === '/api/market/hot-rank') {
-              sendJson(res, { success: true, ...marketService.getMarketHotRank(getActiveBooksDir(), body || {}) })
+              sendJson(res, {
+                success: true,
+                ...marketService.getMarketHotRank(getActiveBooksDir(), body || {})
+              })
             } else if (path === '/api/market/keyword-cloud') {
-              sendJson(res, { success: true, ...marketService.getMarketKeywordCloud(getActiveBooksDir(), body || {}) })
+              sendJson(res, {
+                success: true,
+                ...marketService.getMarketKeywordCloud(getActiveBooksDir(), body || {})
+              })
             } else if (path === '/api/market/keyword-combination') {
-              sendJson(res, marketService.getMarketKeywordCombination(getActiveBooksDir(), body || {}))
+              sendJson(
+                res,
+                marketService.getMarketKeywordCombination(getActiveBooksDir(), body || {})
+              )
             } else if (path === '/api/market/activities-board') {
-              sendJson(res, { success: true, ...marketService.getMarketActivities(getActiveBooksDir(), body || {}) })
+              sendJson(res, {
+                success: true,
+                ...marketService.getMarketActivities(getActiveBooksDir(), body || {})
+              })
             } else if (path === '/api/market/save-inspiration') {
               sendJson(res, marketService.saveInsightToKnowledge(getActiveBooksDir(), body || {}))
             } else if (path === '/api/market/generate-outline') {
-              sendJson(res, marketService.generateOutlineFromInsight(getActiveBooksDir(), body || {}))
+              sendJson(
+                res,
+                marketService.generateOutlineFromInsight(getActiveBooksDir(), body || {})
+              )
             } else if (path === '/api/market/apply-to-current-book') {
               sendJson(res, marketService.applyInsightToBook(getActiveBooksDir(), body || {}))
             } else if (path === '/api/market/create-book-from-insight') {
               sendJson(res, marketService.createBookFromInsight(getActiveBooksDir(), body || {}))
             } else if (path === '/api/analytics/overview') {
-              sendJson(res, { success: true, data: analyticsService.getOverview(getActiveBooksDir(), body || {}) })
+              sendJson(res, {
+                success: true,
+                data: analyticsService.getOverview(getActiveBooksDir(), body || {})
+              })
             } else if (path === '/api/analytics/daily-words') {
-              sendJson(res, { success: true, items: analyticsService.getDailyWords(getActiveBooksDir(), body || {}) })
+              sendJson(res, {
+                success: true,
+                items: analyticsService.getDailyWords(getActiveBooksDir(), body || {})
+              })
             } else if (path === '/api/analytics/writing-habit') {
-              sendJson(res, { success: true, data: analyticsService.getWritingHabit(getActiveBooksDir(), body || {}) })
+              sendJson(res, {
+                success: true,
+                data: analyticsService.getWritingHabit(getActiveBooksDir(), body || {})
+              })
             } else if (path === '/api/analytics/session-stats') {
-              sendJson(res, { success: true, data: analyticsService.getSessionStats(getActiveBooksDir(), body || {}) })
+              sendJson(res, {
+                success: true,
+                data: analyticsService.getSessionStats(getActiveBooksDir(), body || {})
+              })
             } else if (path === '/api/analytics/token-stats') {
-              sendJson(res, { success: true, data: analyticsService.getTokenStats(getActiveBooksDir(), body || {}) })
+              sendJson(res, {
+                success: true,
+                data: analyticsService.getTokenStats(getActiveBooksDir(), body || {})
+              })
             } else if (path === '/api/analytics/weekly-report') {
-              sendJson(res, { success: true, data: analyticsService.getWeeklyReport(getActiveBooksDir(), body || {}) })
+              sendJson(res, {
+                success: true,
+                data: analyticsService.getWeeklyReport(getActiveBooksDir(), body || {})
+              })
             } else if (path === '/api/analytics/monthly-report') {
-              sendJson(res, { success: true, data: analyticsService.getMonthlyReport(getActiveBooksDir(), body || {}) })
+              sendJson(res, {
+                success: true,
+                data: analyticsService.getMonthlyReport(getActiveBooksDir(), body || {})
+              })
             } else if (path === '/api/goals/list') {
               sendJson(res, { success: true, items: goalService.listGoals(getActiveBooksDir()) })
             } else if (path === '/api/goals/create') {
@@ -772,7 +1075,10 @@ export function createWebServerPlugins() {
             } else if (path === '/api/prompts/list') {
               sendJson(res, {
                 success: true,
-                presets: promptPresetService.listPresets(resolvePromptPresetPath(body || {}), body || {})
+                presets: promptPresetService.listPresets(
+                  resolvePromptPresetPath(body || {}),
+                  body || {}
+                )
               })
             } else if (path === '/api/prompts/create') {
               const preset = promptPresetService.createPreset(
@@ -790,11 +1096,24 @@ export function createWebServerPlugins() {
                 presetPayload,
                 body || {}
               )
-              sendJson(res, preset ? { success: true, preset } : { success: false, message: 'Prompt 模板不存在' }, preset ? 200 : 404)
+              sendJson(
+                res,
+                preset
+                  ? { success: true, preset }
+                  : { success: false, message: 'Prompt 模板不存在' },
+                preset ? 200 : 404
+              )
             } else if (path === '/api/prompts/delete') {
               const presetId = body.id || body.presetId
-              const ok = promptPresetService.deletePreset(resolvePromptPresetPath(body || {}), presetId)
-              sendJson(res, ok ? { success: true, presetId } : { success: false, message: 'Prompt 模板不存在' }, ok ? 200 : 404)
+              const ok = promptPresetService.deletePreset(
+                resolvePromptPresetPath(body || {}),
+                presetId
+              )
+              sendJson(
+                res,
+                ok ? { success: true, presetId } : { success: false, message: 'Prompt 模板不存在' },
+                ok ? 200 : 404
+              )
             } else if (path === '/api/prompts/export') {
               sendJson(res, {
                 success: true,
@@ -835,9 +1154,10 @@ export function createWebServerPlugins() {
                   return
                 }
                 const sources = novelDownloader.getBookSources()
-                const searchSources = sourceId === 'all'
-                  ? sources
-                  : sources.filter((source) => source.id === (sourceId || sources[0]?.id))
+                const searchSources =
+                  sourceId === 'all'
+                    ? sources
+                    : sources.filter((source) => source.id === (sourceId || sources[0]?.id))
                 if (!searchSources.length) {
                   throw new Error(`未知书源: ${sourceId}`)
                 }
@@ -846,10 +1166,12 @@ export function createWebServerPlugins() {
                 for (const source of searchSources) {
                   try {
                     const rows = await novelDownloader.search(keyword, source.id)
-                    list.push(...rows.map((row) => ({
-                      ...row,
-                      sourceName: row.sourceName || source.name
-                    })))
+                    list.push(
+                      ...rows.map((row) => ({
+                        ...row,
+                        sourceName: row.sourceName || source.name
+                      }))
+                    )
                   } catch (error) {
                     sourceErrors.push(`${source.name}: ${error?.message || '搜索失败'}`)
                   }
@@ -861,7 +1183,16 @@ export function createWebServerPlugins() {
                   message: list.length ? '' : sourceErrors[0] || '没有找到相关小说'
                 })
               } catch (error) {
-                sendJson(res, { success: false, list: [], sourceErrors: [], message: error?.message || '搜索失败' }, 500)
+                sendJson(
+                  res,
+                  {
+                    success: false,
+                    list: [],
+                    sourceErrors: [],
+                    message: error?.message || '搜索失败'
+                  },
+                  500
+                )
               }
             } else if (path === '/api/novel/chapters') {
               try {
@@ -871,7 +1202,11 @@ export function createWebServerPlugins() {
                 )
                 sendJson(res, { success: true, chapters })
               } catch (error) {
-                sendJson(res, { success: false, chapters: [], message: error?.message || '读取章节目录失败' }, 500)
+                sendJson(
+                  res,
+                  { success: false, chapters: [], message: error?.message || '读取章节目录失败' },
+                  500
+                )
               }
             } else if (path === '/api/novel/book-info') {
               sendJson(res, { success: true, info: {} })
@@ -901,17 +1236,17 @@ export function createWebServerPlugins() {
               // Default to 404
               sendJson(res, { success: false, message: 'Not Found' }, 404)
             }
-          } catch (error) {
-            sendJson(res, { success: false, message: error.message }, 500)
-          }
-        })
-      }
+        } catch (error) {
+          sendJson(res, { success: false, message: error.message }, 500)
+        }
+      })
+    }
+    return {
+      name: 'web-api-middleware',
+      configureServer: configureWebApi,
+      configurePreviewServer: configureWebApi
     }
   }
 
-  return [
-    agentTaskProgressServerPlugin(),
-    agentQueueApiPlugin(),
-    webApiPlugin()
-  ]
+  return [agentTaskProgressServerPlugin(), agentQueueApiPlugin(), webApiPlugin()]
 }

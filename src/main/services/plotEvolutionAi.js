@@ -5,7 +5,11 @@ function sanitizeText(value) {
 }
 
 function providerIdOf(provider = {}, result = {}) {
-  return sanitizeText(result.providerId) || sanitizeText(provider.providerId) || sanitizeText(provider.id)
+  return (
+    sanitizeText(result.providerId) ||
+    sanitizeText(provider.providerId) ||
+    sanitizeText(provider.id)
+  )
 }
 
 function providerNameOf(provider = {}) {
@@ -45,7 +49,12 @@ function parseProposals(rawText) {
 
   try {
     const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)
-    const candidate = fenced?.[1]?.trim() || text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+    const candidate =
+      fenced?.[1]?.trim() ||
+      text
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .trim()
     const firstBrace = candidate.indexOf('{')
     const lastBrace = candidate.lastIndexOf('}')
     const firstBracket = candidate.indexOf('[')
@@ -63,15 +72,17 @@ function parseProposals(rawText) {
         ? parsed
         : parsed.proposals || parsed.options || parsed.items || []
       if (Array.isArray(items) && items.length) {
-        return items.map((item) => ({
-          title: sanitizeText(item.title) || '未命名方案',
-          summary: sanitizeText(item.summary) || '',
-          conflict: sanitizeText(item.conflict) || '',
-          emotion: sanitizeText(item.emotion) || '',
-          keyEvents: Array.isArray(item.keyEvents)
-            ? item.keyEvents.map((e) => sanitizeText(e)).filter(Boolean)
-            : []
-        })).filter((p) => p.title !== '未命名方案' || p.summary)
+        return items
+          .map((item) => ({
+            title: sanitizeText(item.title) || '未命名方案',
+            summary: sanitizeText(item.summary) || '',
+            conflict: sanitizeText(item.conflict) || '',
+            emotion: sanitizeText(item.emotion) || '',
+            keyEvents: Array.isArray(item.keyEvents)
+              ? item.keyEvents.map((e) => sanitizeText(e)).filter(Boolean)
+              : []
+          }))
+          .filter((p) => p.title !== '未命名方案' || p.summary)
       }
 
       if (!Array.isArray(parsed) && (sanitizeText(parsed.title) || sanitizeText(parsed.summary))) {
@@ -93,13 +104,21 @@ function parseProposals(rawText) {
   }
 
   const proposals = []
-  const blocks = text.split(/(?:方案\s*[一二三四五六七八九十\d]+|#{1,3}\s*(?=方案))\s*[：:.\s]*/i).filter(Boolean)
+  const blocks = text
+    .split(/(?:方案\s*[一二三四五六七八九十\d]+|#{1,3}\s*(?=方案))\s*[：:.\s]*/i)
+    .filter(Boolean)
 
   for (const block of blocks) {
     const titleMatch = block.match(/(?:标题|方案名)[：:]\s*(.+?)(?:\n|$)/i)
-    const summaryMatch = block.match(/(?:摘要|概述|简介)[：:]\s*([\s\S]+?)(?=(?:冲突|情绪|关键|核心事件)|$)/i)
-    const conflictMatch = block.match(/(?:冲突|矛盾)[：:]\s*([\s\S]+?)(?=(?:摘要|情绪|关键|核心事件)|$)/i)
-    const emotionMatch = block.match(/(?:情绪|情感|氛围)[：:]\s*([\s\S]+?)(?=(?:摘要|冲突|关键|核心事件)|$)/i)
+    const summaryMatch = block.match(
+      /(?:摘要|概述|简介)[：:]\s*([\s\S]+?)(?=(?:冲突|情绪|关键|核心事件)|$)/i
+    )
+    const conflictMatch = block.match(
+      /(?:冲突|矛盾)[：:]\s*([\s\S]+?)(?=(?:摘要|情绪|关键|核心事件)|$)/i
+    )
+    const emotionMatch = block.match(
+      /(?:情绪|情感|氛围)[：:]\s*([\s\S]+?)(?=(?:摘要|冲突|关键|核心事件)|$)/i
+    )
     const eventsMatch = block.match(/(?:关键事件|核心事件|事件列表)[：:]\s*([\s\S]+?)$/i)
 
     const title = sanitizeText(titleMatch?.[1])
@@ -258,8 +277,14 @@ class PlotEvolutionAiService {
         content: '',
         images: [],
         usage: {},
-        model: proposals.map((item) => item.model).filter(Boolean).join(', '),
-        providerId: proposals.map((item) => item.providerId).filter(Boolean).join(', '),
+        model: proposals
+          .map((item) => item.model)
+          .filter(Boolean)
+          .join(', '),
+        providerId: proposals
+          .map((item) => item.providerId)
+          .filter(Boolean)
+          .join(', '),
         message: firstError || 'AI 未返回可用剧情方案，请重试',
         error: firstError || 'AI 未返回可用剧情方案，请重试',
         proposals,
@@ -272,8 +297,14 @@ class PlotEvolutionAiService {
       content: JSON.stringify(proposals),
       images: [],
       usage: {},
-      model: proposals.map((item) => item.model).filter(Boolean).join(', '),
-      providerId: proposals.map((item) => item.providerId).filter(Boolean).join(', '),
+      model: proposals
+        .map((item) => item.model)
+        .filter(Boolean)
+        .join(', '),
+      providerId: proposals
+        .map((item) => item.providerId)
+        .filter(Boolean)
+        .join(', '),
       error: '',
       proposals,
       groups

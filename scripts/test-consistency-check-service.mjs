@@ -2,7 +2,10 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import { dirname, join } from 'node:path'
-import { listConsistencyChecks, runConsistencyCheck } from '../src/main/services/consistencyCheckService.js'
+import {
+  listConsistencyChecks,
+  runConsistencyCheck
+} from '../src/main/services/consistencyCheckService.js'
 
 const rootDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-consistency-'))
 const bookPath = join(rootDir, '风雪试剑')
@@ -65,10 +68,22 @@ try {
   assert.equal(ruleResult.check.generationId, 'gen_001')
   assert.equal(ruleResult.check.taskType, 'continue')
   assert.equal(ruleResult.check.applyAction, 'append')
-  assert.equal(ruleResult.issues.some((item) => item.type === 'character_age' && item.actual === 25), true)
-  assert.equal(ruleResult.issues.some((item) => item.type === 'character_age' && item.actual === 21), true)
-  assert.equal(ruleResult.issues.some((item) => item.type === 'character_gender'), true)
-  assert.equal(ruleResult.issues.some((item) => item.type === 'setting_condition'), true)
+  assert.equal(
+    ruleResult.issues.some((item) => item.type === 'character_age' && item.actual === 25),
+    true
+  )
+  assert.equal(
+    ruleResult.issues.some((item) => item.type === 'character_age' && item.actual === 21),
+    true
+  )
+  assert.equal(
+    ruleResult.issues.some((item) => item.type === 'character_gender'),
+    true
+  )
+  assert.equal(
+    ruleResult.issues.some((item) => item.type === 'setting_condition'),
+    true
+  )
 
   const storeAfterRules = listConsistencyChecks({ bookPath })
   assert.equal(storeAfterRules.success, true)
@@ -91,7 +106,10 @@ try {
   assert.equal(appliedResult.check.generationId, 'gen_002')
   assert.equal(appliedResult.check.taskType, 'continue')
   assert.equal(appliedResult.check.applyAction, 'append')
-  assert.equal(appliedResult.issues.some((item) => item.type === 'character_age' && item.actual === 25), true)
+  assert.equal(
+    appliedResult.issues.some((item) => item.type === 'character_age' && item.actual === 25),
+    true
+  )
 
   const draftResult = await runConsistencyCheck({
     bookPath,
@@ -108,7 +126,10 @@ try {
 
   assert.equal(draftResult.success, true)
   assert.equal(draftResult.check.persisted, false)
-  assert.equal(draftResult.issues.some((item) => item.type === 'setting_condition'), true)
+  assert.equal(
+    draftResult.issues.some((item) => item.type === 'setting_condition'),
+    true
+  )
   const storeAfterDraft = listConsistencyChecks({ bookPath })
   assert.equal(storeAfterDraft.checks.length, 2)
 
@@ -154,7 +175,10 @@ try {
   assert.equal(llmResult.check.providerId, 'offline-consistency-provider')
   assert.equal(llmResult.check.model, 'consistency-model')
   assert.deepEqual(llmResult.check.usage, { total_tokens: 96 })
-  assert.equal(llmResult.issues.some((item) => item.type === 'location_conflict'), true)
+  assert.equal(
+    llmResult.issues.some((item) => item.type === 'location_conflict'),
+    true
+  )
 
   const finalStore = listConsistencyChecks({ bookPath })
   assert.equal(finalStore.checks.length, 3)
@@ -169,7 +193,11 @@ try {
       }),
     /读取 JSON 文件失败/
   )
-  fs.writeFileSync(join(bookPath, 'characters.json'), JSON.stringify({ name: '林青' }, null, 2), 'utf-8')
+  fs.writeFileSync(
+    join(bookPath, 'characters.json'),
+    JSON.stringify({ name: '林青' }, null, 2),
+    'utf-8'
+  )
   await assert.rejects(
     () =>
       runConsistencyCheck({
@@ -182,10 +210,7 @@ try {
 
   const checkStorePath = join(bookPath, 'consistency-checks.json')
   fs.writeFileSync(checkStorePath, '{ bad json', 'utf-8')
-  assert.throws(
-    () => listConsistencyChecks({ bookPath }),
-    /读取 JSON 文件失败/
-  )
+  assert.throws(() => listConsistencyChecks({ bookPath }), /读取 JSON 文件失败/)
   await assert.rejects(
     () =>
       runConsistencyCheck({
@@ -197,10 +222,7 @@ try {
   assert.equal(fs.readFileSync(checkStorePath, 'utf-8'), '{ bad json')
 
   fs.writeFileSync(checkStorePath, JSON.stringify({ checks: {} }, null, 2), 'utf-8')
-  assert.throws(
-    () => listConsistencyChecks({ bookPath }),
-    /一致性检查记录格式错误/
-  )
+  assert.throws(() => listConsistencyChecks({ bookPath }), /一致性检查记录格式错误/)
   await assert.rejects(
     () =>
       runConsistencyCheck({

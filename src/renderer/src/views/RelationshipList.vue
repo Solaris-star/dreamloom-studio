@@ -98,7 +98,9 @@
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="deleteDialogVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="danger" @click="confirmDelete">{{ t('relationshipList.deleteConfirmBtn') }}</el-button>
+        <el-button type="danger" @click="confirmDelete">{{
+          t('relationshipList.deleteConfirmBtn')
+        }}</el-button>
       </span>
     </template>
   </el-dialog>

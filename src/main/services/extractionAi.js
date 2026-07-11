@@ -49,98 +49,82 @@ const DIMENSION_PROMPTS = {
   narrative: {
     system:
       '你是一名资深中文小说编辑，擅长分析文风与叙事手法。请从给定文本中提取文风叙事维度的创作知识，以JSON格式输出。',
-    user:
-      '请分析以下小说文本的文风与叙事手法，提取创作知识。包括：叙事视角、语言风格特征、修辞手法、节奏控制、场景转换技巧等。以JSON格式输出，格式：{"knowledge": [{"point": "要点", "detail": "详细说明", "example": "原文示例"}]}'
+    user: '请分析以下小说文本的文风与叙事手法，提取创作知识。包括：叙事视角、语言风格特征、修辞手法、节奏控制、场景转换技巧等。以JSON格式输出，格式：{"knowledge": [{"point": "要点", "detail": "详细说明", "example": "原文示例"}]}'
   },
   plot: {
     system:
       '你是一名资深中文小说编辑，擅长分析情节设计。请从给定文本中提取情节设计维度的创作知识，以JSON格式输出。',
-    user:
-      '请分析以下小说文本的情节设计，提取创作知识。包括：情节结构、伏笔设置、悬念构建、冲突设计、转折技巧、信息释放节奏等。以JSON格式输出，格式：{"knowledge": [{"point": "要点", "detail": "详细说明", "example": "原文示例"}]}'
+    user: '请分析以下小说文本的情节设计，提取创作知识。包括：情节结构、伏笔设置、悬念构建、冲突设计、转折技巧、信息释放节奏等。以JSON格式输出，格式：{"knowledge": [{"point": "要点", "detail": "详细说明", "example": "原文示例"}]}'
   },
   character: {
     system:
       '你是一名资深中文小说编辑，擅长分析人物塑造。请从给定文本中提取人物塑造维度的创作知识，以JSON格式输出。',
-    user:
-      '请分析以下小说文本的人物塑造，提取创作知识。包括：人物出场方式、性格刻画手法、对话风格、人物关系构建、成长弧线、配角功能等。以JSON格式输出，格式：{"knowledge": [{"point": "要点", "detail": "详细说明", "example": "原文示例"}]}'
+    user: '请分析以下小说文本的人物塑造，提取创作知识。包括：人物出场方式、性格刻画手法、对话风格、人物关系构建、成长弧线、配角功能等。以JSON格式输出，格式：{"knowledge": [{"point": "要点", "detail": "详细说明", "example": "原文示例"}]}'
   },
   novelFeatures: {
     system:
       '你是一名资深中文小说编辑，擅长分析小说独特特点。请从给定文本中提取小说特点维度的创作知识，以JSON格式输出。',
-    user:
-      '请分析以下小说文本的独特特点，提取创作知识。包括：题材创新点、世界观设定亮点、金手指/系统设计、升级体系、差异化卖点等。以JSON格式输出，格式：{"knowledge": [{"point": "要点", "detail": "详细说明", "example": "原文示例"}]}'
+    user: '请分析以下小说文本的独特特点，提取创作知识。包括：题材创新点、世界观设定亮点、金手指/系统设计、升级体系、差异化卖点等。以JSON格式输出，格式：{"knowledge": [{"point": "要点", "detail": "详细说明", "example": "原文示例"}]}'
   },
   emotion: {
     system:
       '你是一名资深中文小说编辑，擅长分析读者情绪引导。请从给定文本中提取读者情绪维度的创作知识，以JSON格式输出。',
-    user:
-      '请分析以下小说文本对读者情绪的引导手法，提取创作知识。包括：爽点设计、情绪铺垫、期待感营造、共情触发、情绪节奏控制等。以JSON格式输出，格式：{"knowledge": [{"point": "要点", "detail": "详细说明", "example": "原文示例"}]}'
+    user: '请分析以下小说文本对读者情绪的引导手法，提取创作知识。包括：爽点设计、情绪铺垫、期待感营造、共情触发、情绪节奏控制等。以JSON格式输出，格式：{"knowledge": [{"point": "要点", "detail": "详细说明", "example": "原文示例"}]}'
   },
   humor: {
     system:
       '你是一名资深中文小说编辑，擅长分析幽默与热梗运用。请从给定文本中提取热梗搞笑维度的创作知识，以JSON格式输出。',
-    user:
-      '请分析以下小说文本中的幽默与热梗运用，提取创作知识。包括：搞笑桥段设计、网络热梗融入、吐槽风格、反差萌、玩梗技巧等。以JSON格式输出，格式：{"knowledge": [{"point": "要点", "detail": "详细说明", "example": "原文示例"}]}'
+    user: '请分析以下小说文本中的幽默与热梗运用，提取创作知识。包括：搞笑桥段设计、网络热梗融入、吐槽风格、反差萌、玩梗技巧等。以JSON格式输出，格式：{"knowledge": [{"point": "要点", "detail": "详细说明", "example": "原文示例"}]}'
   },
   chapterOutline: {
     system:
       '你是一名资深中文小说编辑，擅长提炼章节大纲。请从给定文本中提炼章节大纲维度的结构化信息，以JSON格式输出。',
-    user:
-      '请提炼以下小说文本的章节大纲结构，提取结构化信息。包括：每章核心事件、关键转折、章末钩子、章节功能定位等。以JSON格式输出，格式：{"chapters": [{"title": "章节标题", "events": "核心事件", "turning": "关键转折", "hook": "章末钩子", "function": "章节功能"}]}'
+    user: '请提炼以下小说文本的章节大纲结构，提取结构化信息。包括：每章核心事件、关键转折、章末钩子、章节功能定位等。以JSON格式输出，格式：{"chapters": [{"title": "章节标题", "events": "核心事件", "turning": "关键转折", "hook": "章末钩子", "function": "章节功能"}]}'
   },
   storyAssets: {
     system:
       '你是一名小说资料整理助手，擅长从正文中提取作者写作可用的作品资料。请只基于给定文本，不要补充原文没有依据的信息。请以JSON格式输出。',
-    user:
-      '请从以下小说文本中一次性提取作品资料。必须按字段分类，缺少的类别返回空数组。输出格式：{"characters":[{"name":"角色名","identity":"身份","faction":"阵营","personality":"性格","goal":"目标","abilities":["能力"],"currentStatus":"当前状态","evidence":"原文依据"}],"relationships":[{"source":"角色A","target":"角色B","relation":"关系","attitude":"态度","conflict":"冲突或利益","trend":"变化趋势","evidence":"原文依据"}],"settings":[{"name":"设定名","category":"世界观/规则/术语/限制","rule":"内容","constraint":"限制","evidence":"原文依据"}],"goldenFingers":[{"name":"能力或系统名","trigger":"触发条件","effect":"效果","cost":"代价","limits":"限制","upgrade":"升级方式","usage":"已展示用法","evidence":"原文依据"}],"systems":[{"name":"体系名","levels":["等级或阶段"],"source":"能力来源","progression":"提升方式","limits":"限制","skills":["技能"],"evidence":"原文依据"}],"events":[{"time":"时间点","chapter":"章节或位置","event":"事件","characters":["角色"],"result":"结果","impact":"影响","conflictRisk":"时间矛盾风险"}],"locations":[{"name":"名称","kind":"地点/组织/势力","scope":"范围","members":["成员"],"resources":["资源"],"goal":"目标","relationToProtagonist":"与主角关系","evidence":"原文依据"}],"clues":[{"title":"伏笔标题","setup":"埋设方式","characters":["角色"],"readerKnows":"读者已知","protagonistKnows":"主角已知","payoff":"回收方向","risk":"提前暴露风险","evidence":"原文依据"}]}'
+    user: '请从以下小说文本中一次性提取作品资料。必须按字段分类，缺少的类别返回空数组。输出格式：{"characters":[{"name":"角色名","identity":"身份","faction":"阵营","personality":"性格","goal":"目标","abilities":["能力"],"currentStatus":"当前状态","evidence":"原文依据"}],"relationships":[{"source":"角色A","target":"角色B","relation":"关系","attitude":"态度","conflict":"冲突或利益","trend":"变化趋势","evidence":"原文依据"}],"settings":[{"name":"设定名","category":"世界观/规则/术语/限制","rule":"内容","constraint":"限制","evidence":"原文依据"}],"goldenFingers":[{"name":"能力或系统名","trigger":"触发条件","effect":"效果","cost":"代价","limits":"限制","upgrade":"升级方式","usage":"已展示用法","evidence":"原文依据"}],"systems":[{"name":"体系名","levels":["等级或阶段"],"source":"能力来源","progression":"提升方式","limits":"限制","skills":["技能"],"evidence":"原文依据"}],"events":[{"time":"时间点","chapter":"章节或位置","event":"事件","characters":["角色"],"result":"结果","impact":"影响","conflictRisk":"时间矛盾风险"}],"locations":[{"name":"名称","kind":"地点/组织/势力","scope":"范围","members":["成员"],"resources":["资源"],"goal":"目标","relationToProtagonist":"与主角关系","evidence":"原文依据"}],"clues":[{"title":"伏笔标题","setup":"埋设方式","characters":["角色"],"readerKnows":"读者已知","protagonistKnows":"主角已知","payoff":"回收方向","risk":"提前暴露风险","evidence":"原文依据"}]}'
   },
   characterSetting: {
     system:
       '你是一名小说资料整理助手，擅长从正文中提取角色设定。请只基于给定文本，不要补充原文没有依据的信息。请以JSON格式输出。',
-    user:
-      '请从以下小说文本中提取角色设定。每个角色尽量包含：姓名、别名、身份、阵营、性格、目标、能力、秘密、弱点、当前状态、首次或最近出现位置、原文依据。以JSON格式输出，格式：{"characters": [{"name": "角色名", "aliases": ["别名"], "identity": "身份", "faction": "阵营", "personality": "性格", "goal": "目标", "abilities": ["能力"], "secret": "秘密", "weakness": "弱点", "currentStatus": "当前状态", "evidence": "原文依据"}]}'
+    user: '请从以下小说文本中提取角色设定。每个角色尽量包含：姓名、别名、身份、阵营、性格、目标、能力、秘密、弱点、当前状态、首次或最近出现位置、原文依据。以JSON格式输出，格式：{"characters": [{"name": "角色名", "aliases": ["别名"], "identity": "身份", "faction": "阵营", "personality": "性格", "goal": "目标", "abilities": ["能力"], "secret": "秘密", "weakness": "弱点", "currentStatus": "当前状态", "evidence": "原文依据"}]}'
   },
   relationship: {
     system:
       '你是一名小说资料整理助手，擅长从正文中提取人物关系。请只记录文本里能看出的关系，并标明依据。请以JSON格式输出。',
-    user:
-      '请从以下小说文本中提取人物关系。每条关系包含：角色A、角色B、关系类型、当前态度、冲突或利益、变化趋势、原文依据。以JSON格式输出，格式：{"relationships": [{"source": "角色A", "target": "角色B", "relation": "关系类型", "attitude": "当前态度", "conflict": "冲突或利益", "trend": "变化趋势", "evidence": "原文依据"}]}'
+    user: '请从以下小说文本中提取人物关系。每条关系包含：角色A、角色B、关系类型、当前态度、冲突或利益、变化趋势、原文依据。以JSON格式输出，格式：{"relationships": [{"source": "角色A", "target": "角色B", "relation": "关系类型", "attitude": "当前态度", "conflict": "冲突或利益", "trend": "变化趋势", "evidence": "原文依据"}]}'
   },
   worldbuilding: {
     system:
       '你是一名小说资料整理助手，擅长提取世界观与规则。请区分明确设定和推测，不要把推测写成事实。请以JSON格式输出。',
-    user:
-      '请从以下小说文本中提取世界观设定。包括：世界结构、时代背景、核心规则、重要术语、限制条件、禁止写错的点、原文依据。以JSON格式输出，格式：{"settings": [{"name": "设定名", "category": "世界结构/规则/术语/限制", "rule": "设定内容", "constraint": "限制或禁忌", "evidence": "原文依据"}]}'
+    user: '请从以下小说文本中提取世界观设定。包括：世界结构、时代背景、核心规则、重要术语、限制条件、禁止写错的点、原文依据。以JSON格式输出，格式：{"settings": [{"name": "设定名", "category": "世界结构/规则/术语/限制", "rule": "设定内容", "constraint": "限制或禁忌", "evidence": "原文依据"}]}'
   },
   goldenFinger: {
     system:
       '你是一名小说资料整理助手，擅长提取主角特殊能力、系统、外挂和成长机制。请只基于文本证据。请以JSON格式输出。',
-    user:
-      '请从以下小说文本中提取金手指设定。包括：能力名称、触发条件、效果、代价、限制、升级方式、已展示用法、未说明但需要后续确认的问题。以JSON格式输出，格式：{"goldenFingers": [{"name": "能力或系统名", "trigger": "触发条件", "effect": "效果", "cost": "代价", "limits": "限制", "upgrade": "升级方式", "usage": "已展示用法", "openQuestions": ["待确认问题"], "evidence": "原文依据"}]}'
+    user: '请从以下小说文本中提取金手指设定。包括：能力名称、触发条件、效果、代价、限制、升级方式、已展示用法、未说明但需要后续确认的问题。以JSON格式输出，格式：{"goldenFingers": [{"name": "能力或系统名", "trigger": "触发条件", "effect": "效果", "cost": "代价", "limits": "限制", "upgrade": "升级方式", "usage": "已展示用法", "openQuestions": ["待确认问题"], "evidence": "原文依据"}]}'
   },
   powerSystem: {
     system:
       '你是一名小说资料整理助手，擅长提取力量体系、等级体系和能力规则。请把规则、等级和限制分清楚。请以JSON格式输出。',
-    user:
-      '请从以下小说文本中提取力量体系。包括：体系名称、等级/阶段、能力来源、修炼或提升方式、战力限制、已出现技能、风险和原文依据。以JSON格式输出，格式：{"systems": [{"name": "体系名", "levels": ["等级或阶段"], "source": "能力来源", "progression": "提升方式", "limits": "限制", "skills": ["技能"], "risk": "风险", "evidence": "原文依据"}]}'
+    user: '请从以下小说文本中提取力量体系。包括：体系名称、等级/阶段、能力来源、修炼或提升方式、战力限制、已出现技能、风险和原文依据。以JSON格式输出，格式：{"systems": [{"name": "体系名", "levels": ["等级或阶段"], "source": "能力来源", "progression": "提升方式", "limits": "限制", "skills": ["技能"], "risk": "风险", "evidence": "原文依据"}]}'
   },
   timeline: {
     system:
       '你是一名小说资料整理助手，擅长从正文中提取事件时间线。请按事件顺序输出，无法确定时间点时写“未明”。请以JSON格式输出。',
-    user:
-      '请从以下小说文本中提取时间线。每个事件包含：时间点、章节或位置、事件、参与角色、事件结果、后续影响、是否存在时间矛盾。以JSON格式输出，格式：{"events": [{"time": "时间点", "chapter": "章节或位置", "event": "事件", "characters": ["角色"], "result": "结果", "impact": "后续影响", "conflictRisk": "时间矛盾风险"}]}'
+    user: '请从以下小说文本中提取时间线。每个事件包含：时间点、章节或位置、事件、参与角色、事件结果、后续影响、是否存在时间矛盾。以JSON格式输出，格式：{"events": [{"time": "时间点", "chapter": "章节或位置", "event": "事件", "characters": ["角色"], "result": "结果", "impact": "后续影响", "conflictRisk": "时间矛盾风险"}]}'
   },
   locationFaction: {
     system:
       '你是一名小说资料整理助手，擅长提取地点、组织和势力资料。请把地点和势力分开记录。请以JSON格式输出。',
-    user:
-      '请从以下小说文本中提取地点、组织和势力。包括：名称、类型、位置或活动范围、成员、资源、目标、与主角关系、原文依据。以JSON格式输出，格式：{"items": [{"name": "名称", "kind": "地点/组织/势力", "scope": "范围", "members": ["成员"], "resources": ["资源"], "goal": "目标", "relationToProtagonist": "与主角关系", "evidence": "原文依据"}]}'
+    user: '请从以下小说文本中提取地点、组织和势力。包括：名称、类型、位置或活动范围、成员、资源、目标、与主角关系、原文依据。以JSON格式输出，格式：{"items": [{"name": "名称", "kind": "地点/组织/势力", "scope": "范围", "members": ["成员"], "resources": ["资源"], "goal": "目标", "relationToProtagonist": "与主角关系", "evidence": "原文依据"}]}'
   },
   foreshadowing: {
     system:
       '你是一名小说资料整理助手，擅长提取伏笔、线索和信息差。请标明读者、主角、相关角色分别知道什么。请以JSON格式输出。',
-    user:
-      '请从以下小说文本中提取伏笔线索。包括：伏笔标题、埋设方式、相关角色、读者已知、主角已知、角色已知、预计回收方向、提前暴露风险、原文依据。以JSON格式输出，格式：{"clues": [{"title": "伏笔标题", "setup": "埋设方式", "characters": ["角色"], "readerKnows": "读者已知", "protagonistKnows": "主角已知", "characterKnows": "角色已知", "payoff": "预计回收方向", "risk": "提前暴露风险", "evidence": "原文依据"}]}'
+    user: '请从以下小说文本中提取伏笔线索。包括：伏笔标题、埋设方式、相关角色、读者已知、主角已知、角色已知、预计回收方向、提前暴露风险、原文依据。以JSON格式输出，格式：{"clues": [{"title": "伏笔标题", "setup": "埋设方式", "characters": ["角色"], "readerKnows": "读者已知", "protagonistKnows": "主角已知", "characterKnows": "角色已知", "payoff": "预计回收方向", "risk": "提前暴露风险", "evidence": "原文依据"}]}'
   }
 }
 
@@ -192,38 +176,38 @@ function updateExtractionRecord(filePath, record) {
 }
 
 const CHINESE_NUMBER_VALUES = {
-  '零': 0,
-  '〇': 0,
+  零: 0,
+  〇: 0,
   '○': 0,
-  '一': 1,
-  '二': 2,
-  '两': 2,
-  '俩': 2,
-  '三': 3,
-  '四': 4,
-  '五': 5,
-  '六': 6,
-  '七': 7,
-  '八': 8,
-  '九': 9
+  一: 1,
+  二: 2,
+  两: 2,
+  俩: 2,
+  三: 3,
+  四: 4,
+  五: 5,
+  六: 6,
+  七: 7,
+  八: 8,
+  九: 9
 }
 
 const CHINESE_SPECIAL_NUMBERS = {
-  '廿': 20,
-  '卅': 30,
-  '卌': 40,
-  '皕': 200
+  廿: 20,
+  卅: 30,
+  卌: 40,
+  皕: 200
 }
 
 const CHINESE_SMALL_UNITS = {
-  '十': 10,
-  '百': 100,
-  '千': 1000
+  十: 10,
+  百: 100,
+  千: 1000
 }
 
 const CHINESE_LARGE_UNITS = {
-  '万': 10000,
-  '亿': 100000000
+  万: 10000,
+  亿: 100000000
 }
 
 function parseChineseNumber(raw) {
@@ -276,8 +260,12 @@ function parseChineseNumber(raw) {
 }
 
 function parseChapterName(name) {
-  const cleanedName = String(name || '').replace(/\.(txt|json)$/i, '').trim()
-  const match = cleanedName.match(/^第\s*([零〇○一二两俩三四五六七八九十百千万亿廿卅卌皕\d]+)\s*([章回集节部卷])\s*(.*)$/)
+  const cleanedName = String(name || '')
+    .replace(/\.(txt|json)$/i, '')
+    .trim()
+  const match = cleanedName.match(
+    /^第\s*([零〇○一二两俩三四五六七八九十百千万亿廿卅卌皕\d]+)\s*([章回集节部卷])\s*(.*)$/
+  )
   if (!match) return null
 
   const [, rawNumber, suffix, description] = match
@@ -343,17 +331,19 @@ function normalizeChapterScope(options = {}, totalChapterCount = 0) {
     }
   }
 
-  const scope = options.chapterScope && typeof options.chapterScope === 'object'
-    ? options.chapterScope
-    : {}
+  const scope =
+    options.chapterScope && typeof options.chapterScope === 'object' ? options.chapterScope : {}
   const rawStart = options.chapterStart ?? options.startChapter ?? scope.start ?? scope.from
   const rawEnd = options.chapterEnd ?? options.endChapter ?? scope.end ?? scope.to
   const rawLimit = options.chapterLimit ?? scope.limit
   const start = Math.min(Math.max(1, normalizePositiveInteger(rawStart, 1) || 1), total)
   const limit = normalizePositiveInteger(rawLimit)
-  let end = rawEnd == null || rawEnd === ''
-    ? (limit ? start + limit - 1 : total)
-    : normalizePositiveInteger(rawEnd, total)
+  let end =
+    rawEnd == null || rawEnd === ''
+      ? limit
+        ? start + limit - 1
+        : total
+      : normalizePositiveInteger(rawEnd, total)
   end = Math.min(Math.max(1, end || total), total)
   if (end < start) end = start
 
@@ -365,9 +355,7 @@ function normalizeChapterScope(options = {}, totalChapterCount = 0) {
     totalChapterCount: total,
     selectedChapterCount,
     limited,
-    label: limited
-      ? `第 ${start}-${end} 章，共 ${selectedChapterCount} 章`
-      : `整本 ${total} 章`
+    label: limited ? `第 ${start}-${end} 章，共 ${selectedChapterCount} 章` : `整本 ${total} 章`
   }
 }
 
@@ -432,7 +420,12 @@ function normalizeExtractionItems(parsed, fallbackText, meta) {
     ['locations', 'locationFaction', '地点势力'],
     ['clues', 'foreshadowing', '伏笔线索']
   ]
-  if (meta.dimension === 'storyAssets' && parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+  if (
+    meta.dimension === 'storyAssets' &&
+    parsed &&
+    typeof parsed === 'object' &&
+    !Array.isArray(parsed)
+  ) {
     const rows = []
     for (const [key, subDimension, subLabel] of categoryKeys) {
       const list = Array.isArray(parsed?.[key]) ? parsed[key] : []
@@ -469,7 +462,7 @@ function normalizeExtractionItems(parsed, fallbackText, meta) {
     parsed?.events ||
     parsed?.clues ||
     (Array.isArray(parsed) ? parsed : null)
-  const list = Array.isArray(rawItems) ? rawItems : (parsed ? [parsed] : [])
+  const list = Array.isArray(rawItems) ? rawItems : parsed ? [parsed] : []
   const items = list
     .map((item, index) => {
       const raw = item && typeof item === 'object' ? item : { value: item }
@@ -491,22 +484,28 @@ function normalizeExtractionItems(parsed, fallbackText, meta) {
   if (items.length) return items
   const text = String(fallbackText || '').trim()
   if (!text) return []
-  return [{
-    _id: `${meta.extractionId}_${meta.dimension}_${meta.groupIndex}_raw`,
-    _dimension: meta.dimension,
-    _dimensionLabel: EXTRACTION_DIMENSION_LABELS[meta.dimension] || meta.dimension,
-    _group: meta.groupTitle,
-    _groupIndex: meta.groupIndex,
-    _chapterRange: meta.chapterRange,
-    _sourceBookName: meta.sourceBookName,
-    _text: text
-  }]
+  return [
+    {
+      _id: `${meta.extractionId}_${meta.dimension}_${meta.groupIndex}_raw`,
+      _dimension: meta.dimension,
+      _dimensionLabel: EXTRACTION_DIMENSION_LABELS[meta.dimension] || meta.dimension,
+      _group: meta.groupTitle,
+      _groupIndex: meta.groupIndex,
+      _chapterRange: meta.chapterRange,
+      _sourceBookName: meta.sourceBookName,
+      _text: text
+    }
+  ]
 }
 
 function flattenResultItems(results = {}) {
   const rows = []
   for (const [dimension, payload] of Object.entries(results || {})) {
-    const groups = Array.isArray(payload) ? payload : (Array.isArray(payload?.groups) ? payload.groups : [])
+    const groups = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.groups)
+        ? payload.groups
+        : []
     const directItems = Array.isArray(payload?.items) ? payload.items : []
     for (const item of directItems) {
       const text = item?._text || toPlainText(item)
@@ -580,7 +579,7 @@ function summarizeExtractionRecord(record = {}) {
     : Object.keys(record.dimensions || {})
   const dimensionSummaries = Object.fromEntries(
     dimensions.map((dimension) => {
-      const meta = Array.isArray(record.dimensions) ? {} : (record.dimensions?.[dimension] || {})
+      const meta = Array.isArray(record.dimensions) ? {} : record.dimensions?.[dimension] || {}
       const result = record.results?.[dimension]
       const itemCount = result ? flattenResultItems({ [dimension]: result }).length : 0
       return [
@@ -609,7 +608,9 @@ function summarizeExtractionRecord(record = {}) {
     superseded: Boolean(record.superseded),
     supersededAt: record.supersededAt || '',
     supersededBy: record.supersededBy || '',
-    replacedExtractionIds: Array.isArray(record.replacedExtractionIds) ? record.replacedExtractionIds : [],
+    replacedExtractionIds: Array.isArray(record.replacedExtractionIds)
+      ? record.replacedExtractionIds
+      : [],
     skippedDimensions: Array.isArray(record.skippedDimensions) ? record.skippedDimensions : [],
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
@@ -641,14 +642,16 @@ function extractionDetailPreview(record = {}, options = {}) {
   const summary = summarizeExtractionRecord(record)
   const results = {}
   for (const [dimension, value] of Object.entries(record.results || {})) {
-    const groups = Array.isArray(value)
-      ? value
-      : (Array.isArray(value?.groups) ? value.groups : [])
+    const groups = Array.isArray(value) ? value : Array.isArray(value?.groups) ? value.groups : []
     const items = flattenResultItems({ [dimension]: value })
       .slice(0, previewLimit)
       .map((row) => row.item)
     results[dimension] = {
-      label: value?.label || summary.dimensions?.[dimension]?.label || EXTRACTION_DIMENSION_LABELS[dimension] || dimension,
+      label:
+        value?.label ||
+        summary.dimensions?.[dimension]?.label ||
+        EXTRACTION_DIMENSION_LABELS[dimension] ||
+        dimension,
       count: Number(value?.count ?? summary.dimensions?.[dimension]?.itemCount ?? items.length),
       completed: Boolean(value?.completed),
       failedGroups: Number(value?.failedGroups ?? 0),
@@ -669,16 +672,20 @@ function extractionDetailPreview(record = {}, options = {}) {
 function extractionResultPage(record = {}, options = {}) {
   const page = Math.max(1, Number(options.page) || 1)
   const pageSize = Math.max(1, Math.min(50, Number(options.pageSize) || 10))
-  const keyword = String(options.keyword || '').trim().toLowerCase()
+  const keyword = String(options.keyword || '')
+    .trim()
+    .toLowerCase()
   const summary = summarizeExtractionRecord(record)
   const resultKeys = Object.keys(record.results || {})
   const requestedDimension = String(options.dimension || '')
-  const fallbackDimension = resultKeys.find((key) => Number(summary.dimensions?.[key]?.itemCount || 0) > 0) ||
+  const fallbackDimension =
+    resultKeys.find((key) => Number(summary.dimensions?.[key]?.itemCount || 0) > 0) ||
     resultKeys[0] ||
     ''
-  const dimension = requestedDimension && record.results?.[requestedDimension]
-    ? requestedDimension
-    : fallbackDimension
+  const dimension =
+    requestedDimension && record.results?.[requestedDimension]
+      ? requestedDimension
+      : fallbackDimension
   const payload = dimension ? { [dimension]: record.results?.[dimension] } : record.results
   let rows = flattenResultItems(payload)
 
@@ -694,7 +701,10 @@ function extractionResultPage(record = {}, options = {}) {
         row.item?.point,
         row.item?.character,
         row.item?.events
-      ].filter(Boolean).join(' ').toLowerCase()
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
       return haystack.includes(keyword)
     })
   }
@@ -772,7 +782,9 @@ function emitProgress(onProgress, record, patch = {}) {
   const failedSubTasks = subTasks.filter((task) => task.status === 'failed').length
   const groupTotal = record.stats?.totalGroups || record.totalGroups || 1
   const groupDone = subTasks.reduce((sum, task) => sum + Number(task.progress?.current || 0), 0)
-  const basePercent = totalSubTasks ? (groupDone / Math.max(1, totalSubTasks * groupTotal)) * 100 : 0
+  const basePercent = totalSubTasks
+    ? (groupDone / Math.max(1, totalSubTasks * groupTotal)) * 100
+    : 0
   const overallPercent = patch.overallPercent != null ? patch.overallPercent : basePercent
   const payload = {
     extractionId: record.id,
@@ -912,29 +924,34 @@ class ExtractionAiService {
       throw new Error('书籍路径不能为空')
     }
 
-    const requestedDimensions = Array.isArray(dimensions) && dimensions.length
-      ? dimensions.filter((d) => EXTRACTION_DIMENSIONS.includes(d))
-      : [...EXTRACTION_DIMENSIONS]
+    const requestedDimensions =
+      Array.isArray(dimensions) && dimensions.length
+        ? dimensions.filter((d) => EXTRACTION_DIMENSIONS.includes(d))
+        : [...EXTRACTION_DIMENSIONS]
     const normalizedRunMode = normalizeRunMode(runMode)
     const extractionsPath = getExtractionsPath(bookPath)
     const existingRecords = readExtractionRecords(extractionsPath)
-    const targetDimensions = normalizedRunMode === 'fillMissing'
-      ? requestedDimensions.filter((dimension) => !hasUsableDimensionResult(existingRecords, dimension))
-      : requestedDimensions
+    const targetDimensions =
+      normalizedRunMode === 'fillMissing'
+        ? requestedDimensions.filter(
+            (dimension) => !hasUsableDimensionResult(existingRecords, dimension)
+          )
+        : requestedDimensions
 
     if (!targetDimensions.length) {
-      const message = normalizedRunMode === 'fillMissing'
-        ? '所选内容已有可用拆书结果，无需补拆。'
-        : '未指定有效的提取维度'
+      const message =
+        normalizedRunMode === 'fillMissing'
+          ? '所选内容已有可用拆书结果，无需补拆。'
+          : '未指定有效的提取维度'
       throw new Error(message)
     }
 
-    const replacedRecords = normalizedRunMode === 'replace'
-      ? activeExtractionRecords(existingRecords)
-      : []
-    const skippedDimensions = normalizedRunMode === 'fillMissing'
-      ? requestedDimensions.filter((dimension) => !targetDimensions.includes(dimension))
-      : []
+    const replacedRecords =
+      normalizedRunMode === 'replace' ? activeExtractionRecords(existingRecords) : []
+    const skippedDimensions =
+      normalizedRunMode === 'fillMissing'
+        ? requestedDimensions.filter((dimension) => !targetDimensions.includes(dimension))
+        : []
 
     const extractionId = `ext_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
     const knowledgeDir = getKnowledgeDir(bookPath)
@@ -1110,7 +1127,9 @@ class ExtractionAiService {
 
           let waitTimer = null
           const waitStartedAt = Date.now()
-          const requestTimeoutMs = Number(options.requestTimeoutMs || EXTRACTION_MODEL_REQUEST_TIMEOUT_MS)
+          const requestTimeoutMs = Number(
+            options.requestTimeoutMs || EXTRACTION_MODEL_REQUEST_TIMEOUT_MS
+          )
           try {
             task.waitingSince = nowIso()
             task.waitingSeconds = 0
@@ -1132,13 +1151,17 @@ class ExtractionAiService {
               })
             }, EXTRACTION_WAIT_PROGRESS_INTERVAL_MS)
 
-            const result = await withTimeout(activeTextProvider.chat({
-              messages,
-              temperature: 0.3,
-              max_tokens: 4000,
-              timeoutMs: requestTimeoutMs,
-              requestId: `extraction_${extractionId}_${dimension}_${gi}`
-            }), requestTimeoutMs + 5000, `模型请求超时（${formatDuration(requestTimeoutMs)}），已跳过当前章节组。`)
+            const result = await withTimeout(
+              activeTextProvider.chat({
+                messages,
+                temperature: 0.3,
+                max_tokens: 4000,
+                timeoutMs: requestTimeoutMs,
+                requestId: `extraction_${extractionId}_${dimension}_${gi}`
+              }),
+              requestTimeoutMs + 5000,
+              `模型请求超时（${formatDuration(requestTimeoutMs)}），已跳过当前章节组。`
+            )
 
             const parsed = parseJsonFromAiResponse(result.content)
             const normalizedItems = normalizeExtractionItems(parsed, result.content, {
@@ -1165,8 +1188,12 @@ class ExtractionAiService {
             extractionRecord.stats.totalExtractedCount += normalizedItems.length
             if (result.usage) {
               const usage = extractionRecord.stats.tokenUsage
-              usage.prompt_tokens += Number(result.usage.prompt_tokens || result.usage.input_tokens || 0)
-              usage.completion_tokens += Number(result.usage.completion_tokens || result.usage.output_tokens || 0)
+              usage.prompt_tokens += Number(
+                result.usage.prompt_tokens || result.usage.input_tokens || 0
+              )
+              usage.completion_tokens += Number(
+                result.usage.completion_tokens || result.usage.output_tokens || 0
+              )
               usage.total_tokens += Number(result.usage.total_tokens || 0)
             }
             addExtractionLog(
@@ -1241,13 +1268,22 @@ class ExtractionAiService {
               dimension,
               chapterRange: item._chapterRange || ''
             }))
-            const vectorResult = await vectorService.addChunks(bookPath, chunks, options.embeddingConfig)
+            const vectorResult = await vectorService.addChunks(
+              bookPath,
+              chunks,
+              options.embeddingConfig
+            )
             extractionRecord.stats.vectorizedCount += Number(vectorResult?.added || 0)
           } catch (err) {
             console.error(`向量化维度 ${dimension} 失败:`, err.message)
-            addExtractionLog(extractionRecord, 'warning', `「${dimensionLabel}」向量索引写入失败：${err.message}`, {
-              dimension
-            })
+            addExtractionLog(
+              extractionRecord,
+              'warning',
+              `「${dimensionLabel}」向量索引写入失败：${err.message}`,
+              {
+                dimension
+              }
+            )
           }
         }
 
@@ -1274,10 +1310,12 @@ class ExtractionAiService {
           failedGroups: dimensionErrors.length,
           progress: task.progress
         }
-        extractionRecord.progress.completedSubTasks = Object.values(extractionRecord.subTasks)
-          .filter((item) => item.status === 'completed').length
-        extractionRecord.progress.failedSubTasks = Object.values(extractionRecord.subTasks)
-          .filter((item) => item.status === 'failed').length
+        extractionRecord.progress.completedSubTasks = Object.values(
+          extractionRecord.subTasks
+        ).filter((item) => item.status === 'completed').length
+        extractionRecord.progress.failedSubTasks = Object.values(extractionRecord.subTasks).filter(
+          (item) => item.status === 'failed'
+        ).length
         addExtractionLog(
           extractionRecord,
           task.status === 'failed' ? 'error' : 'success',
@@ -1339,7 +1377,11 @@ class ExtractionAiService {
         }
       }
       await deleteVectorsForRecords(bookPath, replacedRecords)
-      addExtractionLog(extractionRecord, 'info', `已将 ${replacedRecords.length} 次旧拆书记录标记为已替换。`)
+      addExtractionLog(
+        extractionRecord,
+        'info',
+        `已将 ${replacedRecords.length} 次旧拆书记录标记为已替换。`
+      )
     }
     const idx = current.findIndex((e) => e.id === extractionId)
     if (idx !== -1) {
@@ -1371,7 +1413,9 @@ class ExtractionAiService {
       throw new Error('参数不完整')
     }
     const extractionsPath = getExtractionsPath(bookPath)
-    const target = readExtractionRecords(extractionsPath).find((record) => record.id === extractionId)
+    const target = readExtractionRecords(extractionsPath).find(
+      (record) => record.id === extractionId
+    )
     if (!target) {
       throw new Error('拆书任务不存在')
     }
@@ -1383,7 +1427,9 @@ class ExtractionAiService {
       throw new Error('参数不完整')
     }
     const extractionsPath = getExtractionsPath(bookPath)
-    const target = readExtractionRecords(extractionsPath).find((record) => record.id === extractionId)
+    const target = readExtractionRecords(extractionsPath).find(
+      (record) => record.id === extractionId
+    )
     if (!target) {
       throw new Error('拆书任务不存在')
     }
@@ -1395,7 +1441,9 @@ class ExtractionAiService {
       throw new Error('参数不完整')
     }
     const extractionsPath = getExtractionsPath(bookPath)
-    const target = readExtractionRecords(extractionsPath).find((record) => record.id === extractionId)
+    const target = readExtractionRecords(extractionsPath).find(
+      (record) => record.id === extractionId
+    )
     if (!target) {
       throw new Error('拆书任务不存在')
     }
@@ -1430,9 +1478,8 @@ class ExtractionAiService {
     if (!bookPath || !query) {
       throw new Error('书籍路径和查询内容不能为空')
     }
-    const targetDimensions = Array.isArray(dimensions) && dimensions.length
-      ? dimensions
-      : [...EXTRACTION_DIMENSIONS]
+    const targetDimensions =
+      Array.isArray(dimensions) && dimensions.length ? dimensions : [...EXTRACTION_DIMENSIONS]
 
     if (!vectorService?.search || !embeddingConfig) {
       return this.searchStoredKnowledge(bookPath, { query, dimensions: targetDimensions, topK })
@@ -1467,31 +1514,36 @@ class ExtractionAiService {
   }
 
   searchStoredKnowledge(bookPath, { query, dimensions, topK = 5 } = {}) {
-    const q = String(query || '').trim().toLowerCase()
-  const targetDimensions = Array.isArray(dimensions) && dimensions.length
-    ? new Set(dimensions)
-    : null
-  const records = activeExtractionRecords(readExtractionRecords(getExtractionsPath(bookPath)))
-  const limit = Number(topK) || 5
-  const rows = records
-      .flatMap((record) => flattenResultItems(record.results).map((row) => ({
-        ...row,
-        sourceExtractionId: record.id,
-        sourceBookName: record.sourceBookName || row.item?._sourceBookName || '',
-        metadata: {
+    const q = String(query || '')
+      .trim()
+      .toLowerCase()
+    const targetDimensions =
+      Array.isArray(dimensions) && dimensions.length ? new Set(dimensions) : null
+    const records = activeExtractionRecords(readExtractionRecords(getExtractionsPath(bookPath)))
+    const limit = Number(topK) || 5
+    const rows = records
+      .flatMap((record) =>
+        flattenResultItems(record.results).map((row) => ({
+          ...row,
           sourceExtractionId: record.id,
           sourceBookName: record.sourceBookName || row.item?._sourceBookName || '',
-          dimension: row.dimension,
-          group: row.group,
-          chapterRange: row.chapterRange
-        }
-      })))
+          metadata: {
+            sourceExtractionId: record.id,
+            sourceBookName: record.sourceBookName || row.item?._sourceBookName || '',
+            dimension: row.dimension,
+            group: row.group,
+            chapterRange: row.chapterRange
+          }
+        }))
+      )
       .filter((row) => !targetDimensions || targetDimensions.has(row.dimension))
       .map((row) => {
         const haystack = `${row.dimension} ${row.group} ${row.text}`.toLowerCase()
         const score = q
-          ? q.split(/[\s，。！？、；,.!?;:]+/).filter(Boolean)
-            .reduce((sum, token) => sum + (haystack.includes(token) ? token.length : 0), 0)
+          ? q
+              .split(/[\s，。！？、；,.!?;:]+/)
+              .filter(Boolean)
+              .reduce((sum, token) => sum + (haystack.includes(token) ? token.length : 0), 0)
           : 1
         return { ...row, _score: score }
       })

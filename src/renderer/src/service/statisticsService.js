@@ -133,7 +133,11 @@ async function writeStoreValue(key, value, label) {
   return result
 }
 
-function requireGoalWriteResult(result, label, { requireItem = false, expectedId = '', requireDeletedId = false } = {}) {
+function requireGoalWriteResult(
+  result,
+  label,
+  { requireItem = false, expectedId = '', requireDeletedId = false } = {}
+) {
   if (result?.success !== true) {
     throw new Error(result?.message || `${label}失败`)
   }
@@ -151,7 +155,9 @@ function requireGoalWriteResult(result, label, { requireItem = false, expectedId
     }
   }
   if (requireDeletedId) {
-    const deletedId = String(result.id || result.deletedId || result.goalId || result.item?.id || '')
+    const deletedId = String(
+      result.id || result.deletedId || result.goalId || result.item?.id || ''
+    )
     if (!deletedId) {
       throw new Error(`${label}接口返回格式异常`)
     }
@@ -161,7 +167,11 @@ function requireGoalWriteResult(result, label, { requireItem = false, expectedId
   }
   if (result.items !== undefined) {
     const items = requireArray(result.items, `${label}列表`)
-    if (requireDeletedId && expectedId && items.some((goal) => String(goal?.id || '') === String(expectedId))) {
+    if (
+      requireDeletedId &&
+      expectedId &&
+      items.some((goal) => String(goal?.id || '') === String(expectedId))
+    ) {
       throw new Error(`${label}后目标仍在列表中`)
     }
   }
@@ -180,13 +190,23 @@ function toNumber(value, fallback = 0) {
 function normalizeAiUsageLog(usage = {}) {
   const rawUsage = usage.usage && typeof usage.usage === 'object' ? usage.usage : {}
   const promptTokens = toNumber(
-    usage.promptTokens ?? usage.prompt_tokens ?? usage.inputTokens ?? usage.input_tokens ??
-      rawUsage.promptTokens ?? rawUsage.prompt_tokens ?? rawUsage.input_tokens,
+    usage.promptTokens ??
+      usage.prompt_tokens ??
+      usage.inputTokens ??
+      usage.input_tokens ??
+      rawUsage.promptTokens ??
+      rawUsage.prompt_tokens ??
+      rawUsage.input_tokens,
     0
   )
   const completionTokens = toNumber(
-    usage.completionTokens ?? usage.completion_tokens ?? usage.outputTokens ?? usage.output_tokens ??
-      rawUsage.completionTokens ?? rawUsage.completion_tokens ?? rawUsage.output_tokens,
+    usage.completionTokens ??
+      usage.completion_tokens ??
+      usage.outputTokens ??
+      usage.output_tokens ??
+      rawUsage.completionTokens ??
+      rawUsage.completion_tokens ??
+      rawUsage.output_tokens,
     0
   )
   const totalTokens = toNumber(
@@ -194,7 +214,10 @@ function normalizeAiUsageLog(usage = {}) {
     promptTokens + completionTokens
   )
   const imageRequests = toNumber(
-    usage.imageRequests ?? usage.image_requests ?? rawUsage.imageRequests ?? rawUsage.image_requests,
+    usage.imageRequests ??
+      usage.image_requests ??
+      rawUsage.imageRequests ??
+      rawUsage.image_requests,
     0
   )
   const inputPrice = toNumber(usage.inputPricePerMillionTokens, 0)
@@ -297,7 +320,7 @@ class StatisticsService {
   calculateStreak(logs) {
     if (!logs.length) return { current: 0, max: 0 }
 
-    const dates = Array.from(new Set(logs.map(l => l.date))).sort()
+    const dates = Array.from(new Set(logs.map((l) => l.date))).sort()
     if (!dates.length) return { current: 0, max: 0 }
 
     let maxStreak = 0
@@ -415,16 +438,20 @@ class StatisticsService {
   async saveGoal(goal) {
     const createWritingGoal = requireElectronMethod('createWritingGoal', '写作目标接口不可用')
     const updateWritingGoal = requireElectronMethod('updateWritingGoal', '写作目标接口不可用')
-    const result = goal.id
-      ? await updateWritingGoal(goal.id, goal)
-      : await createWritingGoal(goal)
-    return requireGoalWriteResult(result, '保存目标', { requireItem: true, expectedId: goal.id || '' }).item
+    const result = goal.id ? await updateWritingGoal(goal.id, goal) : await createWritingGoal(goal)
+    return requireGoalWriteResult(result, '保存目标', {
+      requireItem: true,
+      expectedId: goal.id || ''
+    }).item
   }
 
   async createGoal(goal) {
     const createWritingGoal = requireElectronMethod('createWritingGoal', '创建目标接口不可用')
     const result = await createWritingGoal(goal)
-    return requireGoalWriteResult(result, '创建目标', { requireItem: true, expectedId: goal?.id || '' })
+    return requireGoalWriteResult(result, '创建目标', {
+      requireItem: true,
+      expectedId: goal?.id || ''
+    })
   }
 
   async updateGoal(id, patch) {
@@ -440,7 +467,10 @@ class StatisticsService {
   }
 
   async getTokenStats(params = {}) {
-    const remote = requirePlainObject(await callElectronApi('getAnalyticsTokenStats', params), 'AI 使用统计')
+    const remote = requirePlainObject(
+      await callElectronApi('getAnalyticsTokenStats', params),
+      'AI 使用统计'
+    )
     return {
       ...remote,
       byFeature: requireArray(remote.byFeature, 'AI 功能用量'),
@@ -450,7 +480,10 @@ class StatisticsService {
   }
 
   async getSessionStats(params = {}) {
-    const remote = requirePlainObject(await callElectronApi('getAnalyticsSessionStats', params), '写作会话统计')
+    const remote = requirePlainObject(
+      await callElectronApi('getAnalyticsSessionStats', params),
+      '写作会话统计'
+    )
     return {
       ...remote,
       sessions: requireArray(remote.sessions, '写作会话列表')
@@ -458,7 +491,10 @@ class StatisticsService {
   }
 
   async getWeeklyReport(params = {}) {
-    const remote = requirePlainObject(await callElectronApi('getAnalyticsWeeklyReport', params), '周报')
+    const remote = requirePlainObject(
+      await callElectronApi('getAnalyticsWeeklyReport', params),
+      '周报'
+    )
     requirePlainObject(remote.period, '周报周期')
     return {
       ...remote,
@@ -467,7 +503,10 @@ class StatisticsService {
   }
 
   async getMonthlyReport(params = {}) {
-    const remote = requirePlainObject(await callElectronApi('getAnalyticsMonthlyReport', params), '月报')
+    const remote = requirePlainObject(
+      await callElectronApi('getAnalyticsMonthlyReport', params),
+      '月报'
+    )
     requirePlainObject(remote.period, '月报周期')
     return {
       ...remote,

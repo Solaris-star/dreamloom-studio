@@ -386,7 +386,8 @@ async function loadVolumeOptions() {
     return
   }
   try {
-    const chaptersTree = await window.electron.loadChapters(props.bookName)
+    const chapterResult = await window.electron.loadChapters(props.bookName)
+    const chaptersTree = Array.isArray(chapterResult) ? chapterResult : chapterResult.chapters
     const volumes = Array.isArray(chaptersTree)
       ? chaptersTree
           .filter((item) => item?.type === 'volume' && item?.name)
@@ -422,7 +423,8 @@ async function loadPreviousChapterExcerptForAi() {
   if (!bookName || !volumeName || !targetName) return ''
   if (!window.electron?.loadChapters || !window.electron?.readChapter) return ''
   try {
-    const tree = await window.electron.loadChapters(bookName)
+    const chapterResult = await window.electron.loadChapters(bookName)
+    const tree = Array.isArray(chapterResult) ? chapterResult : chapterResult.chapters
     const vol = Array.isArray(tree)
       ? tree.find((v) => v?.type === 'volume' && String(v.name).trim() === volumeName)
       : null

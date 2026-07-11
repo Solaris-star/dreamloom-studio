@@ -999,7 +999,7 @@
             <p v-if="previewImageBook">所属作品: {{ previewImageBook }}</p>
           </div>
           <div class="lightbox-actions">
-            <el-button v-motion-feedback type="primary" @click="downloadImage(selectedImage || { id: previewImageId, isImage: true, relativePath: previewImageUrl })">下载原图</el-button>
+            <el-button v-motion-feedback type="primary" @click="downloadImage(previewImageAsset)">下载原图</el-button>
             <el-button v-motion-feedback @click="imagePreviewVisible = false">关闭</el-button>
           </div>
         </div>
@@ -1073,6 +1073,7 @@ const previewImageUrl = ref('')
 const previewImageName = ref('')
 const previewImageBook = ref('')
 const previewImageId = ref('')
+const previewImageAsset = ref(null)
 const keyword = ref('')
 const searchMode = ref('shelf')
 const bookFilter = ref('all')
@@ -2209,6 +2210,7 @@ function downloadImage(asset) {
 
 function openImageLightbox(asset) {
   if (!asset) return
+  previewImageAsset.value = { ...asset }
   previewImageUrl.value = assetUrl(asset)
   previewImageName.value = asset.name
   previewImageBook.value = asset.bookName || '未绑定作品'
@@ -2231,9 +2233,20 @@ function handleImageDragLeave() {
 async function handleImageDrop(event) {
   isDraggingImage.value = false
   const files = Array.from(event.dataTransfer?.files || [])
-  const imageFiles = files.filter(f => f.type.startsWith('image/'))
+  const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+  const maxImageBytes = 20 * 1024 * 1024
+  const imageFiles = files.filter((file) => allowedTypes.has(file.type))
   if (!imageFiles.length) {
-    ElMessage.warning('仅支持拖拽上传图片文件')
+    ElMessage.warning('仅支持 JPG、PNG、WebP 或 GIF 图片')
+    return
+  }
+  if (imageFiles.length > 20) {
+    ElMessage.warning('一次最多上传 20 张图片')
+    return
+  }
+  const oversizedFiles = imageFiles.filter((file) => file.size > maxImageBytes)
+  if (oversizedFiles.length) {
+    ElMessage.warning(`图片不能超过 20 MB：${oversizedFiles[0].name}`)
     return
   }
 
@@ -2242,32 +2255,57 @@ async function handleImageDrop(event) {
     return
   }
 
-  let successCount = 0
-  let failCount = 0
-
-  for (const file of imageFiles) {
-    const reader = new FileReader()
-    reader.onload = async () => {
-      const dataUrl = String(reader.result || '')
-      try {
-        await importAsset({
-          dataUrl,
-          fileName: file.name,
-          bookName: selectedBook.value?.folderName || selectedBook.value?.name || books.value[0].folderName || books.value[0].name,
-          type: 'attachment'
-        })
-        successCount++
-        if (successCount + failCount === imageFiles.length) {
-          ElMessage.success(`成功上传 ${successCount} 张图片`)
-          await loadLibrary()
-        }
-      } catch (error) {
-        failCount++
-        ElMessage.error(`图片 ${file.name} 上传失败: ` + error.message)
+  const targetBookName =
+    selectedBook.value?.folderName ||
+    selectedBook.value?.name ||
+    books.value[0].folderName ||
+    books.value[0].name
+  const results = await Promise.allSettled(
+    imageFiles.map(async (file) => {
+      const dataUrl = await readFileAsDataUrl(file)
+      const result = await importAsset({
+        dataUrl,
+        fileName: file.name,
+        bookName: targetBookName,
+        type: 'attachment'
+      })
+      if (result?.success === false) {
+        throw new Error(result.message || '上传失败')
       }
-    }
-    reader.readAsDataURL(file)
+      return result
+    })
+  )
+  const successCount = results.filter((result) => result.status === 'fulfilled').length
+  const failed = results
+    .map((result, index) => ({ result, file: imageFiles[index] }))
+    .filter(({ result }) => result.status === 'rejected')
+
+  if (successCount) {
+    await loadLibrary()
   }
+  if (!failed.length) {
+    ElMessage.success(`成功上传 ${successCount} 张图片`)
+  } else {
+    const firstReason = failed[0].result.reason?.message || '读取或上传失败'
+    ElMessage.warning(`上传成功 ${successCount} 张，失败 ${failed.length} 张：${firstReason}`)
+  }
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = String(reader.result || '')
+      if (!dataUrl.startsWith('data:image/')) {
+        reject(new Error('图片内容无法识别'))
+        return
+      }
+      resolve(dataUrl)
+    }
+    reader.onerror = () => reject(new Error(`无法读取 ${file.name}`))
+    reader.onabort = () => reject(new Error(`已取消读取 ${file.name}`))
+    reader.readAsDataURL(file)
+  })
 }
 
 async function deleteImage(asset) {

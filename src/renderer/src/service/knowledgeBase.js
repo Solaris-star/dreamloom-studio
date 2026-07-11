@@ -83,10 +83,7 @@ export async function listKnowledgeItems(filter = {}) {
 }
 
 export async function getKnowledgeItem(id) {
-  return requireKnowledgeItemResult(
-    await ensureElectronApi('getKnowledgeItem')(id),
-    '读取素材失败'
-  )
+  return requireKnowledgeItemResult(await ensureElectronApi('getKnowledgeItem')(id), '读取素材失败')
 }
 
 export async function runKnowledgeAiTask(payload) {
@@ -126,10 +123,7 @@ export async function favoriteKnowledgeItem(id, favorite) {
 }
 
 export async function archiveKnowledgeItem(id) {
-  return requireKnowledgeItemResult(
-    await ensureElectronApi('archiveKnowledgeItem')(id),
-    '归档失败'
-  )
+  return requireKnowledgeItemResult(await ensureElectronApi('archiveKnowledgeItem')(id), '归档失败')
 }
 
 export async function linkKnowledgeItems(sourceId, targetIds) {

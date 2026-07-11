@@ -58,7 +58,10 @@ try {
   assert.equal(result.result.check.source, 'editor_agent_writer_draft_tool')
   assert.equal(result.result.check.taskType, 'editor_agent_draft')
   assert.equal(result.result.check.applyAction, 'draft_review')
-  assert.equal(result.result.issues.some((item) => item.type === 'setting_condition'), true)
+  assert.equal(
+    result.result.issues.some((item) => item.type === 'setting_condition'),
+    true
+  )
   assert.match(result.text, /草稿一致性规则检查发现/)
   assert.equal(result.step.stage, 'agent_draft_consistency_check')
   assert.equal(result.step.role, 'tool')

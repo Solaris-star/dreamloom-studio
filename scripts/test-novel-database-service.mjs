@@ -64,8 +64,14 @@ try {
   assert.equal(project.intro, '少女入山寻剑。')
 
   const documents = repository.listBookDocuments(project.id)
-  assert.equal(documents.some((item) => item.documentType === 'meta'), true)
-  assert.equal(documents.some((item) => item.documentType === 'characters'), true)
+  assert.equal(
+    documents.some((item) => item.documentType === 'meta'),
+    true
+  )
+  assert.equal(
+    documents.some((item) => item.documentType === 'characters'),
+    true
+  )
   assert.equal(documents.find((item) => item.documentType === 'characters').content[0].name, '林青')
 
   const research = repository.recordResearchRun({
@@ -323,7 +329,10 @@ try {
   assert.equal(extractionRun.results.plot.items[0].point, '雪夜剑痕')
   assert.equal(extractionRun.usage.total_tokens, 30)
   assert.equal(extractionRun.raw.extraction.provider.apiKey, '***')
-  assert.deepEqual(extractionRun.appliedKnowledgeItemIds, ['kb_ext_ext_001', 'kb_ext_ext_001_plot_0'])
+  assert.deepEqual(extractionRun.appliedKnowledgeItemIds, [
+    'kb_ext_ext_001',
+    'kb_ext_ext_001_plot_0'
+  ])
 
   assert.throws(
     () =>
@@ -404,9 +413,18 @@ try {
       }),
     /force rollback/
   )
-  assert.equal(repository.getChapter(project.id, { volumeName: '第一卷', chapterName: '第二章' }), null)
-  assert.equal(repository.listAgentTasks(project.id).some((item) => item.id === 'task_rollback'), false)
-  assert.equal(repository.listConsistencyChecks(project.id).some((item) => item.id === 'check_rollback'), false)
+  assert.equal(
+    repository.getChapter(project.id, { volumeName: '第一卷', chapterName: '第二章' }),
+    null
+  )
+  assert.equal(
+    repository.listAgentTasks(project.id).some((item) => item.id === 'task_rollback'),
+    false
+  )
+  assert.equal(
+    repository.listConsistencyChecks(project.id).some((item) => item.id === 'check_rollback'),
+    false
+  )
 
   const chapter = repository.withTransaction(() =>
     repository.recordChapterWrite({
@@ -504,7 +522,10 @@ try {
   assert.equal(snapshot.success, undefined)
   assert.equal(snapshot.project.bookName, bookName)
   assert.equal(snapshot.projects.length, 1)
-  assert.equal(snapshot.documents.find((item) => item.documentType === 'settings').content.categories[0].name, '术法')
+  assert.equal(
+    snapshot.documents.find((item) => item.documentType === 'settings').content.categories[0].name,
+    '术法'
+  )
   assert.equal(snapshot.researchRuns.length, 1)
   assert.equal(snapshot.bookIdeaRuns.length, 2)
   assert.equal(snapshot.bookIdeaRuns[0].selectedPlanId, 'idea_a')
@@ -766,7 +787,10 @@ try {
 
   const allBackups = listNovelDatabaseBackups({ booksDir })
   assert.equal(allBackups.backups.length, 2)
-  assert.equal(allBackups.backups.some((item) => item.taskId === 'backup_library_task_001'), true)
+  assert.equal(
+    allBackups.backups.some((item) => item.taskId === 'backup_library_task_001'),
+    true
+  )
 
   const backupById = getNovelDatabaseBackup({
     booksDir,
@@ -789,19 +813,31 @@ try {
   })
   assert.equal(missingBackup.backupRecord, null)
 
-  const missingProjectResources = listNovelDatabaseResearchRuns({ booksDir, bookName: '不存在的书' })
+  const missingProjectResources = listNovelDatabaseResearchRuns({
+    booksDir,
+    bookName: '不存在的书'
+  })
   assert.equal(missingProjectResources.project, null)
   assert.equal(missingProjectResources.researchRuns.length, 0)
 
-  const missingProjectBookIdeaRuns = listNovelDatabaseBookIdeaRuns({ booksDir, bookName: '不存在的书' })
+  const missingProjectBookIdeaRuns = listNovelDatabaseBookIdeaRuns({
+    booksDir,
+    bookName: '不存在的书'
+  })
   assert.equal(missingProjectBookIdeaRuns.project, null)
   assert.equal(missingProjectBookIdeaRuns.bookIdeaRuns.length, 0)
 
-  const missingProjectChapterOutlineRuns = listNovelDatabaseChapterOutlineRuns({ booksDir, bookName: '不存在的书' })
+  const missingProjectChapterOutlineRuns = listNovelDatabaseChapterOutlineRuns({
+    booksDir,
+    bookName: '不存在的书'
+  })
   assert.equal(missingProjectChapterOutlineRuns.project, null)
   assert.equal(missingProjectChapterOutlineRuns.chapterOutlineRuns.length, 0)
 
-  const missingProjectExtractionRuns = listNovelDatabaseExtractionRuns({ booksDir, bookName: '不存在的书' })
+  const missingProjectExtractionRuns = listNovelDatabaseExtractionRuns({
+    booksDir,
+    bookName: '不存在的书'
+  })
   assert.equal(missingProjectExtractionRuns.project, null)
   assert.equal(missingProjectExtractionRuns.extractionRuns.length, 0)
 

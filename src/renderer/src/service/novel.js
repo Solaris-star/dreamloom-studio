@@ -36,7 +36,12 @@ function requireNovelSourceRow(row) {
   if (!row || typeof row !== 'object' || Array.isArray(row)) {
     throw new Error('读取小说书源失败：书源格式不正确')
   }
-  if (typeof row.id !== 'string' || !row.id.trim() || typeof row.name !== 'string' || !row.name.trim()) {
+  if (
+    typeof row.id !== 'string' ||
+    !row.id.trim() ||
+    typeof row.name !== 'string' ||
+    !row.name.trim()
+  ) {
     throw new Error('读取小说书源失败：书源格式不正确')
   }
   return {

@@ -16,13 +16,20 @@ const ENTITY_SECTION_LABEL = {
 const DEFAULT_MAX_TOTAL = 12000
 
 function safeReadJson(filePath, fallback) {
+  if (!fs.existsSync(filePath)) return fallback
   try {
-    if (!fs.existsSync(filePath)) return fallback
     const raw = fs.readFileSync(filePath, 'utf-8')
     return JSON.parse(raw)
-  } catch {
-    return fallback
+  } catch (error) {
+    throw new Error(`读取作品资料失败：${filePath} ${error.message}`)
   }
+}
+
+function requireArray(value, fileName) {
+  if (!Array.isArray(value)) {
+    throw new Error(`${fileName} 格式错误，应为数组`)
+  }
+  return value
 }
 
 function truncate(str, maxLen) {
@@ -154,7 +161,7 @@ function formatEntityLine(e) {
  * @param {{ outlineTitle?: string, outlineContent?: string, maxTotalChars?: number }} options
  * @returns {string} 可直接拼进 user 消息的设定块；无数据时返回空串
  */
-export function buildBookWritingContextBlock(bookPath, options = {}) {
+export async function buildBookWritingContextBlock(bookPath, options = {}) {
   if (!bookPath || !fs.existsSync(bookPath)) return ''
 
   const maxTotal =
@@ -174,6 +181,7 @@ export function buildBookWritingContextBlock(bookPath, options = {}) {
 
   // —— 人物谱 ——
   const characters = safeReadJson(join(bookPath, 'characters.json'), [])
+  requireArray(characters, 'characters.json')
   if (Array.isArray(characters) && characters.length) {
     const matched = characters.filter((c) => nameMentionedInOutline(c?.name, blob))
     const picked = matched.length > 0 ? matched.slice(0, 18) : characters.slice(0, 8)
@@ -187,7 +195,10 @@ export function buildBookWritingContextBlock(bookPath, options = {}) {
   if (profiles && typeof profiles === 'object') {
     const entityLines = []
     for (const key of ENTITY_PROFILE_KEYS) {
-      const list = Array.isArray(profiles[key]) ? profiles[key] : []
+      if (profiles[key] != null && !Array.isArray(profiles[key])) {
+        throw new Error(`entity_profiles.json 格式错误，${key} 应为数组`)
+      }
+      const list = profiles[key] || []
       if (!list.length) continue
       const label = ENTITY_SECTION_LABEL[key] || key
       const matched = list.filter((e) => nameMentionedInOutline(e?.name, blob))
@@ -200,6 +211,7 @@ export function buildBookWritingContextBlock(bookPath, options = {}) {
 
   // —— 词条字典 ——
   const dict = safeReadJson(join(bookPath, 'dictionary.json'), [])
+  requireArray(dict, 'dictionary.json')
   const flatDict = flattenDictionary(dict, [])
   if (flatDict.length) {
     const matched = flatDict.filter((d) => nameMentionedInOutline(d.name, blob))
@@ -213,6 +225,9 @@ export function buildBookWritingContextBlock(bookPath, options = {}) {
 
   // —— 设定管理 ——
   const settings = safeReadJson(join(bookPath, 'settings.json'), null)
+  if (settings != null && !Array.isArray(settings.categories)) {
+    throw new Error('settings.json 格式错误，应包含 categories 数组')
+  }
   const flatSettings = flattenSettings(settings)
   if (flatSettings.length) {
     const matched = flatSettings.filter((s) => settingMentionedInOutline(s, blob))
@@ -223,6 +238,7 @@ export function buildBookWritingContextBlock(bookPath, options = {}) {
 
   // —— 时间线 ——
   const timelines = safeReadJson(join(bookPath, 'timelines.json'), [])
+  requireArray(timelines, 'timelines.json')
   if (Array.isArray(timelines) && timelines.length) {
     const tlLines = []
     for (const col of timelines.slice(0, 6)) {

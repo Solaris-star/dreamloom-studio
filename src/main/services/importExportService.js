@@ -33,7 +33,11 @@ function crc32(buffer) {
 }
 
 function safeName(value, fallback = '未命名') {
-  return String(value || fallback).trim().replace(/[\\/:*?"<>|]/g, '_') || fallback
+  return (
+    String(value || fallback)
+      .trim()
+      .replace(/[\\/:*?"<>|]/g, '_') || fallback
+  )
 }
 
 function isInside(baseDir, targetPath) {
@@ -104,7 +108,8 @@ function getBookPath(booksDir, bookName) {
 
 function readBooks(booksDir) {
   if (!booksDir || !fs.existsSync(booksDir)) return []
-  return fs.readdirSync(booksDir, { withFileTypes: true })
+  return fs
+    .readdirSync(booksDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && entry.name !== IMPORT_EXPORT_DIR)
     .map((entry) => {
       const bookPath = join(booksDir, entry.name)
@@ -267,7 +272,9 @@ function createZip(files) {
 
   for (const file of files) {
     const nameBuffer = Buffer.from(file.name.replace(/\\/g, '/'), 'utf-8')
-    const data = Buffer.isBuffer(file.data) ? file.data : Buffer.from(String(file.data || ''), 'utf-8')
+    const data = Buffer.isBuffer(file.data)
+      ? file.data
+      : Buffer.from(String(file.data || ''), 'utf-8')
     const crc = crc32(data)
     const localHeader = Buffer.alloc(30)
     localHeader.writeUInt32LE(0x04034b50, 0)
@@ -358,7 +365,11 @@ function readImportText(input = {}) {
   if (format === 'docx') {
     return { text: extractDocxText(buffer), fileName, format }
   }
-  if (!TEXT_EXTENSIONS.has(extname(fileName).toLowerCase()) && format !== 'txt' && format !== 'md') {
+  if (
+    !TEXT_EXTENSIONS.has(extname(fileName).toLowerCase()) &&
+    format !== 'txt' &&
+    format !== 'md'
+  ) {
     throw new Error('仅支持 TXT、Markdown 和 DOCX')
   }
   return { text: decodeTextBuffer(buffer).replace(/\r\n/g, '\n'), fileName, format }
@@ -368,15 +379,19 @@ function isChapterTitle(line, index, format) {
   const text = String(line || '').trim()
   if (!text || text.length > 90) return false
   if (format === 'md' && /^#{1,3}\s+\S+/.test(text)) return true
-  return /^第[零〇一二三四五六七八九十百千万两\d]+[章回节卷集部]\s*\S*/.test(text) ||
+  return (
+    /^第[零〇一二三四五六七八九十百千万两\d]+[章回节卷集部]\s*\S*/.test(text) ||
     /^Chapter\s+\d+\b/i.test(text) ||
     /^CHAPTER\s+\d+\b/.test(text) ||
     /^\d{1,4}[.、]\s*\S+/.test(text) ||
     (index > 0 && /^【[^】]{1,40}】$/.test(text))
+  )
 }
 
 function normalizeChapterTitle(title, index) {
-  const cleaned = String(title || '').trim().replace(/^#{1,3}\s+/, '')
+  const cleaned = String(title || '')
+    .trim()
+    .replace(/^#{1,3}\s+/, '')
   return safeName(cleaned || `第${index + 1}章`, `第${index + 1}章`)
 }
 
@@ -399,7 +414,8 @@ function inferBookName(text, fileName, format) {
     .slice(0, 20)
 
   const explicitTitle = lines.find((line) => /^书名[:：]\s*\S+/.test(line))
-  if (explicitTitle) return safeName(normalizePlainTitle(explicitTitle), sourceBaseName || '导入书籍')
+  if (explicitTitle)
+    return safeName(normalizePlainTitle(explicitTitle), sourceBaseName || '导入书籍')
 
   if (format === 'md') {
     const h1 = lines.find((line) => /^#\s+\S+/.test(line))
@@ -417,9 +433,11 @@ function inferBookName(text, fileName, format) {
 
 function isExplicitBookTitleLine(line, format) {
   const text = String(line || '').trim()
-  return /^书名[:：]\s*\S+/.test(text) ||
+  return (
+    /^书名[:：]\s*\S+/.test(text) ||
     /^《[^》]{1,60}》$/.test(text) ||
     (format === 'md' && /^#\s+\S+/.test(text))
+  )
 }
 
 function shouldStripBookTitleLine(line, bookName, format) {
@@ -435,7 +453,9 @@ function shouldStripBookTitleLine(line, bookName, format) {
 }
 
 function stripLeadingBookTitle(text, bookName, format) {
-  const lines = String(text || '').replace(/\r\n/g, '\n').split('\n')
+  const lines = String(text || '')
+    .replace(/\r\n/g, '\n')
+    .split('\n')
   const firstTextIndex = lines.findIndex((line) => line.trim())
   if (firstTextIndex < 0) return String(text || '')
 
@@ -452,7 +472,9 @@ function stripLeadingBookTitle(text, bookName, format) {
 }
 
 function splitChapters(text, format) {
-  const lines = String(text || '').replace(/\r\n/g, '\n').split('\n')
+  const lines = String(text || '')
+    .replace(/\r\n/g, '\n')
+    .split('\n')
   const chapters = []
   let current = null
   let buffer = []
@@ -587,12 +609,14 @@ export function importBook(booksDir, input = {}) {
 function listBookChapters(book) {
   const root = join(book.path, '正文')
   if (!fs.existsSync(root)) return []
-  const volumes = fs.readdirSync(root, { withFileTypes: true })
+  const volumes = fs
+    .readdirSync(root, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
   return volumes.flatMap((volumeName) => {
     const volumePath = join(root, volumeName)
-    return fs.readdirSync(volumePath, { withFileTypes: true })
+    return fs
+      .readdirSync(volumePath, { withFileTypes: true })
       .filter((entry) => entry.isFile() && entry.name.endsWith('.txt'))
       .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN', { numeric: true }))
       .map((entry) => {
@@ -607,8 +631,8 @@ function listBookChapters(book) {
 }
 
 function getBook(booksDir, bookName) {
-  const book = readBooks(booksDir).find((item) =>
-    item.name === bookName || item.folderName === bookName || item.id === bookName
+  const book = readBooks(booksDir).find(
+    (item) => item.name === bookName || item.folderName === bookName || item.id === bookName
   )
   if (!book) throw new Error('未找到书籍')
   return book
@@ -826,7 +850,10 @@ export function inspectBackup(booksDir, input = {}) {
     success: true,
     fileName,
     summary,
-    suggestedTargetDir: join(getRestoreRoot(booksDir), safeName(basename(fileName, extname(fileName)), `restore_${Date.now()}`))
+    suggestedTargetDir: join(
+      getRestoreRoot(booksDir),
+      safeName(basename(fileName, extname(fileName)), `restore_${Date.now()}`)
+    )
   }
 }
 
@@ -834,11 +861,21 @@ export function restoreBackup(booksDir, input = {}) {
   const { buffer, fileName } = decodeZipInput(input)
   const entries = readZipEntries(buffer)
   const summary = validateRestoreEntries(entries)
-  const restoreMode = String(input.restoreMode || input.mode || (input.targetDir ? 'archive' : 'library')).toLowerCase()
+  const restoreMode = String(
+    input.restoreMode || input.mode || (input.targetDir ? 'archive' : 'library')
+  ).toLowerCase()
   if (restoreMode === 'library' || restoreMode === 'bookshelf' || restoreMode === 'current') {
     return restoreBackupToLibrary(booksDir, entries, summary, fileName)
   }
-  const targetDir = resolve(String(input.targetDir || join(getRestoreRoot(booksDir), safeName(basename(fileName, extname(fileName)), `restore_${Date.now()}`))))
+  const targetDir = resolve(
+    String(
+      input.targetDir ||
+        join(
+          getRestoreRoot(booksDir),
+          safeName(basename(fileName, extname(fileName)), `restore_${Date.now()}`)
+        )
+    )
+  )
   if (resolve(targetDir) === resolve(booksDir)) throw new Error('不能覆盖当前书库目录')
   if (isInside(booksDir, targetDir) && !isInside(getRestoreRoot(booksDir), targetDir)) {
     throw new Error('恢复目录不能写入当前书库正文区域')
@@ -886,7 +923,11 @@ function restoreBackupToLibrary(booksDir, entries, summary, fileName) {
   const groups = buildRestoreBookGroups(entries)
   if (!groups.length) throw new Error('备份包中未找到可加入书库的书籍')
 
-  const existingIds = new Set(readBooks(booksDir).map((book) => String(book.id || '')).filter(Boolean))
+  const existingIds = new Set(
+    readBooks(booksDir)
+      .map((book) => String(book.id || ''))
+      .filter(Boolean)
+  )
   const usedIds = new Set(existingIds)
   const reservedNames = new Set()
   const tempRoot = join(getRestoreRoot(booksDir), `.tmp-library-${Date.now()}-${randomUUID()}`)

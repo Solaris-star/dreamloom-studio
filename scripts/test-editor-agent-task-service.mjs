@@ -143,13 +143,21 @@ try {
   assert.equal(memoryEvent.eventCount, 2)
   assert.equal(memoryEvent.contextChars, 180)
   assert.equal(memoryEvent.sources[0].type, 'agent_task')
-  const draftCheckEvent = completed.events.find((item) => item.type === 'agent_draft_consistency_check')
+  const draftCheckEvent = completed.events.find(
+    (item) => item.type === 'agent_draft_consistency_check'
+  )
   assert.equal(draftCheckEvent.role, 'tool')
   assert.equal(draftCheckEvent.checkId, 'draft_check_001')
   assert.equal(draftCheckEvent.issueCount, 1)
   assert.equal(draftCheckEvent.metadata.persisted, false)
-  assert.equal(completed.events.some((item) => item.type === 'writer'), true)
-  assert.equal(completed.events.some((item) => item.type === 'editor_review'), true)
+  assert.equal(
+    completed.events.some((item) => item.type === 'writer'),
+    true
+  )
+  assert.equal(
+    completed.events.some((item) => item.type === 'editor_review'),
+    true
+  )
   assert.equal(completed.events.at(-1).type, 'generation_saved')
 
   const applied = recordAgentTaskApplication(bookPath, {
@@ -235,16 +243,23 @@ try {
   const repairContextEvent = repairContextEvents.at(-1)
   assert.equal(repairContextEvent.bookContext.sourceCount, 1)
   assert.equal(repairContextEvent.sources[0].type, 'characters')
-  assert.equal(repaired.events.some((item) => item.type === 'writer_repair'), true)
+  assert.equal(
+    repaired.events.some((item) => item.type === 'writer_repair'),
+    true
+  )
   assert.equal(repaired.events.at(-1).type, 'repair_saved')
   assert.equal(repaired.events.at(-1).repairGenerationId, 'gen_repair_001')
 
-  const repairFailed = recordAgentTaskRepairFailure(bookPath, {
-    taskId: task.id,
-    sourceGenerationId: 'gen_001',
-    checkId: 'check_002',
-    issueCount: 2
-  }, new Error('返修模型超时'))
+  const repairFailed = recordAgentTaskRepairFailure(
+    bookPath,
+    {
+      taskId: task.id,
+      sourceGenerationId: 'gen_001',
+      checkId: 'check_002',
+      issueCount: 2
+    },
+    new Error('返修模型超时')
+  )
 
   assert.equal(repairFailed.status, 'repair_failed')
   assert.equal(repairFailed.error, '返修模型超时')
@@ -308,10 +323,7 @@ try {
 
   const taskStorePath = join(bookPath, '.editor-agent', 'tasks.json')
   fs.writeFileSync(taskStorePath, '{ broken json', 'utf8')
-  assert.throws(
-    () => listAgentTasks(bookPath),
-    /读取 Agent 任务记录失败/
-  )
+  assert.throws(() => listAgentTasks(bookPath), /读取 Agent 任务记录失败/)
   assert.throws(
     () => createAgentTask(bookPath, { bookName: '风雪试剑', instruction: '继续写。' }),
     /读取 Agent 任务记录失败/
@@ -319,10 +331,7 @@ try {
   assert.equal(fs.readFileSync(taskStorePath, 'utf8'), '{ broken json')
 
   fs.writeFileSync(taskStorePath, JSON.stringify({ tasks: { broken: true } }), 'utf8')
-  assert.throws(
-    () => listAgentTasks(bookPath),
-    /本地记录格式不正确/
-  )
+  assert.throws(() => listAgentTasks(bookPath), /本地记录格式不正确/)
   assert.equal(fs.readFileSync(taskStorePath, 'utf8'), JSON.stringify({ tasks: { broken: true } }))
 } finally {
   fs.rmSync(rootDir, { recursive: true, force: true })

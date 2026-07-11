@@ -63,9 +63,14 @@ function requireGoalRows(goals) {
 function normalizeGoal(raw = {}) {
   const now = new Date().toISOString()
   const createdAt = raw.createdAt || now
-  const targetValue = Math.max(0, Math.round(asNumber(raw.targetValue ?? raw.targetWords ?? raw.target, 0)))
+  const targetValue = Math.max(
+    0,
+    Math.round(asNumber(raw.targetValue ?? raw.targetWords ?? raw.target, 0))
+  )
   const type = String(raw.type || 'range').trim() || 'range'
-  const title = String(raw.title || raw.name || (type === 'daily' ? '每日写作目标' : '写作目标')).trim()
+  const title = String(
+    raw.title || raw.name || (type === 'daily' ? '每日写作目标' : '写作目标')
+  ).trim()
 
   return {
     id: String(raw.id || `goal_${randomUUID()}`),
@@ -112,11 +117,13 @@ export function calculateProgress(goalInput, booksDir = '') {
     currentValue = rows.reduce((sum, row) => sum + row.words, 0)
   }
 
-  const percent = goal.targetValue > 0 ? Math.min(100, Math.round((currentValue / goal.targetValue) * 100)) : 0
+  const percent =
+    goal.targetValue > 0 ? Math.min(100, Math.round((currentValue / goal.targetValue) * 100)) : 0
   const remaining = Math.max(0, goal.targetValue - currentValue)
   const today = toDateKey()
   const overdue = Boolean(goal.endDate && goal.endDate < today && percent < 100)
-  const computedStatus = percent >= 100 ? 'completed' : overdue ? 'overdue' : goal.status || 'active'
+  const computedStatus =
+    percent >= 100 ? 'completed' : overdue ? 'overdue' : goal.status || 'active'
 
   return {
     ...goal,

@@ -76,7 +76,13 @@ function parseRequestUrl(requestUrl = '') {
 function isWebSocketUpgrade(req) {
   const upgrade = cleanText(req.headers.upgrade).toLowerCase()
   const connection = cleanText(req.headers.connection).toLowerCase()
-  return upgrade === 'websocket' && connection.split(',').map((item) => item.trim()).includes('upgrade')
+  return (
+    upgrade === 'websocket' &&
+    connection
+      .split(',')
+      .map((item) => item.trim())
+      .includes('upgrade')
+  )
 }
 
 function acceptKey(key = '') {
@@ -186,13 +192,16 @@ function registerSocket(controller, socket, filter) {
   })
 
   socket.on('data', (chunk) => {
-    client.pending = parseClientFrames(Buffer.concat([client.pending, chunk]), ({ opcode, payload }) => {
-      if (opcode === 0x8) {
-        socket.end(CLOSE_NORMAL)
-      } else if (opcode === 0x9 && socket.writable) {
-        socket.write(encodePongFrame(payload))
+    client.pending = parseClientFrames(
+      Buffer.concat([client.pending, chunk]),
+      ({ opcode, payload }) => {
+        if (opcode === 0x8) {
+          socket.end(CLOSE_NORMAL)
+        } else if (opcode === 0x9 && socket.writable) {
+          socket.write(encodePongFrame(payload))
+        }
       }
-    })
+    )
   })
   socket.on('close', () => controller.clients.delete(client))
   socket.on('error', () => controller.clients.delete(client))
@@ -233,7 +242,12 @@ function createController(options = {}) {
   const key = serverKey(host, port)
   const server = http.createServer((_, res) => {
     res.writeHead(404, { 'content-type': 'application/json; charset=utf-8' })
-    res.end(JSON.stringify({ success: false, message: 'agent task progress websocket is available at /agent-tasks' }))
+    res.end(
+      JSON.stringify({
+        success: false,
+        message: 'agent task progress websocket is available at /agent-tasks'
+      })
+    )
   })
   const controller = {
     key,
@@ -352,7 +366,9 @@ export async function startAgentTaskProgressServer(options = {}) {
       } catch (error) {
         lastError = error
         if (error?.code !== 'EADDRINUSE' || candidatePort === 0) throw error
-        console.warn(`Agent task progress websocket port ${candidatePort} is in use, trying next port.`)
+        console.warn(
+          `Agent task progress websocket port ${candidatePort} is in use, trying next port.`
+        )
       }
     }
     throw lastError
@@ -402,7 +418,14 @@ export async function stopAgentTaskProgressServer(options = {}) {
   const host = cleanText(options.host || process.env.AGENT_TASK_WS_HOST) || DEFAULT_HOST
   const hasPort = options.port != null
   const controllers = hasPort
-    ? [activeServers.get(serverKey(host, normalizePort(options.port ?? process.env.AGENT_TASK_WS_PORT, DEFAULT_PORT)))].filter(Boolean)
+    ? [
+        activeServers.get(
+          serverKey(
+            host,
+            normalizePort(options.port ?? process.env.AGENT_TASK_WS_PORT, DEFAULT_PORT)
+          )
+        )
+      ].filter(Boolean)
     : Array.from(activeServers.values())
   const stoppedServers = controllers.map((controller) => ({
     host: controller.host,
@@ -412,37 +435,46 @@ export async function stopAgentTaskProgressServer(options = {}) {
     started: controller.started
   }))
 
-  await Promise.all(controllers.map((controller) => new Promise((resolve) => {
-    controller.unsubscribe?.()
-    clearInterval(controller.pingTimer)
-    for (const client of controller.clients) {
-      if (!client.socket.destroyed) client.socket.end(CLOSE_NORMAL)
-    }
-    controller.clients.clear()
-    activeServers.delete(controller.key)
-    if (!controller.started) {
-      resolve()
-      return
-    }
-    controller.server.close(() => {
-      controller.started = false
-      resolve()
-    })
-  })))
+  await Promise.all(
+    controllers.map(
+      (controller) =>
+        new Promise((resolve) => {
+          controller.unsubscribe?.()
+          clearInterval(controller.pingTimer)
+          for (const client of controller.clients) {
+            if (!client.socket.destroyed) client.socket.end(CLOSE_NORMAL)
+          }
+          controller.clients.clear()
+          activeServers.delete(controller.key)
+          if (!controller.started) {
+            resolve()
+            return
+          }
+          controller.server.close(() => {
+            controller.started = false
+            resolve()
+          })
+        })
+    )
+  )
 
   const closeQueueProgress = options.closeQueueProgress !== false
   let closedQueueProgressListeners = 0
   if (closeQueueProgress) {
-    await Promise.all(Array.from(activeQueueProgressListeners.entries()).map(async ([key, queueEvents]) => {
-      activeQueueProgressListeners.delete(key)
-      closedQueueProgressListeners += 1
-      await queueEvents.close().catch(() => {})
-    }))
+    await Promise.all(
+      Array.from(activeQueueProgressListeners.entries()).map(async ([key, queueEvents]) => {
+        activeQueueProgressListeners.delete(key)
+        closedQueueProgressListeners += 1
+        await queueEvents.close().catch(() => {})
+      })
+    )
   }
   return {
     success: true,
     host,
-    port: hasPort ? normalizePort(options.port ?? process.env.AGENT_TASK_WS_PORT, DEFAULT_PORT) : null,
+    port: hasPort
+      ? normalizePort(options.port ?? process.env.AGENT_TASK_WS_PORT, DEFAULT_PORT)
+      : null,
     stoppedServers,
     stoppedServerCount: stoppedServers.length,
     closedClientCount: stoppedServers.reduce((total, item) => total + item.clientCount, 0),

@@ -3,6 +3,7 @@
 > 💡 本文详细介绍 织梦书房 项目中油漆桶工具（Bucket Tool）的完整实现，包括洪水填充算法、坐标转换、像素数据处理、边界计算等核心技术。通过深入分析代码实现，帮助开发者理解如何在 Canvas 中实现高效的区域填充功能。
 
 ## 📋 目录
+
 - [功能概述](#功能概述)
 - [洪水填充算法原理](#洪水填充算法原理)
 - [坐标转换的复杂性](#坐标转换的复杂性)
@@ -26,11 +27,12 @@
 
 ![地图设计](static/maps.png)
 
-*地图设计工具中的油漆桶工具 - 快速填充封闭区域，创建丰富的地图效果*
+_地图设计工具中的油漆桶工具 - 快速填充封闭区域，创建丰富的地图效果_
 
 ### 🖼️ 使用场景
 
 油漆桶工具在地图设计中常用于：
+
 - 填充地形区域（如海洋、陆地、森林等）
 - 快速上色封闭区域
 - 创建区域标记和区分
@@ -61,7 +63,7 @@ function floodFill(startX, startY, targetColor, fillColor, imageData) {
   while (stack.length) {
     const [cx, cy] = stack.pop()
     const key = `${cx},${cy}`
-    
+
     // 边界检查和访问标记
     if (visited.has(key) || cx < 0 || cy < 0 || cx >= width || cy >= height) {
       continue
@@ -71,10 +73,10 @@ function floodFill(startX, startY, targetColor, fillColor, imageData) {
     // 获取当前像素颜色
     const idx = (cy * width + cx) * 4
     const currColor = [
-      data[idx],     // R
+      data[idx], // R
       data[idx + 1], // G
       data[idx + 2], // B
-      data[idx + 3]  // A
+      data[idx + 3] // A
     ]
 
     // 颜色匹配检查
@@ -87,10 +89,10 @@ function floodFill(startX, startY, targetColor, fillColor, imageData) {
     data[idx + 3] = fillColor[3]
 
     // 添加相邻像素到栈
-    stack.push([cx + 1, cy])  // 右
-    stack.push([cx - 1, cy])  // 左
-    stack.push([cx, cy + 1])   // 下
-    stack.push([cx, cy - 1])   // 上
+    stack.push([cx + 1, cy]) // 右
+    stack.push([cx - 1, cy]) // 左
+    stack.push([cx, cy + 1]) // 下
+    stack.push([cx, cy - 1]) // 上
   }
 }
 ```
@@ -109,6 +111,7 @@ function floodFill(startX, startY, targetColor, fillColor, imageData) {
 ### 问题背景
 
 在 Canvas 中，我们使用了两种坐标系：
+
 - **场景坐标**: 逻辑坐标系，用于存储元素位置
 - **画布像素坐标**: 物理坐标系，用于实际绘制
 
@@ -155,7 +158,7 @@ export function useBucketTool({ canvasRef, elements, history, renderCanvas, colo
     if (!canvasRef.value || !history.value) return
     fillBucket(pos)
   }
-  
+
   return {
     onMouseDown,
     fillBucket
@@ -171,36 +174,36 @@ export function useBucketTool({ canvasRef, elements, history, renderCanvas, colo
 function fillBucket(pos) {
   // 1. 保存历史状态
   history.value.saveState()
-  
+
   // 2. 渲染当前画布，获取最新状态
   renderCanvas(false)
-  
+
   // 3. 获取画布像素数据
   const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight)
-  
+
   // 4. 坐标转换
   const pixelX = Math.floor((pos.x + canvasState.scrollX.value) * canvasState.scale.value)
   const pixelY = Math.floor((pos.y + canvasState.scrollY.value) * canvasState.scale.value)
-  
+
   // 5. 获取起始颜色和填充颜色
   const startColor = getPixelColor(imageData, pixelX, pixelY)
   const fillColor = hexToRgba(color.value)
-  
+
   // 6. 执行洪水填充
   floodFill(imageData, pixelX, pixelY, startColor, fillColor)
-  
+
   // 7. 计算填充区域边界
   const bounds = calculateBounds(visited)
-  
+
   // 8. 裁剪填充区域
   const fillImageData = cropImageData(imageData, bounds)
-  
+
   // 9. 转换为 Base64
   const imageDataBase64 = imageDataToBase64(fillImageData)
-  
+
   // 10. 创建填充元素
   const fillElement = createFillElement(bounds, imageDataBase64)
-  
+
   // 11. 添加到元素数组并渲染
   elements.fillElements.value.push(fillElement)
   renderCanvas(true)
@@ -223,18 +226,21 @@ function colorsMatch(a, b) {
 ```javascript
 function hexToRgba(hex) {
   let c = hex.replace('#', '')
-  
+
   // 处理 3 位十六进制颜色（如 #fff）
   if (c.length === 3) {
-    c = c.split('').map((s) => s + s).join('')
+    c = c
+      .split('')
+      .map((s) => s + s)
+      .join('')
   }
-  
+
   const num = parseInt(c, 16)
   return [
-    (num >> 16) & 255,  // R
-    (num >> 8) & 255,   // G
-    num & 255,           // B
-    255                  // A (不透明)
+    (num >> 16) & 255, // R
+    (num >> 8) & 255, // G
+    num & 255, // B
+    255 // A (不透明)
   ]
 }
 ```
@@ -338,7 +344,7 @@ let imageReady = false
 const handleImageReady = () => {
   if (imageReady) return
   imageReady = true
-  
+
   // 图片加载完成后，添加到元素数组并渲染
   elements.fillElements.value.push(fillElement)
   renderCanvas(true)
@@ -409,6 +415,7 @@ const fillImageData = ctx.createImageData(fillWidth, fillHeight)
 ```
 
 **优化效果**:
+
 - 减少存储空间（可能减少 90%+ 的数据）
 - 加快序列化速度
 - 降低内存占用
@@ -450,6 +457,7 @@ renderCanvas(true)
 **问题**: 画布支持缩放和平移，需要准确转换坐标。
 
 **解决方案**:
+
 - 仔细分析 Canvas 的变换顺序（先 scale 后 translate）
 - 使用精确的转换公式
 - 使用 `Math.floor` 确保像素坐标是整数
@@ -463,6 +471,7 @@ const pixelX = Math.floor((pos.x + canvasState.scrollX.value) * canvasState.scal
 **问题**: 浮点数精度问题可能导致颜色匹配失败。
 
 **解决方案**:
+
 - 使用精确匹配（完全相等）
 - 不进行容差匹配，避免误填充
 
@@ -477,6 +486,7 @@ function colorsMatch(a, b) {
 **问题**: 填充大区域时，栈可能很大，性能下降。
 
 **解决方案**:
+
 - 使用栈而非递归（避免调用栈溢出）
 - 使用 Set 记录已访问像素（O(1) 查找）
 - 边界裁剪减少数据量
@@ -486,6 +496,7 @@ function colorsMatch(a, b) {
 **问题**: Base64 图片加载是异步的，可能导致渲染问题。
 
 **解决方案**:
+
 - 预加载图片
 - 使用 `img.complete` 检查同步加载
 - 处理加载失败的情况
@@ -501,6 +512,7 @@ if (img.complete && img.naturalWidth > 0) {
 **问题**: 填充区域需要与形状元素关联，以便在调整形状时一起调整填充。
 
 **解决方案**:
+
 - 在选框工具中查找关联的填充元素
 - 使用中心点判断填充元素是否在形状内
 - 一起调整大小和位置

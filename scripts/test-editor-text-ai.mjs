@@ -55,7 +55,10 @@ function fakeTextProvider(handler) {
 
 {
   const fake = fakeTextProvider(() => '画面描述：月色下的长街')
-  const result = await editorTextAiService.sceneVisualPromptFromExcerpt({ text: '她走过长街。' }, fake.provider)
+  const result = await editorTextAiService.sceneVisualPromptFromExcerpt(
+    { text: '她走过长街。' },
+    fake.provider
+  )
   assert.equal(result.content, '月色下的长街')
   assert.equal(fake.calls[0].max_tokens, 512)
 }
@@ -66,7 +69,11 @@ await assert.rejects(
 )
 
 await assert.rejects(
-  () => editorTextAiService.continueChapter({ text: '已有正文', maxAddWords: 0 }, fakeTextProvider(() => '').provider),
+  () =>
+    editorTextAiService.continueChapter(
+      { text: '已有正文', maxAddWords: 0 },
+      fakeTextProvider(() => '').provider
+    ),
   /可续写字数不足/
 )
 

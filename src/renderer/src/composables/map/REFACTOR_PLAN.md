@@ -1,6 +1,7 @@
 # MapDesign.vue 重构方案
 
 ## 目标
+
 将 `MapDesign.vue` 中的代码按功能模块拆分，提高代码可维护性和可扩展性。
 
 ## 目录结构
@@ -33,22 +34,27 @@ src/renderer/src/composables/map/
 ## 重构步骤
 
 ### 第一步：创建基础 composables（已完成）
+
 - ✅ `useCanvasState.js` - 画布状态管理
 - ✅ `useCoordinate.js` - 坐标转换
 - ✅ `useHistory.js` - 历史记录管理
 
 ### 第二步：创建元素和渲染管理
+
 - `useElements.js` - 管理所有绘制元素（freeDrawElements, shapeElements, textElements, resourceElements, fillElements）
 - `useRender.js` - 所有渲染函数（renderFreeDrawPath, renderShape, renderText, renderResource, renderFill, renderSelection）
 - `useCanvas.js` - 画布渲染逻辑（renderCanvas, renderCanvasContent, updateContentBounds）
 
 ### 第三步：创建工具 composables
+
 每个工具 composable 应该：
+
 1. 接收必要的依赖（canvasRef, elements, history, renderCanvas 等）
 2. 返回工具特定的状态和方法
 3. 实现 `onMouseDown`, `onMouseMove`, `onMouseUp` 等方法
 
 ### 第四步：重构 MapDesign.vue
+
 - 导入所有 composables
 - 组合使用各个工具
 - 根据当前工具类型调用对应的工具方法
@@ -62,13 +68,13 @@ src/renderer/src/composables/map/
 export function useXxxTool(dependencies) {
   // 工具特定状态
   const state = ref(...)
-  
+
   // 工具方法
   function onMouseDown(e, pos) { ... }
   function onMouseMove(e, pos) { ... }
   function onMouseUp(e) { ... }
   function onDoubleClick(e, pos) { ... } // 可选
-  
+
   return {
     state,
     onMouseDown,
@@ -86,4 +92,3 @@ export function useXxxTool(dependencies) {
 3. **易于扩展**：添加新工具只需创建新的 composable
 4. **易于测试**：每个 composable 可以独立测试
 5. **代码复用**：共享的 composables 可以在多个地方使用
-

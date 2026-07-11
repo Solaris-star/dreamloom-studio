@@ -6,7 +6,12 @@
         <h2>{{ bookTitle }}</h2>
       </div>
       <div class="reference-actions">
-        <button type="button" :class="{ active: pinned }" title="固定资料板" @click="emit('toggle-pin')">
+        <button
+          type="button"
+          :class="{ active: pinned }"
+          title="固定资料板"
+          @click="emit('toggle-pin')"
+        >
           <Pin :size="15" />
         </button>
         <button type="button" title="关闭资料板" @click="emit('close')">
@@ -57,8 +62,21 @@
         />
         <article v-if="!visibleCharacterCards.length" class="empty-card">
           <strong>暂无角色资料</strong>
-          <p>{{ isLocked ? '当前章还没有识别到角色。可以先让 AI 只基于当前章提取临时角色。' : '本章上下文里还没有角色列表。可以先生成章纲或从素材库补充角色资料。' }}</p>
-          <button type="button" @click="askAgent('请只基于当前章节提取出场角色，并说明每个角色在本章的身份、目标和关系。')">提取本章角色</button>
+          <p>
+            {{
+              isLocked
+                ? '当前章还没有识别到角色。可以先让 AI 只基于当前章提取临时角色。'
+                : '本章上下文里还没有角色列表。可以先生成章纲或从素材库补充角色资料。'
+            }}
+          </p>
+          <button
+            type="button"
+            @click="
+              askAgent('请只基于当前章节提取出场角色，并说明每个角色在本章的身份、目标和关系。')
+            "
+          >
+            提取本章角色
+          </button>
         </article>
       </template>
 
@@ -107,8 +125,21 @@
         />
         <article v-if="isLocked || !imageCards.length" class="empty-card">
           <strong>还没有立绘</strong>
-          <p>{{ isLocked ? '完成拆书前不会显示完整图像绑定。你仍然可以让 Agent 只基于当前章生成角色绘图 Prompt。' : '可以让 Agent 基于当前人设和本章氛围生成角色绘图 Prompt。' }}</p>
-          <button type="button" @click="askAgent('帮我为当前章节中的角色生成角色绘图方案，并输出可用于图片模型的 Prompt。')">生成角色立绘 Prompt</button>
+          <p>
+            {{
+              isLocked
+                ? '完成拆书前不会显示完整图像绑定。你仍然可以让 Agent 只基于当前章生成角色绘图 Prompt。'
+                : '可以让 Agent 基于当前人设和本章氛围生成角色绘图 Prompt。'
+            }}
+          </p>
+          <button
+            type="button"
+            @click="
+              askAgent('帮我为当前章节中的角色生成角色绘图方案，并输出可用于图片模型的 Prompt。')
+            "
+          >
+            生成角色立绘 Prompt
+          </button>
         </article>
       </template>
 
@@ -129,8 +160,19 @@
         </article>
         <article v-else class="empty-card">
           <strong>暂无信息差资料</strong>
-          <p>当前章还没有可用的信息差记录。可以先让 AI 从正文里提取读者、角色和作者分别知道的内容。</p>
-          <button type="button" @click="askAgent('请只基于当前章节提取信息差，分别列出读者知道、角色知道和作者需要保留的信息。')">提取信息差</button>
+          <p>
+            当前章还没有可用的信息差记录。可以先让 AI 从正文里提取读者、角色和作者分别知道的内容。
+          </p>
+          <button
+            type="button"
+            @click="
+              askAgent(
+                '请只基于当前章节提取信息差，分别列出读者知道、角色知道和作者需要保留的信息。'
+              )
+            "
+          >
+            提取信息差
+          </button>
         </article>
       </template>
     </section>
@@ -162,15 +204,19 @@ const tabs = [
   { key: 'foreshadowing', label: '伏笔', icon: Zap }
 ]
 
-const bookTitle = computed(() => props.bookMeta?.name || props.bookMeta?.folderName || props.bookName || '未选择作品')
+const bookTitle = computed(
+  () => props.bookMeta?.name || props.bookMeta?.folderName || props.bookName || '未选择作品'
+)
 const isLocked = computed(() => isDownloadedBook(props.bookMeta) && !isParsed(props.bookMeta))
 const brief = computed(() => props.chapterBrief || {})
 
-const chapterSummary = computed(() => [
-  `本章目标：${brief.value.goal || '暂无'}`,
-  `核心冲突：${brief.value.conflict || '暂无'}`,
-  `下一步：${brief.value.nextSuggestion || '可让 Agent 生成'}`
-].join('\n'))
+const chapterSummary = computed(() =>
+  [
+    `本章目标：${brief.value.goal || '暂无'}`,
+    `核心冲突：${brief.value.conflict || '暂无'}`,
+    `下一步：${brief.value.nextSuggestion || '可让 Agent 生成'}`
+  ].join('\n')
+)
 const chapterItems = computed(() => [
   item('出场角色', joinList(brief.value.characters)),
   item('相关设定', joinList(brief.value.relatedSettings)),
@@ -178,11 +224,13 @@ const chapterItems = computed(() => [
   item('上一章摘要', brief.value.previousSummary || '暂无'),
   item('不能写错', joinList(brief.value.forbiddenNotes))
 ])
-const temporaryChapterSummary = computed(() => [
-  '这本书还没有完成拆书。',
-  '当前只能查看本章临时提取信息。',
-  `当前章节：${props.editorContext?.chapterName || '未打开章节'}`
-].join('\n'))
+const temporaryChapterSummary = computed(() =>
+  [
+    '这本书还没有完成拆书。',
+    '当前只能查看本章临时提取信息。',
+    `当前章节：${props.editorContext?.chapterName || '未打开章节'}`
+  ].join('\n')
+)
 const temporaryChapterItems = computed(() => [
   item('本章目标', brief.value.goal || '等待 Agent 提取'),
   item('核心冲突', brief.value.conflict || '等待 Agent 提取'),
@@ -197,11 +245,7 @@ const characterCards = computed(() => {
     id: `character:${name}`,
     title: name,
     summary: '来自当前章纲的角色名单，详细资料尚未绑定。',
-    items: [
-      item('身份', '未记录'),
-      item('目标', '未记录'),
-      item('关系', '未记录')
-    ]
+    items: [item('身份', '未记录'), item('目标', '未记录'), item('关系', '未记录')]
   }))
 })
 const temporaryCharacterCards = computed(() => {
@@ -218,17 +262,25 @@ const temporaryCharacterCards = computed(() => {
     ]
   }))
 })
-const visibleCharacterCards = computed(() => isLocked.value ? temporaryCharacterCards.value : characterCards.value)
-const worldSummary = computed(() => joinList(brief.value.relatedSettings) || '本章相关设定会在这里速查。')
+const visibleCharacterCards = computed(() =>
+  isLocked.value ? temporaryCharacterCards.value : characterCards.value
+)
+const worldSummary = computed(
+  () => joinList(brief.value.relatedSettings) || '本章相关设定会在这里速查。'
+)
 const worldItems = computed(() => [
   item('已记录设定', joinList(brief.value.relatedSettings) || '暂无')
 ])
-const temporaryWorldSummary = computed(() => '只显示当前章里能临时提取到的设定线索，完整世界资料要等拆书完成。')
+const temporaryWorldSummary = computed(
+  () => '只显示当前章里能临时提取到的设定线索，完整世界资料要等拆书完成。'
+)
 const temporaryWorldItems = computed(() => [
   item('当前章设定线索', joinList(brief.value.relatedSettings) || '待提取')
 ])
 const forbiddenNotes = computed(() => toList(brief.value.forbiddenNotes))
-const timelineSummary = computed(() => `当前章节：${props.editorContext?.chapterName || '未打开章节'}`)
+const timelineSummary = computed(
+  () => `当前章节：${props.editorContext?.chapterName || '未打开章节'}`
+)
 const timelineItems = computed(() => [
   item('上一事件', brief.value.previousSummary || '暂无'),
   item('当前事件', brief.value.goal || '暂无'),
@@ -241,35 +293,57 @@ const temporaryTimelineItems = computed(() => [
   item('下一事件', '完成拆书后可用'),
   item('时间冲突提醒', '完成拆书后可用')
 ])
-const imageCards = computed(() => toList(brief.value.images || brief.value.characterImages).map((entry) => {
-  const title = typeof entry === 'string' ? entry : (entry.title || entry.name || entry.characterName || '角色立绘')
-  return {
-    id: `image:${title}`,
-    title,
-    summary: typeof entry === 'string' ? '已记录立绘' : (entry.summary || entry.description || '已记录立绘'),
-    items: [
-      item('绑定对象', typeof entry === 'string' ? entry.replace(/立绘$/, '') : (entry.characterName || entry.name || title)),
-      item('路径', typeof entry === 'object' ? entry.path || entry.filePath || entry.imagePath || '' : '')
-    ]
-  }
-}))
-const foreshadowingSummary = computed(() => joinList(brief.value.foreshadowing) || '本章伏笔和线索会在这里速查。')
+const imageCards = computed(() =>
+  toList(brief.value.images || brief.value.characterImages).map((entry) => {
+    const title =
+      typeof entry === 'string'
+        ? entry
+        : entry.title || entry.name || entry.characterName || '角色立绘'
+    return {
+      id: `image:${title}`,
+      title,
+      summary:
+        typeof entry === 'string'
+          ? '已记录立绘'
+          : entry.summary || entry.description || '已记录立绘',
+      items: [
+        item(
+          '绑定对象',
+          typeof entry === 'string'
+            ? entry.replace(/立绘$/, '')
+            : entry.characterName || entry.name || title
+        ),
+        item(
+          '路径',
+          typeof entry === 'object' ? entry.path || entry.filePath || entry.imagePath || '' : ''
+        )
+      ]
+    }
+  })
+)
+const foreshadowingSummary = computed(
+  () => joinList(brief.value.foreshadowing) || '本章伏笔和线索会在这里速查。'
+)
 const foreshadowingItems = computed(() => [
   item('已记录线索', joinList(brief.value.foreshadowing) || '暂无')
 ])
-const temporaryForeshadowingSummary = computed(() => '只展示当前章能临时识别的线索，不代表整本书的伏笔表。')
+const temporaryForeshadowingSummary = computed(
+  () => '只展示当前章能临时识别的线索，不代表整本书的伏笔表。'
+)
 const temporaryForeshadowingItems = computed(() => [
   item('本章线索', joinList(brief.value.foreshadowing) || '待提取'),
   item('未回收伏笔', '完成拆书后可用'),
   item('信息差', '完成拆书后可用'),
   item('是否提前暴露', '可让 Agent 只检查当前章')
 ])
-const infoGapItems = computed(() => toList(
-  brief.value.infoGaps ||
-  brief.value.informationGaps ||
-  brief.value.knowledgeGaps ||
-  brief.value.hiddenInformation
-))
+const infoGapItems = computed(() =>
+  toList(
+    brief.value.infoGaps ||
+      brief.value.informationGaps ||
+      brief.value.knowledgeGaps ||
+      brief.value.hiddenInformation
+  )
+)
 
 function addToAgentContext(payload) {
   emit('add-to-agent-context', {
@@ -296,7 +370,10 @@ function item(label, value) {
 function toList(value) {
   if (Array.isArray(value)) return value.filter(Boolean)
   if (!value) return []
-  return String(value).split(/[、,，\n]/).map((row) => row.trim()).filter(Boolean)
+  return String(value)
+    .split(/[、,，\n]/)
+    .map((row) => row.trim())
+    .filter(Boolean)
 }
 
 function joinList(value) {
@@ -305,7 +382,13 @@ function joinList(value) {
 }
 
 function isDownloadedBook(meta = {}) {
-  return meta?.type === 'downloaded' || meta?.bookRole === 'downloaded' || meta?.downloaded === true || meta?.sourceType === 'downloadedNovel' || meta?.importedFrom === 'novelDownload'
+  return (
+    meta?.type === 'downloaded' ||
+    meta?.bookRole === 'downloaded' ||
+    meta?.downloaded === true ||
+    meta?.sourceType === 'downloadedNovel' ||
+    meta?.importedFrom === 'novelDownload'
+  )
 }
 
 function isParsed(meta = {}) {
@@ -317,19 +400,38 @@ const LockedNotice = defineComponent({
   emits: ['ask'],
   setup(_, { emit: cardEmit }) {
     const actions = [
-      { label: '拆当前章', instruction: '请只基于当前章节做拆书，提炼剧情、人物、爽点和可借鉴写法。' },
-      { label: '开始整本拆书', instruction: '请为这本下载书制定整本拆书计划，并先说明需要确认的范围。' },
+      {
+        label: '拆当前章',
+        instruction: '请只基于当前章节做拆书，提炼剧情、人物、爽点和可借鉴写法。'
+      },
+      {
+        label: '开始整本拆书',
+        instruction: '请为这本下载书制定整本拆书计划，并先说明需要确认的范围。'
+      },
       { label: '仅从当前章临时提取', instruction: '请仅从当前章临时提取可保存到素材箱的内容。' }
     ]
-    return () => h('article', { class: 'locked-card' }, [
-      h(BookOpen, { size: 24 }),
-      h('h3', '这本书还没有完成拆书。'),
-      h('p', '当前只能查看本章临时提取信息。完成拆书后，可以查看完整角色关系、世界设定、时间线、伏笔和图像绑定。'),
-      h('div', actions.map((action) => h('button', {
-        type: 'button',
-        onClick: () => cardEmit('ask', action.instruction)
-      }, action.label)))
-    ])
+    return () =>
+      h('article', { class: 'locked-card' }, [
+        h(BookOpen, { size: 24 }),
+        h('h3', '这本书还没有完成拆书。'),
+        h(
+          'p',
+          '当前只能查看本章临时提取信息。完成拆书后，可以查看完整角色关系、世界设定、时间线、伏笔和图像绑定。'
+        ),
+        h(
+          'div',
+          actions.map((action) =>
+            h(
+              'button',
+              {
+                type: 'button',
+                onClick: () => cardEmit('ask', action.instruction)
+              },
+              action.label
+            )
+          )
+        )
+      ])
   }
 })
 
@@ -343,40 +445,66 @@ const ReferenceCard = defineComponent({
   },
   emits: ['add', 'ask', 'open'],
   setup(cardProps, { emit: cardEmit }) {
-    return () => h('article', { class: 'reference-card' }, [
-      h('header', [
-        h('div', [h('strong', cardProps.title), h('span', typeLabel(cardProps.type))]),
-        h('button', {
-          type: 'button',
-          onClick: () => cardEmit('add', cardProps)
-        }, '加入上下文')
-      ]),
-      h('p', cardProps.summary || '暂无资料'),
-      h('dl', cardProps.items.map((row) => [
-        h('dt', row.label),
-        h('dd', row.value)
-      ])),
-      h('footer', [
-        h('button', {
-          type: 'button',
-          onClick: () => cardEmit('ask', askText(cardProps.type, cardProps.title))
-        }, agentActionText(cardProps.type)),
-        h('button', {
-          type: 'button',
-          onClick: () => cardEmit('open', { type: cardProps.type, title: cardProps.title })
-        }, '打开资产台详情')
+    return () =>
+      h('article', { class: 'reference-card' }, [
+        h('header', [
+          h('div', [h('strong', cardProps.title), h('span', typeLabel(cardProps.type))]),
+          h(
+            'button',
+            {
+              type: 'button',
+              onClick: () => cardEmit('add', cardProps)
+            },
+            '加入上下文'
+          )
+        ]),
+        h('p', cardProps.summary || '暂无资料'),
+        h(
+          'dl',
+          cardProps.items.map((row) => [h('dt', row.label), h('dd', row.value)])
+        ),
+        h('footer', [
+          h(
+            'button',
+            {
+              type: 'button',
+              onClick: () => cardEmit('ask', askText(cardProps.type, cardProps.title))
+            },
+            agentActionText(cardProps.type)
+          ),
+          h(
+            'button',
+            {
+              type: 'button',
+              onClick: () => cardEmit('open', { type: cardProps.type, title: cardProps.title })
+            },
+            '打开资产台详情'
+          )
+        ])
       ])
-    ])
   }
 })
 
 function typeLabel(type) {
-  const map = { chapter: '本章资料', character: '角色卡', worldbuilding: '世界设定', timeline: '时间线', image: '图像资料', foreshadowing: '伏笔线索' }
+  const map = {
+    chapter: '本章资料',
+    character: '角色卡',
+    worldbuilding: '世界设定',
+    timeline: '时间线',
+    image: '图像资料',
+    foreshadowing: '伏笔线索'
+  }
   return map[type] || '资料'
 }
 
 function agentActionText(type) {
-  const map = { character: '检查人设', worldbuilding: '检查设定', timeline: '检查时间', image: '生成 Prompt', foreshadowing: '检查线索' }
+  const map = {
+    character: '检查人设',
+    worldbuilding: '检查设定',
+    timeline: '检查时间',
+    image: '生成 Prompt',
+    foreshadowing: '检查线索'
+  }
   return map[type] || '让 Agent 检查'
 }
 

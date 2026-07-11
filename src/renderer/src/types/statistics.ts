@@ -22,7 +22,15 @@ export interface AiUsageLog {
   id: string
   bookId?: string
   chapterId?: string
-  feature: 'polish' | 'continue' | 'cover' | 'character_image' | 'scene_image' | 'name_generator' | 'idea' | 'other'
+  feature:
+    | 'polish'
+    | 'continue'
+    | 'cover'
+    | 'character_image'
+    | 'scene_image'
+    | 'name_generator'
+    | 'idea'
+    | 'other'
   model?: string
   promptTokens: number
   completionTokens: number

@@ -182,15 +182,13 @@ export function compareCharacterImageFeatures(referenceFeatures, candidateFeatur
     : DEFAULT_PASS_SCORE
   const aspectBase = Math.max(Number(referenceFeatures.aspectRatio || 0), 0.01)
   const aspectDiff = clamp(
-    Math.abs(Number(referenceFeatures.aspectRatio || 0) - Number(candidateFeatures.aspectRatio || 0)) /
-      aspectBase,
+    Math.abs(
+      Number(referenceFeatures.aspectRatio || 0) - Number(candidateFeatures.aspectRatio || 0)
+    ) / aspectBase,
     0,
     1
   )
-  const averageColorDiff = colorDistance(
-    referenceFeatures.averageRgb,
-    candidateFeatures.averageRgb
-  )
+  const averageColorDiff = colorDistance(referenceFeatures.averageRgb, candidateFeatures.averageRgb)
   const regionColorDiff =
     REGION_KEYS.reduce((sum, key) => {
       return (
@@ -206,11 +204,15 @@ export function compareCharacterImageFeatures(referenceFeatures, candidateFeatur
     candidateFeatures.colorHistogram
   )
   const transparentDiff = Math.abs(
-    Number(referenceFeatures.transparentRatio || 0) - Number(candidateFeatures.transparentRatio || 0)
+    Number(referenceFeatures.transparentRatio || 0) -
+      Number(candidateFeatures.transparentRatio || 0)
   )
   const toneDiff =
-    Math.abs(Number(referenceFeatures.darkRatio || 0) - Number(candidateFeatures.darkRatio || 0)) * 0.5 +
-    Math.abs(Number(referenceFeatures.lightRatio || 0) - Number(candidateFeatures.lightRatio || 0)) *
+    Math.abs(Number(referenceFeatures.darkRatio || 0) - Number(candidateFeatures.darkRatio || 0)) *
+      0.5 +
+    Math.abs(
+      Number(referenceFeatures.lightRatio || 0) - Number(candidateFeatures.lightRatio || 0)
+    ) *
       0.5
   const weightedDiff =
     averageColorDiff * 0.24 +
@@ -316,7 +318,8 @@ export function buildCharacterImageVisualCheck(options = {}) {
       checkedAt,
       status: 'compared',
       referencePath: reference.imagePath,
-      referenceMetadataPath: reference.metadataPath || metadataPathForImagePath(reference.imagePath),
+      referenceMetadataPath:
+        reference.metadataPath || metadataPathForImagePath(reference.imagePath),
       score: comparison.score,
       passScore: comparison.passScore,
       passed: comparison.passed,
@@ -330,7 +333,8 @@ export function buildCharacterImageVisualCheck(options = {}) {
       checkedAt,
       status: 'error',
       referencePath: reference.imagePath,
-      referenceMetadataPath: reference.metadataPath || metadataPathForImagePath(reference.imagePath),
+      referenceMetadataPath:
+        reference.metadataPath || metadataPathForImagePath(reference.imagePath),
       passed: false,
       issues: [error?.message || '人物图检查失败']
     }

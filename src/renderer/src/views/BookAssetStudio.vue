@@ -22,7 +22,11 @@
       </nav>
 
       <header class="asset-header card-panel">
-        <div class="header-cover" :class="{ placeholder: !hasBookCover(book) }" :style="bookCoverStyle(book)">
+        <div
+          class="header-cover"
+          :class="{ placeholder: !hasBookCover(book) }"
+          :style="bookCoverStyle(book)"
+        >
           <span v-if="!hasBookCover(book)" class="book-mark"></span>
         </div>
         <div class="header-main">
@@ -50,7 +54,9 @@
           <el-button @click="router.push('/knowledge')">返回书架</el-button>
           <el-button @click="openStudio()">打开创作台</el-button>
           <el-button v-if="isDownloadedBook(book)" @click="openStudio('read')">阅读模式</el-button>
-          <el-button type="primary" :loading="splitNavigationPending" @click="startSplit()">{{ splitButtonText }}</el-button>
+          <el-button type="primary" :loading="splitNavigationPending" @click="startSplit()">{{
+            splitButtonText
+          }}</el-button>
           <el-button @click="openOutlineTool">打开大纲工具</el-button>
         </div>
       </header>
@@ -109,12 +115,23 @@
 
           <div v-if="!isSplitReady(book)" class="split-empty">
             <h3>这本书还没有拆书结果。</h3>
-            <p>当前只能查看原文、章节和基础信息。完成 AI 拆书后，可以生成角色、世界观、设定集、伏笔、图片提示词和图谱。</p>
+            <p>
+              当前只能查看原文、章节和基础信息。完成 AI
+              拆书后，可以生成角色、世界观、设定集、伏笔、图片提示词和图谱。
+            </p>
             <div>
-              <el-button type="primary" :loading="splitNavigationPending" @click="startSplit()">开始拆书</el-button>
-              <el-button :loading="splitNavigationPending" @click="startSplit('character')">只提取角色</el-button>
-              <el-button :loading="splitNavigationPending" @click="startSplit('world')">只提取世界观</el-button>
-              <el-button :loading="splitNavigationPending" @click="startSplit('foreshadowing')">只提取伏笔</el-button>
+              <el-button type="primary" :loading="splitNavigationPending" @click="startSplit()"
+                >开始拆书</el-button
+              >
+              <el-button :loading="splitNavigationPending" @click="startSplit('character')"
+                >只提取角色</el-button
+              >
+              <el-button :loading="splitNavigationPending" @click="startSplit('world')"
+                >只提取世界观</el-button
+              >
+              <el-button :loading="splitNavigationPending" @click="startSplit('foreshadowing')"
+                >只提取伏笔</el-button
+              >
               <el-button @click="openStudio('read')">阅读模式</el-button>
             </div>
           </div>
@@ -155,10 +172,30 @@
               <div class="chapter-actions">
                 <el-button size="small" @click="openStudio()">打开创作台</el-button>
                 <el-button size="small" @click="openStudio('read')">阅读</el-button>
-                <el-button size="small" :loading="splitNavigationPending" @click="startSplit('chapter', row)">拆本章</el-button>
-                <el-button size="small" :loading="splitNavigationPending" @click="startSplit('character')">提取角色</el-button>
-                <el-button size="small" :loading="splitNavigationPending" @click="startSplit('world')">提取世界观</el-button>
-                <el-button size="small" :loading="splitNavigationPending" @click="startSplit('foreshadowing')">提取伏笔</el-button>
+                <el-button
+                  size="small"
+                  :loading="splitNavigationPending"
+                  @click="startSplit('chapter', row)"
+                  >拆本章</el-button
+                >
+                <el-button
+                  size="small"
+                  :loading="splitNavigationPending"
+                  @click="startSplit('character')"
+                  >提取角色</el-button
+                >
+                <el-button
+                  size="small"
+                  :loading="splitNavigationPending"
+                  @click="startSplit('world')"
+                  >提取世界观</el-button
+                >
+                <el-button
+                  size="small"
+                  :loading="splitNavigationPending"
+                  @click="startSplit('foreshadowing')"
+                  >提取伏笔</el-button
+                >
               </div>
             </article>
           </div>
@@ -188,7 +225,11 @@
               <small>可用素材</small>
             </span>
             <span>
-              <b>{{ latestExtractionRecord ? extractionStatusLabel(latestExtractionRecord.status) : '未开始' }}</b>
+              <b>{{
+                latestExtractionRecord
+                  ? extractionStatusLabel(latestExtractionRecord.status)
+                  : '未开始'
+              }}</b>
               <small>最近状态</small>
             </span>
             <span>
@@ -208,8 +249,8 @@
               <div>
                 <strong>{{ activeExtractionProgress.currentStep || '正在等待模型返回' }}</strong>
                 <p>
-                  已生成 {{ extractionProgressItemCount(activeExtractionProgress) }} 条，
-                  失败 {{ extractionProgressFailedCount(activeExtractionProgress) }} 组。
+                  已生成 {{ extractionProgressItemCount(activeExtractionProgress) }} 条， 失败
+                  {{ extractionProgressFailedCount(activeExtractionProgress) }} 组。
                 </p>
               </div>
               <b>{{ extractionProgressPercent }}%</b>
@@ -217,14 +258,22 @@
             <el-progress :percentage="extractionProgressPercent" :stroke-width="10" />
 
             <div class="task-grid">
-              <article v-for="task in extractionTaskRows" :key="task.id || task.dimension" class="task-card">
+              <article
+                v-for="task in extractionTaskRows"
+                :key="task.id || task.dimension"
+                class="task-card"
+              >
                 <div>
                   <strong>{{ task.label || dimensionLabel(task.dimension) }}</strong>
-                  <span :class="['task-status', task.status]">{{ extractionTaskStatusLabel(task.status) }}</span>
+                  <span :class="['task-status', task.status]">{{
+                    extractionTaskStatusLabel(task.status)
+                  }}</span>
                 </div>
                 <p>{{ task.currentGroup || '等待处理' }}</p>
                 <small>
-                  {{ task.progress?.current || 0 }}/{{ task.progress?.total || activeExtractionProgress.stats?.totalGroups || 0 }}
+                  {{ task.progress?.current || 0 }}/{{
+                    task.progress?.total || activeExtractionProgress.stats?.totalGroups || 0
+                  }}
                   组，{{ task.extractedCount || task.itemCount || 0 }} 条
                 </small>
               </article>
@@ -232,7 +281,11 @@
 
             <div v-if="visibleExtractionLogs.length" class="extraction-log-list">
               <div class="mini-title">任务记录</div>
-              <article v-for="log in visibleExtractionLogs" :key="log.id || `${log.time}-${log.message}`" :class="log.level">
+              <article
+                v-for="log in visibleExtractionLogs"
+                :key="log.id || `${log.time}-${log.message}`"
+                :class="log.level"
+              >
                 <span>{{ extractionLogLevelLabel(log.level) }}</span>
                 <p>{{ log.message }}</p>
               </article>
@@ -259,7 +312,10 @@
                   v-for="record in extractionRecords"
                   :key="record.id"
                   class="extraction-record-card"
-                  :class="{ active: expandedExtractionId === record.id, superseded: isSupersededExtraction(record) }"
+                  :class="{
+                    active: expandedExtractionId === record.id,
+                    superseded: isSupersededExtraction(record)
+                  }"
                   @click="toggleExtractionRecord(record)"
                 >
                   <div class="record-status-rail" :class="recordStatusClass(record)"></div>
@@ -267,43 +323,69 @@
                     <div class="record-title-line">
                       <strong>{{ record.sourceBookName || bookTitle(book) }}</strong>
                       <span :class="['record-status-pill', recordStatusClass(record)]">
-                        {{ extractionStatusLabel(isSupersededExtraction(record) ? 'superseded' : record.status) }}
+                        {{
+                          extractionStatusLabel(
+                            isSupersededExtraction(record) ? 'superseded' : record.status
+                          )
+                        }}
                       </span>
                     </div>
                     <p>{{ extractionSummary(record) }}</p>
                     <div class="record-meta-line">
                       <small>创建：{{ formatDateTime(record.createdAt) }}</small>
-                      <small v-if="extractionRecordScopeText(record)">{{ extractionRecordScopeText(record) }}</small>
+                      <small v-if="extractionRecordScopeText(record)">{{
+                        extractionRecordScopeText(record)
+                      }}</small>
                       <small>分组：{{ extractionRecordGroupCount(record) }}</small>
                       <small>结果：{{ extractionRecordItemCount(record) }} 条</small>
-                      <small v-if="extractionRecordFailedCount(record)">失败：{{ extractionRecordFailedCount(record) }} 组</small>
+                      <small v-if="extractionRecordFailedCount(record)"
+                        >失败：{{ extractionRecordFailedCount(record) }} 组</small
+                      >
                     </div>
                     <div class="record-progress-line">
-                      <el-progress :percentage="extractionRecordPercent(record)" :stroke-width="8" :show-text="false" />
+                      <el-progress
+                        :percentage="extractionRecordPercent(record)"
+                        :stroke-width="8"
+                        :show-text="false"
+                      />
                       <b>{{ extractionRecordPercent(record) }}%</b>
                     </div>
 
                     <div v-if="expandedExtractionId === record.id" class="record-expanded">
                       <div class="record-dimension-grid">
-                        <span v-for="card in Object.entries(record.dimensions || {})" :key="card[0]">
+                        <span
+                          v-for="card in Object.entries(record.dimensions || {})"
+                          :key="card[0]"
+                        >
                           <b>{{ card[1]?.label || dimensionLabel(card[0]) }}</b>
                           <small>{{ card[1]?.itemCount || 0 }} 条</small>
                         </span>
                       </div>
                       <div v-if="extractionRecordRows(record).length" class="task-grid compact">
-                        <article v-for="task in extractionRecordRows(record)" :key="task.id || task.dimension" class="task-card">
+                        <article
+                          v-for="task in extractionRecordRows(record)"
+                          :key="task.id || task.dimension"
+                          class="task-card"
+                        >
                           <div>
                             <strong>{{ task.label || dimensionLabel(task.dimension) }}</strong>
-                            <span :class="['task-status', task.status]">{{ extractionTaskStatusLabel(task.status) }}</span>
+                            <span :class="['task-status', task.status]">{{
+                              extractionTaskStatusLabel(task.status)
+                            }}</span>
                           </div>
                           <p>{{ task.currentGroup || '已记录' }}</p>
                           <small>
-                            {{ task.progress?.current || 0 }}/{{ task.progress?.total || extractionRecordGroupCount(record) }}
+                            {{ task.progress?.current || 0 }}/{{
+                              task.progress?.total || extractionRecordGroupCount(record)
+                            }}
                             组，{{ task.extractedCount || task.itemCount || 0 }} 条
                           </small>
                         </article>
                       </div>
-                      <div v-if="extractionRecordLogs(record).length" class="extraction-log-list compact">
+                      <div
+                        v-if="extractionRecordLogs(record).length"
+                        class="extraction-log-list compact"
+                      >
                         <div class="mini-title">最近记录</div>
                         <article
                           v-for="log in extractionRecordLogs(record)"
@@ -320,7 +402,12 @@
                     <button type="button" @click="toggleExtractionRecord(record)">
                       {{ expandedExtractionId === record.id ? '收起' : '详情' }}
                     </button>
-                    <button type="button" class="primary" :disabled="!record.hasDetail" @click="openExtractionResultViewer(record)">
+                    <button
+                      type="button"
+                      class="primary"
+                      :disabled="!record.hasDetail"
+                      @click="openExtractionResultViewer(record)"
+                    >
                       查看结果
                     </button>
                     <button type="button" class="danger" @click="deleteExtractionRecord(record)">
@@ -339,12 +426,18 @@
               <div class="split-run-panel-head">
                 <span class="split-eyebrow">AI 拆书</span>
                 <h3>{{ splitButtonText }}</h3>
-                <p>从真实章节中提取文风、情节、角色、世界观和章节大纲。下载书的结果只作为参考素材保存。</p>
+                <p>
+                  从真实章节中提取文风、情节、角色、世界观和章节大纲。下载书的结果只作为参考素材保存。
+                </p>
               </div>
               <p v-if="textProviderError" class="split-error">{{ textProviderError }}</p>
               <label>
                 <span>拆书模型</span>
-                <select v-model="selectedProviderId" :disabled="!!textProviderError" @change="handleProviderChange">
+                <select
+                  v-model="selectedProviderId"
+                  :disabled="!!textProviderError"
+                  @change="handleProviderChange"
+                >
                   <option value="">使用当前文本模型</option>
                   <option v-for="provider in textProviders" :key="provider.id" :value="provider.id">
                     {{ provider.name || provider.model || provider.id }}
@@ -363,9 +456,15 @@
               <div class="chapter-scope-picker">
                 <div class="chapter-scope-head">
                   <span>处理章节</span>
-                  <button type="button" :disabled="!chapterCount" @click="useAllExtractionChapters">整本</button>
+                  <button type="button" :disabled="!chapterCount" @click="useAllExtractionChapters">
+                    整本
+                  </button>
                 </div>
-                <el-checkbox v-model="limitExtractionChapters" :disabled="!chapterCount" @change="handleExtractionScopeToggle">
+                <el-checkbox
+                  v-model="limitExtractionChapters"
+                  :disabled="!chapterCount"
+                  @change="handleExtractionScopeToggle"
+                >
                   只处理选中范围
                 </el-checkbox>
                 <div class="chapter-scope-row">
@@ -396,7 +495,11 @@
               <div class="dimension-picker">
                 <span>提取内容</span>
                 <div class="dimension-groups">
-                  <section v-for="group in dimensionGroups" :key="group.key" class="dimension-group">
+                  <section
+                    v-for="group in dimensionGroups"
+                    :key="group.key"
+                    class="dimension-group"
+                  >
                     <header>
                       <strong>{{ group.label }}</strong>
                       <button type="button" @click="toggleDimensionGroup(group)">
@@ -418,7 +521,11 @@
                 </div>
               </div>
               <div v-if="isSplitReady(book)" class="split-rerun-actions">
-                <el-button type="primary" :loading="extractionRunning" @click="viewExtractionResult">
+                <el-button
+                  type="primary"
+                  :loading="extractionRunning"
+                  @click="viewExtractionResult"
+                >
                   查看最近结果
                 </el-button>
                 <el-button :loading="extractionRunning" @click="runExtraction('fillMissing')">
@@ -428,7 +535,12 @@
                   重新拆书
                 </el-button>
               </div>
-              <el-button v-else type="primary" :loading="extractionRunning" @click="runExtraction('append')">
+              <el-button
+                v-else
+                type="primary"
+                :loading="extractionRunning"
+                @click="runExtraction('append')"
+              >
                 {{ extractionRunning ? '正在拆书' : splitButtonText }}
               </el-button>
             </aside>
@@ -601,7 +713,9 @@
             <h3>当前没有可用资产，不能显示虚构图谱。</h3>
             <p>可以先拆书提取资料，也可以先创建一张空白关系图，后续再补人物和连线。</p>
             <div>
-              <el-button type="primary" :loading="splitNavigationPending" @click="startSplit()">开始拆书</el-button>
+              <el-button type="primary" :loading="splitNavigationPending" @click="startSplit()"
+                >开始拆书</el-button
+              >
               <el-button @click="openRelationshipList">打开关系列表</el-button>
               <el-button @click="createMainRelationshipGraph">新建主关系图</el-button>
             </div>
@@ -699,7 +813,12 @@ import { isNavigationFailure, NavigationFailureType, useRoute, useRouter } from 
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Archive, BookOpen, Bookmark, Download, FileImage } from 'lucide-vue-next'
 import { getBookDir, readBooksDir } from '@renderer/service/books'
-import { getAssetUrl, imageSelectionToImportInput, importAsset, listAssets } from '@renderer/service/assets'
+import {
+  getAssetUrl,
+  imageSelectionToImportInput,
+  importAsset,
+  listAssets
+} from '@renderer/service/assets'
 import { listPromptPresets } from '@renderer/service/aiWorkshop'
 import { listKnowledgeItems, updateKnowledgeItem } from '@renderer/service/knowledgeBase'
 import { getActiveTextProvider, getAiProviders } from '@renderer/service/aiProvider'
@@ -747,55 +866,63 @@ const AssetList = defineComponent({
   setup(props, context) {
     const emit = context.emit
     const slots = context.slots || {}
-    return () => h('section', { class: 'asset-list-tab' }, [
-      h('div', { class: 'section-title' }, [
-        h('h2', props.title),
-        slots.summary ? slots.summary() : h('span', `${props.items.length} 条`)
-      ]),
-      props.items.length
-        ? h('div', { class: 'asset-card-list' }, props.items.map((item) => {
-          const saved = isAssetSavedToMaterial(item)
-          const adopted = isAssetAdopted(item)
-          return h('article', { key: item.id || item.title, class: 'asset-item-card' }, [
-            h('div', { class: 'asset-item-main' }, [
-              h('span', knowledgeTypeLabel(item)),
-              h('h3', item.title || '未命名资产'),
-              h('p', item.summary || item.content || '暂无摘要'),
-              h('div', { class: 'asset-item-meta' }, [
-                h('small', `来源：${item.sourceName || item.metadata?.legacyBookName || '当前作品'}`),
-                h('small', `用途：${usageLabel(item)}`),
-                h('small', `确认状态：${assetStatusLabel(item)}`)
-              ])
-            ]),
-            h('div', { class: 'asset-item-actions' }, [
-              h(
-                'button',
-                {
-                  type: 'button',
-                  class: saved ? 'is-saved' : '',
-                  onClick: () => saved ? emit('open-material', item) : emit('save', item)
-                },
-                saved ? '查看素材箱' : '保存到素材箱'
-              ),
-              h(
-                'button',
-                {
-                  type: 'button',
-                  class: adopted ? 'is-saved' : '',
-                  disabled: adopted,
-                  onClick: () => emit('save', { ...item, adopt: true })
-                },
-                adopted ? '已加入当前作品' : '加入当前作品'
-              )
-            ])
-          ])
-        }))
-        : h('div', { class: 'soft-empty' }, [
-          h('strong', props.empty),
-          h('span', '这里不会显示编造出来的人物、世界观或图谱。')
+    return () =>
+      h('section', { class: 'asset-list-tab' }, [
+        h('div', { class: 'section-title' }, [
+          h('h2', props.title),
+          slots.summary ? slots.summary() : h('span', `${props.items.length} 条`)
         ]),
-      slots.footer ? h('div', { class: 'asset-list-footer' }, slots.footer()) : null
-    ])
+        props.items.length
+          ? h(
+              'div',
+              { class: 'asset-card-list' },
+              props.items.map((item) => {
+                const saved = isAssetSavedToMaterial(item)
+                const adopted = isAssetAdopted(item)
+                return h('article', { key: item.id || item.title, class: 'asset-item-card' }, [
+                  h('div', { class: 'asset-item-main' }, [
+                    h('span', knowledgeTypeLabel(item)),
+                    h('h3', item.title || '未命名资产'),
+                    h('p', item.summary || item.content || '暂无摘要'),
+                    h('div', { class: 'asset-item-meta' }, [
+                      h(
+                        'small',
+                        `来源：${item.sourceName || item.metadata?.legacyBookName || '当前作品'}`
+                      ),
+                      h('small', `用途：${usageLabel(item)}`),
+                      h('small', `确认状态：${assetStatusLabel(item)}`)
+                    ])
+                  ]),
+                  h('div', { class: 'asset-item-actions' }, [
+                    h(
+                      'button',
+                      {
+                        type: 'button',
+                        class: saved ? 'is-saved' : '',
+                        onClick: () => (saved ? emit('open-material', item) : emit('save', item))
+                      },
+                      saved ? '查看素材箱' : '保存到素材箱'
+                    ),
+                    h(
+                      'button',
+                      {
+                        type: 'button',
+                        class: adopted ? 'is-saved' : '',
+                        disabled: adopted,
+                        onClick: () => emit('save', { ...item, adopt: true })
+                      },
+                      adopted ? '已加入当前作品' : '加入当前作品'
+                    )
+                  ])
+                ])
+              })
+            )
+          : h('div', { class: 'soft-empty' }, [
+              h('strong', props.empty),
+              h('span', '这里不会显示编造出来的人物、世界观或图谱。')
+            ]),
+        slots.footer ? h('div', { class: 'asset-list-footer' }, slots.footer()) : null
+      ])
   }
 })
 
@@ -881,7 +1008,16 @@ const DIMENSION_GROUPS = [
   {
     key: 'assetDetail',
     label: '分项补提',
-    keys: ['characterSetting', 'relationship', 'worldbuilding', 'goldenFinger', 'powerSystem', 'timeline', 'locationFaction', 'foreshadowing']
+    keys: [
+      'characterSetting',
+      'relationship',
+      'worldbuilding',
+      'goldenFinger',
+      'powerSystem',
+      'timeline',
+      'locationFaction',
+      'foreshadowing'
+    ]
   }
 ]
 
@@ -898,35 +1034,73 @@ const tabs = [
   { key: 'graph', label: '图谱' }
 ]
 const bookId = computed(() => decodeURIComponent(String(route.params.bookId || '')))
-const book = computed(() => books.value.find((item) => bookIdentifiers(item).includes(bookId.value)) || null)
+const book = computed(
+  () => books.value.find((item) => bookIdentifiers(item).includes(bookId.value)) || null
+)
 const chapterRows = computed(() => flattenChapterRows(chaptersTree.value))
-const chapterCount = computed(() => chapterRows.value.length || Number(book.value?.totalChapterCount || book.value?.chapterCount || 0))
+const chapterCount = computed(
+  () =>
+    chapterRows.value.length ||
+    Number(book.value?.totalChapterCount || book.value?.chapterCount || 0)
+)
 const chapterScopeMax = computed(() => Math.max(1, Number(chapterCount.value || 0) || 1))
-const latestChapterName = computed(() => chapterRows.value[chapterRows.value.length - 1]?.name || '')
-const relatedKnowledge = computed(() => (book.value ? knowledge.value.filter((item) =>
-  item.status !== 'discarded' &&
-  item.metadata?.assetStatus !== 'superseded' &&
-  isRelatedToBook(item, book.value)
-) : []))
-const relatedImages = computed(() => (book.value ? assets.value.filter((asset) => isAssetRelatedToBook(asset, book.value) && asset.status !== 'trash') : []))
+const latestChapterName = computed(
+  () => chapterRows.value[chapterRows.value.length - 1]?.name || ''
+)
+const relatedKnowledge = computed(() =>
+  book.value
+    ? knowledge.value.filter(
+        (item) =>
+          item.status !== 'discarded' &&
+          item.metadata?.assetStatus !== 'superseded' &&
+          isRelatedToBook(item, book.value)
+      )
+    : []
+)
+const relatedImages = computed(() =>
+  book.value
+    ? assets.value.filter(
+        (asset) => isAssetRelatedToBook(asset, book.value) && asset.status !== 'trash'
+      )
+    : []
+)
 const bookPrompts = computed(() => {
   if (!book.value) return []
   return prompts.value.filter((preset) => isPromptRelatedToBook(preset, book.value))
 })
 
-const splitItems = computed(() => relatedKnowledge.value.filter((item) => item.type === 'book_analysis' || item.metadata?.legacyExtractionId))
+const splitItems = computed(() =>
+  relatedKnowledge.value.filter(
+    (item) => item.type === 'book_analysis' || item.metadata?.legacyExtractionId
+  )
+)
 const pagedSplitItems = computed(() => {
   const start = (splitAssetPage.value - 1) * splitAssetPageSize.value
   return splitItems.value.slice(start, start + splitAssetPageSize.value)
 })
-const characterItems = computed(() => relatedKnowledge.value.filter((item) => ['character', 'character_setting'].includes(item.type)))
-const worldItems = computed(() => relatedKnowledge.value.filter((item) => ['world_setting'].includes(item.type)))
-const settingItems = computed(() => relatedKnowledge.value.filter((item) =>
-  ['setting', 'location', 'organization', 'prop', 'plot_fragment'].includes(item.type) ||
-  ['relationship', 'timeline', 'locationFaction'].includes(item.metadata?.dimension)
-))
-const foreshadowingItems = computed(() => relatedKnowledge.value.filter((item) => ['foreshadowing', 'clue'].includes(item.type) || includesText(item, '伏笔')))
-const recentKnowledge = computed(() => [...relatedKnowledge.value].sort((a, b) => dateValue(b.updatedAt) - dateValue(a.updatedAt)).slice(0, 6))
+const characterItems = computed(() =>
+  relatedKnowledge.value.filter((item) => ['character', 'character_setting'].includes(item.type))
+)
+const worldItems = computed(() =>
+  relatedKnowledge.value.filter((item) => ['world_setting'].includes(item.type))
+)
+const settingItems = computed(() =>
+  relatedKnowledge.value.filter(
+    (item) =>
+      ['setting', 'location', 'organization', 'prop', 'plot_fragment'].includes(item.type) ||
+      ['relationship', 'timeline', 'locationFaction'].includes(item.metadata?.dimension)
+  )
+)
+const foreshadowingItems = computed(() =>
+  relatedKnowledge.value.filter(
+    (item) => ['foreshadowing', 'clue'].includes(item.type) || includesText(item, '伏笔')
+  )
+)
+const recentKnowledge = computed(() =>
+  [...relatedKnowledge.value]
+    .sort((a, b) => dateValue(b.updatedAt) - dateValue(a.updatedAt))
+    .slice(0, 6)
+)
 
 const assetStats = computed(() => {
   const splitReady = book.value ? isSplitReady(book.value) : false
@@ -960,9 +1134,19 @@ const graphNodes = computed(() => [
   { label: '关系图', count: relationshipGraphs.value.length }
 ])
 
-const activeExtractionRecords = computed(() => extractionRecords.value.filter((record) => !isSupersededExtraction(record)))
-const usableExtractionRecords = computed(() => activeExtractionRecords.value.filter((record) => recordStatusClass(record) !== 'failed'))
-const latestExtractionRecord = computed(() => usableExtractionRecords.value[0] || activeExtractionRecords.value[0] || extractionRecords.value[0] || null)
+const activeExtractionRecords = computed(() =>
+  extractionRecords.value.filter((record) => !isSupersededExtraction(record))
+)
+const usableExtractionRecords = computed(() =>
+  activeExtractionRecords.value.filter((record) => recordStatusClass(record) !== 'failed')
+)
+const latestExtractionRecord = computed(
+  () =>
+    usableExtractionRecords.value[0] ||
+    activeExtractionRecords.value[0] ||
+    extractionRecords.value[0] ||
+    null
+)
 const activeExtractionProgress = computed(() => {
   if (currentExtractionProgress.value) return currentExtractionProgress.value
   const running = activeExtractionRecords.value.find((record) =>
@@ -981,7 +1165,11 @@ const extractionTaskRows = computed(() => {
   if (rows && typeof rows === 'object') return Object.values(rows)
   const dimensions = progress?.dimensions || {}
   if (Array.isArray(dimensions)) {
-    return dimensions.map((key) => ({ dimension: key, label: dimensionLabel(key), status: 'pending' }))
+    return dimensions.map((key) => ({
+      dimension: key,
+      label: dimensionLabel(key),
+      status: 'pending'
+    }))
   }
   return Object.entries(dimensions).map(([dimension, value]) => ({
     id: `${progress?.id || 'record'}_${dimension}`,
@@ -996,7 +1184,7 @@ const extractionTaskRows = computed(() => {
 const visibleExtractionLogs = computed(() => {
   const progressLogs = extractionLogs.value.length
     ? extractionLogs.value
-    : (activeExtractionProgress.value?.logs || latestExtractionRecord.value?.logs || [])
+    : activeExtractionProgress.value?.logs || latestExtractionRecord.value?.logs || []
   return progressLogs.slice(-12).reverse()
 })
 
@@ -1011,14 +1199,22 @@ const resultViewerDimensionRows = computed(() => {
 })
 
 const currentResultDimensionLabel = computed(() => {
-  const found = resultViewerDimensionRows.value.find((item) => item.key === resultViewerDimension.value)
+  const found = resultViewerDimensionRows.value.find(
+    (item) => item.key === resultViewerDimension.value
+  )
   return found?.label || '拆书结果'
 })
 const selectedExtractionChapterCount = computed(() => {
   if (!chapterCount.value) return 0
   if (!limitExtractionChapters.value) return chapterCount.value
-  const start = Math.min(Math.max(1, Number(extractionChapterStart.value) || 1), chapterScopeMax.value)
-  const end = Math.min(Math.max(start, Number(extractionChapterEnd.value) || start), chapterScopeMax.value)
+  const start = Math.min(
+    Math.max(1, Number(extractionChapterStart.value) || 1),
+    chapterScopeMax.value
+  )
+  const end = Math.min(
+    Math.max(start, Number(extractionChapterEnd.value) || start),
+    chapterScopeMax.value
+  )
   return end - start + 1
 })
 const extractionScopeLabel = computed(() => {
@@ -1042,11 +1238,17 @@ watch(splitItems, () => {
   if (splitAssetPage.value > maxPage) splitAssetPage.value = maxPage
 })
 
-watch(chapterCount, (total) => {
-  applyDefaultExtractionScope(total)
-}, { immediate: true })
+watch(
+  chapterCount,
+  (total) => {
+    applyDefaultExtractionScope(total)
+  },
+  { immediate: true }
+)
 
-const selectedProvider = computed(() => textProviders.value.find((provider) => provider.id === selectedProviderId.value) || null)
+const selectedProvider = computed(
+  () => textProviders.value.find((provider) => provider.id === selectedProviderId.value) || null
+)
 const selectedProviderModels = computed(() => {
   const models = selectedProvider.value?.models || []
   return Array.isArray(models) ? models.filter(Boolean) : []
@@ -1106,10 +1308,12 @@ async function loadData() {
         assetsLoadError.value = error?.message || '读取图片失败'
         return null
       }),
-      listPromptPresets(promptScopePayloadForBook(book.value || { id: bookId.value })).catch((error) => {
-        promptsLoadError.value = error?.message || '读取提示词失败'
-        return null
-      }),
+      listPromptPresets(promptScopePayloadForBook(book.value || { id: bookId.value })).catch(
+        (error) => {
+          promptsLoadError.value = error?.message || '读取提示词失败'
+          return null
+        }
+      ),
       listKnowledgeItems({ sortBy: 'updatedAt' }).catch((error) => {
         knowledgeLoadError.value = error?.message || '读取素材失败'
         return null
@@ -1118,7 +1322,9 @@ async function loadData() {
     books.value = bookRows || []
     assets.value = assetResult ? requireRowsResult(assetResult, 'items', '读取图片失败') : []
     prompts.value = promptResult ? requireRowsResult(promptResult, 'presets', '读取提示词失败') : []
-    knowledge.value = knowledgeResult ? requireRowsResult(knowledgeResult, 'items', '读取素材失败') : []
+    knowledge.value = knowledgeResult
+      ? requireRowsResult(knowledgeResult, 'items', '读取素材失败')
+      : []
     await loadChapters()
     await loadExtractionRecords()
     await loadRelationshipGraphs()
@@ -1214,8 +1420,8 @@ async function createMainRelationshipGraph() {
   }
 
   const relationshipName = '主关系图'
-  const existing = relationshipGraphs.value.find((item) =>
-    sameText(item?.name, relationshipName) || sameText(item?.id, relationshipName)
+  const existing = relationshipGraphs.value.find(
+    (item) => sameText(item?.name, relationshipName) || sameText(item?.id, relationshipName)
   )
   if (existing) {
     openRelationshipGraph(existing)
@@ -1261,9 +1467,12 @@ async function createMainRelationshipGraph() {
 
 function syncRunningExtractionProgress() {
   if (currentExtractionProgress.value) return
-  const running = activeExtractionRecords.value.find((record) =>
-    ['running', 'processing', 'extracting'].includes(String(record.status || '')) &&
-    !['failed', 'completed', 'partial', 'cancelled'].includes(String(record.currentStep || '').toLowerCase())
+  const running = activeExtractionRecords.value.find(
+    (record) =>
+      ['running', 'processing', 'extracting'].includes(String(record.status || '')) &&
+      !['failed', 'completed', 'partial', 'cancelled'].includes(
+        String(record.currentStep || '').toLowerCase()
+      )
   )
   if (!running) return
   currentExtractionProgress.value = {
@@ -1278,7 +1487,10 @@ function syncRunningExtractionProgress() {
   extractionLogs.value = running.logs || extractionLogs.value
   extractionRunning.value = true
   if (canPollExtractionProgress()) {
-    pollExtractionJob({ bookPath: running.bookPath, extractionId: running.id }, running.runMode || 'append').catch(() => {
+    pollExtractionJob(
+      { bookPath: running.bookPath, extractionId: running.id },
+      running.runMode || 'append'
+    ).catch(() => {
       extractionRunning.value = false
     })
   }
@@ -1362,10 +1574,16 @@ async function loadExtractionRecords() {
     const result = await listExtractions(bookPath)
     const rows = result.extractions
     extractionRecords.value = rows.sort((a, b) => dateValue(b.createdAt) - dateValue(a.createdAt))
-    if (expandedExtractionId.value && !extractionRecords.value.some((record) => record.id === expandedExtractionId.value)) {
+    if (
+      expandedExtractionId.value &&
+      !extractionRecords.value.some((record) => record.id === expandedExtractionId.value)
+    ) {
       expandedExtractionId.value = ''
     }
-    if (resultViewerRecord.value && !extractionRecords.value.some((record) => record.id === resultViewerRecord.value.id)) {
+    if (
+      resultViewerRecord.value &&
+      !extractionRecords.value.some((record) => record.id === resultViewerRecord.value.id)
+    ) {
       closeExtractionResultViewer()
     }
   } catch (error) {
@@ -1403,7 +1621,10 @@ async function startSplit(mode = '', row = null) {
         query.chapterEnd = chapterIndex
       }
     }
-    const navigationResult = await router.push({ path: `/knowledge/books/${encodeURIComponent(bookId.value)}`, query })
+    const navigationResult = await router.push({
+      path: `/knowledge/books/${encodeURIComponent(bookId.value)}`,
+      query
+    })
     if (isNavigationFailure(navigationResult)) {
       throw navigationResult
     }
@@ -1573,7 +1794,9 @@ function toggleDimensionGroup(group = {}) {
 
 function handleProviderChange() {
   const models = selectedProviderModels.value
-  selectedModel.value = models.includes(selectedProvider.value?.model) ? selectedProvider.value.model : (models[0] || '')
+  selectedModel.value = models.includes(selectedProvider.value?.model)
+    ? selectedProvider.value.model
+    : models[0] || ''
 }
 
 function clampExtractionChapter(value) {
@@ -1638,13 +1861,19 @@ function queryNumber(value, fallback = 0) {
 
 function applyRouteExtractionScope() {
   const query = route.query || {}
-  const hasScopeQuery = query.chapterStart !== undefined || query.chapterEnd !== undefined || query.chapterLimit !== undefined
+  const hasScopeQuery =
+    query.chapterStart !== undefined ||
+    query.chapterEnd !== undefined ||
+    query.chapterLimit !== undefined
   if (!hasScopeQuery || !chapterCount.value) return
   const start = queryNumber(query.chapterStart, 1)
   const limit = queryNumber(query.chapterLimit, 0)
-  const end = query.chapterEnd !== undefined
-    ? queryNumber(query.chapterEnd, start)
-    : (limit > 0 ? start + limit - 1 : start)
+  const end =
+    query.chapterEnd !== undefined
+      ? queryNumber(query.chapterEnd, start)
+      : limit > 0
+        ? start + limit - 1
+        : start
   extractionScopeTouched.value = true
   limitExtractionChapters.value = true
   extractionChapterStart.value = start
@@ -1715,7 +1944,7 @@ async function runExtraction(runMode = 'append') {
   try {
     const bookPath = await resolveBookPath()
     if (!bookPath) throw new Error('未找到书籍目录，请先在系统设置中选择书库。')
-    const providerId = selectedProvider.value?.id || await resolveFallbackProviderId()
+    const providerId = selectedProvider.value?.id || (await resolveFallbackProviderId())
     if (!providerId) throw new Error('未配置文本 AI 模型，请先到系统设置里添加文本模型。')
     const sourceBookName = book.value.folderName || book.value.name || bookId.value
     const chapterScopePayload = extractionChapterScopePayload()
@@ -1757,12 +1986,14 @@ async function runExtraction(runMode = 'append') {
         totalGroups: 0
       },
       subTasks: initialDimensions,
-      logs: [{
-        id: `local_${Date.now()}`,
-        time: new Date().toISOString(),
-        level: 'info',
-        message: `已提交拆书请求，本次处理${extractionScopeLabel.value}。`
-      }]
+      logs: [
+        {
+          id: `local_${Date.now()}`,
+          time: new Date().toISOString(),
+          level: 'info',
+          message: `已提交拆书请求，本次处理${extractionScopeLabel.value}。`
+        }
+      ]
     })
     const result = await createExtraction({
       bookPath,
@@ -1784,11 +2015,12 @@ async function runExtraction(runMode = 'append') {
       return
     }
     const completedResult = requireCompletedExtractionResult(result, '拆书失败')
-    const successText = runMode === 'replace'
-      ? '重新拆书完成，旧结果已标记为已替换。'
-      : runMode === 'fillMissing'
-        ? '补拆完成，已写入缺失内容。'
-        : '拆书完成，已写入当前书的资产。'
+    const successText =
+      runMode === 'replace'
+        ? '重新拆书完成，旧结果已标记为已替换。'
+        : runMode === 'fillMissing'
+          ? '补拆完成，已写入缺失内容。'
+          : '拆书完成，已写入当前书的资产。'
     ElMessage.success(successText)
     await loadData()
     const summaryResult = {
@@ -1833,11 +2065,12 @@ async function pollExtractionJob(jobId, runMode = 'append') {
           stopExtractionProgressPolling()
           const result = response.result || response.progress || {}
           const completedResult = requireCompletedExtractionResult(result, '拆书失败')
-          const successText = runMode === 'replace'
-            ? '重新拆书完成，旧结果已标记为已替换。'
-            : runMode === 'fillMissing'
-              ? '补拆完成，已写入缺失内容。'
-              : '拆书完成，已写入当前书的资产。'
+          const successText =
+            runMode === 'replace'
+              ? '重新拆书完成，旧结果已标记为已替换。'
+              : runMode === 'fillMissing'
+                ? '补拆完成，已写入缺失内容。'
+                : '拆书完成，已写入当前书的资产。'
           ElMessage.success(successText)
           await loadData()
           currentExtractionProgress.value = {
@@ -1874,7 +2107,11 @@ function onExtractionProgress(event) {
 }
 
 function applyExtractionProgress(payload) {
-  if (payload.bookPath && activeExtractionProgress.value?.bookPath && payload.bookPath !== activeExtractionProgress.value.bookPath) {
+  if (
+    payload.bookPath &&
+    activeExtractionProgress.value?.bookPath &&
+    payload.bookPath !== activeExtractionProgress.value.bookPath
+  ) {
     return
   }
   currentExtractionProgress.value = {
@@ -1893,7 +2130,9 @@ function applyExtractionProgress(payload) {
     logs: payload.logs || currentExtractionProgress.value?.logs || []
   }
   if (Array.isArray(payload.logs)) {
-    const map = new Map(extractionLogs.value.map((log) => [log.id || `${log.time}:${log.message}`, log]))
+    const map = new Map(
+      extractionLogs.value.map((log) => [log.id || `${log.time}:${log.message}`, log])
+    )
     for (const log of payload.logs) {
       map.set(log.id || `${log.time}:${log.message}`, log)
     }
@@ -1949,7 +2188,7 @@ async function saveAssetToMaterial(item) {
     const sourceBookName = book.value?.folderName || book.value?.name || bookId.value
     const appliedTarget = item.adopt ? await adoptAssetToBook(item) : ''
     const result = await updateKnowledgeItem(item.id, {
-      status: item.adopt ? 'active' : (item.status || 'active'),
+      status: item.adopt ? 'active' : item.status || 'active',
       relatedBookIds: mergeRelatedBookIds(item),
       metadata: {
         ...(item.metadata || {}),
@@ -1960,7 +2199,9 @@ async function saveAssetToMaterial(item) {
         assetStatus: item.adopt ? 'adopted' : 'saved',
         savedToMaterialAt: item.adopt ? item.metadata?.savedToMaterialAt : now,
         savedToMaterialBookId: item.adopt ? item.metadata?.savedToMaterialBookId : bookId.value,
-        savedToMaterialBookName: item.adopt ? item.metadata?.savedToMaterialBookName : sourceBookName,
+        savedToMaterialBookName: item.adopt
+          ? item.metadata?.savedToMaterialBookName
+          : sourceBookName,
         appliedTarget: item.adopt ? appliedTarget : item.metadata?.appliedTarget,
         appliedAt: item.adopt ? new Date().toISOString() : item.metadata?.appliedAt
       }
@@ -1998,41 +2239,57 @@ async function adoptAssetToBook(item = {}) {
 }
 
 function mergeRelatedBookIds(item = {}) {
-  const ids = new Set([...(item.relatedBookIds || []), ...bookIdentifiers(book.value || {})].filter(Boolean).map(String))
+  const ids = new Set(
+    [...(item.relatedBookIds || []), ...bookIdentifiers(book.value || {})]
+      .filter(Boolean)
+      .map(String)
+  )
   return Array.from(ids)
 }
 
 function isCharacterAsset(item = {}) {
-  return ['character', 'character_setting'].includes(item.type) ||
+  return (
+    ['character', 'character_setting'].includes(item.type) ||
     ['character', 'characterSetting'].includes(item.metadata?.dimension)
+  )
 }
 
 function isOutlineAsset(item = {}) {
-  return ['plot_fragment', 'foreshadowing'].includes(item.type) ||
+  return (
+    ['plot_fragment', 'foreshadowing'].includes(item.type) ||
     ['plot', 'chapterOutline', 'foreshadowing'].includes(item.metadata?.dimension)
+  )
 }
 
 function isRelationshipAsset(item = {}) {
-  return item.type === 'relationship' ||
+  return (
+    item.type === 'relationship' ||
     item.metadata?.dimension === 'relationship' ||
     hasExplicitRelationshipEndpoints(item)
+  )
 }
 
 function isTimelineAsset(item = {}) {
-  return ['timeline', 'timeline_event'].includes(item.type) ||
+  return (
+    ['timeline', 'timeline_event'].includes(item.type) ||
     item.metadata?.dimension === 'timeline' ||
     hasTimelineEventInfo(item)
+  )
 }
 
 function isLocationFactionAsset(item = {}) {
-  return ['location', 'organization', 'faction'].includes(item.type) ||
+  return (
+    ['location', 'organization', 'faction'].includes(item.type) ||
     item.metadata?.dimension === 'locationFaction'
+  )
 }
 
 function isForeshadowingAsset(item = {}) {
-  return ['foreshadowing', 'clue'].includes(item.type) ||
+  return (
+    ['foreshadowing', 'clue'].includes(item.type) ||
     item.metadata?.dimension === 'foreshadowing' ||
     hasForeshadowingInfo(item)
+  )
 }
 
 async function appendRelationshipAsset(targetBookName, item) {
@@ -2110,7 +2367,9 @@ async function appendLocationFactionAsset(targetBookName, item) {
     const info = locationFactionInfo(item, row, index)
     if (!info.name) return
     const node = ensureOrganizationNode(payload.nodes, info, item, index)
-    changed = ensureOrganizationLine(payload.lines, rootNode.id, node.id, info.kind || '地点势力', item) || changed
+    changed =
+      ensureOrganizationLine(payload.lines, rootNode.id, node.id, info.kind || '地点势力', item) ||
+      changed
     changed = appendOrganizationChildNodes(payload, node, info.members, '成员', item) || changed
     changed = appendOrganizationChildNodes(payload, node, info.resources, '资源', item) || changed
   })
@@ -2180,7 +2439,9 @@ async function appendSettingAsset(targetBookName, item) {
   const category = ensureSettingCategory(payload.categories, settingCategoryName(item))
   const name = assetTitle(item, '未命名设定')
   const introduction = assetBody(item)
-  const existing = category.items.find((entry) => sameText(entry?.name, name) && sameText(entry?.introduction, introduction))
+  const existing = category.items.find(
+    (entry) => sameText(entry?.name, name) && sameText(entry?.introduction, introduction)
+  )
   if (!existing) {
     category.items.push({
       id: genId(),
@@ -2198,8 +2459,10 @@ async function appendOutlineAsset(targetBookName, item) {
   const section = ensureOutlineSection(payload.children, outlineSectionName(item))
   const title = assetTitle(item, '未命名剧情素材')
   const content = assetBody(item)
-  const existing = section.children.find((entry) =>
-    entry?.sourceKnowledgeId === item.id || (sameText(entry?.title, title) && sameText(entry?.content, content))
+  const existing = section.children.find(
+    (entry) =>
+      entry?.sourceKnowledgeId === item.id ||
+      (sameText(entry?.title, title) && sameText(entry?.content, content))
   )
   if (!existing) {
     section.children.push({
@@ -2225,12 +2488,16 @@ function assertItemResult(result, message) {
 
 async function ensureMainRelationshipData(targetBookName, relationshipName) {
   const graphs = await readRelationshipGraphs(targetBookName)
-  const existing = graphs.find((item) =>
-    sameText(item?.name, relationshipName) || sameText(item?.id, relationshipName)
+  const existing = graphs.find(
+    (item) => sameText(item?.name, relationshipName) || sameText(item?.id, relationshipName)
   )
   if (!existing) {
     try {
-      await createRelationshipGraph(targetBookName, relationshipName, defaultRelationshipData(relationshipName))
+      await createRelationshipGraph(
+        targetBookName,
+        relationshipName,
+        defaultRelationshipData(relationshipName)
+      )
     } catch (error) {
       if (!String(error?.message || '').includes('已存在')) {
         throw error
@@ -2385,9 +2652,26 @@ function relationshipAssetInfo(item = {}) {
       parsed['角色b'],
       titlePair.target
     ),
-    relation: firstText(item.relation, item.relationship, item.typeName, parsed.relation, parsed.relationship, parsed.type, parsed['关系类型'], parsed['关系']),
+    relation: firstText(
+      item.relation,
+      item.relationship,
+      item.typeName,
+      parsed.relation,
+      parsed.relationship,
+      parsed.type,
+      parsed['关系类型'],
+      parsed['关系']
+    ),
     attitude: firstText(item.attitude, parsed.attitude, parsed['当前态度'], parsed['态度']),
-    conflict: firstText(item.conflict, item.interest, parsed.conflict, parsed.interest, parsed['冲突或利益'], parsed['冲突'], parsed['利益']),
+    conflict: firstText(
+      item.conflict,
+      item.interest,
+      parsed.conflict,
+      parsed.interest,
+      parsed['冲突或利益'],
+      parsed['冲突'],
+      parsed['利益']
+    ),
     trend: firstText(item.trend, parsed.trend, parsed['变化趋势'], parsed['趋势']),
     evidence: firstText(item.evidence, parsed.evidence, parsed['原文依据'])
   }
@@ -2456,12 +2740,18 @@ function tryParseObject(text) {
 
 function normalizeRelationshipKeys(value = {}) {
   return Object.fromEntries(
-    Object.entries(value).map(([key, val]) => [normalizeRelationshipKey(key), Array.isArray(val) ? val.join('，') : val])
+    Object.entries(value).map(([key, val]) => [
+      normalizeRelationshipKey(key),
+      Array.isArray(val) ? val.join('，') : val
+    ])
   )
 }
 
 function normalizeRelationshipKey(key = '') {
-  return String(key || '').trim().replace(/\s+/g, '').toLowerCase()
+  return String(key || '')
+    .trim()
+    .replace(/\s+/g, '')
+    .toLowerCase()
 }
 
 function relationshipPairFromTitle(title = '') {
@@ -2489,17 +2779,23 @@ function firstText(...values) {
 }
 
 function cleanupRelationshipName(value) {
-  return String(value || '').trim().replace(/^["'“”‘’]+|["'“”‘’]+$/g, '')
+  return String(value || '')
+    .trim()
+    .replace(/^["'“”‘’]+|["'“”‘’]+$/g, '')
 }
 
 async function ensureMainOrganizationData(targetBookName, organizationName) {
   const graphs = await readOrganizationGraphs(targetBookName)
-  const existing = graphs.find((item) =>
-    sameText(item?.name, organizationName) || sameText(item?.id, organizationName)
+  const existing = graphs.find(
+    (item) => sameText(item?.name, organizationName) || sameText(item?.id, organizationName)
   )
   if (!existing) {
     try {
-      await createOrganizationGraph(targetBookName, organizationName, defaultOrganizationData(organizationName))
+      await createOrganizationGraph(
+        targetBookName,
+        organizationName,
+        defaultOrganizationData(organizationName)
+      )
     } catch (error) {
       if (!String(error?.message || '').includes('已存在')) {
         throw error
@@ -2588,9 +2884,12 @@ function ensureOrganizationRootNode(nodes) {
 }
 
 function ensureOrganizationNode(nodes, info = {}, item = {}, index = 0) {
-  const found = nodes.find((node) =>
-    sameText(node?.text, info.name) ||
-    (item.id && node?.data?.sourceKnowledgeId === item.id && sameText(node?.data?.sourceAssetName, info.name))
+  const found = nodes.find(
+    (node) =>
+      sameText(node?.text, info.name) ||
+      (item.id &&
+        node?.data?.sourceKnowledgeId === item.id &&
+        sameText(node?.data?.sourceAssetName, info.name))
   )
   if (found) return found
   const nodeType = organizationNodeType(info.kind)
@@ -2617,10 +2916,8 @@ function ensureOrganizationNode(nodes, info = {}, item = {}, index = 0) {
 }
 
 function ensureOrganizationLine(lines, from, to, text, item = {}) {
-  const exists = lines.some((line) =>
-    sameText(line.from, from) &&
-    sameText(line.to, to) &&
-    sameText(line.text, text)
+  const exists = lines.some(
+    (line) => sameText(line.from, from) && sameText(line.to, to) && sameText(line.text, text)
   )
   if (exists) return false
   lines.push({
@@ -2642,17 +2939,26 @@ function appendOrganizationChildNodes(payload, parentNode, names, relationText, 
   let changed = false
   list.forEach((name, index) => {
     const childType = relationText === '资源' ? 'resource' : 'member'
-    const child = ensureOrganizationChildNode(payload.nodes, parentNode, name, childType, item, index)
-    changed = ensureOrganizationLine(payload.lines, parentNode.id, child.id, relationText, item) || changed
+    const child = ensureOrganizationChildNode(
+      payload.nodes,
+      parentNode,
+      name,
+      childType,
+      item,
+      index
+    )
+    changed =
+      ensureOrganizationLine(payload.lines, parentNode.id, child.id, relationText, item) || changed
   })
   return changed
 }
 
 function ensureOrganizationChildNode(nodes, parentNode, name, type, item = {}, index = 0) {
-  const found = nodes.find((node) =>
-    sameText(node?.text, name) &&
-    sameText(node?.data?.parentAssetName, parentNode.text) &&
-    sameText(node?.type, type)
+  const found = nodes.find(
+    (node) =>
+      sameText(node?.text, name) &&
+      sameText(node?.data?.parentAssetName, parentNode.text) &&
+      sameText(node?.type, type)
   )
   if (found) return found
   const parentIndex = nodes.findIndex((node) => node.id === parentNode.id)
@@ -2682,7 +2988,11 @@ function locationFactionRows(item = {}) {
   if (locationFactionObjectHasName(item)) rows.push(item)
   if (locationFactionObjectHasName(item.metadata || {})) rows.push(item.metadata)
   rows.push(...locationFactionRowsFromParsed(parseLocationFactionText(assetBody(item))))
-  if (!rows.length && (item.metadata?.dimension === 'locationFaction' || ['location', 'organization', 'faction'].includes(item.type))) {
+  if (
+    !rows.length &&
+    (item.metadata?.dimension === 'locationFaction' ||
+      ['location', 'organization', 'faction'].includes(item.type))
+  ) {
     rows.push(item)
   }
   return rows.filter((row) => locationFactionInfo(item, row).name)
@@ -2709,8 +3019,30 @@ function locationFactionInfo(item = {}, row = {}, index = 0) {
   const metaMap = normalizeLocationFactionMap(item.metadata || {})
   return {
     name: firstTimelineText(
-      pickLocationFactionValue(rowMap, ['name', '名称', 'location', '地点', 'faction', '势力', 'organization', '组织', 'title', '标题']),
-      pickLocationFactionValue(itemMap, ['name', '名称', 'location', '地点', 'faction', '势力', 'organization', '组织', 'title', '标题']),
+      pickLocationFactionValue(rowMap, [
+        'name',
+        '名称',
+        'location',
+        '地点',
+        'faction',
+        '势力',
+        'organization',
+        '组织',
+        'title',
+        '标题'
+      ]),
+      pickLocationFactionValue(itemMap, [
+        'name',
+        '名称',
+        'location',
+        '地点',
+        'faction',
+        '势力',
+        'organization',
+        '组织',
+        'title',
+        '标题'
+      ]),
       assetTitle(item, '')
     ),
     kind: firstTimelineText(
@@ -2747,13 +3079,19 @@ function locationFactionInfo(item = {}, row = {}, index = 0) {
 }
 
 function locationFactionDescription(info = {}) {
-  return [
-    info.kind ? `类型：${info.kind}` : '',
-    info.scope ? `范围：${info.scope}` : '',
-    info.goal ? `目标：${info.goal}` : '',
-    info.relationToProtagonist ? `与主角关系：${info.relationToProtagonist}` : '',
-    info.evidence ? `依据：${info.evidence}` : ''
-  ].filter(Boolean).join('\n') || info.fallbackBody || ''
+  return (
+    [
+      info.kind ? `类型：${info.kind}` : '',
+      info.scope ? `范围：${info.scope}` : '',
+      info.goal ? `目标：${info.goal}` : '',
+      info.relationToProtagonist ? `与主角关系：${info.relationToProtagonist}` : '',
+      info.evidence ? `依据：${info.evidence}` : ''
+    ]
+      .filter(Boolean)
+      .join('\n') ||
+    info.fallbackBody ||
+    ''
+  )
 }
 
 function parseLocationFactionText(text = '') {
@@ -2771,7 +3109,8 @@ function parseLocationFactionText(text = '') {
 }
 
 function normalizeLocationFactionMap(value = {}) {
-  if (typeof value === 'string') return normalizeLocationFactionMap(parseLocationFactionText(value) || {})
+  if (typeof value === 'string')
+    return normalizeLocationFactionMap(parseLocationFactionText(value) || {})
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
   return Object.fromEntries(
     Object.entries(value).map(([key, val]) => [normalizeLocationFactionKey(key), val])
@@ -2779,7 +3118,10 @@ function normalizeLocationFactionMap(value = {}) {
 }
 
 function normalizeLocationFactionKey(key = '') {
-  return String(key || '').trim().replace(/\s+/g, '').toLowerCase()
+  return String(key || '')
+    .trim()
+    .replace(/\s+/g, '')
+    .toLowerCase()
 }
 
 function pickLocationFactionValue(map = {}, keys = []) {
@@ -2792,15 +3134,30 @@ function pickLocationFactionValue(map = {}, keys = []) {
 
 function locationFactionObjectHasName(value = {}) {
   const map = normalizeLocationFactionMap(value)
-  return Boolean(pickLocationFactionValue(map, ['name', '名称', 'location', '地点', 'faction', '势力', 'organization', '组织']))
+  return Boolean(
+    pickLocationFactionValue(map, [
+      'name',
+      '名称',
+      'location',
+      '地点',
+      'faction',
+      '势力',
+      'organization',
+      '组织'
+    ])
+  )
 }
 
 function splitLocationFactionList(value) {
   if (Array.isArray(value)) return Array.from(new Set(value.map(firstTimelineText).filter(Boolean)))
-  return Array.from(new Set(String(value || '')
-    .split(/[、,，；;\n\r]+/)
-    .map((item) => item.trim())
-    .filter(Boolean)))
+  return Array.from(
+    new Set(
+      String(value || '')
+        .split(/[、,，；;\n\r]+/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+    )
+  )
 }
 
 function organizationNodeType(kind = '') {
@@ -2892,7 +3249,10 @@ function sequenceEventFromForeshadowing(item = {}, row = {}, index = 0) {
   const info = foreshadowingInfo(item, row, index)
   const startTime = foreshadowingStartTime(info, index)
   const detail = shortenMultilineText(foreshadowingDetail(info, item), 200)
-  const introduction = shortenTimelineText(info.title || info.setup || assetTitle(item, `线索 ${index + 1}`), 30)
+  const introduction = shortenTimelineText(
+    info.title || info.setup || assetTitle(item, `线索 ${index + 1}`),
+    30
+  )
   return {
     id: genId(),
     introduction,
@@ -2908,15 +3268,19 @@ function sequenceEventFromForeshadowing(item = {}, row = {}, index = 0) {
 
 function foreshadowingRows(item = {}) {
   const parsedRows = foreshadowingRowsFromParsed(parseForeshadowingText(assetBody(item)))
-  if (parsedRows.length) return parsedRows.filter((row) => {
-    const info = foreshadowingInfo(item, row)
-    return info.title || info.setup || info.payoff || info.evidence
-  })
+  if (parsedRows.length)
+    return parsedRows.filter((row) => {
+      const info = foreshadowingInfo(item, row)
+      return info.title || info.setup || info.payoff || info.evidence
+    })
 
   const rows = []
   if (foreshadowingObjectHasContent(item)) rows.push(item)
   if (foreshadowingObjectHasContent(item.metadata || {})) rows.push(item.metadata)
-  if (!rows.length && (item.metadata?.dimension === 'foreshadowing' || ['foreshadowing', 'clue'].includes(item.type))) {
+  if (
+    !rows.length &&
+    (item.metadata?.dimension === 'foreshadowing' || ['foreshadowing', 'clue'].includes(item.type))
+  ) {
     rows.push(item)
   }
   return rows.filter((row) => {
@@ -2930,12 +3294,7 @@ function foreshadowingRowsFromParsed(value) {
   if (Array.isArray(value)) return value
   if (typeof value !== 'object') return []
   const map = normalizeForeshadowingMap(value)
-  const nested = firstTimelineArray(
-    map.clues,
-    map.foreshadowing,
-    map.items,
-    map.data
-  )
+  const nested = firstTimelineArray(map.clues, map.foreshadowing, map.items, map.data)
   return nested.length ? nested : [value]
 }
 
@@ -2946,7 +3305,15 @@ function foreshadowingInfo(item = {}, row = {}, index = 0) {
   return {
     title: firstTimelineText(
       pickForeshadowingValue(rowMap, ['title', '伏笔标题', '标题', 'name', '名称', 'clue', '线索']),
-      pickForeshadowingValue(itemMap, ['title', '伏笔标题', '标题', 'name', '名称', 'clue', '线索']),
+      pickForeshadowingValue(itemMap, [
+        'title',
+        '伏笔标题',
+        '标题',
+        'name',
+        '名称',
+        'clue',
+        '线索'
+      ]),
       assetTitle(item, '')
     ),
     setup: firstTimelineText(
@@ -2991,16 +3358,22 @@ function foreshadowingInfo(item = {}, row = {}, index = 0) {
 }
 
 function foreshadowingDetail(info = {}, item = {}) {
-  return [
-    info.setup ? `埋设方式：${info.setup}` : '',
-    info.characters ? `相关角色：${info.characters}` : '',
-    info.readerKnows ? `读者已知：${info.readerKnows}` : '',
-    info.protagonistKnows ? `主角已知：${info.protagonistKnows}` : '',
-    info.characterKnows ? `角色已知：${info.characterKnows}` : '',
-    info.payoff ? `回收方向：${info.payoff}` : '',
-    info.risk ? `风险：${info.risk}` : '',
-    info.evidence ? `依据：${info.evidence}` : ''
-  ].filter(Boolean).join('\n') || assetBody(item) || info.fallbackBody
+  return (
+    [
+      info.setup ? `埋设方式：${info.setup}` : '',
+      info.characters ? `相关角色：${info.characters}` : '',
+      info.readerKnows ? `读者已知：${info.readerKnows}` : '',
+      info.protagonistKnows ? `主角已知：${info.protagonistKnows}` : '',
+      info.characterKnows ? `角色已知：${info.characterKnows}` : '',
+      info.payoff ? `回收方向：${info.payoff}` : '',
+      info.risk ? `风险：${info.risk}` : '',
+      info.evidence ? `依据：${info.evidence}` : ''
+    ]
+      .filter(Boolean)
+      .join('\n') ||
+    assetBody(item) ||
+    info.fallbackBody
+  )
 }
 
 function parseForeshadowingText(text = '') {
@@ -3018,7 +3391,8 @@ function parseForeshadowingText(text = '') {
 }
 
 function normalizeForeshadowingMap(value = {}) {
-  if (typeof value === 'string') return normalizeForeshadowingMap(parseForeshadowingText(value) || {})
+  if (typeof value === 'string')
+    return normalizeForeshadowingMap(parseForeshadowingText(value) || {})
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
   return Object.fromEntries(
     Object.entries(value).map(([key, val]) => [normalizeForeshadowingKey(key), val])
@@ -3026,7 +3400,10 @@ function normalizeForeshadowingMap(value = {}) {
 }
 
 function normalizeForeshadowingKey(key = '') {
-  return String(key || '').trim().replace(/\s+/g, '').toLowerCase()
+  return String(key || '')
+    .trim()
+    .replace(/\s+/g, '')
+    .toLowerCase()
 }
 
 function pickForeshadowingValue(map = {}, keys = []) {
@@ -3041,8 +3418,8 @@ function foreshadowingObjectHasContent(value = {}) {
   const map = normalizeForeshadowingMap(value)
   return Boolean(
     pickForeshadowingValue(map, ['title', '伏笔标题', '标题', 'name', '名称', 'clue', '线索']) ||
-    pickForeshadowingValue(map, ['setup', '埋设方式', '埋设', '线索内容']) ||
-    pickForeshadowingValue(map, ['payoff', '预计回收方向', '回收方向', '回收'])
+      pickForeshadowingValue(map, ['setup', '埋设方式', '埋设', '线索内容']) ||
+      pickForeshadowingValue(map, ['payoff', '预计回收方向', '回收方向', '回收'])
   )
 }
 
@@ -3071,11 +3448,15 @@ function foreshadowingEventKey(item = {}, index = 0, introduction = '', detail =
 }
 
 function sameSequenceEvent(left = {}, right = {}) {
-  const sameSource = right.sourceKnowledgeId &&
+  const sameSource =
+    right.sourceKnowledgeId &&
     right.sourceEventKey &&
     sameText(left.sourceKnowledgeId, right.sourceKnowledgeId) &&
     sameText(left.sourceEventKey, right.sourceEventKey)
-  return sameSource || (sameText(left.introduction, right.introduction) && sameText(left.detail, right.detail))
+  return (
+    sameSource ||
+    (sameText(left.introduction, right.introduction) && sameText(left.detail, right.detail))
+  )
 }
 
 function clampSequenceCell(value, fallback = 1) {
@@ -3146,7 +3527,9 @@ function normalizeTimelineNode(node = {}) {
 }
 
 function ensureTimeline(timelines, title) {
-  const found = timelines.find((timeline) => sameText(timeline.title, title) || sameText(timeline.id, title))
+  const found = timelines.find(
+    (timeline) => sameText(timeline.title, title) || sameText(timeline.id, title)
+  )
   if (found) {
     if (!Array.isArray(found.nodes)) found.nodes = []
     return found
@@ -3211,8 +3594,20 @@ function timelineEventInfo(item = {}, row = {}, index = 0) {
       pickTimelineValue(itemMap, ['impact', '后续影响', '影响'])
     ),
     conflictRisk: firstTimelineText(
-      pickTimelineValue(rowMap, ['conflictRisk', '是否存在时间矛盾', '时间矛盾风险', '时间矛盾', '矛盾风险']),
-      pickTimelineValue(itemMap, ['conflictRisk', '是否存在时间矛盾', '时间矛盾风险', '时间矛盾', '矛盾风险'])
+      pickTimelineValue(rowMap, [
+        'conflictRisk',
+        '是否存在时间矛盾',
+        '时间矛盾风险',
+        '时间矛盾',
+        '矛盾风险'
+      ]),
+      pickTimelineValue(itemMap, [
+        'conflictRisk',
+        '是否存在时间矛盾',
+        '时间矛盾风险',
+        '时间矛盾',
+        '矛盾风险'
+      ])
     ),
     evidence: firstTimelineText(
       pickTimelineValue(rowMap, ['evidence', '原文依据', '依据']),
@@ -3251,7 +3646,8 @@ function timelineEventKey(item = {}, index = 0, title = '', desc = '') {
 }
 
 function sameTimelineNode(left = {}, right = {}) {
-  const sameSource = right.sourceKnowledgeId &&
+  const sameSource =
+    right.sourceKnowledgeId &&
     right.sourceEventKey &&
     sameText(left.sourceKnowledgeId, right.sourceKnowledgeId) &&
     sameText(left.sourceEventKey, right.sourceEventKey)
@@ -3267,7 +3663,10 @@ function timelineEventRows(item = {}) {
   if (timelineObjectHasEvent(item)) rows.push(item)
   if (timelineObjectHasEvent(item.metadata || {})) rows.push(item.metadata)
   rows.push(...timelineRowsFromParsed(parseTimelineText(assetBody(item))))
-  if (!rows.length && (item.metadata?.dimension === 'timeline' || ['timeline', 'timeline_event'].includes(item.type))) {
+  if (
+    !rows.length &&
+    (item.metadata?.dimension === 'timeline' || ['timeline', 'timeline_event'].includes(item.type))
+  ) {
     rows.push(item)
   }
   return rows
@@ -3278,13 +3677,7 @@ function timelineRowsFromParsed(value) {
   if (Array.isArray(value)) return value
   if (typeof value !== 'object') return []
   const map = normalizeTimelineMap(value)
-  const nested = firstTimelineArray(
-    map.events,
-    map.timeline,
-    map.items,
-    map.nodes,
-    map.data
-  )
+  const nested = firstTimelineArray(map.events, map.timeline, map.items, map.nodes, map.data)
   return nested.length ? nested : [value]
 }
 
@@ -3321,7 +3714,10 @@ function normalizeTimelineMap(value = {}) {
 }
 
 function normalizeTimelineKey(key = '') {
-  return String(key || '').trim().replace(/\s+/g, '').toLowerCase()
+  return String(key || '')
+    .trim()
+    .replace(/\s+/g, '')
+    .toLowerCase()
 }
 
 function pickTimelineValue(map = {}, keys = []) {
@@ -3342,7 +3738,9 @@ function timelinePlainText(value) {
   if (typeof value === 'object') {
     return Object.values(value).map(timelinePlainText).filter(Boolean).join('；')
   }
-  return String(value || '').trim().replace(/^["'“”‘’]+|["'“”‘’]+$/g, '')
+  return String(value || '')
+    .trim()
+    .replace(/^["'“”‘’]+|["'“”‘’]+$/g, '')
 }
 
 function firstTimelineArray(...values) {
@@ -3356,13 +3754,15 @@ function timelineObjectHasEvent(value = {}) {
   const map = normalizeTimelineMap(value)
   return Boolean(
     pickTimelineValue(map, ['time', '时间点', '时间', 'when', 'date', '发生时间']) ||
-    pickTimelineValue(map, ['chapter', '章节', '章节或位置', 'position', 'location', '位置']) ||
-    pickTimelineValue(map, ['event', '事件', '核心事件', 'introduction'])
+      pickTimelineValue(map, ['chapter', '章节', '章节或位置', 'position', 'location', '位置']) ||
+      pickTimelineValue(map, ['event', '事件', '核心事件', 'introduction'])
   )
 }
 
 function shortenTimelineText(value, maxLength = 40) {
-  const text = String(value || '').trim().replace(/\s+/g, ' ')
+  const text = String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
   if (text.length <= maxLength) return text
   return `${text.slice(0, maxLength - 1)}…`
 }
@@ -3378,13 +3778,15 @@ function normalizeSettingsPayload(data) {
   return {
     categories: categories.length
       ? categories.map(normalizeSettingCategory)
-      : [{
-          id: genId(),
-          name: '采纳素材',
-          introduction: '从作品资产台加入的素材。',
-          children: [],
-          items: []
-        }]
+      : [
+          {
+            id: genId(),
+            name: '采纳素材',
+            introduction: '从作品资产台加入的素材。',
+            children: [],
+            items: []
+          }
+        ]
   }
 }
 
@@ -3392,7 +3794,10 @@ function normalizeSettingCategory(category = {}) {
   if (!category || typeof category !== 'object' || Array.isArray(category)) {
     throw new Error('读取设定集失败：分类格式异常')
   }
-  if (Object.prototype.hasOwnProperty.call(category, 'children') && !Array.isArray(category.children)) {
+  if (
+    Object.prototype.hasOwnProperty.call(category, 'children') &&
+    !Array.isArray(category.children)
+  ) {
     throw new Error('读取设定集失败：分类 children 必须是数组')
   }
   if (Object.prototype.hasOwnProperty.call(category, 'items') && !Array.isArray(category.items)) {
@@ -3404,12 +3809,12 @@ function normalizeSettingCategory(category = {}) {
     introduction: String(category.introduction || '').trim(),
     children: (category.children || []).map(normalizeSettingCategory),
     items: (category.items || [])
-        .filter((item) => item && typeof item === 'object' && !Array.isArray(item))
-        .map((item) => ({
-          id: String(item.id || genId()),
-          name: String(item.name || '').trim(),
-          introduction: String(item.introduction || '').trim()
-        }))
+      .filter((item) => item && typeof item === 'object' && !Array.isArray(item))
+      .map((item) => ({
+        id: String(item.id || genId()),
+        name: String(item.name || '').trim(),
+        introduction: String(item.introduction || '').trim()
+      }))
   }
 }
 
@@ -3493,7 +3898,13 @@ function assetBody(item = {}) {
 }
 
 function normalizeTags(item = {}) {
-  return Array.from(new Set([...(item.tags || []), item.metadata?.dimensionLabel, item.metadata?.dimension].filter(Boolean).map(String)))
+  return Array.from(
+    new Set(
+      [...(item.tags || []), item.metadata?.dimensionLabel, item.metadata?.dimension]
+        .filter(Boolean)
+        .map(String)
+    )
+  )
 }
 
 function sameText(left, right) {
@@ -3509,9 +3920,7 @@ function openPromptManager() {
 }
 
 function promptBookIdentifiers(preset = {}) {
-  return [preset.bookId, preset.bookFolderName, preset.bookName]
-    .filter(Boolean)
-    .map(String)
+  return [preset.bookId, preset.bookFolderName, preset.bookName].filter(Boolean).map(String)
 }
 
 function isPromptRelatedToBook(preset = {}, targetBook = {}) {
@@ -3546,9 +3955,13 @@ function chapterAssetStatusText(row) {
   if (!isSplitReady(book.value)) return '拆书状态：待拆书'
   const text = [row.name, row.volumeName].join(' ')
   const related = relatedKnowledge.value.filter((item) => includesText(item, text))
-  const characterCount = related.filter((item) => ['character', 'character_setting'].includes(item.type)).length
+  const characterCount = related.filter((item) =>
+    ['character', 'character_setting'].includes(item.type)
+  ).length
   const worldCount = related.filter((item) => item.type === 'world_setting').length
-  const clueCount = related.filter((item) => item.type === 'foreshadowing' || includesText(item, '伏笔')).length
+  const clueCount = related.filter(
+    (item) => item.type === 'foreshadowing' || includesText(item, '伏笔')
+  ).length
   return `已提取角色 ${characterCount}，世界观 ${worldCount}，伏笔 ${clueCount}`
 }
 
@@ -3566,7 +3979,9 @@ function isRelatedToBook(item, targetBook) {
 
 function isAssetRelatedToBook(asset, targetBook) {
   const ids = bookIdentifiers(targetBook)
-  return ids.includes(String(asset.bookName || '')) || ids.includes(String(asset.bookFolderName || ''))
+  return (
+    ids.includes(String(asset.bookName || '')) || ids.includes(String(asset.bookFolderName || ''))
+  )
 }
 
 function bookIdentifiers(targetBook = {}) {
@@ -3587,11 +4002,18 @@ function isDownloadedBook(targetBook = {}) {
 }
 
 function isCreativeBook(targetBook = {}) {
-  return !isDownloadedBook(targetBook) && !isImportedBook(targetBook) && targetBook.sourceType !== 'reference'
+  return (
+    !isDownloadedBook(targetBook) &&
+    !isImportedBook(targetBook) &&
+    targetBook.sourceType !== 'reference'
+  )
 }
 
 function isImportedBook(targetBook = {}) {
-  return ['imported', 'file_import', 'txt', 'epub'].includes(targetBook.sourceType) || targetBook.importedFrom === 'file'
+  return (
+    ['imported', 'file_import', 'txt', 'epub'].includes(targetBook.sourceType) ||
+    targetBook.importedFrom === 'file'
+  )
 }
 
 function bookTypeLabel(targetBook = {}) {
@@ -3625,17 +4047,20 @@ function bookStatusLabel(targetBook = {}) {
 
 function isSplitReady(targetBook = {}) {
   const ids = bookIdentifiers(targetBook)
-  return ['split_done', 'split_partial'].includes(targetBook.analysisStatus) || knowledge.value.some((item) => {
-    const meta = item.metadata || {}
-    return (
-      item.type === 'book_analysis' &&
-      item.status !== 'discarded' &&
-      meta.assetStatus !== 'superseded' &&
-      ((item.relatedBookIds || []).some((id) => ids.includes(String(id))) ||
-        ids.includes(String(item.sourceName || '')) ||
-        ids.includes(String(meta.legacyBookName || '')))
-    )
-  })
+  return (
+    ['split_done', 'split_partial'].includes(targetBook.analysisStatus) ||
+    knowledge.value.some((item) => {
+      const meta = item.metadata || {}
+      return (
+        item.type === 'book_analysis' &&
+        item.status !== 'discarded' &&
+        meta.assetStatus !== 'superseded' &&
+        ((item.relatedBookIds || []).some((id) => ids.includes(String(id))) ||
+          ids.includes(String(item.sourceName || '')) ||
+          ids.includes(String(meta.legacyBookName || '')))
+      )
+    })
+  )
 }
 
 function isSupersededExtraction(record = {}) {
@@ -3649,12 +4074,19 @@ function hasBookCover(targetBook = {}) {
 function bookCoverStyle(targetBook = {}) {
   const cover = webCoverUrl(targetBook)
   if (cover) return { backgroundImage: `url(${cover})` }
-  return { backgroundColor: targetBook.coverColor || (isDownloadedBook(targetBook) ? '#8a735d' : '#3a3731') }
+  return {
+    backgroundColor: targetBook.coverColor || (isDownloadedBook(targetBook) ? '#8a735d' : '#3a3731')
+  }
 }
 
 function webCoverUrl(targetBook = {}) {
   if (!targetBook.coverUrl) return ''
-  if (targetBook.coverUrl.startsWith('file://') || targetBook.coverUrl.startsWith('http://') || targetBook.coverUrl.startsWith('https://')) return targetBook.coverUrl
+  if (
+    targetBook.coverUrl.startsWith('file://') ||
+    targetBook.coverUrl.startsWith('http://') ||
+    targetBook.coverUrl.startsWith('https://')
+  )
+    return targetBook.coverUrl
   const params = new URLSearchParams({
     book: targetBook.folderName || targetBook.name || '',
     file: targetBook.coverUrl
@@ -3663,7 +4095,11 @@ function webCoverUrl(targetBook = {}) {
 }
 
 function bookTags(targetBook = {}) {
-  return [targetBook.typeName, targetBook.sourcePlatform || targetBook.sourceName, ...(targetBook.tags || [])].filter(Boolean)
+  return [
+    targetBook.typeName,
+    targetBook.sourcePlatform || targetBook.sourceName,
+    ...(targetBook.tags || [])
+  ].filter(Boolean)
 }
 
 function bookUpdatedAt(targetBook = {}) {
@@ -3728,7 +4164,10 @@ function isAssetAdopted(item = {}) {
 
 function isAssetSavedToMaterial(item = {}) {
   const status = item.metadata?.assetStatus || item.assetStatus || ''
-  return Boolean(item.metadata?.savedToMaterialAt) || ['saved', 'confirmed', 'edited', 'adopted'].includes(status)
+  return (
+    Boolean(item.metadata?.savedToMaterialAt) ||
+    ['saved', 'confirmed', 'edited', 'adopted'].includes(status)
+  )
 }
 
 function dimensionLabel(key = '') {
@@ -3756,7 +4195,8 @@ function dimensionLabel(key = '') {
 }
 
 function extractionItemTitle(item = {}, index = 0) {
-  return item.name ||
+  return (
+    item.name ||
     item.title ||
     item.point ||
     item.character ||
@@ -3771,6 +4211,7 @@ function extractionItemTitle(item = {}, index = 0) {
     item.events ||
     item.function ||
     `结果 ${index + 1}`
+  )
 }
 
 function extractionTaskStatusLabel(status = '') {
@@ -3822,18 +4263,33 @@ function formatDateTime(value) {
 }
 
 function extractionRecordItemCount(record = {}) {
-  return Number(record.stats?.totalExtractedCount || 0) ||
-    Object.values(record.dimensions || {}).reduce((sum, value) => sum + Number(value?.itemCount || 0), 0)
+  return (
+    Number(record.stats?.totalExtractedCount || 0) ||
+    Object.values(record.dimensions || {}).reduce(
+      (sum, value) => sum + Number(value?.itemCount || 0),
+      0
+    )
+  )
 }
 
 function extractionRecordFailedCount(record = {}) {
-  return Number(record.stats?.failedGroups || 0) ||
-    Object.values(record.dimensions || {}).reduce((sum, value) => sum + Number(value?.failedGroups || 0), 0)
+  return (
+    Number(record.stats?.failedGroups || 0) ||
+    Object.values(record.dimensions || {}).reduce(
+      (sum, value) => sum + Number(value?.failedGroups || 0),
+      0
+    )
+  )
 }
 
 function extractionRecordGroupCount(record = {}) {
-  return Number(record.totalGroups || record.totalChunks || 0) ||
-    Object.values(record.dimensions || {}).reduce((sum, value) => sum + Number(value?.chunkCount || value?.progress?.total || 0), 0)
+  return (
+    Number(record.totalGroups || record.totalChunks || 0) ||
+    Object.values(record.dimensions || {}).reduce(
+      (sum, value) => sum + Number(value?.chunkCount || value?.progress?.total || 0),
+      0
+    )
+  )
 }
 
 function extractionRecordPercent(record = {}) {
@@ -3844,19 +4300,29 @@ function extractionRecordPercent(record = {}) {
   if (record.status === 'failed') return 0
   const dimensions = Object.values(record.dimensions || {})
   if (!dimensions.length) return 0
-  const total = dimensions.reduce((sum, item) => sum + Number(item?.progress?.total || item?.chunkCount || 0), 0)
+  const total = dimensions.reduce(
+    (sum, item) => sum + Number(item?.progress?.total || item?.chunkCount || 0),
+    0
+  )
   const current = dimensions.reduce((sum, item) => sum + Number(item?.progress?.current || 0), 0)
   return total ? Math.min(100, Math.max(0, Math.round((current / total) * 100))) : 0
 }
 
 function extractionProgressItemCount(progress = {}) {
-  return Number(progress.stats?.totalExtractedCount || 0) ||
-    extractionTaskRows.value.reduce((sum, task) => sum + Number(task.extractedCount || task.itemCount || 0), 0)
+  return (
+    Number(progress.stats?.totalExtractedCount || 0) ||
+    extractionTaskRows.value.reduce(
+      (sum, task) => sum + Number(task.extractedCount || task.itemCount || 0),
+      0
+    )
+  )
 }
 
 function extractionProgressFailedCount(progress = {}) {
-  return Number(progress.stats?.failedGroups || 0) ||
+  return (
+    Number(progress.stats?.failedGroups || 0) ||
     extractionTaskRows.value.reduce((sum, task) => sum + Number(task.failedGroups || 0), 0)
+  )
 }
 
 function extractionRecordRows(record = {}) {
@@ -3897,7 +4363,10 @@ async function deleteExtractionRecord(record = {}) {
     ElMessage.success('已删除拆书任务')
     if (expandedExtractionId.value === record.id) expandedExtractionId.value = ''
     if (resultViewerRecord.value?.id === record.id) closeExtractionResultViewer()
-    if (activeExtractionProgress.value?.id === record.id || activeExtractionProgress.value?.extractionId === record.id) {
+    if (
+      activeExtractionProgress.value?.id === record.id ||
+      activeExtractionProgress.value?.extractionId === record.id
+    ) {
       stopExtractionProgressPolling()
       currentExtractionProgress.value = null
       extractionLogs.value = []
@@ -3934,14 +4403,20 @@ function extractionSummary(record = {}) {
     .filter(Boolean)
   const text = labels.length ? labels.join('、') : '未记录提取内容'
   const chunks = Number(record.totalChunks || record.totalGroups || 0)
-  const count = Number(record.stats?.totalExtractedCount || 0) ||
-    Object.values(record.dimensions || {}).reduce((sum, value) => sum + Number(value?.itemCount || 0), 0)
+  const count =
+    Number(record.stats?.totalExtractedCount || 0) ||
+    Object.values(record.dimensions || {}).reduce(
+      (sum, value) => sum + Number(value?.itemCount || 0),
+      0
+    )
   const failed = Number(record.stats?.failedGroups || 0)
   const tail = [
     chunks ? `处理 ${chunks} 组文本` : '',
     count ? `生成 ${count} 条` : '',
     failed ? `失败 ${failed} 组` : ''
-  ].filter(Boolean).join('，')
+  ]
+    .filter(Boolean)
+    .join('，')
   return tail ? `${text}，${tail}` : text
 }
 
@@ -4089,8 +4564,7 @@ function dateValue(value) {
   aspect-ratio: 3 / 4;
   border-radius: 4px 9px 9px 4px;
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.36), transparent 18%),
-    rgba(255, 248, 224, 0.74);
+    linear-gradient(90deg, rgba(255, 255, 255, 0.36), transparent 18%), rgba(255, 248, 224, 0.74);
 }
 
 .header-main {
@@ -4448,7 +4922,6 @@ function dateValue(value) {
     color: var(--wabi-muted);
     line-height: 1.6;
   }
-
 }
 
 .record-list {

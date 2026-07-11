@@ -48,14 +48,23 @@ function skillRecord(input = {}) {
 
 function skillRecordWithFallback(input = {}) {
   const skill = skillRecord(input)
-  if (skill.skillId || skill.skillKey || skill.outputMode !== 'preview' || skill.canWriteChapter || skill.inputScopes.length || skill.requiredContext.length || skill.references.length) {
+  if (
+    skill.skillId ||
+    skill.skillKey ||
+    skill.outputMode !== 'preview' ||
+    skill.canWriteChapter ||
+    skill.inputScopes.length ||
+    skill.requiredContext.length ||
+    skill.references.length
+  ) {
     return skill
   }
   return {
     skillId: cleanText(input.skillId || input.skill || input.key || input.type),
     skillKey: cleanText(input.skillKey || input.skill || input.key || input.type),
     outputMode: cleanText(input.outputMode) || 'preview',
-    canWriteChapter: input.canWriteChapter === true && cleanText(input.outputMode) === 'chapter_write',
+    canWriteChapter:
+      input.canWriteChapter === true && cleanText(input.outputMode) === 'chapter_write',
     inputScopes: textArray(input.inputScopes),
     requiredContext: textArray(input.requiredContext),
     references: textArray(input.references)
@@ -148,7 +157,10 @@ function requireQueueEnabled(options = {}) {
 }
 
 function queueOptions(options = {}) {
-  const attempts = integerFromInput(options.attempts || process.env.AGENT_TASK_QUEUE_ATTEMPTS, DEFAULT_ATTEMPTS)
+  const attempts = integerFromInput(
+    options.attempts || process.env.AGENT_TASK_QUEUE_ATTEMPTS,
+    DEFAULT_ATTEMPTS
+  )
   const backoffDelay = integerFromInput(
     options.backoffDelayMs || process.env.AGENT_TASK_QUEUE_BACKOFF_MS,
     DEFAULT_BACKOFF_DELAY_MS
@@ -168,7 +180,10 @@ function queueOptions(options = {}) {
 }
 
 function queueJobRetryOptions(input = {}, options = {}) {
-  const attempts = integerFromInput(input.attempts || options.attempts || process.env.AGENT_TASK_QUEUE_ATTEMPTS, DEFAULT_ATTEMPTS)
+  const attempts = integerFromInput(
+    input.attempts || options.attempts || process.env.AGENT_TASK_QUEUE_ATTEMPTS,
+    DEFAULT_ATTEMPTS
+  )
   const backoffDelay = integerFromInput(
     input.backoffDelayMs || options.backoffDelayMs || process.env.AGENT_TASK_QUEUE_BACKOFF_MS,
     DEFAULT_BACKOFF_DELAY_MS
@@ -200,9 +215,7 @@ function shouldRetryFailedJob(job = {}) {
 function normalizeQueueJobTypes(value) {
   const fallback = ['waiting', 'active', 'delayed', 'completed', 'failed', 'paused']
   const raw = Array.isArray(value) ? value : String(value || '').split(',')
-  const items = raw
-    .map((item) => cleanText(item))
-    .filter(Boolean)
+  const items = raw.map((item) => cleanText(item)).filter(Boolean)
   return items.length ? Array.from(new Set(items)) : fallback
 }
 
@@ -306,7 +319,9 @@ function cleanRepairQueueInput(input = {}) {
   const volumeName = cleanText(input.volumeName || input.volume)
   const chapterName = cleanText(input.chapterName || input.chapter || input.chapterTitle)
   const prompt = cleanText(input.prompt || input.instruction) || '请根据一致性检查结果返修正文。'
-  const currentText = cleanText(input.currentText || input.currentChapterText || input.text || input.content)
+  const currentText = cleanText(
+    input.currentText || input.currentChapterText || input.text || input.content
+  )
   const sourceText = cleanText(input.sourceText || input.sourceResult || input.sourceContent)
   const sourceGenerationId = cleanText(input.sourceGenerationId || input.generationId)
   const issues = Array.isArray(input.issues) ? input.issues : []
@@ -365,7 +380,13 @@ function taskPatchFromJob(job, status, extra = {}) {
     ...skillRecordWithFallback(data),
     title: taskTitle(data),
     type: isCheck ? 'cli_check_queue' : isRepair ? 'cli_repair_queue' : 'cli_write_queue',
-    agentMode: isCheck ? 'checking' : isRepair ? 'repairing' : (data.autoEdit ? 'auto_edit' : 'writing'),
+    agentMode: isCheck
+      ? 'checking'
+      : isRepair
+        ? 'repairing'
+        : data.autoEdit
+          ? 'auto_edit'
+          : 'writing',
     modelId: data.modelId || data.providerId || '',
     queueName: job.queueName,
     jobId: job.id,
@@ -424,7 +445,13 @@ function taskMetaFromJob(job, input = {}) {
     ...skillRecordWithFallback({ ...input, ...data }),
     title: taskTitle(data),
     type: isCheck ? 'cli_check_queue' : isRepair ? 'cli_repair_queue' : 'cli_write_queue',
-    agentMode: isCheck ? 'checking' : isRepair ? 'repairing' : (data.autoEdit ? 'auto_edit' : 'writing'),
+    agentMode: isCheck
+      ? 'checking'
+      : isRepair
+        ? 'repairing'
+        : data.autoEdit
+          ? 'auto_edit'
+          : 'writing',
     modelId: data.modelId || data.providerId || '',
     queueName: job?.queueName || input.queueName || '',
     jobId: job?.id || input.jobId || '',
@@ -502,7 +529,9 @@ async function requestActiveJobCancel(job, reason = QUEUE_CANCEL_MESSAGE, option
   }
   await job.updateData(nextData)
   job.data = nextData
-  const active = activeJobControllers.get(activeJobKey(job.queueName, job.id, redisUrlFromInput(options)))
+  const active = activeJobControllers.get(
+    activeJobKey(job.queueName, job.id, redisUrlFromInput(options))
+  )
   if (active?.controller && !active.controller.signal.aborted) {
     if (active.job) active.job.data = nextData
     active.controller.abort(nextData.cancelReason)
@@ -554,7 +583,13 @@ function assertCheckJob(job = {}) {
 function assertRepairJob(job = {}) {
   const data = job.data || {}
   const hasIssues = Array.isArray(data.issues) && data.issues.length > 0
-  if (!data.booksDir || !data.bookName || !data.chapterName || (!data.currentText && !data.sourceText) || (!hasIssues && !data.checkSummary)) {
+  if (
+    !data.booksDir ||
+    !data.bookName ||
+    !data.chapterName ||
+    (!data.currentText && !data.sourceText) ||
+    (!hasIssues && !data.checkSummary)
+  ) {
     throw new Error('队列任务缺少真实返修参数')
   }
 }
@@ -575,11 +610,13 @@ function resolveQueueCheckTextProvider(data = {}) {
     return createTextProvider(createCliStore(), {
       providerId: data.providerId,
       modelId: data.modelId,
-    model: data.model,
-    modelName: data.model
-  }).service
+      model: data.model,
+      modelName: data.model
+    }).service
   } catch (error) {
-    throw new Error(`${error.message || '请先配置文本 AI 服务'}。请在 .env 中配置 DEEPSEEK_API_KEY，或 CUSTOM_TEXT_*。`)
+    throw new Error(
+      `${error.message || '请先配置文本 AI 服务'}。请在 .env 中配置 DEEPSEEK_API_KEY，或 CUSTOM_TEXT_*。`
+    )
   }
 }
 
@@ -593,7 +630,10 @@ async function runWriteJob(job, options = {}) {
     job,
     controller,
     options.queue,
-    numberFromInput(options.cancelPollIntervalMs || process.env.AGENT_TASK_QUEUE_CANCEL_POLL_MS, DEFAULT_CANCEL_POLL_INTERVAL_MS)
+    numberFromInput(
+      options.cancelPollIntervalMs || process.env.AGENT_TASK_QUEUE_CANCEL_POLL_MS,
+      DEFAULT_CANCEL_POLL_INTERVAL_MS
+    )
   )
   try {
     throwIfQueueCancelled(data, controller.signal)
@@ -674,7 +714,10 @@ async function runCheckJob(job, options = {}) {
     job,
     controller,
     options.queue,
-    numberFromInput(options.cancelPollIntervalMs || process.env.AGENT_TASK_QUEUE_CANCEL_POLL_MS, DEFAULT_CANCEL_POLL_INTERVAL_MS)
+    numberFromInput(
+      options.cancelPollIntervalMs || process.env.AGENT_TASK_QUEUE_CANCEL_POLL_MS,
+      DEFAULT_CANCEL_POLL_INTERVAL_MS
+    )
   )
   try {
     throwIfQueueCancelled(data, controller.signal)
@@ -759,7 +802,10 @@ async function runRepairJob(job, options = {}) {
     job,
     controller,
     options.queue,
-    numberFromInput(options.cancelPollIntervalMs || process.env.AGENT_TASK_QUEUE_CANCEL_POLL_MS, DEFAULT_CANCEL_POLL_INTERVAL_MS)
+    numberFromInput(
+      options.cancelPollIntervalMs || process.env.AGENT_TASK_QUEUE_CANCEL_POLL_MS,
+      DEFAULT_CANCEL_POLL_INTERVAL_MS
+    )
   )
   try {
     throwIfQueueCancelled(data, controller.signal)
@@ -1003,7 +1049,10 @@ export async function startAgentTaskWorker(options = {}) {
     },
     {
       connection: redisConnectionOptions({ ...options, redisUrl }, { blocking: true }),
-      concurrency: numberFromInput(options.concurrency || process.env.AGENT_TASK_QUEUE_CONCURRENCY, 1)
+      concurrency: numberFromInput(
+        options.concurrency || process.env.AGENT_TASK_QUEUE_CONCURRENCY,
+        1
+      )
     }
   )
   worker.on('failed', (job, error) => {
@@ -1013,7 +1062,12 @@ export async function startAgentTaskWorker(options = {}) {
       const bookPath = bookPathFromJobData(data)
       try {
         if (isQueueCancelError(error) || data.cancelRequested) {
-          await markQueueTaskCancelled(bookPath, job, 'active', error?.message || data.cancelReason || QUEUE_CANCEL_MESSAGE)
+          await markQueueTaskCancelled(
+            bookPath,
+            job,
+            'active',
+            error?.message || data.cancelReason || QUEUE_CANCEL_MESSAGE
+          )
           return
         }
         const retryEvent = buildQueueRetryEvent(job, error)
@@ -1035,8 +1089,7 @@ export async function startAgentTaskWorker(options = {}) {
               ? 'cli_check_queue'
               : data.queueTaskType === 'repair'
                 ? 'cli_repair_queue'
-                : 'cli_write_queue'
-          ,
+                : 'cli_write_queue',
           ...skillRecordWithFallback(data)
         })
       } catch (recordError) {
@@ -1053,7 +1106,14 @@ export async function startAgentTaskWorker(options = {}) {
 export async function getAgentTaskQueueStatus(options = {}) {
   requireQueueEnabled(options)
   const queue = createQueue(options)
-  const counts = await queue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed', 'paused')
+  const counts = await queue.getJobCounts(
+    'waiting',
+    'active',
+    'completed',
+    'failed',
+    'delayed',
+    'paused'
+  )
   const localWorkerRunning = activeWorkers.has(queueKey(queue.name, redisUrlFromInput(options)))
   let workerCount = localWorkerRunning ? 1 : 0
   let workers = []
@@ -1097,9 +1157,7 @@ export async function listAgentTaskQueueJobs(options = {}) {
   const types = normalizeQueueJobTypes(options.types)
   const jobs = await queue.getJobs(types, 0, limit - 1, false)
   const items = await Promise.all(
-    jobs
-      .filter(Boolean)
-      .map(async (job) => queueJobPublicData(job, await job.getState()))
+    jobs.filter(Boolean).map(async (job) => queueJobPublicData(job, await job.getState()))
   )
   return {
     success: true,
@@ -1119,7 +1177,8 @@ export async function cancelAgentTaskQueueJob(input = {}, options = {}) {
   const job = await queue.getJob(jobId)
   if (!job) throw new Error('未找到队列任务')
   const state = await job.getState()
-  if (['completed', 'failed'].includes(state)) throw new Error(`队列任务已经结束，当前状态：${state}`)
+  if (['completed', 'failed'].includes(state))
+    throw new Error(`队列任务已经结束，当前状态：${state}`)
   const data = job.data || {}
   const taskId = cleanText(data.taskId || input.taskId)
   const booksDir = cleanText(data.booksDir || input.booksDir)
@@ -1161,7 +1220,12 @@ export async function cancelAgentTaskQueueJob(input = {}, options = {}) {
     previousState: state
   }
   if (bookPath && taskId) {
-    await markQueueTaskCancelled(bookPath, job, state, `已从 Redis 队列移除，停止前状态：${state}。`)
+    await markQueueTaskCancelled(
+      bookPath,
+      job,
+      state,
+      `已从 Redis 队列移除，停止前状态：${state}。`
+    )
   }
   return result
 }

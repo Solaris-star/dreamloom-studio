@@ -159,4 +159,11 @@ function diffSnapshots(bookPath, snapshotIdA, snapshotIdB) {
   return { added, removed, modified }
 }
 
-export { listSnapshots, createSnapshot, restoreSnapshot, deleteSnapshot, diffSnapshots, flattenSettingsData }
+export {
+  listSnapshots,
+  createSnapshot,
+  restoreSnapshot,
+  deleteSnapshot,
+  diffSnapshots,
+  flattenSettingsData
+}

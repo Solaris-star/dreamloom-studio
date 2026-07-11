@@ -64,6 +64,15 @@ const maskedPassword = computed(() => {
 
 // 加载密码
 onMounted(async () => {
+  if (typeof window.electron?.getBookshelfAuthStatus === 'function') {
+    const status = await window.electron.getBookshelfAuthStatus()
+    if (!status.passwordConfigured || status.authenticated) {
+      router.push('/')
+      return
+    }
+    storedPassword.value = status.hint || '****'
+    return
+  }
   const password = await window.electronStore?.get('bookshelfPassword')
   if (password) {
     storedPassword.value = password
@@ -81,6 +90,12 @@ async function handleAuthSubmit() {
   }
   authLoading.value = true
   try {
+    if (typeof window.electron?.authenticateBookshelf === 'function') {
+      await window.electron.authenticateBookshelf(authPassword.value)
+      sessionStorage.setItem('bookshelfAuthenticated', 'true')
+      router.push('/')
+      return
+    }
     if (authPassword.value === storedPassword.value) {
       // 认证成功：同时更新本窗口 sessionStorage 和主进程内存状态（供其他窗口共享）
       sessionStorage.setItem('bookshelfAuthenticated', 'true')
@@ -91,6 +106,9 @@ async function handleAuthSubmit() {
       ElMessage.error(t('auth.wrongPassword'))
       authPassword.value = ''
     }
+  } catch {
+    ElMessage.error(t('auth.wrongPassword'))
+    authPassword.value = ''
   } finally {
     authLoading.value = false
   }

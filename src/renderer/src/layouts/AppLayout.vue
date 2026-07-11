@@ -1,72 +1,81 @@
 <template>
-  <div class="app-shell">
-    <aside class="app-sidebar">
-      <button
-        v-motion-feedback
-        class="app-logo"
-        type="button"
-        aria-label="首页"
-        @click="router.push('/dashboard')"
-      >
-        <img
-          :src="brandLogoUrl"
-          alt="织梦书房"
+  <div
+    class="app-shell"
+    :style="{
+      '--sidebar-width': sidebarWidth + 'px',
+      gridTemplateColumns: 'var(--sidebar-width) minmax(0, 1fr)'
+    }"
+  >
+    <aside class="app-sidebar" :class="{ collapsed: sidebarWidth < 100 }">
+      <div class="sidebar-content-wrapper">
+        <button
+          v-motion-feedback
+          class="app-logo"
+          type="button"
+          aria-label="首页"
+          @click="router.push('/dashboard')"
         >
-      </button>
+          <img :src="brandLogoUrl" alt="织梦工坊" />
+        </button>
 
-      <nav
-        class="app-menu"
-        aria-label="主导航"
-      >
-        <div
-          v-for="item in navigationItems"
-          :key="item.key"
-          class="app-menu-group"
-        >
+        <nav class="app-menu" aria-label="主导航">
+          <div v-for="item in navigationItems" :key="item.key" class="app-menu-group">
+            <button
+              v-motion-feedback
+              class="app-menu-item"
+              :class="{ active: isActive(item) }"
+              :aria-current="isActive(item) ? 'page' : undefined"
+              type="button"
+              @click="handleNavigate(item)"
+            >
+              <span class="app-menu-icon" aria-hidden="true">
+                <component :is="item.icon" v-bind="iconProps" />
+              </span>
+              <span class="app-menu-label">{{ item.label }}</span>
+            </button>
+
+            <div
+              v-if="subItemsFor(item).length && isActive(item)"
+              class="app-submenu"
+              :aria-label="`${item.label}子导航`"
+            >
+              <button
+                v-for="subItem in subItemsFor(item)"
+                :key="subItem.path"
+                v-motion-feedback
+                class="app-submenu-item"
+                :class="{ active: isSubActive(subItem) }"
+                :aria-current="isSubActive(subItem) ? 'page' : undefined"
+                type="button"
+                @click="router.push(subItem.path)"
+              >
+                {{ subItem.label }}
+              </button>
+            </div>
+          </div>
+        </nav>
+
+        <!-- 折叠/展开快捷按钮 -->
+        <div style="margin-top: auto;">
           <button
             v-motion-feedback
             class="app-menu-item"
-            :class="{ active: isActive(item) }"
-            :aria-current="isActive(item) ? 'page' : undefined"
             type="button"
-            @click="handleNavigate(item)"
+            @click="toggleSidebarCollapse"
           >
-            <span
-              class="app-menu-icon"
-              aria-hidden="true"
-            >
-              <component
-                :is="item.icon"
-                v-bind="iconProps"
-              />
+            <span class="app-menu-icon" aria-hidden="true">
+              <component :is="sidebarWidth < 100 ? ChevronRight : ChevronLeft" v-bind="iconProps" />
             </span>
-            <span class="app-menu-label">{{ item.label }}</span>
+            <span class="app-menu-label">{{ sidebarWidth < 100 ? '展开' : '收起' }}</span>
           </button>
-
-          <div
-            v-if="subItemsFor(item).length && isActive(item)"
-            class="app-submenu"
-            :aria-label="`${item.label}子导航`"
-          >
-            <button
-              v-for="subItem in subItemsFor(item)"
-              :key="subItem.path"
-              v-motion-feedback
-              class="app-submenu-item"
-              :class="{ active: isSubActive(subItem) }"
-              :aria-current="isSubActive(subItem) ? 'page' : undefined"
-              type="button"
-              @click="router.push(subItem.path)"
-            >
-              {{ subItem.label }}
-            </button>
-          </div>
         </div>
-      </nav>
 
-      <div class="app-sidebar-footer">
-        <span>v{{ currentVersion || '-' }}</span>
+        <div class="app-sidebar-footer">
+          <span>v{{ currentVersion || '-' }}</span>
+        </div>
       </div>
+      <!-- Sidebar Resizer -->
+      <div class="sidebar-resizer" @mousedown="startSidebarResize"></div>
     </aside>
 
     <main
@@ -85,14 +94,8 @@
           @enter="handlePageEnter"
           @leave="handlePageLeave"
         >
-          <keep-alive
-            :include="cachedRouteNames"
-            :max="5"
-          >
-            <component
-              :is="Component"
-              :key="routeViewKey(viewRoute)"
-            />
+          <keep-alive :include="cachedRouteNames" :max="5">
+            <component :is="Component" :key="routeViewKey(viewRoute)" />
           </keep-alive>
         </transition>
       </router-view>
@@ -111,7 +114,9 @@ import {
   Map as MapIcon,
   Settings,
   Sparkles,
-  TrendingUp
+  TrendingUp,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-vue-next'
 import { ElMessage } from 'element-plus'
 import { readBooksDir } from '@renderer/service/books'
@@ -124,15 +129,59 @@ const currentVersion = ref('')
 const iconProps = { size: 20, strokeWidth: 2 }
 const cachedRouteNames = ['Editor']
 
+const sidebarWidth = ref(Number(localStorage.getItem('sidebarWidth')) || 156)
+
 const navigationItems = [
-  { key: 'dashboard', label: '首页', path: '/dashboard', match: ['/dashboard'], icon: markRaw(Library) },
+  {
+    key: 'dashboard',
+    label: '首页',
+    path: '/dashboard',
+    match: ['/dashboard'],
+    icon: markRaw(Library)
+  },
   { key: 'editor', label: '创作台', path: '/editor', match: ['/editor'], icon: markRaw(BookOpen) },
-  { key: 'maps', label: '地图设计', path: '/map-list', match: ['/map-list', '/map-design'], icon: markRaw(MapIcon) },
-  { key: 'knowledgeLibrary', label: '创作库', path: '/knowledge', match: ['/knowledge', '/knowledge-library', '/creative-library', '/books'], icon: markRaw(BookOpenText) },
-  { key: 'aiWorkshop', label: 'AI 工坊', path: '/ai/creation-starter', match: ['/ai'], icon: markRaw(Sparkles) },
-  { key: 'market', label: '市场灵感', path: '/market/overview', match: ['/market'], icon: markRaw(TrendingUp) },
-  { key: 'analytics', label: '数据中心', path: '/analytics/overview', match: ['/analytics'], icon: markRaw(BarChart2) },
-  { key: 'settings', label: '系统设置', path: '/settings/general', match: ['/settings'], icon: markRaw(Settings) }
+  {
+    key: 'maps',
+    label: '地图设计',
+    path: '/map-list',
+    match: ['/map-list', '/map-design'],
+    icon: markRaw(MapIcon)
+  },
+  {
+    key: 'knowledgeLibrary',
+    label: '创作库',
+    path: '/knowledge',
+    match: ['/knowledge', '/knowledge-library', '/creative-library', '/books'],
+    icon: markRaw(BookOpenText)
+  },
+  {
+    key: 'aiWorkshop',
+    label: 'AI 工坊',
+    path: '/ai/creation-starter',
+    match: ['/ai'],
+    icon: markRaw(Sparkles)
+  },
+  {
+    key: 'market',
+    label: '市场灵感',
+    path: '/market/overview',
+    match: ['/market'],
+    icon: markRaw(TrendingUp)
+  },
+  {
+    key: 'analytics',
+    label: '数据中心',
+    path: '/analytics/overview',
+    match: ['/analytics'],
+    icon: markRaw(BarChart2)
+  },
+  {
+    key: 'settings',
+    label: '系统设置',
+    path: '/settings/general',
+    match: ['/settings'],
+    icon: markRaw(Settings)
+  }
 ]
 
 const aiSubItems = [
@@ -154,16 +203,14 @@ const knowledgeSubItems = [
   { label: '回收站', path: '/knowledge/trash' }
 ]
 
-const isKnowledgeLibraryRoute = computed(() => (
-  route.path.startsWith('/knowledge') ||
-  route.path.startsWith('/knowledge-library') ||
-  route.path.startsWith('/creative-library')
-))
+const isKnowledgeLibraryRoute = computed(
+  () =>
+    route.path.startsWith('/knowledge') ||
+    route.path.startsWith('/knowledge-library') ||
+    route.path.startsWith('/creative-library')
+)
 
-const isStudioRoute = computed(() => (
-  route.path === '/editor' ||
-  route.path.startsWith('/editor/')
-))
+const isStudioRoute = computed(() => route.path === '/editor' || route.path.startsWith('/editor/'))
 
 const isMapDesignRoute = computed(() => route.path === '/map-design')
 
@@ -307,7 +354,11 @@ function buildBookQuery(book = {}) {
 
 async function readLastActiveBookId() {
   try {
-    return String((await window.electronStore?.get?.('lastActiveBookId')) || localStorage.getItem('lastActiveBookId') || '')
+    return String(
+      (await window.electronStore?.get?.('lastActiveBookId')) ||
+        localStorage.getItem('lastActiveBookId') ||
+        ''
+    )
   } catch {
     return localStorage.getItem('lastActiveBookId') || ''
   }
@@ -321,6 +372,44 @@ async function writeLastActiveBookId(id) {
     await window.electronStore?.set?.('lastActiveBookId', value)
   } catch {
     // localStorage 已保存
+  }
+}
+
+function startSidebarResize(e) {
+  e.preventDefault()
+  const startX = e.clientX
+  const startWidth = sidebarWidth.value
+
+  function doResize(moveEvent) {
+    const delta = moveEvent.clientX - startX
+    const targetWidth = startWidth + delta
+
+    if (targetWidth < 100) {
+      sidebarWidth.value = 64
+      localStorage.setItem('sidebarWidth', '64')
+    } else {
+      const clampedWidth = Math.max(120, Math.min(320, targetWidth))
+      sidebarWidth.value = clampedWidth
+      localStorage.setItem('sidebarWidth', String(clampedWidth))
+    }
+  }
+
+  function stopResize() {
+    window.removeEventListener('mousemove', doResize)
+    window.removeEventListener('mouseup', stopResize)
+  }
+
+  window.addEventListener('mousemove', doResize)
+  window.addEventListener('mouseup', stopResize)
+}
+
+function toggleSidebarCollapse() {
+  if (sidebarWidth.value < 100) {
+    sidebarWidth.value = 156
+    localStorage.setItem('sidebarWidth', '156')
+  } else {
+    sidebarWidth.value = 64
+    localStorage.setItem('sidebarWidth', '64')
   }
 }
 
@@ -364,7 +453,7 @@ function isEditorRouteElement(el) {
 <style lang="scss" scoped>
 .app-shell {
   display: grid;
-  grid-template-columns: 156px minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   width: 100%;
   height: 100vh;
   overflow: hidden;
@@ -372,22 +461,34 @@ function isEditorRouteElement(el) {
   background:
     radial-gradient(circle at 82% 10%, rgba(111, 122, 104, 0.07), transparent 30%),
     radial-gradient(circle at 35% 95%, rgba(138, 115, 93, 0.06), transparent 34%),
-    linear-gradient(90deg, rgba(58, 55, 49, 0.018) 1px, transparent 1px),
-    #f5f3ef;
-  background-size: auto, auto, 32px 32px, auto;
+    linear-gradient(90deg, rgba(58, 55, 49, 0.018) 1px, transparent 1px), #f5f3ef;
+  background-size:
+    auto,
+    auto,
+    32px 32px,
+    auto;
   color: var(--wabi-ink);
 }
 
 .app-sidebar {
-  width: 156px;
+  position: relative; /* ensure absolute positioning of resizer */
+  width: var(--sidebar-width);
   display: flex;
   flex-direction: column;
-  padding: 14px 0;
   border-right: 1px solid var(--wabi-line);
   background:
-    linear-gradient(180deg, rgba(251, 250, 246, 0.96), rgba(240, 236, 227, 0.86)),
-    var(--wabi-paper);
+    linear-gradient(180deg, rgba(251, 250, 246, 0.96), rgba(240, 236, 227, 0.86)), var(--wabi-paper);
   box-shadow: 10px 0 28px rgba(58, 55, 49, 0.04);
+}
+
+.sidebar-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  padding: 14px 0;
+  box-sizing: border-box;
 }
 
 .app-logo {
@@ -495,7 +596,6 @@ function isEditorRouteElement(el) {
   }
 }
 
-
 .app-menu-icon {
   display: inline-flex;
   color: inherit;
@@ -534,11 +634,14 @@ function isEditorRouteElement(el) {
     linear-gradient(180deg, rgba(58, 55, 49, 0.014) 1px, transparent 1px),
     #efe9dd
   );
-  background-size: 34px 34px, 28px 28px, auto;
+  background-size:
+    34px 34px,
+    28px 28px,
+    auto;
 }
 
 .app-main.map-design-main {
-  --map-design-left-offset: 156px;
+  --map-design-left-offset: var(--sidebar-width);
 
   padding: 0;
   overflow: hidden;
@@ -567,6 +670,63 @@ function isEditorRouteElement(el) {
 
   .app-main.map-design-main {
     --map-design-left-offset: 0px;
+  }
+}
+
+.sidebar-resizer {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+
+  &::after {
+    content: '';
+    width: 2px;
+    height: 100%;
+    background-color: transparent;
+    transition: background-color 0.2s ease;
+  }
+
+  &:hover::after,
+  &:active::after {
+    background-color: rgba(99, 102, 241, 0.6); // primary theme highlight color
+  }
+}
+
+.app-sidebar.collapsed {
+  .sidebar-content-wrapper {
+    padding: 14px 4px;
+  }
+
+  .app-logo {
+    width: 36px;
+    margin-bottom: 12px;
+  }
+
+  .app-menu-item {
+    justify-content: center;
+    padding: 10px;
+    margin: 0 4px 8px;
+
+    .app-menu-icon {
+      margin: 0;
+    }
+  }
+
+  .app-menu-label {
+    display: none;
+  }
+
+  .app-submenu {
+    display: none;
+  }
+  .app-sidebar-footer {
+    display: none;
   }
 }
 </style>

@@ -63,9 +63,18 @@ try {
 
   const providers = config.getEnvAiProviders()
   assert.equal(providers.length, 3)
-  assert.equal(providers.some((provider) => provider.id === 'env:deepseek'), true)
-  assert.equal(providers.some((provider) => provider.id === 'env:custom-text'), true)
-  assert.equal(providers.some((provider) => provider.id === 'env:custom-image'), true)
+  assert.equal(
+    providers.some((provider) => provider.id === 'env:deepseek'),
+    true
+  )
+  assert.equal(
+    providers.some((provider) => provider.id === 'env:custom-text'),
+    true
+  )
+  assert.equal(
+    providers.some((provider) => provider.id === 'env:custom-image'),
+    true
+  )
 
   const textProvider = providers.find((provider) => provider.id === 'env:custom-text')
   assert.deepEqual(textProvider.apiKeys, ['text-key-1', 'text-key-2'])
@@ -86,11 +95,20 @@ try {
       return values[key] ?? fallback
     }
   }
-  assert.equal(config.getConfiguredStoreValue(fakeStore, 'deepseek.apiKey', ''), 'deepseek-from-env')
-  assert.equal(config.getConfiguredStoreValue(fakeStore, 'customTextApi.baseUrl', ''), 'https://text.example')
+  assert.equal(
+    config.getConfiguredStoreValue(fakeStore, 'deepseek.apiKey', ''),
+    'deepseek-from-env'
+  )
+  assert.equal(
+    config.getConfiguredStoreValue(fakeStore, 'customTextApi.baseUrl', ''),
+    'https://text.example'
+  )
 
   delete process.env.CUSTOM_IMAGE_MODEL
-  assert.equal(config.getConfiguredStoreValue(fakeStore, 'customImageApi.model', ''), 'store-image-model')
+  assert.equal(
+    config.getConfiguredStoreValue(fakeStore, 'customImageApi.model', ''),
+    'store-image-model'
+  )
 
   fs.rmSync(cwd, { recursive: true, force: true })
 

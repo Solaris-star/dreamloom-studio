@@ -149,10 +149,12 @@ function taskInstruction(task, options = {}) {
   if (task === 'outline') {
     return `基于选题卡生成分层大纲，篇幅为${options.length || 'medium'}。短篇10-30章，中篇30-100章，长篇100-300章。`
   }
-  if (task === 'golden_chapters') return '基于选题卡生成黄金三章设计，强化开篇钩子、冲突和章末期待。'
+  if (task === 'golden_chapters')
+    return '基于选题卡生成黄金三章设计，强化开篇钩子、冲突和章末期待。'
   if (task === 'characters') return '基于选题卡生成主要角色设定，包含主角、反派和关键配角。'
   if (task === 'world') return '基于选题卡生成世界观设定，强调规则、组织、地点和冲突体系。'
-  if (task === 'evaluate') return '评估这个选题的市场热度、原创度、商业潜力、写作难度和风险，给出可执行建议。'
+  if (task === 'evaluate')
+    return '评估这个选题的市场热度、原创度、商业潜力、写作难度和风险，给出可执行建议。'
   if (task === 'from_book_analysis') {
     return [
       '基于拆书知识生成原创选题。',
@@ -174,7 +176,7 @@ class KnowledgeTopicAiService {
       {
         role: 'system',
         content: [
-          '你是织梦书房的小说选题与创作资产顾问。',
+          '你是织梦工坊的小说选题与创作资产顾问。',
           '所有输出必须是合法 JSON，不要 Markdown，不要解释。',
           '不要抓取、复述或照搬小说正文；只能整理公开元数据、抽象方法和原创创意。'
         ].join('\n')

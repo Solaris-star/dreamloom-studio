@@ -1,4 +1,3 @@
-
 function sanitizeText(value) {
   return typeof value === 'string' ? value.trim() : ''
 }
@@ -6,7 +5,10 @@ function sanitizeText(value) {
 function stripCodeFence(text) {
   const source = sanitizeText(text)
   if (!source) return ''
-  return source.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+  return source
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim()
 }
 
 function extractJsonBlock(text) {

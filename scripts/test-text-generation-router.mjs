@@ -118,7 +118,11 @@ try {
     }
   }
   const streamSignal = new AbortController().signal
-  const stream = await storeProvider.service.streamChat({ messages: [], maxTokens: 123, signal: streamSignal })
+  const stream = await storeProvider.service.streamChat({
+    messages: [],
+    maxTokens: 123,
+    signal: streamSignal
+  })
   const chunks = []
   for await (const chunk of stream) chunks.push(chunk)
   assert.equal(capturedStreamRequest.max_tokens, 123)

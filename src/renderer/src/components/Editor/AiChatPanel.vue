@@ -15,12 +15,7 @@
           clearable
           style="width: 100%"
         >
-          <el-option
-            v-for="p in chatPresets"
-            :key="p.id"
-            :label="p.name"
-            :value="p.id"
-          />
+          <el-option v-for="p in chatPresets" :key="p.id" :label="p.name" :value="p.id" />
         </el-select>
         <div v-if="chatPresetLoadError" class="chat-preset-error">
           <span>{{ chatPresetLoadError }}</span>
@@ -31,12 +26,7 @@
       </div>
 
       <div ref="messageListRef" class="chat-messages">
-        <div
-          v-for="(msg, idx) in messages"
-          :key="idx"
-          class="chat-message"
-          :class="msg.role"
-        >
+        <div v-for="(msg, idx) in messages" :key="idx" class="chat-message" :class="msg.role">
           <div class="message-bubble">{{ msg.content }}</div>
         </div>
         <div v-if="messages.length === 0" class="chat-empty">
@@ -67,10 +57,7 @@
           >
             {{ t('aiChat.insert') }}
           </el-button>
-          <el-button
-            :disabled="messages.length === 0"
-            @click="handleClear"
-          >
+          <el-button :disabled="messages.length === 0" @click="handleClear">
             {{ t('aiChat.clear') }}
           </el-button>
         </div>
@@ -125,7 +112,9 @@ async function loadPresets() {
   presetLoading.value = true
   try {
     const res = await listPromptPresets({ bookPath: props.bookPath })
-    chatPresets.value = requireChatPresetRows(res, t('aiChat.loadPresetsFailed')).filter((p) => p.category === 'chat')
+    chatPresets.value = requireChatPresetRows(res, t('aiChat.loadPresetsFailed')).filter(
+      (p) => p.category === 'chat'
+    )
   } catch (error) {
     chatPresets.value = []
     chatPresetLoadError.value = error?.message || t('aiChat.loadPresetsFailed')

@@ -43,13 +43,14 @@ const formattedValue = computed(() => {
 <style lang="scss" scoped>
 .stat-card {
   background:
-    linear-gradient(145deg, rgba(251, 250, 246, 0.94), rgba(232, 229, 223, 0.5)),
-    var(--bg-soft);
+    linear-gradient(145deg, rgba(251, 250, 246, 0.94), rgba(232, 229, 223, 0.5)), var(--bg-soft);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 20px;
   box-shadow: var(--wabi-shadow-soft, 0 14px 32px rgba(58, 55, 49, 0.06));
-  transition: transform 0.22s ease, border-color 0.22s ease;
+  transition:
+    transform 0.22s ease,
+    border-color 0.22s ease;
 
   &:hover {
     transform: translateY(-2px);

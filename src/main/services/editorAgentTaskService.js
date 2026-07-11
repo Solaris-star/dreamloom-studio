@@ -107,8 +107,10 @@ function emitAgentTaskProgress(bookPath, task, patch = {}) {
 
 function eventRecord(input = {}) {
   const metadata = input.metadata && typeof input.metadata === 'object' ? input.metadata : undefined
-  const bookContext = input.bookContext && typeof input.bookContext === 'object' ? input.bookContext : undefined
-  const taskMemory = input.taskMemory && typeof input.taskMemory === 'object' ? input.taskMemory : undefined
+  const bookContext =
+    input.bookContext && typeof input.bookContext === 'object' ? input.bookContext : undefined
+  const taskMemory =
+    input.taskMemory && typeof input.taskMemory === 'object' ? input.taskMemory : undefined
   const sourceCount = Number.isFinite(Number(input.sourceCount))
     ? Number(input.sourceCount)
     : Number.isFinite(Number(bookContext?.sourceCount))
@@ -236,7 +238,8 @@ function normalizeTask(bookPath, input = {}) {
 }
 
 function upsertTask(bookPath, patch = {}) {
-  if (!bookPath || !fs.existsSync(bookPath)) throw new Error('作品目录不存在，无法写入 Agent 任务记录')
+  if (!bookPath || !fs.existsSync(bookPath))
+    throw new Error('作品目录不存在，无法写入 Agent 任务记录')
   const rows = readTaskRows(bookPath)
   const now = nowIso()
   const current = rows.find((item) => item.id === patch.id) || {}
@@ -501,7 +504,8 @@ export function recordAgentTaskQueueEvent(bookPath, input = {}) {
 }
 
 export function listAgentTasks(bookPath, filter = {}) {
-  if (!bookPath || !fs.existsSync(bookPath)) throw new Error('作品目录不存在，无法读取 Agent 任务记录')
+  if (!bookPath || !fs.existsSync(bookPath))
+    throw new Error('作品目录不存在，无法读取 Agent 任务记录')
   const id = cleanText(filter.id || filter.taskId)
   const generationId = cleanText(filter.generationId)
   const chapterId = cleanText(filter.chapterId)
@@ -518,7 +522,10 @@ export function listAgentTasks(bookPath, filter = {}) {
     if (agentMode && item.agentMode !== agentMode) return false
     return true
   })
-  return { success: true, tasks: Number.isFinite(limit) && limit > 0 ? tasks.slice(0, limit) : tasks }
+  return {
+    success: true,
+    tasks: Number.isFinite(limit) && limit > 0 ? tasks.slice(0, limit) : tasks
+  }
 }
 
 export function onAgentTaskProgress(listener) {

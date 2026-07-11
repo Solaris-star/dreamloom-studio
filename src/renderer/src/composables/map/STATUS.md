@@ -3,6 +3,7 @@
 ## ✅ 已完成
 
 ### 基础 Composables
+
 1. **useCanvasState.js** - 画布状态管理
    - 缩放、平移、边界等状态
    - 画布显示尺寸计算
@@ -34,6 +35,7 @@
    - `canvasWrapStyle` - 画布包装样式
 
 ### 工具 Composables（示例）
+
 1. **tools/usePencilTool.js** - 画笔工具
    - `onMouseDown()` - 开始绘制
    - `onMouseMove()` - 继续绘制
@@ -45,6 +47,7 @@
    - `onMouseUp()` - 完成擦除
 
 ### 文档
+
 - `README.md` - 重构方案说明
 - `REFACTOR_PLAN.md` - 详细重构计划
 - `EXAMPLE_USAGE.md` - 使用示例
@@ -53,6 +56,7 @@
 ## 📋 待完成
 
 ### 工具 Composables
+
 - [ ] `tools/useLineTool.js` - 线条工具
 - [ ] `tools/useRectTool.js` - 矩形工具
 - [ ] `tools/useTextTool.js` - 文字工具
@@ -63,6 +67,7 @@
 - [ ] `tools/useBackgroundTool.js` - 背景工具
 
 ### 工具函数 Utils
+
 - [ ] `utils/elementBounds.js` - 元素边界计算
 - [ ] `utils/elementDetection.js` - 元素检测（点击检测等）
 - [ ] `utils/selection.js` - 选框相关工具函数
@@ -70,11 +75,13 @@
 ## 🎯 当前效果
 
 ### 代码组织
+
 - ✅ 基础功能已模块化
 - ✅ 画笔和橡皮擦工具已独立
 - ✅ 渲染逻辑已分离
 
 ### 使用方式
+
 ```javascript
 // 1. 导入 composables
 import { useCanvasState } from '@renderer/composables/map/useCanvasState'
@@ -93,6 +100,7 @@ function handleMouseDown(e) {
 ```
 
 ### 优势
+
 - ✅ 代码结构清晰
 - ✅ 工具独立管理
 - ✅ 易于扩展新工具
@@ -109,4 +117,3 @@ function handleMouseDown(e) {
 ## 💡 建议
 
 可以先测试当前已实现的画笔和橡皮擦工具，确认重构方向正确后，再继续完成其他工具。
-

@@ -5,18 +5,20 @@ import {
   useAgentTaskProgressSocket
 } from '../src/renderer/src/composables/useAgentTaskProgressSocket.js'
 
-const url = new URL(buildAgentTaskProgressUrl(
-  {
-    bookName: '风雪试剑',
-    bookId: 'book-001',
-    chapterId: '第一章',
-    taskId: '',
-    generationId: 'gen-001'
-  },
-  {
-    baseUrl: 'ws://127.0.0.1:8787/agent-tasks'
-  }
-))
+const url = new URL(
+  buildAgentTaskProgressUrl(
+    {
+      bookName: '风雪试剑',
+      bookId: 'book-001',
+      chapterId: '第一章',
+      taskId: '',
+      generationId: 'gen-001'
+    },
+    {
+      baseUrl: 'ws://127.0.0.1:8787/agent-tasks'
+    }
+  )
+)
 
 assert.equal(url.protocol, 'ws:')
 assert.equal(url.host, '127.0.0.1:8787')
@@ -47,7 +49,10 @@ const nextTask = {
 }
 
 const inserted = upsertAgentTaskProgressItem([olderTask], activeTask)
-assert.deepEqual(inserted.map((item) => item.id), ['task-active', 'task-older'])
+assert.deepEqual(
+  inserted.map((item) => item.id),
+  ['task-active', 'task-older']
+)
 
 const updated = upsertAgentTaskProgressItem(inserted, nextTask)
 assert.equal(updated.length, 2)
@@ -127,7 +132,10 @@ await withWindow(
     const progressSocket = useAgentTaskProgressSocket()
     progressSocket.connect({ bookName: '风雪试剑', taskId: 'task-1' })
     await new Promise((resolve) => setTimeout(resolve, 0))
-    assert.equal(progressSocket.currentUrl.value.startsWith('ws://127.0.0.1:8787/agent-tasks'), true)
+    assert.equal(
+      progressSocket.currentUrl.value.startsWith('ws://127.0.0.1:8787/agent-tasks'),
+      true
+    )
     assert.equal(progressSocket.currentUrl.value.includes('bookName='), true)
     progressSocket.disconnect()
   }

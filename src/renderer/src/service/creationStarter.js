@@ -50,33 +50,25 @@ async function readJobs() {
 
 async function writeJobs(jobs) {
   const rows = jobs.map(normalizeJob).slice(0, 100)
-  let wrotePrimaryStore = false
+  if (!window.electronStore?.set) {
+    throw new Error('保存本地起笔任务失败：Electron 存储不可用')
+  }
   try {
-    if (!window.electronStore?.set) {
-      throw new Error('本地任务存储接口不可用')
-    }
     const result = await window.electronStore.set(JOBS_KEY, rows)
     if (result?.success !== true) {
-      throw new Error(result?.message || '保存本地起笔任务失败')
+      throw new Error(result?.message || '接口返回失败')
     }
     if (result.key !== JOBS_KEY) {
       throw new Error('保存本地起笔任务失败：接口返回的设置项不匹配')
     }
-    wrotePrimaryStore = true
   } catch (error) {
-    console.warn('[CreationStarter] Primary store write failed', error)
+    throw new Error(`保存本地起笔任务失败：Electron 存储不可用：${error?.message || '写入失败'}`)
   }
   try {
     localStorage.setItem(JOBS_KEY, JSON.stringify(rows))
-    localStorage.setItem(STORAGE_SOURCE_KEY, wrotePrimaryStore ? 'primary-store+browser-backup' : 'browser-backup-only')
+    localStorage.setItem(STORAGE_SOURCE_KEY, 'primary-store+browser-backup')
   } catch (error) {
-    if (!wrotePrimaryStore) {
-      throw new Error(`保存本地起笔任务失败：${error?.message || '浏览器备份不可用'}`)
-    }
     console.warn('[CreationStarter] Browser backup write failed', error)
-  }
-  if (!wrotePrimaryStore) {
-    throw new Error('保存本地起笔任务失败：主存储接口不可用')
   }
   return rows
 }

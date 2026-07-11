@@ -34,7 +34,11 @@
           </template>
         </el-dropdown>
       </div>
-      <el-empty v-if="organizations.length === 0" :image-size="200" :description="t('organizationList.empty')" />
+      <el-empty
+        v-if="organizations.length === 0"
+        :image-size="200"
+        :description="t('organizationList.empty')"
+      />
     </template>
   </LayoutTool>
 
@@ -88,11 +92,15 @@
     width="500px"
     :close-on-click-modal="false"
   >
-    <span>{{ t('organizationList.deleteConfirm', { name: selectedOrganization?.name || '' }) }}</span>
+    <span>{{
+      t('organizationList.deleteConfirm', { name: selectedOrganization?.name || '' })
+    }}</span>
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="deleteDialogVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="danger" @click="confirmDelete">{{ t('organizationList.deleteConfirmBtn') }}</el-button>
+        <el-button type="danger" @click="confirmDelete">{{
+          t('organizationList.deleteConfirmBtn')
+        }}</el-button>
       </span>
     </template>
   </el-dialog>

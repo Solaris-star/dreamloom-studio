@@ -23,6 +23,16 @@
         class="chapter-title-input"
         @blur="handleTitleBlur"
       />
+      <span class="save-state" :class="`is-${editorStore.saveStatus}`">
+        {{ saveStatusText }}
+      </span>
+      <el-button
+        v-if="editorStore.file?.type === 'chapter'"
+        text
+        @click="openVersionHistory"
+      >
+        历史版本
+      </el-button>
       <!-- 人物高亮开关 -->
       <el-switch
         v-if="editorStore.file?.type === 'chapter'"
@@ -61,7 +71,7 @@
       width="80%"
       class="polish-dialog"
       destroy-on-close
-      @close="polishDialogVisible = false"
+      @closed="resetPolishResult"
     >
       <div class="polish-dialog-body">
         <div class="polish-block">
@@ -71,6 +81,18 @@
         <div class="polish-block">
           <div class="polish-label">{{ t('editorPanel.polishedText') }}</div>
           <div class="polish-content polished">{{ polishResultText }}</div>
+        </div>
+      </div>
+      <div v-if="cleanupDiff.length" class="cleanup-diff">
+        <div class="polish-label">逐段差异</div>
+        <div
+          v-for="(change, index) in cleanupDiff"
+          :key="`${change.type}-${index}`"
+          class="cleanup-diff-row"
+          :class="`is-${change.type}`"
+        >
+          <div v-if="change.before" class="cleanup-before">原文：{{ change.before }}</div>
+          <div v-if="change.after" class="cleanup-after">结果：{{ change.after }}</div>
         </div>
       </div>
       <template #footer>
@@ -87,6 +109,24 @@
         </span>
       </template>
     </el-dialog>
+    <el-drawer v-model="versionDrawerVisible" title="正文历史版本" size="420px">
+      <div class="version-toolbar">
+        <el-button type="primary" @click="createNamedVersion">保存命名版本</el-button>
+      </div>
+      <el-empty v-if="!versionSnapshots.length" description="暂无历史版本" />
+      <div v-else class="version-list">
+        <div v-for="item in versionSnapshots" :key="item.id" class="version-item">
+          <div>
+            <strong>{{ item.name || versionReasonLabel(item.reason) }}</strong>
+            <div class="version-time">{{ formatVersionTime(item.createdAt) }}</div>
+          </div>
+          <div class="version-actions">
+            <el-button text type="primary" @click="restoreVersion(item)">恢复</el-button>
+            <el-button text type="danger" @click="removeVersion(item)">删除</el-button>
+          </div>
+        </div>
+      </div>
+    </el-drawer>
 
     <!-- AI 续写：续写要求输入弹框 -->
     <el-dialog
@@ -209,10 +249,16 @@ import {
   computed,
   nextTick
 } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowDown } from '@element-plus/icons-vue'
 import { EditorContent } from '@tiptap/vue-3'
-import { TextSelection } from 'prosemirror-state'
+import { createEditorSaveQueue } from '../../service/editorSaveQueue'
+import {
+  createEditorSnapshot,
+  deleteEditorSnapshot,
+  listEditorSnapshots
+} from '../../service/editor'
+import { cleanEditorText } from '../../service/editorTextCleanup'
 import { useI18n } from 'vue-i18n'
 import { useEditorStore } from '@renderer/stores/editor'
 import SearchPanel from '@renderer/components/Editor/SearchPanel.vue'
@@ -318,7 +364,6 @@ const noteEditorContentRef = ref(null)
 // 人物高亮相关状态
 const characterHighlightEnabled = ref(false) // 人物高亮开关状态，默认关闭
 const characters = ref([]) // 人物数据列表
-let characterHighlightTimer = null // 人物高亮定时器
 const defaultHighlightColor = '#ffeb3b' // 默认高亮颜色（黄色）
 
 /**
@@ -344,7 +389,6 @@ function lightenHighlightColor(hex) {
 // 禁词提示相关状态
 const bannedWordsHintEnabled = ref(false) // 禁词提示开关状态，默认关闭
 const bannedWords = ref([]) // 禁词数据列表
-let bannedWordsHintTimer = null // 禁词提示定时器
 
 async function handleTitleBlur() {
   const fileType = editorStore.file?.type
@@ -367,9 +411,36 @@ const polishDialogVisible = ref(false)
 const polishMode = ref('chapter') // 'selection' | 'chapter'
 const polishOriginalText = ref('')
 const polishResultText = ref('')
+const cleanupDiff = ref([])
+const cleanupTaskState = ref({
+  selection: 'idle',
+  chapter: 'idle'
+})
+const polishSourceDocument = ref('')
+const polishSourceFilePath = ref('')
 
 // AI 续写相关状态
 const continueLoading = ref(false)
+const versionDrawerVisible = ref(false)
+const versionSnapshots = ref([])
+let lastAutoSnapshotContent = ''
+const saveStatusText = computed(() => {
+  const labels = {
+    idle: '',
+    saving: '正在保存',
+    saved: '已保存',
+    error: '保存失败',
+    offline: '离线待保存'
+  }
+  return labels[editorStore.saveStatus] || ''
+})
+
+const saveQueue = createEditorSaveQueue({
+  persist: persistSaveSnapshot,
+  onStatusChange({ status, error, savedAt }) {
+    editorStore.setSaveState(status, { error: error?.message, savedAt })
+  }
+})
 const continuePromptDialogVisible = ref(false)
 const continuePromptText = ref('')
 const continueResultDialogVisible = ref(false)
@@ -910,6 +981,141 @@ onBeforeUnmount(async () => {
 })
 
 // 保存内容的通用函数
+async function persistSaveSnapshot(snapshot) {
+  const common = {
+    bookName: snapshot.bookName,
+    newName: snapshot.title,
+    content: snapshot.content
+  }
+  if (snapshot.file.type === 'note') {
+    return window.electron.editNote({
+      ...common,
+      notebookName: snapshot.file.notebook,
+      noteName: snapshot.file.name
+    })
+  }
+  const result = await window.electron.saveChapter({
+    ...common,
+    volumeName: snapshot.file.volume,
+    chapterName: snapshot.file.name
+  })
+  if (result?.success && snapshot.content !== lastAutoSnapshotContent) {
+    lastAutoSnapshotContent = snapshot.content
+    try {
+      await createEditorSnapshot({
+        bookId: snapshot.bookName,
+        chapterId: snapshot.filePath,
+        chapterName: snapshot.file.name,
+        contentBefore: snapshot.content,
+        reason: 'auto_save'
+      })
+    } catch (error) {
+      console.error('创建章节自动快照失败:', error)
+    }
+  }
+  return result
+}
+
+async function loadVersionSnapshots() {
+  const file = editorStore.file
+  if (!file || file.type !== 'chapter') {
+    versionSnapshots.value = []
+    return
+  }
+  versionSnapshots.value = await listEditorSnapshots({
+    bookId: props.bookName,
+    chapterId: file.path
+  })
+}
+
+async function openVersionHistory() {
+  try {
+    await loadVersionSnapshots()
+    versionDrawerVisible.value = true
+  } catch (error) {
+    ElMessage.error(error?.message || '读取历史版本失败')
+  }
+}
+
+async function createNamedVersion() {
+  try {
+    const { value } = await ElMessageBox.prompt('请输入版本名称', '保存命名版本', {
+      inputPlaceholder: '例如：第一稿完成',
+      inputValidator: (text) => Boolean(String(text || '').trim()) || '请输入版本名称'
+    })
+    await createEditorSnapshot({
+      bookId: props.bookName,
+      chapterId: editorStore.file.path,
+      chapterName: editorStore.file.name,
+      contentBefore: editor.value?.getHTML() || editorStore.content,
+      reason: 'manual',
+      name: String(value).trim()
+    })
+    await loadVersionSnapshots()
+    ElMessage.success('命名版本已保存')
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') {
+      ElMessage.error(error?.message || '保存命名版本失败')
+    }
+  }
+}
+
+async function restoreVersion(item) {
+  try {
+    await ElMessageBox.confirm('恢复后会覆盖当前正文，当前内容会先保存为备份。', '恢复版本', {
+      type: 'warning',
+      confirmButtonText: '恢复',
+      cancelButtonText: '取消'
+    })
+    const currentContent = editor.value?.getHTML() || editorStore.content
+    await createEditorSnapshot({
+      bookId: props.bookName,
+      chapterId: editorStore.file.path,
+      chapterName: editorStore.file.name,
+      contentBefore: currentContent,
+      reason: 'before_restore',
+      name: '恢复前备份'
+    })
+    editor.value?.commands.setContent(item.contentBefore || '<p></p>')
+    const saved = await saveFile(false)
+    if (!saved) throw new Error('恢复内容保存失败，当前页面仍保留恢复结果')
+    await loadVersionSnapshots()
+    ElMessage.success('历史版本已恢复')
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') {
+      ElMessage.error(error?.message || '恢复历史版本失败')
+    }
+  }
+}
+
+async function removeVersion(item) {
+  try {
+    await ElMessageBox.confirm('确定删除这个历史版本吗？', '删除版本', {
+      type: 'warning'
+    })
+    await deleteEditorSnapshot(item.id)
+    await loadVersionSnapshots()
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') {
+      ElMessage.error(error?.message || '删除历史版本失败')
+    }
+  }
+}
+
+function versionReasonLabel(reason) {
+  return {
+    auto_save: '自动快照',
+    before_restore: '恢复前备份',
+    ai_apply: 'AI 操作前备份',
+    manual: '命名版本'
+  }[reason] || '历史版本'
+}
+
+function formatVersionTime(value) {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('zh-CN')
+}
+
 async function saveFile(showMessage = false) {
   const file = editorStore.file
   if (!file) {
@@ -946,47 +1152,36 @@ async function saveFile(showMessage = false) {
     }
   }
 
-  const saveParams = {
+  const snapshot = {
     bookName: props.bookName,
-    newName: editorStore.chapterTitle,
-    content: contentToSave
+    title: editorStore.chapterTitle,
+    content: contentToSave,
+    file: { ...file },
+    filePath: file.path
   }
 
-  let result
-  if (file.type === 'note') {
-    result = await window.electron.editNote({
-      ...saveParams,
-      notebookName: file.notebook,
-      noteName: file.name
-    })
-    if (showMessage && result.success) emit('refresh-notes')
-  } else if (file.type === 'chapter') {
-    result = await window.electron.saveChapter({
-      ...saveParams,
-      volumeName: file.volume,
-      chapterName: file.name
-    })
-    if (showMessage && result.success) {
-      emit('refresh-chapters')
-      // 保存成功后，重新加载书籍总字数（确保与服务器同步）
-      if (editorStatsRef.value) {
-        await editorStatsRef.value.loadBookTotalWords(true)
-      }
-    }
-  }
+  const result = await saveQueue.enqueue(snapshot)
+  if (result?.superseded) return true
 
   if (result?.success) {
-    if (result.name && result.name !== file.name) {
-      editorStore.setFile({ ...file, name: result.name })
+    const isStillCurrentFile = editorStore.file?.path === snapshot.filePath
+    if (result.name && result.name !== file.name && isStillCurrentFile) {
+      editorStore.setFile({ ...snapshot.file, name: result.name })
       if (file.type === 'note') {
         emit('refresh-notes')
       } else if (file.type === 'chapter') {
         emit('refresh-chapters')
       }
     }
+    if (showMessage && file.type === 'chapter' && editorStatsRef.value) {
+      await editorStatsRef.value.loadBookTotalWords(true)
+    }
     if (showMessage) ElMessage.success(t('editorPanel.saveSuccess'))
     return true
   } else {
+    editorStore.setSaveState(result?.error?.offline ? 'offline' : 'error', {
+      error: result?.message
+    })
     if (showMessage) ElMessage.error(result?.message || t('editorPanel.saveFailed'))
     else ElMessage.error(result?.message || t('editorPanel.autoSaveFailed'))
     return false
@@ -1100,6 +1295,10 @@ async function getPreviousChapterContextInfo() {
 }
 
   async function handleCleanGarbageSelection() {
+    if (cleanupTaskState.value.selection === 'running') {
+      ElMessage.info('选段清理正在进行，请稍候')
+      return
+    }
     if (!editor.value) return
     const { from, to, empty } = editor.value.state.selection
     if (empty) {
@@ -1111,56 +1310,50 @@ async function getPreviousChapterContextInfo() {
       ElMessage.warning('选中的内容太短')
       return
     }
-    if (!window.electron?.cleanGarbageTextWithAI) {
-      ElMessage.error('当前环境不支持 AI 清理乱码')
-      return
-    }
-    polishLoading.value = true
+    cleanupTaskState.value.selection = 'running'
     try {
-      const res = await window.electron.cleanGarbageTextWithAI(text)
-      if (!res.success) {
-        ElMessage.error(res.message || '清理乱码失败')
-        return
-      }
+      const res = await cleanEditorText(text)
       polishMode.value = 'selection'
       polishOriginalText.value = text
       polishResultText.value = res.content || ''
+      cleanupDiff.value = res.diff
       polishReplaceFrom.value = from
       polishReplaceTo.value = to
+      polishSourceDocument.value = editor.value.getText()
+      polishSourceFilePath.value = editorStore.file?.path || ''
       polishDialogVisible.value = true
+      cleanupTaskState.value.selection = 'success'
     } catch (e) {
+      cleanupTaskState.value.selection = 'error'
       ElMessage.error(e?.message || '清理乱码请求出错')
-    } finally {
-      polishLoading.value = false
     }
   }
 
   async function handleCleanGarbageChapter() {
+    if (cleanupTaskState.value.chapter === 'running') {
+      ElMessage.info('整章清理正在进行，请稍候')
+      return
+    }
     if (!editor.value) return
     const fullText = editor.value.getText()
     if (getPlainTextWordCount(fullText) < 10) {
       ElMessage.warning('本章内容太少')
       return
     }
-    if (!window.electron?.cleanGarbageTextWithAI) {
-      ElMessage.error('当前环境不支持 AI 清理乱码')
-      return
-    }
-    polishLoading.value = true
+    cleanupTaskState.value.chapter = 'running'
     try {
-      const res = await window.electron.cleanGarbageTextWithAI(fullText)
-      if (!res.success) {
-        ElMessage.error(res.message || '清理乱码失败')
-        return
-      }
+      const res = await cleanEditorText(fullText)
       polishMode.value = 'chapter'
       polishOriginalText.value = fullText
       polishResultText.value = res.content || ''
+      cleanupDiff.value = res.diff
+      polishSourceDocument.value = fullText
+      polishSourceFilePath.value = editorStore.file?.path || ''
       polishDialogVisible.value = true
+      cleanupTaskState.value.chapter = 'success'
     } catch (e) {
+      cleanupTaskState.value.chapter = 'error'
       ElMessage.error(e?.message || '清理乱码请求出错')
-    } finally {
-      polishLoading.value = false
     }
   }
 
@@ -1326,6 +1519,7 @@ async function handlePolishSelection() {
     polishMode.value = 'selection'
     polishOriginalText.value = text
     polishResultText.value = res.content || ''
+    cleanupDiff.value = []
     polishReplaceFrom.value = from
     polishReplaceTo.value = to
     polishDialogVisible.value = true
@@ -1402,6 +1596,7 @@ async function handlePolishChapter() {
     polishMode.value = 'chapter'
     polishOriginalText.value = fullText
     polishResultText.value = res.content || ''
+    cleanupDiff.value = []
     polishDialogVisible.value = true
   } catch (e) {
     ElMessage.error(e?.message || t('editorPanel.polishRequestError'))
@@ -1422,9 +1617,49 @@ async function copyPolishedText() {
 }
 
 /** 确认替换：根据 polishMode 替换选中文本或整章 */
-function confirmPolishReplace() {
+async function confirmPolishReplace() {
   const ed = editor.value
   if (!ed || !polishResultText.value) return
+  if (
+    polishSourceFilePath.value &&
+    (editorStore.file?.path !== polishSourceFilePath.value ||
+      ed.getText() !== polishSourceDocument.value)
+  ) {
+    ElMessage.warning('正文在 AI 处理期间已经变化，请重新发起操作')
+    return
+  }
+  const originalLength = polishOriginalText.value.trim().length
+  const resultLength = polishResultText.value.trim().length
+  if (originalLength > 0 && resultLength < originalLength * 0.7) {
+    try {
+      await ElMessageBox.confirm(
+        'AI 结果比原文短 30% 以上，可能误删正常内容。仍要替换吗？',
+        '确认替换',
+        {
+          type: 'warning',
+          confirmButtonText: '仍要替换',
+          cancelButtonText: '取消'
+        }
+      )
+    } catch {
+      return
+    }
+  }
+  if (cleanupDiff.value.length && editorStore.file?.type === 'chapter') {
+    try {
+      await createEditorSnapshot({
+        bookId: props.bookName,
+        chapterId: editorStore.file.path,
+        chapterName: editorStore.file.name,
+        contentBefore: ed.getHTML(),
+        reason: 'ai_apply',
+        name: 'AI 清理前备份'
+      })
+    } catch (error) {
+      ElMessage.error(error?.message || '创建 AI 清理前备份失败')
+      return
+    }
+  }
   if (polishMode.value === 'selection') {
     ed.chain()
       .focus()
@@ -1442,6 +1677,17 @@ function confirmPolishReplace() {
   polishDialogVisible.value = false
   polishOriginalText.value = ''
   polishResultText.value = ''
+  polishSourceDocument.value = ''
+  polishSourceFilePath.value = ''
+  cleanupDiff.value = []
+}
+
+function resetPolishResult() {
+  polishOriginalText.value = ''
+  polishResultText.value = ''
+  polishSourceDocument.value = ''
+  polishSourceFilePath.value = ''
+  cleanupDiff.value = []
 }
 
 // 自动保存内容
@@ -1463,130 +1709,21 @@ async function loadCharacters() {
 
 // 清除所有人物高亮（不改变光标位置）
 function clearCharacterHighlights() {
-  if (!editor.value) return
-
-  const { state, view } = editor.value
-  const { tr } = state
-
-  // 保存当前选择位置（使用数字位置，而不是选择对象）
-  const selectionFrom = state.selection.from
-  const selectionTo = state.selection.to
-
-  // 获取 highlight mark 类型
-  const highlightType = state.schema.marks.highlight
-
-  // 遍历文档，移除所有高亮标记
-  state.doc.descendants((node, pos) => {
-    if (node.marks) {
-      node.marks.forEach((mark) => {
-        if (mark.type.name === 'highlight') {
-          // 移除高亮标记，但不改变选择
-          const from = pos
-          const to = pos + node.nodeSize
-          tr.removeMark(from, to, highlightType)
-        }
-      })
-    }
-  })
-
-  // 恢复选择位置（使用 TextSelection.create 创建新的选择对象）
-  if (tr.steps.length > 0) {
-    const newSelection = TextSelection.create(tr.doc, selectionFrom, selectionTo)
-    tr.setSelection(newSelection)
-    tr.setMeta('addToHistory', false) // 装饰性更新不入撤销栈，避免清空 redo 导致回退按钮闪一下又变灰
-    view.dispatch(tr)
-  }
+  updateTextHintDecorations({ characters: [] })
 }
 
 // 应用人物高亮（不改变光标位置）
 function applyCharacterHighlights() {
-  if (
-    !editor.value ||
-    editorStore.file?.type !== 'chapter' ||
-    !characterHighlightEnabled.value ||
-    characters.value.length === 0
-  ) {
-    return
-  }
-
-  const { state, view } = editor.value
-  const { doc, tr, schema } = state
-
-  // 保存当前选择位置（使用数字位置）
-  const selectionFrom = state.selection.from
-  const selectionTo = state.selection.to
-
-  // 先清除之前的人物高亮（在同一事务中）
-  const highlightType = schema.marks.highlight
-  doc.descendants((node, pos) => {
-    if (node.marks) {
-      node.marks.forEach((mark) => {
-        if (mark.type.name === 'highlight') {
-          const from = pos
-          const to = pos + node.nodeSize
-          tr.removeMark(from, to, highlightType)
-        }
-      })
-    }
-  })
-
-  // 为每个人物名创建匹配项
-  const matches = []
-
-  // 转义正则表达式特殊字符的工具函数
-  const escapeRegExp = (string) => {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  }
-
-  // 遍历文档中的所有文本节点，查找人物名匹配
-  characters.value.forEach((character) => {
-    if (!character.name || !character.name.trim()) return
-
-    const characterName = character.name.trim()
-    // 转义特殊字符，用于正则表达式
-    const escapedName = escapeRegExp(characterName)
-    // 创建正则表达式，匹配完整的人物名（不区分大小写）
-    const regex = new RegExp(escapedName, 'gi')
-
-    // 遍历文档中的所有文本节点（使用当前事务的文档）
-    tr.doc.descendants((node, pos) => {
-      if (node.isText) {
-        const text = node.text
-        let match
-
-        // 重置正则表达式的 lastIndex
-        regex.lastIndex = 0
-
-        while ((match = regex.exec(text)) !== null) {
-          matches.push({
-            from: pos + match.index,
-            to: pos + match.index + match[0].length,
-            text: match[0],
-            color: lightenHighlightColor(character.markerColor || defaultHighlightColor)
-          })
-        }
-      }
-    })
-  })
-
-  // 按位置排序，从后往前应用高亮（避免位置偏移）
-  matches.sort((a, b) => b.from - a.from)
-
-  // 批量应用高亮
-  matches.forEach((match) => {
-    const highlightMark = highlightType.create({ color: match.color })
-    tr.addMark(match.from, match.to, highlightMark)
-  })
-
-  // 恢复选择位置（使用 TextSelection.create 创建新的选择对象）
-  const newSelection = TextSelection.create(tr.doc, selectionFrom, selectionTo)
-  tr.setSelection(newSelection)
-
-  // 应用事务，但不改变焦点；装饰性更新不入撤销栈，避免清空 redo 导致回退按钮闪一下又变灰
-  if (tr.steps.length > 0) {
-    tr.setMeta('addToHistory', false)
-    view.dispatch(tr)
-  }
+  const hints =
+    characterHighlightEnabled.value && editorStore.file?.type === 'chapter'
+      ? characters.value
+          .filter((item) => String(item?.name || '').trim())
+          .map((item) => ({
+            text: item.name.trim(),
+            color: lightenHighlightColor(item.markerColor || defaultHighlightColor)
+          }))
+      : []
+  updateTextHintDecorations({ characters: hints })
 }
 
 // 加载人物高亮开关状态（按书籍）
@@ -1669,22 +1806,12 @@ async function handleCharacterHighlightChange(enabled) {
 
 // 启动人物高亮定时器
 function startCharacterHighlightTimer() {
-  stopCharacterHighlightTimer() // 先清除旧的定时器
-
-  // 每 2 秒检查一次并更新高亮
-  characterHighlightTimer = setInterval(() => {
-    if (characterHighlightEnabled.value && editor.value && editorStore.file?.type === 'chapter') {
-      applyCharacterHighlights()
-    }
-  }, 2000)
+  applyCharacterHighlights()
 }
 
 // 停止人物高亮定时器
 function stopCharacterHighlightTimer() {
-  if (characterHighlightTimer) {
-    clearInterval(characterHighlightTimer)
-    characterHighlightTimer = null
-  }
+  return undefined
 }
 
 // 加载禁词数据
@@ -1705,128 +1832,36 @@ async function loadBannedWords() {
 
 // 清除所有禁词划线（不改变光标位置）
 function clearBannedWordsStrikes() {
-  if (!editor.value) return
-
-  const { state, view } = editor.value
-  const { tr } = state
-
-  // 保存当前选择位置（使用数字位置）
-  const selectionFrom = state.selection.from
-  const selectionTo = state.selection.to
-
-  // 获取 strike mark 类型
-  const strikeType = state.schema.marks.strike
-
-  // 遍历文档，移除所有划线标记
-  state.doc.descendants((node, pos) => {
-    if (node.marks) {
-      node.marks.forEach((mark) => {
-        if (mark.type.name === 'strike') {
-          // 移除划线标记，但不改变选择
-          const from = pos
-          const to = pos + node.nodeSize
-          tr.removeMark(from, to, strikeType)
-        }
-      })
-    }
-  })
-
-  // 恢复选择位置
-  if (tr.steps.length > 0) {
-    const newSelection = TextSelection.create(tr.doc, selectionFrom, selectionTo)
-    tr.setSelection(newSelection)
-    tr.setMeta('addToHistory', false) // 装饰性更新不入撤销栈，避免清空 redo
-    view.dispatch(tr)
-  }
+  updateTextHintDecorations({ bannedWords: [] })
 }
 
 // 应用禁词划线（不改变光标位置）
 function applyBannedWordsStrikes() {
-  if (
-    !editor.value ||
-    editorStore.file?.type !== 'chapter' ||
-    !bannedWordsHintEnabled.value ||
-    bannedWords.value.length === 0
-  ) {
-    return
+  const hints =
+    bannedWordsHintEnabled.value && editorStore.file?.type === 'chapter'
+      ? bannedWords.value.map((item) => String(item || '').trim()).filter(Boolean)
+      : []
+  updateTextHintDecorations({ bannedWords: hints })
+}
+
+function updateTextHintDecorations(patch = {}) {
+  if (!editor.value?.commands?.setTextHints) return
+  const current = {
+    characters:
+      characterHighlightEnabled.value && editorStore.file?.type === 'chapter'
+        ? characters.value
+            .filter((item) => String(item?.name || '').trim())
+            .map((item) => ({
+              text: item.name.trim(),
+              color: lightenHighlightColor(item.markerColor || defaultHighlightColor)
+            }))
+        : [],
+    bannedWords:
+      bannedWordsHintEnabled.value && editorStore.file?.type === 'chapter'
+        ? bannedWords.value.map((item) => String(item || '').trim()).filter(Boolean)
+        : []
   }
-
-  const { state, view } = editor.value
-  const { doc, tr, schema } = state
-
-  // 保存当前选择位置（使用数字位置）
-  const selectionFrom = state.selection.from
-  const selectionTo = state.selection.to
-
-  // 先清除之前的禁词划线（在同一事务中）
-  const strikeType = schema.marks.strike
-  doc.descendants((node, pos) => {
-    if (node.marks) {
-      node.marks.forEach((mark) => {
-        if (mark.type.name === 'strike') {
-          const from = pos
-          const to = pos + node.nodeSize
-          tr.removeMark(from, to, strikeType)
-        }
-      })
-    }
-  })
-
-  // 为每个禁词创建匹配项
-  const matches = []
-
-  // 转义正则表达式特殊字符的工具函数
-  const escapeRegExp = (string) => {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  }
-
-  // 遍历文档中的所有文本节点，查找禁词匹配
-  bannedWords.value.forEach((bannedWord) => {
-    if (!bannedWord || !bannedWord.trim()) return
-
-    const word = bannedWord.trim()
-    // 转义特殊字符，用于正则表达式
-    const escapedWord = escapeRegExp(word)
-    // 创建正则表达式，匹配完整的禁词（不区分大小写）
-    const regex = new RegExp(escapedWord, 'gi')
-
-    // 遍历文档中的所有文本节点（使用当前事务的文档）
-    tr.doc.descendants((node, pos) => {
-      if (node.isText) {
-        const text = node.text
-        let match
-
-        // 重置正则表达式的 lastIndex
-        regex.lastIndex = 0
-
-        while ((match = regex.exec(text)) !== null) {
-          matches.push({
-            from: pos + match.index,
-            to: pos + match.index + match[0].length,
-            text: match[0]
-          })
-        }
-      }
-    })
-  })
-
-  // 按位置排序，从后往前应用划线（避免位置偏移）
-  matches.sort((a, b) => b.from - a.from)
-
-  // 批量应用划线
-  matches.forEach((match) => {
-    tr.addMark(match.from, match.to, strikeType.create())
-  })
-
-  // 恢复选择位置（使用 TextSelection.create 创建新的选择对象）
-  const newSelection = TextSelection.create(tr.doc, selectionFrom, selectionTo)
-  tr.setSelection(newSelection)
-
-  // 应用事务，但不改变焦点；装饰性更新不入撤销栈，避免清空 redo
-  if (tr.steps.length > 0) {
-    tr.setMeta('addToHistory', false)
-    view.dispatch(tr)
-  }
+  editor.value.commands.setTextHints({ ...current, ...patch })
 }
 
 // 加载禁词提示开关状态（按书籍）
@@ -1909,22 +1944,12 @@ async function handleBannedWordsHintChange(enabled) {
 
 // 启动禁词提示定时器
 function startBannedWordsHintTimer() {
-  stopBannedWordsHintTimer() // 先清除旧的定时器
-
-  // 每 2 秒检查一次并更新划线
-  bannedWordsHintTimer = setInterval(() => {
-    if (bannedWordsHintEnabled.value && editor.value && editorStore.file?.type === 'chapter') {
-      applyBannedWordsStrikes()
-    }
-  }, 2000)
+  applyBannedWordsStrikes()
 }
 
 // 停止禁词提示定时器
 function stopBannedWordsHintTimer() {
-  if (bannedWordsHintTimer) {
-    clearInterval(bannedWordsHintTimer)
-    bannedWordsHintTimer = null
-  }
+  return undefined
 }
 
 /** keep-alive 从子页回到编辑器时恢复人物高亮/禁词定时器（停用阶段已停掉，避免后台空跑） */
@@ -2014,6 +2039,20 @@ defineExpose({
   background: var(--bg-primary);
   white-space: pre-wrap; // 保证Tab缩进和换行显示
   font-family: inherit, monospace;
+}
+
+:deep(.character-hint-decoration) {
+  border-radius: 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+:deep(.banned-word-decoration) {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: #c2413a;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 
 /* 编辑区右上角固定容器，保证按钮始终在编辑区右上角 */

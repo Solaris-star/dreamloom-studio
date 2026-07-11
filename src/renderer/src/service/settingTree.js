@@ -52,10 +52,7 @@ function requireSettingTreeApplyResult(result, fallback = '应用失败') {
 }
 
 export async function generateSettingTree(payload, fallback) {
-  return requireSettingTreeResult(
-    await ensureElectronApi('generateSettingTree')(payload),
-    fallback
-  )
+  return requireSettingTreeResult(await ensureElectronApi('generateSettingTree')(payload), fallback)
 }
 
 export async function regenerateSettingNode(payload, fallback) {

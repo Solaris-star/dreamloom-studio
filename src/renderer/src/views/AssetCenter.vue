@@ -69,7 +69,10 @@
             <div class="asset-info">
               <h3>{{ asset.name }}</h3>
               <p>{{ asset.bookName || '书库' }}</p>
-              <small>{{ formatSize(asset.size) }} · {{ formatDate(asset.mtime || asset.deletedAt) }}</small>
+              <small
+                >{{ formatSize(asset.size) }} ·
+                {{ formatDate(asset.mtime || asset.deletedAt) }}</small
+              >
             </div>
           </article>
         </div>
@@ -78,7 +81,11 @@
       <aside class="detail-panel">
         <template v-if="selectedAsset">
           <div class="detail-preview">
-            <img v-if="selectedAsset.isImage" :src="assetUrl(selectedAsset)" :alt="selectedAsset.name" />
+            <img
+              v-if="selectedAsset.isImage"
+              :src="assetUrl(selectedAsset)"
+              :alt="selectedAsset.name"
+            />
             <FileText v-else :size="46" />
           </div>
           <h2>{{ selectedAsset.name }}</h2>
@@ -167,7 +174,13 @@ import {
   Trash2,
   UserRound
 } from 'lucide-vue-next'
-import { attachAssetToBook, deleteAsset, getAssetUrl, listAssets, restoreAsset } from '../service/assets'
+import {
+  attachAssetToBook,
+  deleteAsset,
+  getAssetUrl,
+  listAssets,
+  restoreAsset
+} from '../service/assets'
 
 const route = useRoute()
 const loading = ref(false)
@@ -212,7 +225,12 @@ const availableTypes = new Set(typeTabs.map((tab) => tab.key))
 const filteredAssets = computed(() => {
   const keyword = filters.keyword.trim().toLowerCase()
   return assets.value.filter((asset) => {
-    if (filters.bookName && asset.bookName !== filters.bookName && asset.bookFolderName !== filters.bookName) return false
+    if (
+      filters.bookName &&
+      asset.bookName !== filters.bookName &&
+      asset.bookFolderName !== filters.bookName
+    )
+      return false
     if (!keyword) return true
     return [asset.name, asset.bookName, asset.type, asset.source, asset.relativePath]
       .join(' ')
@@ -507,7 +525,9 @@ onMounted(loadAssets)
   background: var(--bg-primary);
   overflow: hidden;
   cursor: pointer;
-  transition: border-color 0.2s, transform 0.2s;
+  transition:
+    border-color 0.2s,
+    transform 0.2s;
 
   &:hover,
   &.selected {

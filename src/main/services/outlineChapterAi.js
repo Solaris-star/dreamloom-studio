@@ -18,7 +18,7 @@ class OutlineChapterAiService {
     }
 
     const bookContextBlock = bookPath
-      ? buildBookWritingContextBlock(bookPath, { outlineTitle, outlineContent })
+      ? await buildBookWritingContextBlock(bookPath, { outlineTitle, outlineContent })
       : ''
 
     const systemLines = [

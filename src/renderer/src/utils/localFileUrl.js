@@ -30,7 +30,10 @@ export function pathToLocalFileUrl(absolutePath) {
 
   // Unix 绝对路径
   if (forward.startsWith('/')) {
-    const segs = forward.split('/').filter(Boolean).map((s) => encodeURIComponent(s))
+    const segs = forward
+      .split('/')
+      .filter(Boolean)
+      .map((s) => encodeURIComponent(s))
     return `file:///${segs.join('/')}`
   }
 

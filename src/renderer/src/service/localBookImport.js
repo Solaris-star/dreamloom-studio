@@ -41,9 +41,7 @@ export async function parseLocalBookFile(file) {
     throw new Error('暂不支持该文件格式')
   }
 
-  const text = extension === 'docx'
-    ? await readDocxText(file)
-    : await readTextFile(file, extension)
+  const text = extension === 'docx' ? await readDocxText(file) : await readTextFile(file, extension)
 
   return parseLocalBookText(text, {
     fileName: file.name,
@@ -65,9 +63,7 @@ export function parseLocalBookText(text, options = {}) {
     ? markdownToPlainText(sourceText)
     : normalizedText
   const chapters = parseChapters(editorText, extension)
-  const safeChapters = chapters.length
-    ? chapters
-    : [{ title: '正文', content: editorText.trim() }]
+  const safeChapters = chapters.length ? chapters : [{ title: '正文', content: editorText.trim() }]
   const totalWords = safeChapters.reduce((sum, chapter) => sum + countWords(chapter.content), 0)
 
   return {
@@ -221,11 +217,13 @@ function stripLeadingMarkdownBookTitle(text, title) {
 }
 
 function sanitizeBookName(name) {
-  return String(name || '本地导入书籍')
-    .replace(/[\\/:*?"<>|]/g, '_')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 60) || '本地导入书籍'
+  return (
+    String(name || '本地导入书籍')
+      .replace(/[\\/:*?"<>|]/g, '_')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 60) || '本地导入书籍'
+  )
 }
 
 function extractChapterTitle(line, extension) {
@@ -241,7 +239,10 @@ function extractChapterTitle(line, extension) {
 function finalizeChapter(chapter) {
   return {
     title: chapter.title,
-    content: chapter.lines.join('\n').replace(/\n{3,}/g, '\n\n').trim()
+    content: chapter.lines
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
   }
 }
 
@@ -252,7 +253,9 @@ function isMarkdownExtension(extension) {
 function markdownToPlainText(text = '') {
   return normalizeSourceText(text)
     .replace(/^---[\s\S]*?\n---\n?/, '')
-    .replace(/```[\s\S]*?```/g, (block) => block.replace(/```[a-zA-Z0-9_-]*\n?/g, '').replace(/```/g, ''))
+    .replace(/```[\s\S]*?```/g, (block) =>
+      block.replace(/```[a-zA-Z0-9_-]*\n?/g, '').replace(/```/g, '')
+    )
     .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .replace(/^[ \t]*>\s?/gm, '')

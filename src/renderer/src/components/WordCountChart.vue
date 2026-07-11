@@ -2,7 +2,9 @@
   <div class="chart-area">
     <div v-if="chartError" class="chart-error" role="alert">
       <span>{{ chartError }}</span>
-      <button type="button" :disabled="chartLoading" @click="updateChartData">{{ t('common.retry') }}</button>
+      <button type="button" :disabled="chartLoading" @click="updateChartData">
+        {{ t('common.retry') }}
+      </button>
     </div>
     <div ref="chartRef" class="chart-container"></div>
   </div>
@@ -10,9 +12,9 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import * as echarts from 'echarts'
 import { useI18n } from 'vue-i18n'
 import { statisticsService } from '@renderer/service/statisticsService'
+import { echarts } from '@renderer/utils/barEcharts'
 
 defineProps({
   height: {

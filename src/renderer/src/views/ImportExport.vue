@@ -24,7 +24,11 @@
             <span>{{ importForm.fileName || '选择 TXT、Markdown 或 DOCX' }}</span>
           </label>
           <div class="button-row">
-            <el-button :disabled="!importForm.base64" :loading="previewing" @click="handlePreviewImport">
+            <el-button
+              :disabled="!importForm.base64"
+              :loading="previewing"
+              @click="handlePreviewImport"
+            >
               重新解析
             </el-button>
             <el-button
@@ -67,11 +71,18 @@
         <div v-if="booksLoadError" class="read-error-card" role="alert">
           <strong>读取书架失败</strong>
           <span>{{ booksLoadError }}</span>
-          <el-button type="primary" plain :loading="loadingBooks" @click="retryLoadBooks">重试</el-button>
+          <el-button type="primary" plain :loading="loadingBooks" @click="retryLoadBooks"
+            >重试</el-button
+          >
         </div>
 
         <div class="form-grid">
-          <el-select v-model="exportForm.bookName" filterable placeholder="选择书籍" :disabled="!!booksLoadError">
+          <el-select
+            v-model="exportForm.bookName"
+            filterable
+            placeholder="选择书籍"
+            :disabled="!!booksLoadError"
+          >
             <el-option
               v-for="book in books"
               :key="book.folderName || book.name"
@@ -113,7 +124,9 @@
         <div v-if="booksLoadError" class="read-error-card" role="alert">
           <strong>读取书架失败</strong>
           <span>{{ booksLoadError }}</span>
-          <el-button type="primary" plain :loading="loadingBooks" @click="retryLoadBooks">重试</el-button>
+          <el-button type="primary" plain :loading="loadingBooks" @click="retryLoadBooks"
+            >重试</el-button
+          >
         </div>
 
         <div class="form-grid">
@@ -135,7 +148,12 @@
               :value="book.name"
             />
           </el-select>
-          <el-button :disabled="!!booksLoadError" :loading="backingUp" type="primary" @click="handleCreateBackup">
+          <el-button
+            :disabled="!!booksLoadError"
+            :loading="backingUp"
+            type="primary"
+            @click="handleCreateBackup"
+          >
             创建备份
           </el-button>
         </div>
@@ -157,7 +175,11 @@
             :placeholder="restoreForm.suggestedTargetDir || '恢复到新目录，留空则自动生成'"
           />
           <div class="button-row">
-            <el-button :disabled="!restoreForm.base64" :loading="inspecting" @click="handleInspectBackup">
+            <el-button
+              :disabled="!restoreForm.base64"
+              :loading="inspecting"
+              @click="handleInspectBackup"
+            >
               检查结构
             </el-button>
             <el-button
@@ -210,14 +232,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import {
-  ArchiveRestore,
-  FileDown,
-  FileUp,
-  History,
-  RefreshCw,
-  Upload
-} from 'lucide-vue-next'
+import { ArchiveRestore, FileDown, FileUp, History, RefreshCw, Upload } from 'lucide-vue-next'
 import {
   createLibraryBackup,
   downloadBase64File,
@@ -473,10 +488,12 @@ async function handleCreateBackup() {
 async function handleInspectBackup() {
   inspecting.value = true
   try {
-    const result = requireInspectResult(await inspectLibraryBackup({
-      fileName: restoreForm.fileName,
-      base64: restoreForm.base64
-    }))
+    const result = requireInspectResult(
+      await inspectLibraryBackup({
+        fileName: restoreForm.fileName,
+        base64: restoreForm.base64
+      })
+    )
     restoreSummary.value = result.summary
     restoreForm.suggestedTargetDir = result.suggestedTargetDir || ''
     if (restoreForm.mode === 'archive' && !restoreForm.targetDir) {

@@ -51,6 +51,12 @@
           <el-option label="20px" value="20px" />
           <el-option label="22px" value="22px" />
           <el-option label="24px" value="24px" />
+          <el-option label="26px" value="26px" />
+          <el-option label="28px" value="28px" />
+          <el-option label="30px" value="30px" />
+          <el-option label="32px" value="32px" />
+          <el-option label="34px" value="34px" />
+          <el-option label="36px" value="36px" />
         </el-select>
       </el-tooltip>
       <el-tooltip
@@ -234,7 +240,7 @@ import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { DocumentCopy, Search, Tickets } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Redo, Undo } from 'lucide-vue-next'
+import { Redo, Undo, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-vue-next'
 import dayjs from 'dayjs'
 import { useEditorStore } from '@renderer/stores/editor'
 import SvgIcon from '@renderer/components/SvgIcon.vue'
@@ -261,10 +267,26 @@ const props = defineProps({
       isBold: false,
       isItalic: false
     })
+  },
+  leftCollapsed: {
+    type: Boolean,
+    default: false
+  },
+  rightCollapsed: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'toggle-search', 'save', 'export', 'update-style'])
+const emit = defineEmits([
+  'update:modelValue',
+  'toggle-search',
+  'save',
+  'export',
+  'update-style',
+  'toggle-left',
+  'toggle-right'
+])
 
 const editorStore = useEditorStore()
 
@@ -738,7 +760,8 @@ async function handleExport() {
 
     try {
       // 加载所有章节数据
-      const chapters = await window.electron.loadChapters(props.bookName)
+      const chapterResult = await window.electron.loadChapters(props.bookName)
+      const chapters = Array.isArray(chapterResult) ? chapterResult : chapterResult.chapters
 
       if (!chapters || chapters.length === 0) {
         loadingMessage.close()

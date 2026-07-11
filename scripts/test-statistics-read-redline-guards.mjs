@@ -39,9 +39,9 @@ const aiUsageLoggerSource = readProjectFile('src/main/services/aiUsageLogger.js'
 
 for (const expected of [
   "const statisticsReadError = ref('')",
-  "const isLoadingStatistics = ref(false)",
-  "const isTrendLoading = ref(false)",
-  "const isUsageLoading = ref(false)",
+  'const isLoadingStatistics = ref(false)',
+  'const isTrendLoading = ref(false)',
+  'const isUsageLoading = ref(false)',
   '<div v-if="statisticsReadError" class="statistics-read-error">',
   '@click="retryLoadAllData"',
   '@change="handleTrendDaysChange"',
@@ -112,7 +112,7 @@ for (const expected of [
   'if (result.key !== key)',
   "await writeStoreValue(WORD_LOGS_KEY, limitedLogs, '字数日志')",
   "await writeStoreValue(AI_LOGS_KEY, limitedLogs, 'AI 日志')",
-  "throw new Error(`${label}格式异常，已停止写入以免覆盖原始记录`)",
+  'throw new Error(`${label}格式异常，已停止写入以免覆盖原始记录`)',
   'success: usage.success === true',
   "bookStats: requireArray(overview.bookStats, '书籍字数统计')",
   "return requireArray(remote, '每日写作统计').map",
@@ -120,8 +120,8 @@ for (const expected of [
   "const method = requireElectronMethod('getAllBooksDailyStats', '每日字数统计接口不可用')",
   "return requireDailyStatsMap(result.data, '每日字数统计')",
   'function requireBookDailyStatsResult(result, label)',
-  "const data = requirePlainObject(result.data, label)",
-  "const todayStats = result.stats?.today || data[localDateKey()]",
+  'const data = requirePlainObject(result.data, label)',
+  'const todayStats = result.stats?.today || data[localDateKey()]',
   'todayAddWords: toNumber(todayStats.addWords ?? todayStats.netWords, 0)',
   'async getBookDailyStats(bookName)',
   "const method = requireElectronMethod('getBookDailyStats', '书籍每日统计接口不可用')",
@@ -131,8 +131,8 @@ for (const expected of [
   "sessions: requireArray(remote.sessions, '写作会话列表')",
   "daily: requireArray(remote.daily, '周报每日统计')",
   "daily: requireArray(remote.daily, '月报每日统计')",
-  "throw new Error(`${label}接口返回目标不匹配`)",
-  "throw new Error(`${label}后目标仍在列表中`)",
+  'throw new Error(`${label}接口返回目标不匹配`)',
+  'throw new Error(`${label}后目标仍在列表中`)',
   "return requireGoalWriteResult(result, '更新目标', { requireItem: true, expectedId: id })",
   "return requireGoalWriteResult(result, '删除目标', { expectedId: id, requireDeletedId: true })"
 ]) {
@@ -153,7 +153,10 @@ for (const forbidden of [
   'await window.electronStore.set(AI_LOGS_KEY, limitedLogs)',
   'success: usage.success !== false'
 ]) {
-  assert(!statisticsServiceSource.includes(forbidden), `Statistics service must not contain ${forbidden}`)
+  assert(
+    !statisticsServiceSource.includes(forbidden),
+    `Statistics service must not contain ${forbidden}`
+  )
 }
 
 for (const expected of [
@@ -177,7 +180,10 @@ for (const forbidden of [
   'asArray(storeGet(WORD_LOGS_KEY, []))',
   'asArray(storeGet(AI_LOGS_KEY, []))'
 ]) {
-  assert(!analyticsServiceSource.includes(forbidden), `Analytics service must not contain ${forbidden}`)
+  assert(
+    !analyticsServiceSource.includes(forbidden),
+    `Analytics service must not contain ${forbidden}`
+  )
 }
 
 assertIncludes(
@@ -212,7 +218,11 @@ async function withTempWorkdir(callback) {
   }
 }
 
-function installWindow({ electron = {}, storeGet = () => [], storeSet = (key) => ({ success: true, key }) } = {}) {
+function installWindow({
+  electron = {},
+  storeGet = () => [],
+  storeSet = (key) => ({ success: true, key })
+} = {}) {
   globalThis.window = {
     electron,
     electronStore: {
@@ -227,10 +237,23 @@ function installHappyStatisticsWindow(overrides = {}) {
     electron: {
       getAnalyticsOverview: async () => ({
         success: true,
-        data: { totalWords: 1, todayWords: 1, monthWords: 1, streakDays: 1, maxStreakDays: 1, bookStats: [] }
+        data: {
+          totalWords: 1,
+          todayWords: 1,
+          monthWords: 1,
+          streakDays: 1,
+          maxStreakDays: 1,
+          bookStats: []
+        }
       }),
-      getAnalyticsDailyWords: async () => ({ success: true, items: [{ date: '2026-06-08', words: 100 }] }),
-      getAnalyticsWritingHabit: async () => ({ success: true, data: { heatmap: [{ date: '2026-06-08', count: 100 }] } }),
+      getAnalyticsDailyWords: async () => ({
+        success: true,
+        items: [{ date: '2026-06-08', words: 100 }]
+      }),
+      getAnalyticsWritingHabit: async () => ({
+        success: true,
+        data: { heatmap: [{ date: '2026-06-08', count: 100 }] }
+      }),
       getAllBooksDailyStats: async () => ({
         success: true,
         data: { BookA: { '2026-06-08': { netWords: 100 } } }
@@ -241,9 +264,20 @@ function installHappyStatisticsWindow(overrides = {}) {
       }),
       getAnalyticsTokenStats: async () => ({
         success: true,
-        data: { totalTokens: 10, promptTokens: 4, completionTokens: 6, totalCalls: 1, byFeature: [], byModel: [], daily: [] }
+        data: {
+          totalTokens: 10,
+          promptTokens: 4,
+          completionTokens: 6,
+          totalCalls: 1,
+          byFeature: [],
+          byModel: [],
+          daily: []
+        }
       }),
-      getAnalyticsSessionStats: async () => ({ success: true, data: { sessionCount: 1, sessions: [] } }),
+      getAnalyticsSessionStats: async () => ({
+        success: true,
+        data: { sessionCount: 1, sessions: [] }
+      }),
       getAnalyticsWeeklyReport: async () => ({
         success: true,
         data: { period: { label: '2026-06-08 至 2026-06-14' }, daily: [], summary: '' }
@@ -272,8 +306,14 @@ assert.equal((await statisticsService.getSessionStats()).sessions.length, 0)
 assert.equal((await statisticsService.getWeeklyReport()).daily.length, 0)
 assert.equal((await statisticsService.getMonthlyReport()).daily.length, 0)
 assert.equal((await statisticsService.getGoals()).length, 0)
-assert.equal((await statisticsService.createGoal({ title: '目标', targetValue: 1000 })).item.id, 'goal-created')
-assert.equal((await statisticsService.updateGoal('goal-1', { title: '目标', targetValue: 1000 })).item.id, 'goal-1')
+assert.equal(
+  (await statisticsService.createGoal({ title: '目标', targetValue: 1000 })).item.id,
+  'goal-created'
+)
+assert.equal(
+  (await statisticsService.updateGoal('goal-1', { title: '目标', targetValue: 1000 })).item.id,
+  'goal-1'
+)
 assert.equal((await statisticsService.deleteGoal('goal-1')).id, 'goal-1')
 
 installHappyStatisticsWindow({
@@ -504,8 +544,16 @@ globalThis.window.electronStore.set = async (key, value) => {
   return { success: true, key }
 }
 await statisticsService.recordAiUsage({ feature: 'missing-success', totalTokens: 1 })
-await statisticsService.recordAiUsage({ feature: 'explicit-success', totalTokens: 1, success: true })
-assert.equal(writtenAiLogs[0].success, false, 'renderer AI usage logs should not treat missing success as successful')
+await statisticsService.recordAiUsage({
+  feature: 'explicit-success',
+  totalTokens: 1,
+  success: true
+})
+assert.equal(
+  writtenAiLogs[0].success,
+  false,
+  'renderer AI usage logs should not treat missing success as successful'
+)
 assert.equal(writtenAiLogs[1].success, true, 'renderer AI usage logs should keep explicit success')
 
 installWindow({
@@ -513,7 +561,8 @@ installWindow({
   storeSet: () => ({})
 })
 await assertRejectsWithText(
-  () => statisticsService.recordWordCount({ bookId: 'b1', chapterId: 'c1', wordCount: 10, delta: 10 }),
+  () =>
+    statisticsService.recordWordCount({ bookId: 'b1', chapterId: 'c1', wordCount: 10, delta: 10 }),
   '字数日志写入失败',
   'word log writes should reject empty store write results'
 )
@@ -529,14 +578,24 @@ await assertRejectsWithText(
 )
 
 assert.throws(
-  () => appendAiUsageLog({ get: () => ({ broken: true }), set: () => assert.fail('set should not be called') }, {}),
+  () =>
+    appendAiUsageLog(
+      { get: () => ({ broken: true }), set: () => assert.fail('set should not be called') },
+      {}
+    ),
   /AI 日志格式异常/,
   'main process AI usage logger should reject malformed stored logs before writing'
 )
 
 await withTempWorkdir(async (dir) => {
-  const { default: analyticsService } = await import(`../src/main/services/analyticsService.js?bad-word-${Date.now()}`)
-  writeFileSync(join(dir, '.store.json'), JSON.stringify({ 'stats:word_logs': { broken: true } }), 'utf8')
+  const { default: analyticsService } = await import(
+    `../src/main/services/analyticsService.js?bad-word-${Date.now()}`
+  )
+  writeFileSync(
+    join(dir, '.store.json'),
+    JSON.stringify({ 'stats:word_logs': { broken: true } }),
+    'utf8'
+  )
   assert.throws(
     () => analyticsService.getDailyWords(join(dir, 'books'), {}),
     /字数日志格式异常/,
@@ -545,7 +604,9 @@ await withTempWorkdir(async (dir) => {
 })
 
 await withTempWorkdir(async (dir) => {
-  const { default: analyticsService } = await import(`../src/main/services/analyticsService.js?bad-json-${Date.now()}`)
+  const { default: analyticsService } = await import(
+    `../src/main/services/analyticsService.js?bad-json-${Date.now()}`
+  )
   writeFileSync(join(dir, '.store.json'), '{"stats:word_logs":', 'utf8')
   assert.throws(
     () => analyticsService.getDailyWords(join(dir, 'books'), {}),
@@ -555,8 +616,14 @@ await withTempWorkdir(async (dir) => {
 })
 
 await withTempWorkdir(async (dir) => {
-  const { default: analyticsService } = await import(`../src/main/services/analyticsService.js?bad-ai-${Date.now()}`)
-  writeFileSync(join(dir, '.store.json'), JSON.stringify({ 'stats:ai_logs': { broken: true } }), 'utf8')
+  const { default: analyticsService } = await import(
+    `../src/main/services/analyticsService.js?bad-ai-${Date.now()}`
+  )
+  writeFileSync(
+    join(dir, '.store.json'),
+    JSON.stringify({ 'stats:ai_logs': { broken: true } }),
+    'utf8'
+  )
   assert.throws(
     () => analyticsService.getTokenStats(join(dir, 'books'), {}),
     /AI 日志格式异常/,
@@ -565,7 +632,9 @@ await withTempWorkdir(async (dir) => {
 })
 
 await withTempWorkdir(async (dir) => {
-  const { default: analyticsService } = await import(`../src/main/services/analyticsService.js?ai-success-${Date.now()}`)
+  const { default: analyticsService } = await import(
+    `../src/main/services/analyticsService.js?ai-success-${Date.now()}`
+  )
   writeFileSync(
     join(dir, '.store.json'),
     JSON.stringify({
@@ -577,7 +646,11 @@ await withTempWorkdir(async (dir) => {
     'utf8'
   )
   const stats = analyticsService.getTokenStats(join(dir, 'books'), {})
-  assert.equal(stats.successfulCalls, 1, 'only explicit success should count as a successful AI call')
+  assert.equal(
+    stats.successfulCalls,
+    1,
+    'only explicit success should count as a successful AI call'
+  )
   assert.equal(stats.failedCalls, 1, 'missing success should count as a failed AI call')
 })
 

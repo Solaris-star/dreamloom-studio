@@ -23,7 +23,7 @@ class CustomImageApiService {
     }
 
     const trimmedUrl = baseUrl.replace(/\/$/, '')
-    
+
     if (trimmedUrl.includes('/v1/images/generations')) {
       return trimmedUrl
     }
@@ -33,7 +33,7 @@ class CustomImageApiService {
     if (trimmedUrl.includes('/v1')) {
       return `${trimmedUrl}/images/generations`
     }
-    
+
     return `${trimmedUrl}/v1/images/generations`
   }
 
@@ -45,7 +45,12 @@ class CustomImageApiService {
 
     const width = Number(match[1])
     const height = Number(match[2])
-    if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width <= 0 || height <= 0) {
+    if (
+      !Number.isSafeInteger(width) ||
+      !Number.isSafeInteger(height) ||
+      width <= 0 ||
+      height <= 0
+    ) {
       return null
     }
 
@@ -58,13 +63,13 @@ class CustomImageApiService {
     }
 
     const { prompt, size, negativePrompt = '' } = options || {}
-    
+
     if (!prompt) {
       throw new Error('提示词不能为空')
     }
 
     const url = this._buildImageUrl(this.baseUrl)
-    
+
     let sizeParams = this._parseSize(size) || { width: 1280, height: 720 }
     if (size === 'square') {
       sizeParams = { width: 1280, height: 1280 }
@@ -107,7 +112,7 @@ class CustomImageApiService {
       ...(data.usage || {}),
       imageRequests: 1
     }
-    
+
     if (data.data && data.data[0] && data.data[0].url) {
       const imageResponse = await fetch(data.data[0].url)
       if (!imageResponse.ok) {
@@ -191,7 +196,9 @@ class CustomImageApiService {
         if (response.status === 401 || response.status === 403) {
           return { success: false, message: 'API Key 无效或无权限' }
         }
-        const error = await response.json().catch(() => ({ error: { message: response.statusText } }))
+        const error = await response
+          .json()
+          .catch(() => ({ error: { message: response.statusText } }))
         return { success: false, message: error.error?.message || `测试失败: ${response.status}` }
       } finally {
         clearTimeout(timeoutId)
@@ -211,7 +218,7 @@ class CustomImageApiService {
       }
 
       const url = this._buildImageUrl(this.baseUrl)
-      
+
       const body = {
         prompt: 'test',
         width: 256,
@@ -239,9 +246,9 @@ class CustomImageApiService {
       const error = await response.json().catch(() => ({
         error: { message: response.statusText }
       }))
-      
+
       let errorMessage = error.error?.message || `验证失败: ${response.status}`
-      
+
       if (response.status === 401) {
         errorMessage = 'API Key 无效或已过期'
       } else if (response.status === 403) {
@@ -251,7 +258,6 @@ class CustomImageApiService {
       }
 
       return { isValid: false, message: errorMessage }
-
     } catch (error) {
       let errorMessage = '验证失败'
       if (error.message) {

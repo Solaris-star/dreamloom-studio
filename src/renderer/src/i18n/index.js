@@ -40,7 +40,9 @@ export function setLocale(locale) {
 export async function initLocale() {
   const stored = await window.electronStore?.get('config.locale')
   const browserLocale =
-    typeof navigator !== 'undefined' ? navigator.language || navigator.languages?.[0] : DEFAULT_LOCALE
+    typeof navigator !== 'undefined'
+      ? navigator.language || navigator.languages?.[0]
+      : DEFAULT_LOCALE
   const finalLocale = setLocale(stored || browserLocale)
   await window.electronStore?.set('config.locale', finalLocale)
   return finalLocale

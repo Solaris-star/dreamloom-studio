@@ -26,9 +26,7 @@ function requirePlotEvolutionGroups(result, fallback) {
   const visibleGroups = groups
     .map((group) => ({
       ...group,
-      proposals: Array.isArray(group?.proposals)
-        ? group.proposals.filter(hasProposalContent)
-        : []
+      proposals: Array.isArray(group?.proposals) ? group.proposals.filter(hasProposalContent) : []
     }))
     .filter((group) => !group.error && group.proposals.length > 0)
 

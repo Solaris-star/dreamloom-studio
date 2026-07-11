@@ -3,6 +3,7 @@
 > 💡 本文详细介绍 织梦书房 项目中地图设计页的整体架构与核心功能实现，这是一个基于 Vue 3 + Canvas 的专业级地图编辑器，集成了多种绘图工具、资源管理、缩放控制等完整功能。通过模块化的 Composables 架构设计，实现了高可维护性和可扩展性的代码结构。
 
 ## 📋 目录
+
 - [项目背景](#项目背景)
 - [技术架构概览](#技术架构概览)
 - [核心功能模块](#核心功能模块)
@@ -18,7 +19,7 @@
 
 ![地图设计](static/maps.png)
 
-*强大的地图设计工具 - 专业级 Canvas 绘图与资源管理*
+_强大的地图设计工具 - 专业级 Canvas 绘图与资源管理_
 
 ### ✨ 功能特性概览
 
@@ -312,12 +313,18 @@ const shapeTool = useShapeTool({
 export function useXxxTool(options) {
   // 状态
   const drawingActive = ref(false)
-  
+
   // 方法
-  function onMouseDown(pos) { /* ... */ }
-  function onMouseMove(pos) { /* ... */ }
-  function onMouseUp() { /* ... */ }
-  
+  function onMouseDown(pos) {
+    /* ... */
+  }
+  function onMouseMove(pos) {
+    /* ... */
+  }
+  function onMouseUp() {
+    /* ... */
+  }
+
   return {
     drawingActive,
     onMouseDown,
@@ -333,7 +340,7 @@ export function useXxxTool(options) {
 // 统一的事件处理
 function handleCanvasMouseDown(e) {
   const pos = getCanvasPos(e) // 坐标转换
-  
+
   // 根据当前工具调用对应的方法
   if (tool.value === 'pencil') {
     pencilTool.onMouseDown(pos)
@@ -378,7 +385,7 @@ const { renderCanvas, canvasWrapStyle, updateContentBounds } = useCanvas(
   canvasRef,
   editorContainerRef,
   canvasState,
-  elements,
+  elements
   // ... 其他参数
 )
 
@@ -414,10 +421,10 @@ function handleWheel(e) {
 async function handleSaveMap() {
   // 生成预览图
   const imageData = await generatePreviewImage()
-  
+
   // 序列化画板内容
   const mapData = elements.serialize(backgroundColor.value)
-  
+
   // 保存到文件系统
   await window.electron.updateMap({
     bookName,
@@ -447,21 +454,37 @@ async function loadMapData() {
 function handleKeyDown(e) {
   // 工具快捷键
   switch (e.key.toLowerCase()) {
-    case 'v': onToolChange('select'); break
-    case 'h': onToolChange('move'); break
-    case 'p': onToolChange('pencil'); break
-    case 'e': onToolChange('eraser'); break
-    case 's': onToolChange('shape'); break
-    case 't': onToolChange('text'); break
-    case 'b': onToolChange('bucket'); break
-    case 'r': onToolChange('resource'); break
+    case 'v':
+      onToolChange('select')
+      break
+    case 'h':
+      onToolChange('move')
+      break
+    case 'p':
+      onToolChange('pencil')
+      break
+    case 'e':
+      onToolChange('eraser')
+      break
+    case 's':
+      onToolChange('shape')
+      break
+    case 't':
+      onToolChange('text')
+      break
+    case 'b':
+      onToolChange('bucket')
+      break
+    case 'r':
+      onToolChange('resource')
+      break
   }
-  
+
   // 撤销/重做
   if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
     handleUndo()
   }
-  
+
   // 空格键：临时切换到移动模式
   if (e.key === ' ' && tool.value !== 'move') {
     spaceKeyPressed.value = true
@@ -496,18 +519,18 @@ const resourceTool = useResourceTool({
 
 ### ✅ 已实现功能
 
-| 功能模块 | 功能描述 | 技术实现 |
-|---------|---------|---------|
-| **绘图工具** | 10+ 种绘图工具 | Composables 架构 |
-| **画布控制** | 缩放、平移、重置 | useCanvasState + useCanvas |
-| **元素管理** | 统一管理所有元素 | useElements |
-| **历史记录** | 撤销/重做 | useHistory |
-| **渲染系统** | 统一渲染函数 | useRender |
-| **坐标转换** | 屏幕坐标转画布坐标 | useCoordinate |
-| **数据持久化** | 保存和加载地图 | 序列化/反序列化 |
-| **快捷键** | 完整的键盘快捷键 | 事件监听系统 |
-| **资源管理** | 图标资源库 | useResourceTool |
-| **参数控制** | 颜色、大小、透明度 | 响应式状态管理 |
+| 功能模块       | 功能描述           | 技术实现                   |
+| -------------- | ------------------ | -------------------------- |
+| **绘图工具**   | 10+ 种绘图工具     | Composables 架构           |
+| **画布控制**   | 缩放、平移、重置   | useCanvasState + useCanvas |
+| **元素管理**   | 统一管理所有元素   | useElements                |
+| **历史记录**   | 撤销/重做          | useHistory                 |
+| **渲染系统**   | 统一渲染函数       | useRender                  |
+| **坐标转换**   | 屏幕坐标转画布坐标 | useCoordinate              |
+| **数据持久化** | 保存和加载地图     | 序列化/反序列化            |
+| **快捷键**     | 完整的键盘快捷键   | 事件监听系统               |
+| **资源管理**   | 图标资源库         | useResourceTool            |
+| **参数控制**   | 颜色、大小、透明度 | 响应式状态管理             |
 
 ### 🚀 技术亮点
 
