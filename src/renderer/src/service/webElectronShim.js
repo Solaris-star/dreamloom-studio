@@ -971,56 +971,9 @@ function normalizeDailyRows(result) {
     .filter((row) => row.date)
 }
 
-function rowsToDailyStats(rows) {
-  return Object.fromEntries(
-    rows.map((row) => [
-      row.date,
-      {
-        netWords: row.netWords,
-        addWords: row.addWords,
-        deleteWords: row.deleteWords,
-        totalWords: row.totalWords
-      }
-    ])
-  )
-}
-
-function rowsHaveActivity(rows) {
-  return rows.some((row) => row.netWords !== 0 || row.addWords > 0 || row.deleteWords > 0)
-}
-
 async function fetchDailyRows(params = {}) {
   const result = await postJson('/api/analytics/daily-words', params)
   return normalizeDailyRows(result)
-}
-
-function buildBookIdentityList(bookName, aliases = []) {
-  return Array.from(
-    new Set([bookName, ...aliases].map((value) => String(value || '').trim()).filter(Boolean))
-  )
-}
-
-async function fetchBookDailyStats(bookName, aliases = []) {
-  const candidates = buildBookIdentityList(bookName, aliases)
-  let rows = []
-  for (const candidate of candidates) {
-    const nextRows = await fetchDailyRows({ days: 365, bookId: candidate, bookName: candidate })
-    if (!rows.length) rows = nextRows
-    if (rowsHaveActivity(nextRows)) {
-      rows = nextRows
-      break
-    }
-  }
-  const data = rowsToDailyStats(rows)
-  const today = localDateKey()
-  return {
-    success: true,
-    data,
-    stats: {
-      today: data[today] || { netWords: 0, addWords: 0, deleteWords: 0, totalWords: 0 },
-      dates: data
-    }
-  }
 }
 
 function buildElectronShim() {
@@ -1178,25 +1131,6 @@ function buildElectronShim() {
         wordCount
       }
     },
-    getBookDailyStats: async (bookName) => {
-      const books = await readBooksDirForWeb()
-      const match = books.find((book) =>
-        [book.folderName, book.name, book.id].some((value) => value === bookName)
-      )
-      return fetchBookDailyStats(bookName, match ? [match.name, match.folderName, match.id] : [])
-    },
-    getAllBooksDailyStats: async () => {
-      const books = await readBooksDirForWeb()
-      const entries = await Promise.all(
-        books.map(async (book) => {
-          const key = book.folderName || book.name || book.id
-          const result = await fetchBookDailyStats(key, [book.name, book.folderName, book.id])
-          return [key, result.data || {}]
-        })
-      )
-      return { success: true, data: Object.fromEntries(entries) }
-    },
-
     // ----- 时间线 / 大纲 / 地图 / 人物 / 设定等扩展功能 -----
     readTimeline: (bookName) => postJson('/api/studio/timeline/read', { bookName }),
     writeTimeline: (bookName, data) => postJson('/api/studio/timeline/write', { bookName, data }),
@@ -1857,26 +1791,8 @@ function buildElectronShim() {
     searchKnowledge: async (payload) => {
       return await postJson('/api/extraction/search', payload)
     },
-    getAnalyticsOverview: async (payload = {}) =>
-      postJson('/api/analytics/overview', payload || {}),
-    getAnalyticsDailyWords: async (payload = {}) =>
-      postJson('/api/analytics/daily-words', payload || {}),
-    getAnalyticsWritingHabit: async (payload = {}) =>
-      postJson('/api/analytics/writing-habit', payload || {}),
-    getAnalyticsSessionStats: async (payload = {}) =>
-      postJson('/api/analytics/session-stats', payload || {}),
-    getAnalyticsTokenStats: async (payload = {}) =>
-      postJson('/api/analytics/token-stats', payload || {}),
-    getAnalyticsWeeklyReport: async (payload = {}) =>
-      postJson('/api/analytics/weekly-report', payload || {}),
-    getAnalyticsMonthlyReport: async (payload = {}) =>
-      postJson('/api/analytics/monthly-report', payload || {}),
     runConsistencyCheck: async (payload = {}) => postJson('/api/consistency/check', payload || {}),
     listConsistencyChecks: async (payload = {}) => postJson('/api/consistency/list', payload || {}),
-    listWritingGoals: async () => postJson('/api/goals/list', {}),
-    createWritingGoal: async (payload = {}) => postJson('/api/goals/create', payload || {}),
-    updateWritingGoal: async (id, patch = {}) => postJson('/api/goals/update', { id, patch }),
-    deleteWritingGoal: async (id) => postJson('/api/goals/delete', { id }),
     getStorageStats: async () => postJson('/api/settings/storage-stats', {}),
     clearAssetTrash: async () => postJson('/api/settings/clear-trash', {}),
     exportAppSettings: async () => postJson('/api/settings/export', {}),

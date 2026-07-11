@@ -3,6 +3,8 @@
  * 处理写作字数记录、AI 使用记录、写作目标等统计逻辑
  */
 
+import { postJson } from './webHttpClient.js'
+
 function uuidv4() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID()
@@ -26,31 +28,12 @@ function localDateKey(date = new Date()) {
 const WORD_LOGS_KEY = 'stats:word_logs'
 const AI_LOGS_KEY = 'stats:ai_logs'
 
-function requireElectronMethod(name, fallback = `统计接口不可用：${name}`) {
-  const method = globalThis.window?.electron?.[name]
-  if (typeof method !== 'function') {
-    throw new Error(fallback)
+async function callWebApi(path, payload, field = 'data') {
+  const result = await postJson(path, payload)
+  if (result?.success !== true || !Object.prototype.hasOwnProperty.call(result, field)) {
+    throw new Error(`统计接口返回格式异常：${path}`)
   }
-  return method
-}
-
-async function callElectronApi(name, payload) {
-  try {
-    const method = requireElectronMethod(name)
-    const result = await method(payload)
-    if (result?.success === false) {
-      throw new Error(result.message || '统计接口调用失败')
-    }
-    if (result?.success !== true) {
-      throw new Error(`统计接口返回格式异常：${name}`)
-    }
-    if (Object.prototype.hasOwnProperty.call(result, 'data')) return result.data
-    if (Object.prototype.hasOwnProperty.call(result, 'items')) return result.items
-    throw new Error(`统计接口返回格式异常：${name}`)
-  } catch (error) {
-    console.warn(`[StatisticsService] ${name} failed`, error)
-    throw error
-  }
+  return result[field]
 }
 
 function isPlainObject(value) {
@@ -108,10 +91,11 @@ function requireBookDailyStatsResult(result, label) {
 }
 
 async function readStoreArray(key, label) {
-  if (!window.electronStore?.get) {
-    throw new Error('统计日志存储接口不可用')
+  const result = await postJson('/api/store/get', { key })
+  if (result?.success !== true || result.key !== key) {
+    throw new Error(`${label}读取失败`)
   }
-  const value = await window.electronStore.get(key)
+  const value = result.value
   if (value == null) return []
   if (!Array.isArray(value)) {
     throw new Error(`${label}格式异常，已停止写入以免覆盖原始记录`)
@@ -120,10 +104,7 @@ async function readStoreArray(key, label) {
 }
 
 async function writeStoreValue(key, value, label) {
-  if (typeof window.electronStore?.set !== 'function') {
-    throw new Error('统计日志存储接口不可用')
-  }
-  const result = await window.electronStore.set(key, value)
+  const result = await postJson('/api/store/set', { key, value })
   if (result?.success !== true) {
     throw new Error(result?.message || `${label}写入失败`)
   }
@@ -131,6 +112,73 @@ async function writeStoreValue(key, value, label) {
     throw new Error(`${label}写入失败：接口返回的设置项不匹配`)
   }
   return result
+}
+
+function normalizeDailyRows(result) {
+  if (result?.success !== true) {
+    throw new Error(result?.message || '每日写作统计读取失败')
+  }
+  return requireArray(result.items, '每日写作统计').map((item) => {
+    const row = requirePlainObject(item, '每日写作统计条目')
+    const date = String(row.date || '')
+    if (!date) throw new Error('每日写作统计接口返回格式异常')
+    const netWords = toNumber(row.delta ?? row.words ?? row.count, 0)
+    return {
+      date,
+      netWords,
+      addWords: toNumber(row.addWords, Math.max(netWords, 0)),
+      deleteWords: toNumber(row.deleteWords, Math.max(-netWords, 0)),
+      totalWords: toNumber(row.totalWords, 0)
+    }
+  })
+}
+
+function rowsToDailyStats(rows) {
+  return Object.fromEntries(
+    rows.map((row) => [
+      row.date,
+      {
+        netWords: row.netWords,
+        addWords: row.addWords,
+        deleteWords: row.deleteWords,
+        totalWords: row.totalWords
+      }
+    ])
+  )
+}
+
+function rowsHaveActivity(rows) {
+  return rows.some((row) => row.netWords !== 0 || row.addWords > 0 || row.deleteWords > 0)
+}
+
+async function fetchBookDailyStats(bookName, aliases = []) {
+  const candidates = Array.from(
+    new Set([bookName, ...aliases].map((value) => String(value || '').trim()).filter(Boolean))
+  )
+  let rows = []
+  for (const candidate of candidates) {
+    const nextRows = normalizeDailyRows(
+      await postJson('/api/analytics/daily-words', {
+        days: 365,
+        bookId: candidate,
+        bookName: candidate
+      })
+    )
+    if (!rows.length) rows = nextRows
+    if (rowsHaveActivity(nextRows)) {
+      rows = nextRows
+      break
+    }
+  }
+  const data = rowsToDailyStats(rows)
+  return requireBookDailyStatsResult(
+    {
+      success: true,
+      data,
+      stats: { today: data[localDateKey()] }
+    },
+    '书籍每日统计'
+  )
 }
 
 function requireGoalWriteResult(
@@ -302,7 +350,7 @@ class StatisticsService {
   }
 
   async getOverview(timeRange = 'all', bookId = null) {
-    const remote = await callElectronApi('getAnalyticsOverview', {
+    const remote = await callWebApi('/api/analytics/overview', {
       timeRange,
       bookId: normalizeBookId(bookId)
     })
@@ -369,10 +417,10 @@ class StatisticsService {
    * 获取趋势图数据
    */
   async getTrendData(days = 30, bookId = null) {
-    const remote = await callElectronApi('getAnalyticsDailyWords', {
+    const remote = await callWebApi('/api/analytics/daily-words', {
       days,
       bookId: normalizeBookId(bookId)
-    })
+    }, 'items')
     return requireArray(remote, '每日写作统计').map((item) => {
       const row = requirePlainObject(item, '每日写作统计条目')
       const date = String(row.date || '')
@@ -389,7 +437,7 @@ class StatisticsService {
    * 获取热力图数据
    */
   async getHeatmapData(days = 365, bookId = null) {
-    const remote = await callElectronApi('getAnalyticsWritingHabit', {
+    const remote = await callWebApi('/api/analytics/writing-habit', {
       days,
       bookId: normalizeBookId(bookId)
     })
@@ -406,12 +454,18 @@ class StatisticsService {
   }
 
   async getAllBooksDailyStats() {
-    const method = requireElectronMethod('getAllBooksDailyStats', '每日字数统计接口不可用')
-    const result = await method()
-    if (result?.success !== true) {
-      throw new Error(result?.message || result?.error || '读取每日字数统计失败')
-    }
-    return requireDailyStatsMap(result.data, '每日字数统计')
+    const result = await postJson('/api/books/list', {})
+    const books = requireArray(result?.books, '作品列表')
+    const entries = await Promise.all(
+      books.map(async (book) => {
+        const item = requirePlainObject(book, '作品列表条目')
+        const key = String(item.folderName || item.name || item.id || '').trim()
+        if (!key) throw new Error('作品列表接口返回格式异常')
+        const stats = await fetchBookDailyStats(key, [item.name, item.folderName, item.id])
+        return [key, stats.data]
+      })
+    )
+    return requireDailyStatsMap(Object.fromEntries(entries), '每日字数统计')
   }
 
   async getBookDailyStats(bookName) {
@@ -419,15 +473,14 @@ class StatisticsService {
     if (!targetBookName) {
       throw new Error('读取书籍每日统计失败：缺少作品名')
     }
-    const method = requireElectronMethod('getBookDailyStats', '书籍每日统计接口不可用')
-    return requireBookDailyStatsResult(await method(targetBookName), '书籍每日统计')
+    return fetchBookDailyStats(targetBookName)
   }
 
   /**
    * 获取目标
    */
   async getGoals() {
-    const remote = await callElectronApi('listWritingGoals', {})
+    const remote = await callWebApi('/api/goals/list', {}, 'items')
     if (Array.isArray(remote)) return remote
     throw new Error('写作目标接口返回格式异常')
   }
@@ -436,9 +489,9 @@ class StatisticsService {
    * 保存目标
    */
   async saveGoal(goal) {
-    const createWritingGoal = requireElectronMethod('createWritingGoal', '写作目标接口不可用')
-    const updateWritingGoal = requireElectronMethod('updateWritingGoal', '写作目标接口不可用')
-    const result = goal.id ? await updateWritingGoal(goal.id, goal) : await createWritingGoal(goal)
+    const result = goal.id
+      ? await postJson('/api/goals/update', { id: goal.id, patch: goal })
+      : await postJson('/api/goals/create', goal)
     return requireGoalWriteResult(result, '保存目标', {
       requireItem: true,
       expectedId: goal.id || ''
@@ -446,8 +499,7 @@ class StatisticsService {
   }
 
   async createGoal(goal) {
-    const createWritingGoal = requireElectronMethod('createWritingGoal', '创建目标接口不可用')
-    const result = await createWritingGoal(goal)
+    const result = await postJson('/api/goals/create', goal)
     return requireGoalWriteResult(result, '创建目标', {
       requireItem: true,
       expectedId: goal?.id || ''
@@ -455,20 +507,18 @@ class StatisticsService {
   }
 
   async updateGoal(id, patch) {
-    const updateWritingGoal = requireElectronMethod('updateWritingGoal', '更新目标接口不可用')
-    const result = await updateWritingGoal(id, patch)
+    const result = await postJson('/api/goals/update', { id, patch })
     return requireGoalWriteResult(result, '更新目标', { requireItem: true, expectedId: id })
   }
 
   async deleteGoal(id) {
-    const deleteWritingGoal = requireElectronMethod('deleteWritingGoal', '删除目标接口不可用')
-    const result = await deleteWritingGoal(id)
+    const result = await postJson('/api/goals/delete', { id })
     return requireGoalWriteResult(result, '删除目标', { expectedId: id, requireDeletedId: true })
   }
 
   async getTokenStats(params = {}) {
     const remote = requirePlainObject(
-      await callElectronApi('getAnalyticsTokenStats', params),
+      await callWebApi('/api/analytics/token-stats', params),
       'AI 使用统计'
     )
     return {
@@ -481,7 +531,7 @@ class StatisticsService {
 
   async getSessionStats(params = {}) {
     const remote = requirePlainObject(
-      await callElectronApi('getAnalyticsSessionStats', params),
+      await callWebApi('/api/analytics/session-stats', params),
       '写作会话统计'
     )
     return {
@@ -492,7 +542,7 @@ class StatisticsService {
 
   async getWeeklyReport(params = {}) {
     const remote = requirePlainObject(
-      await callElectronApi('getAnalyticsWeeklyReport', params),
+      await callWebApi('/api/analytics/weekly-report', params),
       '周报'
     )
     requirePlainObject(remote.period, '周报周期')
@@ -504,7 +554,7 @@ class StatisticsService {
 
   async getMonthlyReport(params = {}) {
     const remote = requirePlainObject(
-      await callElectronApi('getAnalyticsMonthlyReport', params),
+      await callWebApi('/api/analytics/monthly-report', params),
       '月报'
     )
     requirePlainObject(remote.period, '月报周期')

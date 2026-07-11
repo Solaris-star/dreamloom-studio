@@ -176,7 +176,20 @@ for (const method of [
   'saveMarketInspiration:',
   'generateMarketOutline:',
   'applyMarketInsightToCurrentBook:',
-  'createBookFromMarketInsight:'
+  'createBookFromMarketInsight:',
+  'getBookDailyStats:',
+  'getAllBooksDailyStats:',
+  'getAnalyticsOverview:',
+  'getAnalyticsDailyWords:',
+  'getAnalyticsWritingHabit:',
+  'getAnalyticsSessionStats:',
+  'getAnalyticsTokenStats:',
+  'getAnalyticsWeeklyReport:',
+  'getAnalyticsMonthlyReport:',
+  'listWritingGoals:',
+  'createWritingGoal:',
+  'updateWritingGoal:',
+  'deleteWritingGoal:'
 ]) {
   assert.doesNotMatch(webShimSource, new RegExp(`\\b${method}`), `Web shim 不应保留 AI 方法：${method}`)
 }
