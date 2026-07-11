@@ -31,11 +31,6 @@ const knownMissingPaths = new Set([
   '/api/ai/cover/discard',
   '/api/ai/character/confirm',
   '/api/ai/character/discard',
-  '/api/plot-evolution/evolve',
-  '/api/plot-evolution/regenerate',
-  '/api/setting-tree/generate',
-  '/api/setting-tree/regenerate-node',
-  '/api/ai/chat',
   '/api/editor-agent/progress-server'
 ])
 const ignoredProxyPaths = new Set(['/api/agent-tasks/queue/status'])

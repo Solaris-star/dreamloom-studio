@@ -9,6 +9,23 @@ export async function sendChatMessage({
   textProvider,
   systemPreset
 } = {}) {
+  if (!textProvider?.chat) {
+    throw new Error('文本 AI 服务不可用')
+  }
+
+  const recentMessages = Array.isArray(messages)
+    ? messages
+        .slice(-20)
+        .map((message) => ({
+          role: message?.role === 'assistant' ? 'assistant' : 'user',
+          content: String(message?.content || '').trim()
+        }))
+        .filter((message) => message.content)
+    : []
+  if (!recentMessages.length || recentMessages.at(-1)?.role !== 'user') {
+    throw new Error('请输入要发送的消息')
+  }
+
   const systemParts = [systemPreset?.systemPrompt || DEFAULT_SYSTEM_PROMPT]
 
   if (bookPath) {
@@ -25,8 +42,6 @@ export async function sendChatMessage({
   }
 
   const systemMessage = { role: 'system', content: systemParts.join('\n\n') }
-
-  const recentMessages = Array.isArray(messages) ? messages.slice(-20) : []
 
   const allMessages = [systemMessage, ...recentMessages]
 

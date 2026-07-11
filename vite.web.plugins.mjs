@@ -27,6 +27,9 @@ import * as agentTaskQueueService from './src/main/services/agentTaskQueueServic
 import * as workbenchDatabaseService from './src/main/services/workbenchDatabaseService.js'
 import * as settingSnapshotService from './src/main/services/settingSnapshotService.js'
 import vectorService from './src/main/services/vectorService.js'
+import plotEvolutionAiService from './src/main/services/plotEvolutionAi.js'
+import settingTreeAiService from './src/main/services/settingTreeAi.js'
+import { sendChatMessage } from './src/main/services/aiChatService.js'
 
 export function createWebServerPlugins() {
   const booksDir = process.env.NOVEL_BOOKS_DIR || resolve('.booksDir')
@@ -163,6 +166,40 @@ export function createWebServerPlugins() {
       throw Object.assign(new Error('书籍目录不存在'), { statusCode: 404 })
     }
     return bookPath
+  }
+
+  function resolveOptionalBookPath(payload = {}) {
+    return payload.bookPath || payload.bookName
+      ? resolveBookPathForWebPayload(payload, getActiveBooksDir(), { ensure: true })
+      : ''
+  }
+
+  function createPlotProvider(selection = {}) {
+    const normalized =
+      typeof selection === 'string'
+        ? { providerId: selection }
+        : selection && typeof selection === 'object'
+          ? selection
+          : {}
+    const provider = createTextProvider(webStoreAdapter(), normalized)
+    return {
+      ...normalized,
+      id: provider.providerId,
+      providerId: provider.providerId,
+      model: provider.model,
+      service: provider.service
+    }
+  }
+
+  function toSettingTreeNode(node = {}) {
+    return {
+      name: sanitizeText(node.name),
+      description: sanitizeText(node.introduction || node.description),
+      children: [
+        ...(Array.isArray(node.children) ? node.children.map(toSettingTreeNode) : []),
+        ...(Array.isArray(node.items) ? node.items.map(toSettingTreeNode) : [])
+      ].filter((item) => item.name)
+    }
   }
 
   function inferWebBookNameFromPath(bookPath, booksDir) {
@@ -1282,6 +1319,94 @@ export function createWebServerPlugins() {
                 success: true,
                 ...(await vectorService.deleteBySource(bookPath, sourceExtractionId))
               })
+            } else if (path === '/api/plot-evolution/evolve') {
+              const selections = Array.isArray(body.providerIds)
+                ? body.providerIds
+                : Array.isArray(body.providers)
+                  ? body.providers
+                  : []
+              const providers = selections.map(createPlotProvider)
+              const bookPath = resolveOptionalBookPath(body)
+              sendJson(
+                res,
+                await plotEvolutionAiService.evolvePlot({
+                  ...body,
+                  bookPath,
+                  providers
+                })
+              )
+            } else if (path === '/api/plot-evolution/regenerate') {
+              const selection = body.provider || {
+                providerId: body.providerId,
+                model: body.model || body.modelName
+              }
+              const provider = createPlotProvider(selection)
+              const bookPath = resolveOptionalBookPath(body)
+              sendJson(
+                res,
+                await plotEvolutionAiService.regenerateProposal({
+                  ...body,
+                  bookPath,
+                  provider
+                })
+              )
+            } else if (path === '/api/setting-tree/generate') {
+              const provider = createTextProvider(webStoreAdapter(), body || {})
+              const bookPath = resolveOptionalBookPath(body)
+              const result = await settingTreeAiService.generateSettingTree(
+                {
+                  ...body,
+                  idea: body.idea || body.creativity,
+                  bookPath
+                },
+                provider.service
+              )
+              sendJson(res, {
+                success: true,
+                tree: result.categories.map(toSettingTreeNode),
+                usage: result.usage,
+                model: result.model,
+                providerId: result.providerId
+              })
+            } else if (path === '/api/setting-tree/regenerate-node') {
+              const provider = createTextProvider(webStoreAdapter(), body || {})
+              const bookPath = resolveOptionalBookPath(body)
+              const result = await settingTreeAiService.regenerateSettingNode(
+                {
+                  ...body,
+                  bookPath,
+                  nodeIntroduction: body.nodeIntroduction || body.nodeDescription
+                },
+                provider.service
+              )
+              const nodes = result.categories.map(toSettingTreeNode)
+              sendJson(res, {
+                success: true,
+                node:
+                  nodes.length === 1
+                    ? nodes[0]
+                    : {
+                        name: sanitizeText(body.nodeName),
+                        description: sanitizeText(
+                          body.nodeIntroduction || body.nodeDescription
+                        ),
+                        children: nodes
+                      },
+                usage: result.usage,
+                model: result.model,
+                providerId: result.providerId
+              })
+            } else if (path === '/api/ai/chat') {
+              const provider = createTextProvider(webStoreAdapter(), body || {})
+              const bookPath = resolveOptionalBookPath(body)
+              sendJson(
+                res,
+                await sendChatMessage({
+                  ...body,
+                  bookPath,
+                  textProvider: provider.service
+                })
+              )
             } else if (path === '/api/setting-snapshots/list') {
               const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
                 ensure: true
