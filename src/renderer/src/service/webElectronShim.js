@@ -1350,7 +1350,6 @@ function buildElectronShim() {
         ...input,
         text: input.text || input.content || ''
       }),
-    runOutlineAiTask: runWebOutlineAiTask,
     refineSceneVisualPromptWithAI: async (input) => {
       const payload = normalizeTextAiPayload(input)
       const content = String(payload.text || payload.content || '').trim()
