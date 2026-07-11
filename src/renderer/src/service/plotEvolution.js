@@ -1,10 +1,4 @@
-function ensureElectronApi(name) {
-  const api = globalThis.window?.electron?.[name]
-  if (typeof api !== 'function') {
-    throw new Error(`当前环境暂不支持剧情推演接口：${name}`)
-  }
-  return api
-}
+import { postJson } from './webHttpClient.js'
 
 function requirePlotEvolutionSuccess(result, fallback) {
   if (result?.success !== true) {
@@ -48,14 +42,14 @@ function requirePlotEvolutionProposal(result, fallback) {
 
 export async function evolvePlot(payload, fallback) {
   return requirePlotEvolutionGroups(
-    await ensureElectronApi('plotEvolutionEvolve')(payload),
+    await postJson('/api/plot-evolution/evolve', payload, { timeoutMs: 120_000 }),
     fallback
   )
 }
 
 export async function regeneratePlotProposal(payload, fallback) {
   return requirePlotEvolutionProposal(
-    await ensureElectronApi('plotEvolutionRegenerate')(payload),
+    await postJson('/api/plot-evolution/regenerate', payload, { timeoutMs: 120_000 }),
     fallback
   )
 }

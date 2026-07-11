@@ -114,6 +114,25 @@ assert.doesNotMatch(
   /\bgenerateChapterFromOutline:/,
   'Web shim 不应保留章节生成方法'
 )
+for (const [file, label] of [
+  ['src/renderer/src/service/settingTree.js', '设定树'],
+  ['src/renderer/src/service/plotEvolution.js', '剧情演化']
+]) {
+  assert.doesNotMatch(
+    read(file),
+    /window\.electron|ensureElectronApi/,
+    `${label}服务必须直接使用 Web API`
+  )
+}
+for (const method of [
+  'generateSettingTree:',
+  'regenerateSettingNode:',
+  'applySettingTree:',
+  'plotEvolutionEvolve:',
+  'plotEvolutionRegenerate:'
+]) {
+  assert.doesNotMatch(webShimSource, new RegExp(`\\b${method}`), `Web shim 不应保留 AI 方法：${method}`)
+}
 
 const rendererRoot = path.join(root, 'src/renderer/src')
 const rendererSourceFiles = fs

@@ -1,10 +1,4 @@
-function ensureElectronApi(name) {
-  const api = globalThis.window?.electron?.[name]
-  if (typeof api !== 'function') {
-    throw new Error(`当前环境暂不支持设定树接口：${name}`)
-  }
-  return api
-}
+import { postJson } from './webHttpClient.js'
 
 function createSettingTreeError(result, fallback = '操作失败') {
   return new Error(result?.message || fallback)
@@ -52,19 +46,22 @@ function requireSettingTreeApplyResult(result, fallback = '应用失败') {
 }
 
 export async function generateSettingTree(payload, fallback) {
-  return requireSettingTreeResult(await ensureElectronApi('generateSettingTree')(payload), fallback)
+  return requireSettingTreeResult(
+    await postJson('/api/setting-tree/generate', payload, { timeoutMs: 120_000 }),
+    fallback
+  )
 }
 
 export async function regenerateSettingNode(payload, fallback) {
   return requireSettingTreeNodeResult(
-    await ensureElectronApi('regenerateSettingNode')(payload),
+    await postJson('/api/setting-tree/regenerate-node', payload, { timeoutMs: 120_000 }),
     fallback
   )
 }
 
 export async function applySettingTree(payload, fallback) {
   return requireSettingTreeApplyResult(
-    await ensureElectronApi('applySettingTree')(payload),
+    await postJson('/api/setting-tree/apply', payload, { timeoutMs: 60_000 }),
     fallback
   )
 }

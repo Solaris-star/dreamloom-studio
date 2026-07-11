@@ -2064,10 +2064,6 @@ function buildElectronShim() {
     },
     vectorDeleteSource: async (payload = {}) =>
       postJson('/api/vector/delete-source', payload || {}),
-    plotEvolutionEvolve: async (payload = {}) =>
-      postJson('/api/plot-evolution/evolve', payload || {}),
-    plotEvolutionRegenerate: async (payload = {}) =>
-      postJson('/api/plot-evolution/regenerate', payload || {}),
     listSettingSnapshots: async (bookPathOrPayload = {}) => {
       const payload =
         typeof bookPathOrPayload === 'string'
@@ -2083,11 +2079,6 @@ function buildElectronShim() {
       postJson('/api/setting-snapshots/delete', payload || {}),
     diffSettingSnapshots: async (payload = {}) =>
       postJson('/api/setting-snapshots/diff', payload || {}),
-    generateSettingTree: async (payload = {}) =>
-      postJson('/api/setting-tree/generate', payload || {}),
-    regenerateSettingNode: async (payload = {}) =>
-      postJson('/api/setting-tree/regenerate-node', payload || {}),
-    applySettingTree: async (payload = {}) => postJson('/api/setting-tree/apply', payload || {}),
     listPromptPresets: async (payload = {}) => postJson('/api/prompts/list', payload || {}),
     createPromptPreset: async (payload = {}) => postJson('/api/prompts/create', payload || {}),
     updatePromptPreset: async (payload = {}) => postJson('/api/prompts/update', payload || {}),
