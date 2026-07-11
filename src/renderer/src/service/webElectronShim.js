@@ -1,3 +1,5 @@
+import { fetchJson, postJson } from './webHttpClient.js'
+
 /**
  * Web 版 window.electron / window.electronStore 兼容层
  *
@@ -37,33 +39,6 @@ async function authenticateWebBookshelf(password) {
   }
   setWebBookshelfAuthenticated()
   return result
-}
-
-async function postJson(url, payload) {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload || {})
-  })
-  if (!response.ok) {
-    let message = `请求失败 (${response.status})`
-    try {
-      const data = await response.json()
-      if (data && data.message) message = data.message
-    } catch {
-      // ignore parse error
-    }
-    throw new Error(message)
-  }
-  return await response.json()
-}
-
-async function fetchJson(url) {
-  const response = await fetch(url)
-  if (!response.ok) {
-    throw new Error(`请求失败 (${response.status})`)
-  }
-  return await response.json()
 }
 
 function notSupportedSilent(method) {

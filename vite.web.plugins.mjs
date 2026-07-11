@@ -13,6 +13,7 @@ import * as assetService from './src/main/services/assetService.js'
 import * as goalService from './src/main/services/goalService.js'
 import * as importExportService from './src/main/services/importExportService.js'
 import * as agentTaskQueueService from './src/main/services/agentTaskQueueService.js'
+import * as workbenchDatabaseService from './src/main/services/workbenchDatabaseService.js'
 
 export function createWebServerPlugins() {
   const booksDir = process.env.NOVEL_BOOKS_DIR || resolve('.booksDir')
@@ -777,6 +778,19 @@ export function createWebServerPlugins() {
               sendJson(res, await webBooksApi.editBook(body || {}, getActiveBooksDir()))
             } else if (path === '/api/books/delete') {
               sendJson(res, await webBooksApi.deleteBook(body.name, getActiveBooksDir()))
+            } else if (path === '/api/workbench-database/snapshot') {
+              sendJson(
+                res,
+                workbenchDatabaseService.getWorkbenchDatabaseSnapshot(
+                  getActiveBooksDir(),
+                  body || {}
+                )
+              )
+            } else if (path === '/api/workbench-database/query') {
+              sendJson(
+                res,
+                workbenchDatabaseService.queryWorkbenchDatabase(getActiveBooksDir(), body || {})
+              )
             } else if (path === '/api/volumes/create') {
               sendJson(res, await webBooksApi.createVolume(body.bookName, getActiveBooksDir()))
             } else if (path === '/api/chapters/create') {
