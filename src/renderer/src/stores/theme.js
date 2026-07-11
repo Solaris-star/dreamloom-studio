@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
+import { getStoreValue, setStoreValue } from '../service/webStore.js'
 
 // 主题配置对象 - 统一管理所有主题的颜色配置
 const themeConfigs = {
@@ -251,7 +252,7 @@ export const useThemeStore = defineStore('theme', () => {
 
   // 初始化主题
   const initTheme = async () => {
-    const theme = await window.electronStore.get('config.theme')
+    const theme = await getStoreValue('config.theme', 'light')
     if (theme && themeConfigs[theme]) {
       currentTheme.value = theme
       applyTheme(theme)
@@ -269,7 +270,7 @@ export const useThemeStore = defineStore('theme', () => {
     }
     currentTheme.value = theme
     applyTheme(theme)
-    await window.electronStore.set('config.theme', theme)
+    await setStoreValue('config.theme', theme)
   }
 
   // 监听主题变化

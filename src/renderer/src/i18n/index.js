@@ -1,6 +1,7 @@
 import { createI18n } from 'vue-i18n'
 import zhCN from '@renderer/locales/zh-CN.json'
 import enUS from '@renderer/locales/en-US.json'
+import { getStoreValue, setStoreValue } from '../service/webStore.js'
 
 export const SUPPORTED_LOCALES = ['zh-CN', 'en-US']
 export const DEFAULT_LOCALE = 'zh-CN'
@@ -10,7 +11,7 @@ const messages = {
   'en-US': enUS
 }
 
-function normalizeLocale(rawLocale) {
+export function normalizeLocale(rawLocale) {
   if (!rawLocale || typeof rawLocale !== 'string') return DEFAULT_LOCALE
   const lowered = rawLocale.toLowerCase()
   if (lowered.startsWith('zh')) return 'zh-CN'
@@ -38,12 +39,12 @@ export function setLocale(locale) {
 }
 
 export async function initLocale() {
-  const stored = await window.electronStore?.get('config.locale')
+  const stored = await getStoreValue('config.locale', '')
   const browserLocale =
     typeof navigator !== 'undefined'
       ? navigator.language || navigator.languages?.[0]
       : DEFAULT_LOCALE
   const finalLocale = setLocale(stored || browserLocale)
-  await window.electronStore?.set('config.locale', finalLocale)
+  await setStoreValue('config.locale', finalLocale)
   return finalLocale
 }

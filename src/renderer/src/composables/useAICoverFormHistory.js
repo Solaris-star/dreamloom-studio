@@ -2,6 +2,7 @@
  * AI 封面抽屉：按书籍隔离的表单历史（本地 store）
  * 每本书使用独立列表，避免多本书共用一份记录。
  */
+import { getStoreValue, setStoreValue } from '../service/webStore.js'
 
 const STORAGE_PREFIX = 'aiCover.formHistoryByBook.'
 const MAX_ITEMS = 20
@@ -45,7 +46,7 @@ function fingerprint(entry) {
 export async function loadAiCoverFormHistory(bookKey) {
   const key = storageKey(bookKey)
   try {
-    const raw = await window.electronStore.get(key)
+    const raw = await getStoreValue(key, [])
     return Array.isArray(raw) ? raw : []
   } catch {
     return []
@@ -80,5 +81,5 @@ export async function pushAiCoverFormHistory(bookKey, entry) {
   while (list.length > MAX_ITEMS) {
     list.pop()
   }
-  await window.electronStore.set(key, list)
+  await setStoreValue(key, list)
 }
