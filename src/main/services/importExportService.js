@@ -553,56 +553,75 @@ export function importBook(booksDir, input = {}) {
   const preview = buildImportPreview(input)
   const bookName = uniqueBookName(booksDir, input.bookName || preview.bookName || '导入书籍')
   const bookPath = getBookPath(booksDir, bookName)
+  const tempBookPath = join(booksDir, `.importing-${randomUUID()}`)
   const volumeName = safeName(input.volumeName || DEFAULT_VOLUME_NAME)
-  const volumePath = join(bookPath, '正文', volumeName)
-  ensureDir(volumePath)
-  ensureDir(join(bookPath, '笔记', '大纲'))
-  ensureDir(join(bookPath, '笔记', '设定'))
-  ensureDir(join(bookPath, '笔记', '人物'))
+  const volumePath = join(tempBookPath, '正文', volumeName)
+  let moved = false
 
-  const meta = {
-    id: String(Date.now()),
-    name: bookName,
-    type: input.type || 'original',
-    typeName: input.typeName || '导入作品',
-    targetCount: Number(input.targetCount || 0),
-    intro: input.intro || `从 ${preview.fileName} 导入`,
-    sourceType: 'user_imported',
-    downloaded: false,
-    importedFrom: 'importExport',
-    bookRole: 'creative',
-    password: null,
-    coverColor: input.coverColor || '#22345c',
-    coverUrl: null,
-    coverImagePath: null,
-    createdAt: new Date().toLocaleString(),
-    updatedAt: new Date().toLocaleString()
-  }
-  writeJson(join(bookPath, 'mazi.json'), meta)
+  ensureDir(booksDir)
+  try {
+    ensureDir(volumePath)
+    ensureDir(join(tempBookPath, '笔记', '大纲'))
+    ensureDir(join(tempBookPath, '笔记', '设定'))
+    ensureDir(join(tempBookPath, '笔记', '人物'))
 
-  preview.rawChapters.forEach((chapter, index) => {
-    const title = chapter.title || `第${index + 1}章`
-    const filePath = uniqueFilePath(volumePath, `${safeName(title, `第${index + 1}章`)}.txt`)
-    fs.writeFileSync(filePath, chapter.content || '', 'utf-8')
-  })
+    const meta = {
+      id: String(Date.now()),
+      name: bookName,
+      type: input.type || 'original',
+      typeName: input.typeName || '导入作品',
+      targetCount: Number(input.targetCount || 0),
+      intro: input.intro || `从 ${preview.fileName} 导入`,
+      sourceType: 'user_imported',
+      downloaded: false,
+      importedFrom: 'importExport',
+      bookRole: 'creative',
+      password: null,
+      coverColor: input.coverColor || '#22345c',
+      coverUrl: null,
+      coverImagePath: null,
+      createdAt: new Date().toLocaleString(),
+      updatedAt: new Date().toLocaleString()
+    }
+    writeJson(join(tempBookPath, 'mazi.json'), meta)
 
-  const task = recordTask(booksDir, {
-    type: 'import',
-    title: `导入 ${bookName}`,
-    sourceName: preview.fileName,
-    bookName,
-    format: preview.format,
-    chapterCount: preview.chapterCount,
-    wordCount: preview.wordCount
-  })
+    preview.rawChapters.forEach((chapter, index) => {
+      const title = chapter.title || `第${index + 1}章`
+      const filePath = uniqueFilePath(
+        volumePath,
+        `${safeName(title, `第${index + 1}章`)}.txt`
+      )
+      fs.writeFileSync(filePath, chapter.content || '', 'utf-8')
+    })
 
-  return {
-    success: true,
-    bookName,
-    bookPath,
-    chapterCount: preview.chapterCount,
-    wordCount: preview.wordCount,
-    task
+    if (fs.existsSync(bookPath)) throw new Error(`书库中已存在 ${bookName}`)
+    moveDirectory(tempBookPath, bookPath)
+    moved = true
+
+    const task = recordTask(booksDir, {
+      type: 'import',
+      title: `导入 ${bookName}`,
+      sourceName: preview.fileName,
+      bookName,
+      format: preview.format,
+      chapterCount: preview.chapterCount,
+      wordCount: preview.wordCount
+    })
+
+    return {
+      success: true,
+      bookName,
+      bookPath,
+      chapterCount: preview.chapterCount,
+      wordCount: preview.wordCount,
+      task
+    }
+  } catch (error) {
+    fs.rmSync(tempBookPath, { recursive: true, force: true })
+    if (moved && isInside(booksDir, bookPath)) {
+      fs.rmSync(bookPath, { recursive: true, force: true })
+    }
+    throw error
   }
 }
 
