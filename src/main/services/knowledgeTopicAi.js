@@ -167,10 +167,17 @@ function taskInstruction(task, options = {}) {
 }
 
 class KnowledgeTopicAiService {
-  async runTask({ task = 'topic_card', item, relatedItems = [], options = {} }, textProvider) {
+  async runTask(payload = {}, textProvider) {
     if (!textProvider?.chat) {
       throw new Error('文本 AI 服务不可用')
     }
+    const {
+      task = 'topic_card',
+      item,
+      relatedItems: rawRelatedItems = [],
+      options = {}
+    } = payload || {}
+    const relatedItems = Array.isArray(rawRelatedItems) ? rawRelatedItems : []
     const shape = jsonShapeForTask(task)
     const messages = [
       {
