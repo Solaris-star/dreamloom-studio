@@ -55,6 +55,12 @@ for (const expected of [
 
 const tempRoot = mkdtempSync(join(tmpdir(), 'goal-redline-'))
 const originalCwd = process.cwd()
+const now = new Date()
+const today = [
+  now.getFullYear(),
+  String(now.getMonth() + 1).padStart(2, '0'),
+  String(now.getDate()).padStart(2, '0')
+].join('-')
 
 try {
   process.chdir(tempRoot)
@@ -106,7 +112,7 @@ try {
         {
           id: 'word-today',
           bookId: 'book-1',
-          date: new Date().toISOString().slice(0, 10),
+          date: today,
           delta: 300,
           createdAt: Date.now()
         },
