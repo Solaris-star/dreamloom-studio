@@ -5,6 +5,33 @@
 
 const DEEPSEEK_API_BASE = 'https://api.deepseek.com'
 const DEFAULT_MODEL = 'deepseek-chat' // 或 'deepseek-reasoner' 用于推理任务
+const DEFAULT_TIMEOUT_MS = 180000
+
+function normalizeTimeoutMs(value) {
+  const timeoutMs = Number(value)
+  return Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : DEFAULT_TIMEOUT_MS
+}
+
+function createRequestSignal(timeoutMs, externalSignal) {
+  const effectiveTimeout = normalizeTimeoutMs(timeoutMs)
+  const timeoutSignal = AbortSignal.timeout(effectiveTimeout)
+  return {
+    effectiveTimeout,
+    signal: externalSignal ? AbortSignal.any([externalSignal, timeoutSignal]) : timeoutSignal
+  }
+}
+
+function requestAbortError(error, externalSignal, timeoutMs) {
+  if (externalSignal?.aborted) {
+    const cancelled = new Error('DeepSeek 请求已取消')
+    cancelled.name = 'AbortError'
+    return cancelled
+  }
+  if (error?.name === 'AbortError' || error?.name === 'TimeoutError') {
+    return new Error(`DeepSeek 请求超时（${Math.max(1, Math.round(timeoutMs / 1000))} 秒）`)
+  }
+  return error
+}
 
 class DeepSeekService {
   constructor() {
@@ -131,6 +158,8 @@ class DeepSeekService {
    * @param {number} options.max_tokens - 最大 token 数
    * @param {boolean} options.stream - 是否流式输出，默认 false
    * @param {string} options.requestId - 请求唯一标识（可选，用于防重复）
+   * @param {number} options.timeoutMs - 请求超时时间
+   * @param {AbortSignal} options.signal - 外部取消信号
    * @returns {Promise<Object>} API 响应
    */
   async chat(options = {}) {
@@ -150,23 +179,32 @@ class DeepSeekService {
         model = options.model || this.model || DEFAULT_MODEL,
         temperature = 0.7,
         max_tokens = 2000,
-        stream = false
+        stream = false,
+        timeoutMs,
+        signal
       } = options
+      const request = createRequestSignal(timeoutMs, signal)
 
-      const response = await fetch(`${this.baseURL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`
-        },
-        body: JSON.stringify({
-          model,
-          messages,
-          temperature,
-          max_tokens,
-          stream
+      let response
+      try {
+        response = await fetch(`${this.baseURL}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.apiKey}`
+          },
+          body: JSON.stringify({
+            model,
+            messages,
+            temperature,
+            max_tokens,
+            stream
+          }),
+          signal: request.signal
         })
-      })
+      } catch (error) {
+        throw requestAbortError(error, signal, request.effectiveTimeout)
+      }
       if (!response.ok) {
         const error = await response.json().catch(() => ({
           error: { message: response.statusText }
@@ -194,8 +232,7 @@ class DeepSeekService {
       }
 
       if (stream) {
-        // 流式响应处理（pending 在流结束后再清理由调用方负责；此处保留防重复直至连接建立）
-        return this.handleStreamResponse(response)
+        return this.handleStreamResponse(response, () => this.clearRequest(requestId))
       }
 
       const data = await response.json()
@@ -207,24 +244,18 @@ class DeepSeekService {
       }
     } catch (error) {
       console.error('DeepSeek API 调用失败:', error)
-      // 如果是频率限制错误，不清除 pendingRequests（允许稍后重试）
-      // 其他错误清除 pendingRequests
-      if (!error.message?.includes('请求频率过高') && !error.message?.includes('正在进行中')) {
-        this.clearRequest(requestId)
-      }
+      this.clearRequest(requestId)
       throw error
-    } finally {
-      // 只有在请求成功时才清除（失败时已在 catch 中处理）
-      // 这里不做任何操作，避免重复清除
     }
   }
 
   /**
    * 处理流式响应
    * @param {Response} response - Fetch 响应对象
+   * @param {Function} onFinally - 流结束后的清理函数
    * @returns {Promise<ReadableStream>} 流对象
    */
-  async handleStreamResponse(response) {
+  async handleStreamResponse(response, onFinally = () => {}) {
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
 
@@ -259,6 +290,7 @@ class DeepSeekService {
           yield { content: '', done: true }
         } finally {
           reader.releaseLock()
+          onFinally()
         }
       }
     }
