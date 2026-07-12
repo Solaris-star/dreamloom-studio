@@ -26,6 +26,15 @@ export function createEditorSaveQueue({
   const pendingOrder = []
   const flushWaiters = new Set()
   const lastResultByKey = new Map()
+  const lastPersistedSignatureByKey = new Map()
+
+  function getSnapshotSignature(snapshot) {
+    return JSON.stringify({
+      content: snapshot.content,
+      title: snapshot.title,
+      file: snapshot.file
+    })
+  }
 
   function report(status, details = {}) {
     try {
@@ -99,6 +108,7 @@ export function createEditorSaveQueue({
             savedAt: Date.now()
           })
           lastResultByKey.set(key, result)
+          lastPersistedSignatureByKey.set(key, getSnapshotSignature(entry.snapshot))
           entry.resolve(result)
         } catch (error) {
           const offline = isOfflineError(error)
@@ -134,6 +144,15 @@ export function createEditorSaveQueue({
     const requestId = ++requestSequence
     const immutableSnapshot = Object.freeze({ ...snapshot, requestId })
     const key = immutableSnapshot.filePath
+    if (
+      !hasPending(key) &&
+      lastPersistedSignatureByKey.get(key) === getSnapshotSignature(immutableSnapshot)
+    ) {
+      return Promise.resolve({
+        ...(lastResultByKey.get(key) || { success: true }),
+        unchanged: true
+      })
+    }
     return new Promise((resolve) => {
       const previous = pendingByKey.get(key)
       if (previous) {

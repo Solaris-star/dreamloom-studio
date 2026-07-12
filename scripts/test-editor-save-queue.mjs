@@ -36,6 +36,13 @@ assert.equal((await latestFlush).success, true)
 assert.deepEqual(calls.map((item) => item.content), ['first', 'latest'])
 assert.ok(calls[0].requestId < calls[1].requestId)
 assert.deepEqual(statuses, ['saving', 'saving', 'saving', 'saved'])
+const unchanged = await queue.enqueue({ filePath: 'a', content: 'latest' })
+assert.equal(unchanged.success, true)
+assert.equal(unchanged.unchanged, true)
+assert.deepEqual(calls.map((item) => item.content), ['first', 'latest'])
+
+await queue.enqueue({ filePath: 'a', content: 'latest', title: '新标题' })
+assert.deepEqual(calls.map((item) => item.content), ['first', 'latest', 'latest'])
 
 const failedQueue = createEditorSaveQueue({
   async persist() {
@@ -46,6 +53,7 @@ const failed = await failedQueue.enqueue({ filePath: 'b', content: 'text' })
 assert.equal(failed.success, false)
 assert.equal(failed.message, '磁盘不可写')
 assert.equal((await failedQueue.flush('b')).success, false)
+assert.equal((await failedQueue.enqueue({ filePath: 'b', content: 'text' })).success, false)
 
 const multiFileCalls = []
 let releaseMultiFile
