@@ -163,6 +163,11 @@ try {
   assert.equal(explicitSelectionProvider.providerId, 'store-text')
   assert.equal(explicitSelectionProvider.model, 'explicit-model')
   assert.equal(explicitSelectionProvider.service.rawService.model, 'explicit-model')
+  assert.deepEqual(router.splitTextModelId(''), { providerId: '', modelName: '' })
+  assert.deepEqual(router.splitTextModelId('store-text::model::variant'), {
+    providerId: 'store-text',
+    modelName: 'model::variant'
+  })
 
   const envTextProvider = router.createTextProvider(store, { providerId: 'env:custom-text' })
   assert.equal(envTextProvider.providerId, 'env:custom-text')
@@ -190,6 +195,62 @@ try {
   assert.deepEqual(legacyCustom.apiKeys, ['env-text-key-1', 'env-text-key-2'])
   assert.equal(legacyCustom.service.rawService.model, 'payload-model')
 
+  const fallbackStreamProvider = router.createTextProvider(store, {
+    providerId: 'store-text',
+    modelName: 'fallback-stream-model'
+  })
+  fallbackStreamProvider.service.rawService.streamChat = undefined
+  fallbackStreamProvider.service.rawService.chat = async () => ({
+    async *[Symbol.asyncIterator]() {
+      yield { content: '降级流' }
+    }
+  })
+  const fallbackChunks = []
+  for await (const chunk of await fallbackStreamProvider.service.streamChat({ messages: [] })) {
+    fallbackChunks.push(chunk)
+  }
+  assert.equal(fallbackChunks[0].content, '降级流')
+  assert.equal(fallbackChunks[0].providerId, 'store-text')
+  assert.equal(fallbackChunks[0].model, 'fallback-stream-model')
+  assert.equal(fallbackChunks[0].done, false)
+  assert.deepEqual(fallbackChunks[0].usage, {})
+
+  fallbackStreamProvider.service.rawService.chat = async () => ({ content: '不是流' })
+  await assert.rejects(
+    () => fallbackStreamProvider.service.streamChat({ messages: [] }),
+    /没有返回可读取的流/
+  )
+
+  const chatProvider = router.createTextProvider(store, {
+    providerId: 'store-text',
+    modelName: 'chat-model'
+  })
+  chatProvider.service.rawService.chat = async () => ({ success: true, content: '回答' })
+  const directChat = await chatProvider.service.chat({ messages: [], max_tokens: 12 })
+  assert.equal(directChat.providerId, 'store-text')
+  assert.equal(directChat.model, 'chat-model')
+
+  const { CustomTextApiService } = await import('../src/main/services/customTextApi.js')
+  const originalCustomChat = CustomTextApiService.prototype.chat
+  let routedRequest = null
+  try {
+    CustomTextApiService.prototype.chat = async function (options) {
+      routedRequest = options
+      return { success: true, content: '路由回答' }
+    }
+    const routedChat = await router.chatWithTextProvider(store, {
+      providerId: 'store-text',
+      modelName: 'routed-model',
+      messages: [{ role: 'user', content: '测试' }]
+    })
+    assert.equal(routedRequest.model, 'routed-model')
+    assert.equal(routedChat.content, '路由回答')
+    assert.equal(routedChat.providerId, 'store-text')
+    assert.equal(routedChat.model, 'routed-model')
+  } finally {
+    CustomTextApiService.prototype.chat = originalCustomChat
+  }
+
   assert.throws(
     () => router.createTextProvider(store, { providerId: 'missing-provider' }),
     /未找到文本 AI Provider/
@@ -207,6 +268,59 @@ try {
     () => router.createTextProvider(brokenProviderStore),
     /读取 Provider 失败：本地配置格式不正确/
   )
+
+  for (const key of ENV_KEYS) delete process.env[key]
+  const emptyStore = fakeStore()
+  assert.deepEqual(router.listConfiguredTextProviders(emptyStore), [])
+  assert.equal(router.getActiveTextProviderConfig(emptyStore), null)
+  assert.throws(() => router.createTextProvider(emptyStore), /请先配置文本 AI 服务/)
+
+  const legacyFallback = router.createTextProvider(
+    fakeStore({
+      'deepseek.apiKey': 'legacy-key',
+      'deepseek.model': 'legacy-model'
+    })
+  )
+  assert.equal(legacyFallback.providerId, 'deepseek')
+  assert.equal(legacyFallback.model, 'legacy-model')
+
+  assert.throws(
+    () =>
+      router.createTextProvider(
+        fakeStore({
+          aiProviders: [
+            {
+              id: 'broken-custom',
+              category: 'text',
+              baseUrl: '',
+              apiKeys: []
+            }
+          ]
+        })
+      ),
+    /API 地址和 Key/
+  )
+
+  assert.throws(
+    () =>
+      router.createTextProvider(
+        fakeStore({
+          aiProviders: [
+            {
+              id: 'deepseek-no-key',
+              category: 'text',
+              provider: 'deepseek'
+            }
+          ]
+        })
+      ),
+    /DeepSeek API Key/
+  )
+
+  const emptyLegacyCustom = router.buildLegacyCustomTextProvider(emptyStore)
+  assert.equal(emptyLegacyCustom.model, '')
+  assert.deepEqual(emptyLegacyCustom.apiKeys, [])
+  assert.equal(emptyLegacyCustom.baseUrl, '')
 } finally {
   restoreEnv()
 }
