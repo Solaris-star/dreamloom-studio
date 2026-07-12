@@ -19,13 +19,18 @@
 
         <div class="form-grid">
           <label class="file-picker">
-            <input accept=".txt,.md,.markdown,.docx" type="file" @change="handleImportFileChange" />
+            <input
+              accept=".txt,.md,.markdown,.docx"
+              :disabled="previewing || importing"
+              type="file"
+              @change="handleImportFileChange"
+            />
             <Upload :size="20" />
             <span>{{ importForm.fileName || '选择 TXT、Markdown 或 DOCX' }}</span>
           </label>
           <div class="button-row">
             <el-button
-              :disabled="!importForm.base64"
+              :disabled="!importForm.base64 || importing"
               :loading="previewing"
               @click="handlePreviewImport"
             >
@@ -33,7 +38,7 @@
             </el-button>
             <el-button
               type="primary"
-              :disabled="!preview"
+              :disabled="!preview || previewing"
               :loading="importing"
               @click="handleImportBook"
             >
@@ -97,7 +102,7 @@
           </el-radio-group>
           <el-button
             type="primary"
-            :disabled="!exportForm.bookName || !!booksLoadError"
+            :disabled="!exportForm.bookName || !!booksLoadError || exporting"
             :loading="exporting"
             @click="handleExport"
           >
@@ -139,7 +144,7 @@
             v-model="backupForm.bookName"
             filterable
             placeholder="选择书籍"
-            :disabled="!!booksLoadError"
+            :disabled="!!booksLoadError || backingUp"
           >
             <el-option
               v-for="book in books"
@@ -160,7 +165,12 @@
 
         <div class="restore-box">
           <label class="file-picker">
-            <input accept=".zip" type="file" @change="handleBackupFileChange" />
+            <input
+              accept=".zip"
+              :disabled="inspecting || restoring"
+              type="file"
+              @change="handleBackupFileChange"
+            />
             <Upload :size="20" />
             <span>{{ restoreForm.fileName || '选择备份 zip' }}</span>
           </label>
@@ -176,7 +186,7 @@
           />
           <div class="button-row">
             <el-button
-              :disabled="!restoreForm.base64"
+              :disabled="!restoreForm.base64 || restoring"
               :loading="inspecting"
               @click="handleInspectBackup"
             >
@@ -184,7 +194,7 @@
             </el-button>
             <el-button
               type="success"
-              :disabled="!restoreSummary"
+              :disabled="!restoreSummary || inspecting"
               :loading="restoring"
               @click="handleRestoreBackup"
             >
@@ -231,7 +241,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArchiveRestore, FileDown, FileUp, History, RefreshCw, Upload } from 'lucide-vue-next'
 import {
   createLibraryBackup,
@@ -387,21 +397,35 @@ async function readFileAsBase64(file) {
 
 async function handleImportFileChange(event) {
   const file = event.target.files?.[0]
-  if (!file) return
-  importForm.fileName = file.name
-  importForm.base64 = await readFileAsBase64(file)
+  if (!file || previewing.value || importing.value) return
   preview.value = null
-  await handlePreviewImport()
+  importForm.fileName = file.name
+  importForm.base64 = ''
+  try {
+    importForm.base64 = await readFileAsBase64(file)
+    await handlePreviewImport()
+  } catch (error) {
+    ElMessage.error(error?.message || '读取导入文件失败')
+  } finally {
+    event.target.value = ''
+  }
 }
 
 async function handleBackupFileChange(event) {
   const file = event.target.files?.[0]
-  if (!file) return
+  if (!file || inspecting.value || restoring.value) return
+  restoreSummary.value = null
   restoreForm.fileName = file.name
-  restoreForm.base64 = await readFileAsBase64(file)
+  restoreForm.base64 = ''
   restoreForm.targetDir = ''
   restoreForm.suggestedTargetDir = ''
-  restoreSummary.value = null
+  try {
+    restoreForm.base64 = await readFileAsBase64(file)
+  } catch (error) {
+    ElMessage.error(error?.message || '读取备份文件失败')
+  } finally {
+    event.target.value = ''
+  }
 }
 
 function importPayload() {
@@ -412,6 +436,7 @@ function importPayload() {
 }
 
 async function handlePreviewImport() {
+  if (previewing.value || importing.value || !importForm.base64) return
   previewing.value = true
   try {
     const result = requirePreviewResult(await previewImportBook(importPayload()))
@@ -425,6 +450,7 @@ async function handlePreviewImport() {
 }
 
 async function handleImportBook() {
+  if (importing.value || previewing.value || !preview.value) return
   importing.value = true
   try {
     const result = requireImportedBookResult(await importBookFromFile(importPayload()))
@@ -440,6 +466,7 @@ async function handleImportBook() {
 }
 
 async function handleExport() {
+  if (exporting.value) return
   if (booksLoadError.value) {
     ElMessage.error(booksLoadError.value)
     return
@@ -463,6 +490,7 @@ async function handleExport() {
 }
 
 async function handleCreateBackup() {
+  if (backingUp.value) return
   if (booksLoadError.value) {
     ElMessage.error(booksLoadError.value)
     return
@@ -486,6 +514,7 @@ async function handleCreateBackup() {
 }
 
 async function handleInspectBackup() {
+  if (inspecting.value || restoring.value || !restoreForm.base64) return
   inspecting.value = true
   try {
     const result = requireInspectResult(
@@ -508,6 +537,23 @@ async function handleInspectBackup() {
 }
 
 async function handleRestoreBackup() {
+  if (restoring.value || inspecting.value || !restoreSummary.value) return
+  try {
+    await ElMessageBox.confirm(
+      restoreForm.mode === 'library'
+        ? '恢复内容将写入当前书库。遇到同名书籍时会按备份规则处理，是否继续？'
+        : '备份内容将写入指定的新目录，是否继续？',
+      '确认恢复备份',
+      {
+        confirmButtonText: '确认恢复',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+  } catch {
+    return
+  }
+  if (restoring.value || !restoreSummary.value) return
   restoring.value = true
   try {
     const payload = {
