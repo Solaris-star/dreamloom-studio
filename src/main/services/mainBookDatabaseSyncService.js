@@ -1,5 +1,5 @@
 import fs from 'node:fs'
-import { basename, isAbsolute, join, relative } from 'node:path'
+import { basename, isAbsolute, join, relative, resolve } from 'node:path'
 import {
   recordChapterWrite as recordNovelChapterWrite,
   recordBackup as recordNovelBackup,
@@ -29,6 +29,29 @@ export function safeBookFolderName(value, fallback = '') {
 export function countChapterWords(content) {
   if (!content) return 0
   return String(content).replace(/[\s\n\r\t]/g, '').length
+}
+
+function resolveExistingPath(filePath) {
+  const absolutePath = resolve(filePath)
+  try {
+    return fs.realpathSync(absolutePath)
+  } catch {
+    return absolutePath
+  }
+}
+
+function isPathInside(parentPath, candidatePath) {
+  const parent = resolveExistingPath(parentPath)
+  const candidate = resolveExistingPath(candidatePath)
+  const relation = relative(parent, candidate)
+  return relation === '' || (!relation.startsWith('..') && !isAbsolute(relation))
+}
+
+function requireBookPath(booksDir, bookPath) {
+  if (!isPathInside(booksDir, bookPath)) {
+    throw new Error('作品目录必须位于当前书库内')
+  }
+  return bookPath
 }
 
 export function readBookMeta(bookPath) {
@@ -109,8 +132,12 @@ export function syncBookDocumentPath({
 } = {}) {
   if (!booksDir || !bookName || !documentType || !filePath) return null
   const folderName = safeBookFolderName(bookName)
-  const projectPath = bookPath || join(booksDir, folderName)
-  const documentFileName = isAbsolute(filePath) ? relative(projectPath, filePath) : filePath
+  const projectPath = requireBookPath(booksDir, bookPath || join(booksDir, folderName))
+  const documentPath = isAbsolute(filePath) ? filePath : resolve(projectPath, filePath)
+  if (!isPathInside(projectPath, documentPath)) {
+    throw new Error('作品资料文件必须位于作品目录内')
+  }
+  const documentFileName = relative(projectPath, documentPath)
   return syncNovelBookDocument({
     booksDir,
     bookName: folderName,
@@ -339,6 +366,7 @@ export function syncImportResult({ booksDir, result = {} } = {}) {
   }
 
   try {
+    requireBookPath(booksDir, bookPath)
     const synced = withNovelDatabase(booksDir, (repository) =>
       repository.withTransaction(() =>
         syncBookDirectoryWithRepository(repository, {
@@ -405,9 +433,13 @@ export function syncRestoreResult({ booksDir, result = {} } = {}) {
         restoredBooks.map((book) => {
           const bookName = book.bookName || book.folderName || inferBookNameFromPath(book.path)
           const folderName = safeBookFolderName(bookName)
+          const bookPath = requireBookPath(
+            booksDir,
+            book.path || join(booksDir, folderName)
+          )
           return syncBookDirectoryWithRepository(repository, {
             bookName: folderName,
-            bookPath: book.path || join(booksDir, folderName)
+            bookPath
           })
         })
       )

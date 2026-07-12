@@ -6,6 +6,7 @@ import {
   countChapterWords,
   readBookMeta,
   syncBookDocumentFile,
+  syncBookDocumentPath,
   syncBookProject,
   syncChapterWrite,
   syncBackupResult,
@@ -72,6 +73,37 @@ try {
     bookPath: originalBookPath,
     fileName: 'settings.json'
   })
+
+  const characterDocument = syncBookDocumentPath({
+    booksDir,
+    bookName: originalBookName,
+    bookPath: originalBookPath,
+    documentType: 'characters',
+    filePath: join(originalBookPath, 'characters.json')
+  })
+  assert.equal(characterDocument.documentType, 'characters')
+  assert.throws(
+    () =>
+      syncBookDocumentPath({
+        booksDir,
+        bookName: originalBookName,
+        bookPath: originalBookPath,
+        documentType: 'characters',
+        filePath: join(rootDir, 'outside.json')
+      }),
+    /作品资料文件必须位于作品目录内/
+  )
+  assert.throws(
+    () =>
+      syncBookDocumentPath({
+        booksDir,
+        bookName: originalBookName,
+        bookPath: originalBookPath,
+        documentType: 'characters',
+        filePath: '../outside.json'
+      }),
+    /作品资料文件必须位于作品目录内/
+  )
 
   const firstChapterContent = '许灯推开旧档案室的门，发现案卷里少了一页。'
   const firstChapterPath = join(originalBookPath, '正文', '第一卷', '第一章.txt')
@@ -309,6 +341,24 @@ try {
   })
   assert.equal(missingImportPathSyncResult.databaseSync.success, false)
 
+  const outsideBookName = '外部导入作品'
+  const outsideBookPath = join(rootDir, outsideBookName)
+  fs.mkdirSync(outsideBookPath, { recursive: true })
+  writeJson(join(outsideBookPath, 'mazi.json'), {
+    id: 'book_outside_import',
+    name: outsideBookName
+  })
+  const outsideImportResult = syncImportResult({
+    booksDir,
+    result: {
+      success: true,
+      bookName: outsideBookName,
+      bookPath: outsideBookPath
+    }
+  })
+  assert.equal(outsideImportResult.databaseSync.success, false)
+  assert.match(outsideImportResult.databaseSync.message, /作品目录必须位于当前书库内/)
+
   const restoredBookName = '恢复星河'
   const restoredBookPath = join(booksDir, restoredBookName)
   fs.mkdirSync(join(restoredBookPath, '正文', '第一卷'), { recursive: true })
@@ -386,6 +436,17 @@ try {
     }
   })
   assert.equal(missingRestoreBooksSyncResult.databaseSync.success, false)
+
+  const outsideRestoreResult = syncRestoreResult({
+    booksDir,
+    result: {
+      success: true,
+      mode: 'library',
+      restoredBooks: [{ bookName: outsideBookName, path: outsideBookPath }]
+    }
+  })
+  assert.equal(outsideRestoreResult.databaseSync.success, false)
+  assert.match(outsideRestoreResult.databaseSync.message, /作品目录必须位于当前书库内/)
 
   const repository = openNovelDatabase(booksDir)
   try {
