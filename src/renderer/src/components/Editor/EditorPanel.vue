@@ -91,8 +91,20 @@
           class="cleanup-diff-row"
           :class="`is-${change.type}`"
         >
-          <div v-if="change.before" class="cleanup-before">原文：{{ change.before }}</div>
-          <div v-if="change.after" class="cleanup-after">结果：{{ change.after }}</div>
+          <div class="cleanup-diff-content">
+            <div v-if="change.before" class="cleanup-before">原文：{{ change.before }}</div>
+            <div v-if="change.after" class="cleanup-after">结果：{{ change.after }}</div>
+          </div>
+          <el-radio-group
+            v-if="change.type !== 'unchanged'"
+            v-model="cleanupDiffChoices[index]"
+            class="cleanup-diff-choice"
+            @change="updateCleanupPreview"
+          >
+            <el-radio-button :value="true">采用结果</el-radio-button>
+            <el-radio-button :value="false">保留原文</el-radio-button>
+          </el-radio-group>
+          <span v-else class="cleanup-unchanged">未修改</span>
         </div>
       </div>
       <template #footer>
@@ -269,7 +281,11 @@ import {
   saveChapterDocument,
   writeNoteDocument
 } from '../../service/editor'
-import { cleanEditorText, createTextRevisionToken } from '../../service/editorTextCleanup'
+import {
+  applyParagraphDiffChoices,
+  cleanEditorText,
+  createTextRevisionToken
+} from '../../service/editorTextCleanup'
 import { restoreChapterVersion } from '../../service/chapterVersionRestore'
 import { continueWriteWithAI, polishTextWithAI } from '../../service/editorText'
 import { getStoreValue, setStoreValue } from '../../service/webStore'
@@ -427,6 +443,7 @@ const polishMode = ref('chapter') // 'selection' | 'chapter'
 const polishOriginalText = ref('')
 const polishResultText = ref('')
 const cleanupDiff = ref([])
+const cleanupDiffChoices = ref([])
 const cleanupTaskState = ref({
   selection: 'idle',
   chapter: 'idle'
@@ -1451,7 +1468,7 @@ async function getPreviousChapterContextInfo() {
       polishMode.value = 'selection'
       polishOriginalText.value = text
       polishResultText.value = res.content || ''
-      cleanupDiff.value = res.diff
+      setCleanupDiff(res.diff)
       polishReplaceFrom.value = from
       polishReplaceTo.value = to
       polishSourceDocument.value = sourceDocument
@@ -1496,7 +1513,7 @@ async function getPreviousChapterContextInfo() {
       polishMode.value = 'chapter'
       polishOriginalText.value = fullText
       polishResultText.value = res.content || ''
-      cleanupDiff.value = res.diff
+      setCleanupDiff(res.diff)
       polishSourceDocument.value = fullText
       polishSourceFilePath.value = sourceFilePath
       polishDialogVisible.value = true
@@ -1506,6 +1523,18 @@ async function getPreviousChapterContextInfo() {
       ElMessage.error(e?.message || '清理乱码请求出错')
     }
   }
+
+function setCleanupDiff(diff) {
+  cleanupDiff.value = Array.isArray(diff) ? diff : []
+  cleanupDiffChoices.value = cleanupDiff.value.map(() => true)
+}
+
+function updateCleanupPreview() {
+  polishResultText.value = applyParagraphDiffChoices(
+    cleanupDiff.value,
+    cleanupDiffChoices.value
+  )
+}
 
 /** 下拉选择：润色选中文本 / 润色整章 */
 function handlePolishCommand(command) {
@@ -1825,6 +1854,7 @@ async function confirmPolishReplace() {
   polishSourceDocument.value = ''
   polishSourceFilePath.value = ''
   cleanupDiff.value = []
+  cleanupDiffChoices.value = []
 }
 
 function resetPolishResult() {
@@ -1833,6 +1863,7 @@ function resetPolishResult() {
   polishSourceDocument.value = ''
   polishSourceFilePath.value = ''
   cleanupDiff.value = []
+  cleanupDiffChoices.value = []
 }
 
 // 自动保存内容
@@ -2332,6 +2363,54 @@ defineExpose({
   &.polished {
     background: var(--el-color-primary-light-9);
     color: var(--el-text-color-primary);
+  }
+}
+
+.cleanup-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.cleanup-diff-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+}
+
+.cleanup-diff-content {
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.cleanup-before {
+  color: var(--el-text-color-secondary);
+}
+
+.cleanup-after {
+  color: var(--el-text-color-primary);
+}
+
+.cleanup-unchanged {
+  color: var(--el-text-color-placeholder);
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .cleanup-diff-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cleanup-diff-choice {
+    justify-self: start;
   }
 }
 

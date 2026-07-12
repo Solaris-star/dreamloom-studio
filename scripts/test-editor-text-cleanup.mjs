@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import {
+  applyParagraphDiffChoices,
   buildParagraphDiff,
   cleanEditorText,
   createTextRevisionToken,
@@ -18,6 +19,30 @@ assert.deepEqual(buildParagraphDiff('保留\n\n删除', '保留'), [
   { type: 'unchanged', before: '保留', after: '保留' },
   { type: 'removed', before: '删除', after: '' }
 ])
+assert.equal(
+  applyParagraphDiffChoices(
+    [
+      { type: 'unchanged', before: '保留', after: '保留' },
+      { type: 'changed', before: '原段', after: '改段' },
+      { type: 'removed', before: '删除段', after: '' },
+      { type: 'added', before: '', after: '新增段' }
+    ],
+    [false, false, false, true]
+  ),
+  '保留\n\n原段\n\n删除段\n\n新增段'
+)
+assert.equal(
+  applyParagraphDiffChoices(
+    [
+      { type: 'changed', before: '原段', after: '改段' },
+      { type: 'removed', before: '删除段', after: '' },
+      { type: 'added', before: '', after: '新增段' }
+    ],
+    [true, true, false]
+  ),
+  '改段'
+)
+assert.equal(applyParagraphDiffChoices(null), '')
 
 const originalFetch = globalThis.fetch
 const requests = []

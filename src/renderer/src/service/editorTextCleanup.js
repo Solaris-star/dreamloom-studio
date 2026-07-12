@@ -56,6 +56,17 @@ export function buildParagraphDiff(originalText, resultText) {
   return changes
 }
 
+export function applyParagraphDiffChoices(changes, choices = []) {
+  if (!Array.isArray(changes)) return ''
+  return changes
+    .map((change, index) => {
+      const useResult = change?.type === 'unchanged' || choices[index] !== false
+      return String(useResult ? change?.after || '' : change?.before || '').trim()
+    })
+    .filter(Boolean)
+    .join('\n\n')
+}
+
 function splitModelBindingId(modelId = '') {
   const [providerId, ...modelParts] = String(modelId || '').trim().split('::')
   return {
