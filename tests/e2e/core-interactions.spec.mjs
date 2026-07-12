@@ -66,6 +66,13 @@ async function openEditor(page, bookName) {
   await expect(page.locator('.ProseMirror')).toContainText(/夜雨落在青石长街上|天亮以后/)
 }
 
+async function openFirstChapter(page) {
+  await page.getByRole('button', { name: '章节目录' }).click()
+  const catalog = page.getByRole('dialog', { name: '章节目录' })
+  await catalog.getByRole('button', { name: /第1章/ }).click()
+  await expect(page.locator('.ProseMirror')).toContainText('夜雨落在青石长街上')
+}
+
 test.beforeEach(async ({ page, request }, testInfo) => {
   await page.route('**/api/bookshelf-auth/status', async (route) => {
     await route.fulfill({
@@ -132,6 +139,83 @@ test('创作台目录和章节切换可以操作', async ({ page }, testInfo) =>
   await expect(page.locator('.ProseMirror')).toContainText('夜雨落在青石长街上')
   await page.getByRole('button', { name: '下一章' }).click()
   await expect(page.locator('.ProseMirror')).toContainText('天亮以后')
+})
+
+test('自动保存只写入连续输入后的最终正文', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '自动保存时序仅在桌面项目执行')
+  const savedContents = []
+  await openEditor(page, testBookName(testInfo.project.name))
+  await openFirstChapter(page)
+  await page.route('**/api/chapters/save', async (route) => {
+    const body = route.request().postDataJSON()
+    savedContents.push(body.content)
+    await route.continue()
+  })
+
+  const editor = page.locator('.ProseMirror')
+  await editor.fill('第一次输入')
+  await page.waitForTimeout(500)
+  await editor.fill('第二次输入')
+  await page.waitForTimeout(500)
+  await editor.fill('最终正文内容')
+
+  await expect.poll(() => savedContents.length, { timeout: 8_000 }).toBe(1)
+  await expect(page.locator('.save-state')).toHaveText('已保存')
+  expect(savedContents).toEqual(['最终正文内容'])
+
+  const response = await page.request.post('/api/chapters/read', {
+    data: {
+      bookName: testBookName(testInfo.project.name),
+      volumeName: '正文',
+      chapterName: '第1章'
+    }
+  })
+  expect(response.ok()).toBeTruthy()
+  expect((await response.json()).content).toBe('最终正文内容')
+})
+
+test('章节切换会先保存尚未到期的正文', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '自动保存时序仅在桌面项目执行')
+  const savedContents = []
+  await openEditor(page, testBookName(testInfo.project.name))
+  await openFirstChapter(page)
+  await page.route('**/api/chapters/save', async (route) => {
+    savedContents.push(route.request().postDataJSON().content)
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 200))
+    await route.continue()
+  })
+
+  await page.locator('.ProseMirror').fill('切换章节前必须保存的正文')
+  await page.getByRole('button', { name: '下一章' }).click()
+
+  await expect(page.locator('.ProseMirror')).toContainText('天亮以后')
+  expect(savedContents).toContain('切换章节前必须保存的正文')
+})
+
+test('保存失败会阻止章节切换并保留恢复副本', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '自动保存故障仅在桌面项目执行')
+  const bookName = testBookName(testInfo.project.name)
+  await openEditor(page, bookName)
+  await openFirstChapter(page)
+  await page.route('**/api/chapters/save', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ success: false, message: '模拟章节保存失败' })
+    })
+  })
+
+  await page.locator('.ProseMirror').fill('保存失败后仍需保留的正文')
+  await page.getByRole('button', { name: '下一章' }).click()
+
+  await expect(page.locator('.ProseMirror')).toContainText('保存失败后仍需保留的正文')
+  await expect(page.locator('.save-state')).toHaveText('保存失败')
+  await expect(page.getByText('当前内容保存失败，已取消切换，请重试')).toBeVisible()
+  const recoveryDrafts = await page.evaluate(() =>
+    Object.entries(localStorage).filter(
+      ([key, value]) => key.includes('recovery') && value.includes('保存失败后仍需保留的正文')
+    )
+  )
+  expect(recoveryDrafts.length).toBeGreaterThan(0)
 })
 
 test('创作台阅读设置和专注模式可以恢复', async ({ page }, testInfo) => {
