@@ -321,6 +321,90 @@ test('恢复备份需要确认且失败时不会显示成功', async ({ page }) 
   await expect.poll(() => restoreRequests).toBe(1)
 })
 
+test('市场灵感写操作不会重复提交或保留旧成功结果', async ({ page }) => {
+  let saveRequests = 0
+  const insight = {
+    id: 'market-action-guard',
+    title: '市场操作防重复测试',
+    channel: 'all',
+    tags: ['悬疑'],
+    heatScore: 80,
+    growthScore: 70,
+    opportunityScore: 75,
+    suitableWriting: '长篇悬疑',
+    hook: '旧信引出失踪案',
+    sourceStatus: 'fresh'
+  }
+  const marketResponses = {
+    dashboard: {
+      success: true,
+      sourceStatus: [],
+      topOpportunities: [],
+      recentTrends: [],
+      agentBrief: null
+    },
+    overview: {
+      success: true,
+      writableDirections: [insight],
+      genreDistribution: [],
+      inspirationExpress: [],
+      opportunityIndex: { grade: 'A', summary: '适合创作' }
+    },
+    'hot-rank': { success: true, sources: [], items: [] },
+    'keyword-cloud': {
+      success: true,
+      keywordClusters: [],
+      popularCombinations: [],
+      defaultCombinationDetail: {}
+    },
+    'activities-board': { success: true, activities: [] }
+  }
+  for (const [endpoint, response] of Object.entries(marketResponses)) {
+    await page.route(`**/api/market/${endpoint}`, async (route) => {
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify(response)
+      })
+    })
+  }
+  await page.route('**/api/market/save-inspiration', async (route) => {
+    saveRequests += 1
+    if (saveRequests === 1) {
+      await new Promise((resolvePromise) => setTimeout(resolvePromise, 1_500))
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          item: { id: 'market-save-guard', title: '市场保存防重复测试' }
+        })
+      })
+      return
+    }
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ success: false, message: '市场灵感保存失败' })
+    })
+  })
+
+  await page.goto('/#/market/overview')
+  const actionBar = page.locator('.market-action-bar').first()
+  const saveButton = actionBar.getByRole('button', { name: '存入灵感库' })
+  await expect(saveButton).toBeEnabled()
+
+  await saveButton.evaluate((button) => {
+    button.click()
+    button.click()
+  })
+  await expect.poll(() => saveRequests, { timeout: 1_000 }).toBe(1)
+  await expect(page.locator('.result-banner').getByText('已存入灵感库', { exact: true })).toBeVisible()
+  await expect.poll(() => saveRequests).toBe(1)
+
+  await saveButton.click()
+  await expect(page.getByText('市场灵感保存失败')).toBeVisible()
+  await expect(page.locator('.result-banner')).toHaveCount(0)
+  await expect.poll(() => saveRequests).toBe(2)
+})
+
 test('图库连续拖入时不会重复上传', async ({ page }, testInfo) => {
   let importRequests = 0
   const bookName = testBookName(testInfo.project.name)

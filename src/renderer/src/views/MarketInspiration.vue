@@ -165,6 +165,7 @@
               v-for="direction in dashboard.agentBrief?.directions || []"
               :key="direction.title"
               type="button"
+              :disabled="Boolean(actionLoading)"
               @click="handleSaveInsight(agentDirectionToInsight(direction))"
             >
               <strong>{{ direction.title }}</strong>
@@ -321,8 +322,20 @@
             <p><b>读者情绪：</b>{{ item.readerPleasure }}</p>
             <div class="card-actions">
               <button type="button" @click.stop="selectedHotRank = item">转成题材</button>
-              <button type="button" @click.stop="handleGenerateOutline(item)">生成模板草案</button>
-              <button type="button" @click.stop="handleSaveInsight(item)">存入灵感库</button>
+              <button
+                type="button"
+                :disabled="Boolean(actionLoading)"
+                @click.stop="handleGenerateOutline(item)"
+              >
+                生成模板草案
+              </button>
+              <button
+                type="button"
+                :disabled="Boolean(actionLoading)"
+                @click.stop="handleSaveInsight(item)"
+              >
+                存入灵感库
+              </button>
             </div>
           </div>
         </button>
@@ -478,8 +491,18 @@
             </div>
           </button>
           <div class="card-actions">
-            <button type="button" @click.stop="handleSaveActivityPlan(activity)">存入计划</button>
-            <button type="button" @click.stop="handleActivityDirection(activity)">
+            <button
+              type="button"
+              :disabled="Boolean(actionLoading)"
+              @click.stop="handleSaveActivityPlan(activity)"
+            >
+              存入计划
+            </button>
+            <button
+              type="button"
+              :disabled="Boolean(actionLoading)"
+              @click.stop="handleActivityDirection(activity)"
+            >
               生成投稿方向
             </button>
             <button type="button" @click.stop="selectedActivity = activity">匹配我的作品</button>
@@ -912,6 +935,7 @@ function sortByChannel(rows, target = 'all') {
 }
 
 async function handleRefresh() {
+  if (refreshing.value) return
   refreshing.value = true
   pageError.value = ''
   try {
@@ -980,8 +1004,7 @@ async function loadKeywordCombination() {
 }
 
 async function handleSaveInsight(insight = selectedInsight.value) {
-  if (!insight) return
-  actionLoading.value = 'save'
+  if (!insight || !beginAction('save')) return
   try {
     const result = await saveMarketInspiration({
       insightId: insight.id,
@@ -1000,13 +1023,12 @@ async function handleSaveInsight(insight = selectedInsight.value) {
   } catch (error) {
     ElMessage.error(error?.message || '保存失败')
   } finally {
-    actionLoading.value = ''
+    finishAction('save')
   }
 }
 
 async function handleGenerateOutline(insight = selectedInsight.value) {
-  if (!insight) return
-  actionLoading.value = 'outline'
+  if (!insight || !beginAction('outline')) return
   try {
     const result = await generateMarketOutline({
       insightId: insight.id,
@@ -1048,18 +1070,18 @@ async function handleGenerateOutline(insight = selectedInsight.value) {
   } catch (error) {
     ElMessage.error(error?.message || '生成失败')
   } finally {
-    actionLoading.value = ''
+    finishAction('outline')
   }
 }
 
 async function handleApplyToBook(insight = selectedInsight.value) {
-  if (!insight) return
+  if (!insight || actionLoading.value) return
   const book = selectedTargetBook()
   if (!book) {
     ElMessage.warning(books.value.length ? '请先选择目标作品' : '当前没有可带入的作品')
     return
   }
-  actionLoading.value = 'apply'
+  if (!beginAction('apply')) return
   try {
     const result = await applyMarketInsightToCurrentBook({
       insightId: insight.id,
@@ -1083,13 +1105,12 @@ async function handleApplyToBook(insight = selectedInsight.value) {
   } catch (error) {
     ElMessage.error(error?.message || '带入失败')
   } finally {
-    actionLoading.value = ''
+    finishAction('apply')
   }
 }
 
 async function handleCreateBook(insight = selectedInsight.value) {
-  if (!insight) return
-  actionLoading.value = 'create'
+  if (!insight || !beginAction('create')) return
   try {
     const result = await createBookFromMarketInsight({
       insightId: insight.id,
@@ -1106,6 +1127,19 @@ async function handleCreateBook(insight = selectedInsight.value) {
   } catch (error) {
     ElMessage.error(error?.message || '新建作品失败')
   } finally {
+    finishAction('create')
+  }
+}
+
+function beginAction(key) {
+  if (actionLoading.value) return false
+  actionLoading.value = key
+  lastActionResult.value = null
+  return true
+}
+
+function finishAction(key) {
+  if (actionLoading.value === key) {
     actionLoading.value = ''
   }
 }
