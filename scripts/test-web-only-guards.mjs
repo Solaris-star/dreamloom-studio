@@ -166,6 +166,35 @@ for (const file of [
     `${file} 必须直接使用 Web 创作资料服务`
   )
 }
+for (const method of [
+  'checkChapterExists',
+  'upsertChapter',
+  'readOutlines',
+  'writeOutlines',
+  'readOutlineAiSessions',
+  'writeOutlineAiSessions'
+]) {
+  assert.doesNotMatch(
+    editorServiceSource,
+    new RegExp(`requireElectronApi\\(['"]${method}['"]`),
+    `大纲服务不应再通过 Electron 调用 ${method}`
+  )
+  assert.doesNotMatch(
+    webShimSource,
+    new RegExp(`\\b${method}:`),
+    `Web shim 不应保留已迁移的大纲方法：${method}`
+  )
+}
+for (const file of [
+  'src/renderer/src/components/Editor/OutlineManagerPanel.vue',
+  'src/renderer/src/components/Editor/OutlineAiWorkbenchDialog.vue'
+]) {
+  assert.doesNotMatch(
+    read(file),
+    /window\.electron(?:Store)?\b/,
+    `${file} 必须直接使用 Web 大纲服务`
+  )
+}
 assert.doesNotMatch(
   editorPanelSource,
   /window\.electronStore\b/,

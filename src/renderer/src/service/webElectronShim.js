@@ -731,8 +731,6 @@ function buildElectronShim() {
     readChapter: (bookName, volumeName, chapterName) =>
       postJson('/api/chapters/read', { bookName, volumeName, chapterName }),
     saveChapter: (chapterInfo) => postJson('/api/chapters/save', chapterInfo),
-    checkChapterExists: (payload) => postJson('/api/chapters/check-exists', payload),
-    upsertChapter: (payload) => postJson('/api/chapters/upsert', payload),
 
     // ----- 节点编辑 / 删除 -----
     editNode: (bookName, payload) => postJson('/api/nodes/edit', { bookName, ...(payload || {}) }),
@@ -806,12 +804,6 @@ function buildElectronShim() {
       }
     },
     // ----- 时间线 / 大纲 / 地图 / 人物 / 设定等扩展功能 -----
-    readOutlines: (bookName) => postJson('/api/studio/outlines/read', { bookName }),
-    writeOutlines: (bookName, data) => postJson('/api/studio/outlines/write', { bookName, data }),
-    readOutlineAiSessions: (bookName) =>
-      postJson('/api/studio/outline-ai-sessions/read', { bookName }),
-    writeOutlineAiSessions: (bookName, data) =>
-      postJson('/api/studio/outline-ai-sessions/write', { bookName, data }),
     // ----- 禁词 -----
     getBannedWords: getWebBannedWords,
     addBannedWord: addWebBannedWord,

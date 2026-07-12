@@ -271,6 +271,11 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { genId } from '@renderer/utils/utils'
+import {
+  readOutlineAiSessionsDocument,
+  writeOutlineAiSessionsDocument
+} from '@renderer/service/editor'
+import { runOutlineAiTask } from '@renderer/service/outlineAiTask'
 
 const props = defineProps({
   bookName: {
@@ -707,13 +712,13 @@ function getBaseDraftContent() {
 }
 
 async function loadAiSessions() {
-  if (!props.bookName || !window.electron?.readOutlineAiSessions) {
+  if (!props.bookName) {
     aiSessions.value = createEmptySessionsPayload()
     return
   }
   sessionsLoading.value = true
   try {
-    const payload = await window.electron.readOutlineAiSessions(props.bookName)
+    const payload = await readOutlineAiSessionsDocument(props.bookName)
     aiSessions.value = normalizeSessionsPayload(payload)
   } catch (error) {
     console.error('加载 AI 大纲会话失败:', error)
@@ -725,16 +730,13 @@ async function loadAiSessions() {
 
 async function saveAiSessions(options = {}) {
   const { silent = false } = options
-  if (!props.bookName || !window.electron?.writeOutlineAiSessions) {
+  if (!props.bookName) {
     return false
   }
   sessionSaveError.value = ''
   try {
     const payload = cloneDeep(aiSessions.value)
-    const result = await window.electron.writeOutlineAiSessions(props.bookName, payload)
-    if (result?.success === false) {
-      throw new Error(result.message || t('outlineManager.aiSessionSaveFailed'))
-    }
+    await writeOutlineAiSessionsDocument(props.bookName, payload)
     return true
   } catch (error) {
     sessionSaveError.value = error?.message || t('outlineManager.aiSessionSaveFailed')
@@ -842,11 +844,6 @@ async function handleGenerate() {
     )
     return
   }
-  if (!window.electron?.runOutlineAiTask) {
-    ElMessage.error(t('outlineManager.aiUnsupported'))
-    return
-  }
-
   const finalInstruction = instruction.value.trim() || suggestedRequirement.value
   loading.value = true
   try {
@@ -860,10 +857,11 @@ async function handleGenerate() {
       count: taskType.value === 'split' ? splitCount.value : undefined
     }
 
-    const result = await window.electron.runOutlineAiTask(payload)
-    if (!result?.success) {
-      throw new Error(result?.message || t('outlineManager.aiRequestFailed'))
-    }
+    const result = await runOutlineAiTask(
+      payload,
+      taskType.value,
+      t('outlineManager.aiRequestFailed')
+    )
 
     const session = ensureCurrentNodeSession()
     const version = createVersionFromResult(result, finalInstruction)

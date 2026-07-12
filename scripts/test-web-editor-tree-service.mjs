@@ -197,4 +197,83 @@ assert.deepEqual(request, {
 response = { success: false, message: '关系图损坏' }
 await assert.rejects(() => service.readRelationshipGraphData('作品', '关系一'), /关系图损坏/)
 
+response = { success: true, data: { content: '总纲', children: [] } }
+assert.deepEqual(await service.readOutlineDocument('作品'), { content: '总纲', children: [] })
+assert.deepEqual(request, {
+  url: '/api/studio/outlines/read',
+  payload: { bookName: '作品' }
+})
+
+response = {
+  success: true,
+  fileName: 'outlines.json',
+  documentType: 'outlines',
+  path: 'D:/books/作品/outlines.json',
+  documentPath: 'D:/books/作品/outlines.json',
+  databaseSync: { success: true }
+}
+await service.writeOutlineDocument('作品', { content: '总纲', children: [] })
+assert.deepEqual(request, {
+  url: '/api/studio/outlines/write',
+  payload: { bookName: '作品', data: { content: '总纲', children: [] } }
+})
+
+response = { success: true, data: { version: 1, nodes: {} } }
+assert.deepEqual(await service.readOutlineAiSessionsDocument('作品'), { version: 1, nodes: {} })
+assert.equal(request.url, '/api/studio/outline-ai-sessions/read')
+
+response = {
+  success: true,
+  fileName: 'outline-ai-sessions.json',
+  path: 'D:/books/作品/outline-ai-sessions.json',
+  documentPath: 'D:/books/作品/outline-ai-sessions.json',
+  databaseSync: { success: true }
+}
+await service.writeOutlineAiSessionsDocument('作品', { version: 1, nodes: {} })
+assert.deepEqual(request, {
+  url: '/api/studio/outline-ai-sessions/write',
+  payload: { bookName: '作品', data: { version: 1, nodes: {} } }
+})
+
+response = { success: true, exists: false }
+assert.equal(
+  (await service.checkChapterExistsForOutline({
+    bookName: '作品',
+    volumeName: '第一卷',
+    chapterName: '第一章'
+  })).exists,
+  false
+)
+assert.deepEqual(request, {
+  url: '/api/chapters/check-exists',
+  payload: { bookName: '作品', volumeName: '第一卷', chapterName: '第一章' }
+})
+
+response = {
+  success: true,
+  bookName: '作品',
+  volumeName: '第一卷',
+  chapterName: '第一章',
+  filePath: 'D:/books/作品/正文/第一卷/第一章.txt',
+  wordCount: 4,
+  databaseSync: { success: true, chapterName: '第一章' }
+}
+await service.upsertOutlineChapter({
+  bookName: '作品',
+  volumeName: '第一卷',
+  chapterName: '第一章',
+  content: '新的正文',
+  overwrite: false
+})
+assert.deepEqual(request, {
+  url: '/api/chapters/upsert',
+  payload: {
+    bookName: '作品',
+    volumeName: '第一卷',
+    chapterName: '第一章',
+    content: '新的正文',
+    overwrite: false
+  }
+})
+
 console.log('Web 编辑器章节树与笔记服务测试通过')

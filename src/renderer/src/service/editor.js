@@ -1264,10 +1264,7 @@ export async function checkChapterExistsForOutline(payload = {}) {
   if (!targetChapterName) {
     throw new Error('检查章节是否存在失败：缺少章节名')
   }
-  const response = await requireElectronApi(
-    'checkChapterExists',
-    '章节检查接口'
-  )({
+  const response = await postJson('/api/chapters/check-exists', {
     bookName: targetBookName,
     volumeName: targetVolumeName,
     chapterName: targetChapterName
@@ -1296,10 +1293,7 @@ export async function upsertOutlineChapter(payload = {}) {
   if (!content) {
     throw new Error('写入章节失败：正文为空')
   }
-  const response = await requireElectronApi(
-    'upsertChapter',
-    '章节写入接口'
-  )({
+  const response = await postJson('/api/chapters/upsert', {
     bookName: targetBookName,
     volumeName: targetVolumeName,
     chapterName: targetChapterName,
@@ -1328,10 +1322,7 @@ export async function upsertChapterDocument(payload = {}) {
   if (!targetChapterName) {
     throw new Error('写入章节失败：缺少章节名')
   }
-  const response = await requireElectronApi(
-    'upsertChapter',
-    '章节写入接口'
-  )({
+  const response = await postJson('/api/chapters/upsert', {
     bookName: targetBookName,
     volumeName: targetVolumeName,
     chapterName: targetChapterName,
@@ -1401,7 +1392,7 @@ export async function readOutlineDocument(bookName) {
   if (!targetBookName) {
     throw new Error('读取大纲失败：缺少作品名')
   }
-  const response = await requireElectronApi('readOutlines', '大纲读取接口')(targetBookName)
+  const response = await postJson('/api/studio/outlines/read', { bookName: targetBookName })
   return requireOutlineReadResult(response)
 }
 
@@ -1416,10 +1407,10 @@ export async function writeOutlineDocument(bookName, payload = {}) {
   if (payload.children !== undefined && !Array.isArray(payload.children)) {
     throw new Error('保存大纲失败：大纲内容格式不正确')
   }
-  const response = await requireElectronApi('writeOutlines', '大纲写入接口')(
-    targetBookName,
-    payload
-  )
+  const response = await postJson('/api/studio/outlines/write', {
+    bookName: targetBookName,
+    data: payload
+  })
   return requireOutlineWriteResult(response)
 }
 
@@ -1428,10 +1419,9 @@ export async function readOutlineAiSessionsDocument(bookName) {
   if (!targetBookName) {
     throw new Error('读取 AI 大纲会话失败：缺少作品名')
   }
-  const response = await requireElectronApi(
-    'readOutlineAiSessions',
-    'AI 大纲会话读取接口'
-  )(targetBookName)
+  const response = await postJson('/api/studio/outline-ai-sessions/read', {
+    bookName: targetBookName
+  })
   return requireOutlineAiSessionsReadResult(response)
 }
 
@@ -1449,10 +1439,10 @@ export async function writeOutlineAiSessionsDocument(bookName, payload = {}) {
   ) {
     throw new Error('保存 AI 大纲会话失败：会话内容格式不正确')
   }
-  const response = await requireElectronApi('writeOutlineAiSessions', 'AI 大纲会话写入接口')(
-    targetBookName,
-    payload
-  )
+  const response = await postJson('/api/studio/outline-ai-sessions/write', {
+    bookName: targetBookName,
+    data: payload
+  })
   return requireOutlineAiSessionsWriteResult(response)
 }
 

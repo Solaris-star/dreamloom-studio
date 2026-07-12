@@ -121,7 +121,7 @@ for (const expected of [
   "postJson('/api/studio/settings/write'",
   'return requireSettingsDocumentWriteResult(response, payload.categories)',
   'export async function writeOutlineDocument(bookName, payload = {})',
-  "requireElectronApi('writeOutlines', '大纲写入接口')",
+  "postJson('/api/studio/outlines/write'",
   'return requireOutlineWriteResult(response)'
 ]) {
   assertIncludes(

@@ -212,6 +212,16 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { genId } from '@renderer/utils/utils'
 import { useI18n } from 'vue-i18n'
 import OutlineAiWorkbenchDialog from './OutlineAiWorkbenchDialog.vue'
+import {
+  checkChapterExistsForOutline,
+  getChapterSettings,
+  listChapterTree,
+  readChapterContent,
+  readOutlineDocument,
+  upsertOutlineChapter,
+  writeOutlineDocument
+} from '@renderer/service/editor'
+import { generateChapterFromOutline } from '@renderer/service/outlineChapter'
 
 const props = defineProps({
   bookName: {
@@ -297,7 +307,7 @@ async function loadOutlineData() {
   if (!props.bookName) return
   isLoadingOutline.value = true
   try {
-    const parsed = await window.electron.readOutlines(props.bookName)
+    const parsed = await readOutlineDocument(props.bookName)
     if (!parsed) {
       outlineTree.value = normalizeOutlineTree(null)
       return
@@ -319,10 +329,7 @@ async function saveOutlineData() {
       content: root?.content ?? '',
       children: clonePlainData(root?.children ?? [])
     }
-    const result = await window.electron.writeOutlines(props.bookName, payload)
-    if (result && result.success === false) {
-      throw new Error(result.message || t('outlineManager.saveFailed'))
-    }
+    await writeOutlineDocument(props.bookName, payload)
     autoSaveError.value = ''
     return true
   } catch (err) {
@@ -381,13 +388,12 @@ function openAiWorkbench(mode) {
 }
 
 async function loadVolumeOptions() {
-  if (!props.bookName || !window.electron?.loadChapters) {
+  if (!props.bookName) {
     chapterVolumeOptions.value = []
     return
   }
   try {
-    const chapterResult = await window.electron.loadChapters(props.bookName)
-    const chaptersTree = Array.isArray(chapterResult) ? chapterResult : chapterResult.chapters
+    const chaptersTree = await listChapterTree(props.bookName)
     const volumes = Array.isArray(chaptersTree)
       ? chaptersTree
           .filter((item) => item?.type === 'volume' && item?.name)
@@ -421,10 +427,8 @@ async function loadPreviousChapterExcerptForAi() {
   const volumeName = String(targetVolumeName.value || '').trim()
   const targetName = String(targetChapterName.value || '').trim()
   if (!bookName || !volumeName || !targetName) return ''
-  if (!window.electron?.loadChapters || !window.electron?.readChapter) return ''
   try {
-    const chapterResult = await window.electron.loadChapters(bookName)
-    const tree = Array.isArray(chapterResult) ? chapterResult : chapterResult.chapters
+    const tree = await listChapterTree(bookName)
     const vol = Array.isArray(tree)
       ? tree.find((v) => v?.type === 'volume' && String(v.name).trim() === volumeName)
       : null
@@ -435,9 +439,8 @@ async function loadPreviousChapterExcerptForAi() {
     const prev = list[idx - 1]
     const prevName = prev?.name != null ? String(prev.name).trim() : ''
     if (!prevName) return ''
-    const res = await window.electron.readChapter(bookName, volumeName, prevName)
-    if (!res?.success || res.content == null) return ''
-    let text = String(res.content).trim().replace(/\r\n/g, '\n')
+    const chapter = await readChapterContent(bookName, volumeName, prevName)
+    let text = String(chapter.content).trim().replace(/\r\n/g, '\n')
     if (!text) return ''
     if (text.length > PREV_CHAPTER_TAIL_MAX) {
       text = `…\n${text.slice(-PREV_CHAPTER_TAIL_MAX)}`
@@ -463,31 +466,24 @@ async function handleGenerateChapterPreview() {
     ElMessage.warning(t('outlineManager.targetChapterNameRequired'))
     return
   }
-  if (!window.electron?.generateChapterFromOutline) {
-    ElMessage.error(t('outlineManager.aiUnsupported'))
-    return
-  }
-
   generateChapterLoading.value = true
   try {
     let targetWords = 2000
-    if (window.electron?.getChapterSettings) {
-      const settingsRes = await window.electron.getChapterSettings(props.bookName)
-      targetWords = Number(settingsRes?.targetWords) || targetWords
-    }
+    const settingsRes = await getChapterSettings(props.bookName)
+    targetWords = Number(settingsRes?.targetWords) || targetWords
 
     const previousChapterExcerpt = await loadPreviousChapterExcerptForAi()
-    const result = await window.electron.generateChapterFromOutline({
-      bookName: String(props.bookName || '').trim(),
-      outlineTitle: String(selectedNode.value?.title || '').trim(),
-      outlineContent,
-      userRequirement: String(generateChapterRequirement.value || '').trim(),
-      targetWords,
-      previousChapterExcerpt
-    })
-    if (!result?.success) {
-      throw new Error(result?.message || t('outlineManager.generateChapterFailed'))
-    }
+    const result = await generateChapterFromOutline(
+      {
+        bookName: String(props.bookName || '').trim(),
+        outlineTitle: String(selectedNode.value?.title || '').trim(),
+        outlineContent,
+        userRequirement: String(generateChapterRequirement.value || '').trim(),
+        targetWords,
+        previousChapterExcerpt
+      },
+      { targetWords }
+    )
     const content = String(result.content || '').trim()
     if (!content) {
       throw new Error(t('outlineManager.aiEmptyResult'))
@@ -519,21 +515,13 @@ async function confirmCreateOrOverwriteChapter() {
     ElMessage.warning(t('outlineManager.generateChapterParamsInvalid'))
     return
   }
-  if (!window.electron?.checkChapterExists || !window.electron?.upsertChapter) {
-    ElMessage.error(t('outlineManager.generateChapterUnsupported'))
-    return
-  }
-
   chapterUpsertLoading.value = true
   try {
-    const checkRes = await window.electron.checkChapterExists({
+    const checkRes = await checkChapterExistsForOutline({
       bookName: props.bookName,
       volumeName: targetVolumeName.value,
       chapterName
     })
-    if (!checkRes?.success) {
-      throw new Error(checkRes?.message || t('outlineManager.generateChapterCheckFailed'))
-    }
 
     let overwrite = false
     if (checkRes.exists) {
@@ -549,16 +537,13 @@ async function confirmCreateOrOverwriteChapter() {
       overwrite = true
     }
 
-    const upsertRes = await window.electron.upsertChapter({
+    await upsertOutlineChapter({
       bookName: props.bookName,
       volumeName: targetVolumeName.value,
       chapterName,
       content,
       overwrite
     })
-    if (!upsertRes?.success) {
-      throw new Error(upsertRes?.message || t('outlineManager.generateChapterWriteFailed'))
-    }
 
     window.dispatchEvent(new CustomEvent('refresh-chapters-requested'))
     generateChapterResultDialogVisible.value = false
