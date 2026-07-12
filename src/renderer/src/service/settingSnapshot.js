@@ -1,10 +1,4 @@
-function requireSettingSnapshotApi(name) {
-  const api = globalThis.window?.electron?.[name]
-  if (typeof api !== 'function') {
-    throw new Error(`当前环境暂不支持设定快照接口：${name}`)
-  }
-  return api
-}
+import { postJson } from './webHttpClient.js'
 
 function createSettingSnapshotError(result, fallback = '操作失败') {
   return new Error(result?.message || fallback)
@@ -79,26 +73,26 @@ function requireDeleteSettingSnapshotResult(result, expectedSnapshotId, fallback
 }
 
 export async function listSettingSnapshots(bookPath, fallback = '读取快照失败') {
-  const res = await requireSettingSnapshotApi('listSettingSnapshots')(bookPath)
+  const res = await postJson('/api/setting-snapshots/list', { bookPath })
   return requireSnapshotListResult(res, fallback)
 }
 
 export async function createSettingSnapshot(payload = {}, fallback = '操作失败') {
-  const res = await requireSettingSnapshotApi('createSettingSnapshot')(payload)
+  const res = await postJson('/api/setting-snapshots/create', payload)
   return requireSettingSnapshotResult(res, fallback)
 }
 
 export async function restoreSettingSnapshot(payload = {}, fallback = '操作失败') {
-  const res = await requireSettingSnapshotApi('restoreSettingSnapshot')(payload)
+  const res = await postJson('/api/setting-snapshots/restore', payload)
   return requireSettingSnapshotResult(res, fallback)
 }
 
 export async function deleteSettingSnapshot(payload = {}, fallback = '操作失败') {
-  const res = await requireSettingSnapshotApi('deleteSettingSnapshot')(payload)
+  const res = await postJson('/api/setting-snapshots/delete', payload)
   return requireDeleteSettingSnapshotResult(res, payload.snapshotId, fallback)
 }
 
 export async function diffSettingSnapshots(payload = {}, fallback = '对比失败') {
-  const res = await requireSettingSnapshotApi('diffSettingSnapshots')(payload)
+  const res = await postJson('/api/setting-snapshots/diff', payload)
   return requireSettingSnapshotDiffResult(res, fallback)
 }

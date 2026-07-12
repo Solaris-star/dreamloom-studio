@@ -99,7 +99,15 @@ for (const [file, label] of [
 const editorPanelSource = read('src/renderer/src/components/Editor/EditorPanel.vue')
 const agentWritingDockSource = read('src/renderer/src/components/Editor/AgentWritingDock.vue')
 const editorServiceSource = read('src/renderer/src/service/editor.js')
-const webShimSource = read('src/renderer/src/service/webElectronShim.js')
+const webShimPath = path.join(root, 'src/renderer/src/service/webElectronShim.js')
+assert.equal(fs.existsSync(webShimPath), false, '纯 Web 项目不能保留 Electron 兼容层')
+const webShimSource = ''
+const rendererMainSource = read('src/renderer/src/main.js')
+assert.doesNotMatch(
+  rendererMainSource,
+  /webElectronShim|installWebElectronShim|window\.electron/,
+  'Web 启动入口不能注入 Electron 兼容层'
+)
 assert.doesNotMatch(
   editorPanelSource,
   /window\.electron(?:Store)?\b/,

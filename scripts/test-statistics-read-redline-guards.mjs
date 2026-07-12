@@ -12,7 +12,6 @@ const wordCountChart = readProjectFile('src/renderer/src/components/WordCountCha
 const statisticsService = readProjectFile('src/renderer/src/service/statisticsService.js')
 const analyticsService = readProjectFile('src/main/services/analyticsService.js')
 const aiUsageLogger = readProjectFile('src/main/services/aiUsageLogger.js')
-const webShim = readProjectFile('src/renderer/src/service/webElectronShim.js')
 
 for (const expected of [
   "const statisticsReadError = ref('')",
@@ -70,24 +69,6 @@ for (const forbidden of [
   'callElectronApi'
 ]) {
   assert(!statisticsService.includes(forbidden), `统计服务不应包含：${forbidden}`)
-}
-
-for (const method of [
-  'getBookDailyStats:',
-  'getAllBooksDailyStats:',
-  'getAnalyticsOverview:',
-  'getAnalyticsDailyWords:',
-  'getAnalyticsWritingHabit:',
-  'getAnalyticsSessionStats:',
-  'getAnalyticsTokenStats:',
-  'getAnalyticsWeeklyReport:',
-  'getAnalyticsMonthlyReport:',
-  'listWritingGoals:',
-  'createWritingGoal:',
-  'updateWritingGoal:',
-  'deleteWritingGoal:'
-]) {
-  assert(!webShim.includes(method), `Web shim 不应保留统计方法：${method}`)
 }
 
 for (const expected of [
