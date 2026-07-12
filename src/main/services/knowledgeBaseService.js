@@ -831,7 +831,7 @@ class KnowledgeBaseService {
     })
     const duplicate = findDuplicate(items, normalized)
     if (duplicate) {
-      const updated = mergeDuplicate(duplicate, normalized)
+      const updated = mergeDuplicate(duplicate, input)
       const nextItems = items.map((item) => (item.id === duplicate.id ? updated : item))
       writeItems(booksDir, nextItems)
       return { success: true, item: updated, duplicate: true }
