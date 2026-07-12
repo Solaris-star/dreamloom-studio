@@ -1460,6 +1460,7 @@
     "duplicateBookName": "已存在同名书籍，不能重复创建！",
     "editFailed": "编辑失败",
     "editSuccess": "编辑成功",
+    "createFailed": "创建失败",
     "createSuccess": "创建成功",
     "selectImageFailed": "选择图片失败",
     "color": {

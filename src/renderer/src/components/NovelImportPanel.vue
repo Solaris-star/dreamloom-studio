@@ -494,6 +494,9 @@ async function createDownloadedBook(book, chapters) {
     coverRemoteUrl: book.coverUrl || null
   })
   requireDownloadedBookCreateResult(createResult, safeName)
+  if (createResult.coverWarning) {
+    ElMessage.warning(`作品已创建，但封面未能保存：${createResult.coverWarning}`)
+  }
 
   const usedChapterNames = new Set()
   const firstChapterName = makeUniqueChapterName(chapters[0].title, usedChapterNames, '第1章')

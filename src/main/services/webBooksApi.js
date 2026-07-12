@@ -24,7 +24,8 @@ const IMAGE_CONTENT_TYPE_EXTENSION = {
   'image/gif': 'gif',
   'image/avif': 'avif'
 }
-const ALLOWED_IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'])
+const MAX_COVER_BYTES = 10 * 1024 * 1024
+const COVER_DOWNLOAD_TIMEOUT_MS = 15000
 const BOOK_ROLE = {
   CREATIVE: 'creative',
   DOWNLOADED: 'downloaded'
@@ -366,58 +367,101 @@ function extensionFromImageMime(mimeType, fallback = 'jpg') {
   return IMAGE_CONTENT_TYPE_EXTENSION[String(mimeType || '').split(';')[0]] || fallback
 }
 
-function extensionFromImageSource(source, fallback = 'jpg') {
-  const value = String(source || '')
-  const dataUrlMatch = value.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/)
-  if (dataUrlMatch) return extensionFromImageMime(dataUrlMatch[1], fallback)
-  const ext = value.split('?')[0].split('#')[0].split('.').pop()?.toLowerCase()
-  if (!ext) return fallback
-  const normalized = ext === 'jpeg' ? 'jpg' : ext
-  return ALLOWED_IMAGE_EXTENSIONS.has(normalized) ? normalized : fallback
-}
-
-function removeBookCover(bookPath, coverUrl, skipPath = '') {
+function removeBookCover(bookPath, coverUrl) {
   if (!coverUrl) return
-  const oldCoverPath = join(bookPath, coverUrl)
+  const root = resolve(bookPath)
+  const oldCoverPath = resolve(root, String(coverUrl))
+  const relativePath = relative(root, oldCoverPath)
+  if (!relativePath || relativePath.startsWith('..') || isAbsolute(relativePath)) {
+    throw new Error('封面文件路径无效')
+  }
   if (!fs.existsSync(oldCoverPath)) return
-  if (skipPath && resolve(oldCoverPath) === resolve(skipPath)) return
   fs.unlinkSync(oldCoverPath)
 }
 
-function writeDataUrlCover(bookPath, imageData) {
+function parseCoverDataUrl(imageData) {
   const match = String(imageData || '').match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,([\s\S]+)$/)
-  if (!match) return ''
+  if (!match) throw new Error('封面图片必须通过网页上传')
   const [, mimeType, base64Data] = match
-  const coverFileName = `cover.${extensionFromImageMime(mimeType)}`
-  fs.writeFileSync(join(bookPath, coverFileName), Buffer.from(base64Data, 'base64'))
+  const extension = IMAGE_CONTENT_TYPE_EXTENSION[mimeType]
+  if (!extension) throw new Error('封面图片格式不受支持')
+  const buffer = Buffer.from(base64Data, 'base64')
+  if (!buffer.length) throw new Error('封面图片内容为空')
+  if (buffer.length > MAX_COVER_BYTES) throw new Error('封面图片不能超过 10 MB')
+  if (!matchesImageSignature(buffer, extension)) throw new Error('封面图片内容与格式不匹配')
+  return { buffer, extension }
+}
+
+function matchesImageSignature(buffer, extension) {
+  if (extension === 'jpg') {
+    return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff
+  }
+  if (extension === 'png') {
+    return buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex'))
+  }
+  if (extension === 'gif') {
+    const header = buffer.subarray(0, 6).toString('ascii')
+    return header === 'GIF87a' || header === 'GIF89a'
+  }
+  if (extension === 'webp') {
+    return (
+      buffer.length >= 12 &&
+      buffer.subarray(0, 4).toString('ascii') === 'RIFF' &&
+      buffer.subarray(8, 12).toString('ascii') === 'WEBP'
+    )
+  }
+  if (extension === 'avif') {
+    return buffer.length >= 12 && buffer.subarray(4, 12).toString('ascii') === 'ftypavif'
+  }
+  return false
+}
+
+function writeDataUrlCover(bookPath, imageData) {
+  const { buffer, extension } = parseCoverDataUrl(imageData)
+  const coverFileName = `cover.${extension}`
+  fs.writeFileSync(join(bookPath, coverFileName), buffer)
   return coverFileName
 }
 
 function saveCoverImageSource(bookPath, source, existingCoverUrl = '') {
   const value = String(source || '').trim()
   if (!value) return ''
-  if (value.startsWith('data:image/')) {
-    const coverFileName = writeDataUrlCover(bookPath, value)
-    if (coverFileName && existingCoverUrl && existingCoverUrl !== coverFileName) {
-      removeBookCover(bookPath, existingCoverUrl)
-    }
-    return coverFileName
-  }
-  if (!fs.existsSync(value)) return ''
-
-  const ext = extensionFromImageSource(value)
-  const coverFileName = `cover.${ext}`
-  const coverPath = join(bookPath, coverFileName)
-  const srcResolved = resolve(value)
-  const destResolved = resolve(coverPath)
-
+  const coverFileName = writeDataUrlCover(bookPath, value)
   if (existingCoverUrl && existingCoverUrl !== coverFileName) {
-    removeBookCover(bookPath, existingCoverUrl, srcResolved)
-  }
-  if (srcResolved !== destResolved) {
-    fs.copyFileSync(value, coverPath)
+    removeBookCover(bookPath, existingCoverUrl)
   }
   return coverFileName
+}
+
+function requireRemoteCoverUrl(value) {
+  let url
+  try {
+    url = new URL(String(value || '').trim())
+  } catch {
+    throw new Error('远程封面地址无效')
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error('远程封面只支持 HTTP 或 HTTPS 地址')
+  }
+  return url
+}
+
+async function downloadRemoteCover(source) {
+  const url = requireRemoteCoverUrl(source)
+  const response = await fetch(url, { signal: AbortSignal.timeout(COVER_DOWNLOAD_TIMEOUT_MS) })
+  if (!response.ok) throw new Error(`远程封面下载失败：HTTP ${response.status}`)
+  const contentType = response.headers.get('content-type')?.split(';')[0] || ''
+  const extension = IMAGE_CONTENT_TYPE_EXTENSION[contentType]
+  if (!extension) throw new Error('远程封面返回的不是受支持的图片')
+  const declaredSize = Number(response.headers.get('content-length'))
+  if (Number.isFinite(declaredSize) && declaredSize > MAX_COVER_BYTES) {
+    throw new Error('远程封面不能超过 10 MB')
+  }
+  const buffer = Buffer.from(await response.arrayBuffer())
+  if (buffer.length < 8 * 1024) throw new Error('封面图片过小，可能是站点占位图')
+  if (buffer.length > MAX_COVER_BYTES) throw new Error('远程封面不能超过 10 MB')
+  if (!matchesImageSignature(buffer, extension)) throw new Error('远程封面内容与格式不匹配')
+  return { buffer, extension }
 }
 
 function getBookPath(booksDir, bookName) {
@@ -735,30 +779,25 @@ export async function createBook(bookInfo, booksDir) {
   }
 
   let coverUrl = bookInfo.coverUrl || null
+  let coverWarning = ''
   if (bookInfo.coverImagePath) {
-    const savedCoverUrl = saveCoverImageSource(bookPath, bookInfo.coverImagePath)
-    if (savedCoverUrl) coverUrl = savedCoverUrl
+    try {
+      const savedCoverUrl = saveCoverImageSource(bookPath, bookInfo.coverImagePath)
+      if (savedCoverUrl) coverUrl = savedCoverUrl
+    } catch (error) {
+      fs.rmSync(bookPath, { recursive: true, force: true })
+      return { success: false, message: error.message || '封面图片保存失败' }
+    }
   }
   if (!coverUrl && bookInfo.coverRemoteUrl) {
     try {
-      const cover = await fetch(String(bookInfo.coverRemoteUrl))
-      if (cover.ok) {
-        const arrayBuffer = await cover.arrayBuffer()
-        if (arrayBuffer.byteLength < 8 * 1024) {
-          throw new Error('封面图片过小，可能是站点占位图')
-        }
-        const urlExt = String(bookInfo.coverRemoteUrl).split('?')[0].split('.').pop()?.toLowerCase()
-        const contentType = cover.headers.get('content-type')?.split(';')[0] || ''
-        const contentTypeExt = IMAGE_CONTENT_TYPE_EXTENSION[contentType]
-        const ext = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'].includes(urlExt)
-          ? urlExt.replace('jpeg', 'jpg')
-          : contentTypeExt || 'jpg'
-        const coverFileName = `cover.${ext}`
-        fs.writeFileSync(join(bookPath, coverFileName), Buffer.from(arrayBuffer))
-        coverUrl = coverFileName
-      }
+      const { buffer, extension } = await downloadRemoteCover(bookInfo.coverRemoteUrl)
+      const coverFileName = `cover.${extension}`
+      fs.writeFileSync(join(bookPath, coverFileName), buffer)
+      coverUrl = coverFileName
     } catch (error) {
       console.error('Web 端下载小说封面失败:', error)
+      coverWarning = error?.message || '远程封面下载失败'
     }
   }
 
@@ -824,7 +863,8 @@ export async function createBook(bookInfo, booksDir) {
       project,
       documentRecord
     }),
-    bookIdeaRun
+    bookIdeaRun,
+    coverWarning
   }
 }
 

@@ -399,7 +399,14 @@ async function handleConfirm() {
     }
     ElMessage.success(t('bookshelf.editSuccess'))
   } else {
-    await createBook(bookData)
+    const result = await createBook(bookData)
+    if (!result.success) {
+      ElMessage.error(result.message || t('bookshelf.createFailed'))
+      return
+    }
+    if (result.coverWarning) {
+      ElMessage.warning(result.coverWarning)
+    }
     ElMessage.success(t('bookshelf.createSuccess'))
   }
   dialogVisible.value = false

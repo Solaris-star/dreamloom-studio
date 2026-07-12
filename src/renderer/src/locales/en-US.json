@@ -1460,6 +1460,7 @@
     "duplicateBookName": "A book with the same name already exists",
     "editFailed": "Edit failed",
     "editSuccess": "Edited successfully",
+    "createFailed": "Create failed",
     "createSuccess": "Created successfully",
     "selectImageFailed": "Failed to select image",
     "color": {
