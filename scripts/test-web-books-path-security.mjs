@@ -5,10 +5,15 @@ import { join } from 'node:path'
 import {
   checkChapterExists,
   createBook,
+  createNote,
+  deleteNotebook,
   deleteNote,
+  editNote,
   editNode,
   readChapter,
   readNote,
+  renameNote,
+  renameNotebook,
   saveChapter,
   upsertChapter
 } from '../src/main/services/webBooksApi.js'
@@ -62,6 +67,43 @@ try {
   )
   await assert.rejects(
     () => deleteNote({ bookName, notebookName: '随笔', noteName: '../outside' }, booksDir),
+    /笔记名称无效/
+  )
+  await assert.rejects(
+    () => createNote({ bookName, notebookName: '..', noteName: '越界笔记' }, booksDir),
+    /路径名称/
+  )
+  await assert.rejects(
+    () => createNote({ bookName, notebookName: '随笔', noteName: '目录/笔记' }, booksDir),
+    /笔记名称无效/
+  )
+  await assert.rejects(
+    () => deleteNotebook({ bookName, notebookName: '..' }, booksDir),
+    /路径名称/
+  )
+  await assert.rejects(
+    () => renameNotebook({ bookName, oldName: '随笔', newName: '..\\outside' }, booksDir),
+    /路径名称/
+  )
+  await assert.rejects(
+    () =>
+      renameNote({
+        bookName,
+        notebookName: '随笔',
+        oldName: '记录',
+        newName: '../outside'
+      }, booksDir),
+    /笔记名称无效/
+  )
+  await assert.rejects(
+    () =>
+      editNote({
+        bookName,
+        notebookName: '随笔',
+        noteName: '记录',
+        newName: 'outside\0.txt',
+        content: '覆盖'
+      }, booksDir),
     /笔记名称无效/
   )
   const invalidBook = await createBook({ name: '..' }, booksDir)
