@@ -490,6 +490,55 @@ test('小说下载不会重复提交或写入失败章节', async ({ page }) => 
   expect(savedChapters).toEqual(['第一章\n\n可用正文'])
 })
 
+test('写作目标保存不会重复提交或误报成功', async ({ page }) => {
+  let createRequests = 0
+  let goals = []
+  await page.route('**/api/goals/list', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, items: goals })
+    })
+  })
+  await page.route('**/api/goals/create', async (route) => {
+    createRequests += 1
+    if (createRequests === 1) {
+      await new Promise((resolvePromise) => setTimeout(resolvePromise, 400))
+      const payload = await route.request().postDataJSON()
+      goals = [{ ...payload, id: 'e2e-goal', currentValue: 0 }]
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, item: goals[0] })
+      })
+      return
+    }
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ success: false, message: '写作目标保存失败' })
+    })
+  })
+
+  await page.goto('/#/analytics/goals')
+  await page.getByRole('button', { name: '创建目标' }).click()
+  const dialog = page.getByRole('dialog', { name: '创建目标' })
+  await dialog.getByLabel('目标名称').fill('每日写作测试')
+  const saveButton = dialog.getByRole('button', { name: '保存' })
+  await saveButton.evaluate((button) => {
+    button.click()
+    button.click()
+  })
+  await expect(saveButton).toBeDisabled()
+  await expect(page.getByText('目标已保存')).toBeVisible()
+  await expect.poll(() => createRequests).toBe(1)
+
+  await page.getByRole('button', { name: '创建目标' }).click()
+  const failedDialog = page.getByRole('dialog', { name: '创建目标' })
+  await failedDialog.getByLabel('目标名称').fill('失败目标测试')
+  await failedDialog.getByRole('button', { name: '保存' }).click()
+  await expect(page.getByText('写作目标保存失败')).toBeVisible()
+  await expect(failedDialog).toBeVisible()
+  await expect.poll(() => createRequests).toBe(2)
+})
+
 test('图库连续拖入时不会重复上传', async ({ page }, testInfo) => {
   let importRequests = 0
   const bookName = testBookName(testInfo.project.name)

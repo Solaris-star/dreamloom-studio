@@ -152,7 +152,7 @@
           <div class="info-card goals-card">
             <div class="card-header">
               <h3>{{ t('statistics.goals') }}</h3>
-              <el-button type="primary" link @click="handleAddGoal">
+              <el-button type="primary" link :disabled="goalActionBusy" @click="handleAddGoal">
                 <Plus :size="16" />
                 {{ t('statistics.createGoal') }}
               </el-button>
@@ -181,8 +181,20 @@
                   >
                   <span>还差 {{ formatNumber(goal.remaining) }} 字</span>
                   <div class="goal-actions">
-                    <el-button size="small" link @click="handleEditGoal(goal)">编辑</el-button>
-                    <el-button size="small" link type="danger" @click="handleDeleteGoal(goal)"
+                    <el-button
+                      size="small"
+                      link
+                      :disabled="goalActionBusy"
+                      @click="handleEditGoal(goal)"
+                      >编辑</el-button
+                    >
+                    <el-button
+                      size="small"
+                      link
+                      type="danger"
+                      :loading="deletingGoalId === goal.id"
+                      :disabled="goalActionBusy && deletingGoalId !== goal.id"
+                      @click="handleDeleteGoal(goal)"
                       >删除</el-button
                     >
                   </div>
@@ -257,7 +269,7 @@
         <div v-if="activeSection === 'goals'" class="info-card goals-card">
           <div class="card-header">
             <h3>{{ t('statistics.goals') }}</h3>
-            <el-button type="primary" link @click="handleAddGoal">
+            <el-button type="primary" link :disabled="goalActionBusy" @click="handleAddGoal">
               <Plus :size="16" />
               {{ t('statistics.createGoal') }}
             </el-button>
@@ -286,8 +298,20 @@
                 >
                 <span>还差 {{ formatNumber(goal.remaining) }} 字</span>
                 <div class="goal-actions">
-                  <el-button size="small" link @click="handleEditGoal(goal)">编辑</el-button>
-                  <el-button size="small" link type="danger" @click="handleDeleteGoal(goal)"
+                  <el-button
+                    size="small"
+                    link
+                    :disabled="goalActionBusy"
+                    @click="handleEditGoal(goal)"
+                    >编辑</el-button
+                  >
+                  <el-button
+                    size="small"
+                    link
+                    type="danger"
+                    :loading="deletingGoalId === goal.id"
+                    :disabled="goalActionBusy && deletingGoalId !== goal.id"
+                    @click="handleDeleteGoal(goal)"
                     >删除</el-button
                   >
                 </div>
@@ -378,6 +402,9 @@
     <el-dialog
       v-model="goalDialogVisible"
       :title="editingGoalId ? t('statistics.editGoal') : t('statistics.createGoal')"
+      :close-on-click-modal="!goalSaving"
+      :close-on-press-escape="!goalSaving"
+      :show-close="!goalSaving"
       width="520px"
       @closed="resetGoalForm"
     >
@@ -447,8 +474,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="goalDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmitGoal">保存</el-button>
+        <el-button :disabled="goalSaving" @click="goalDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="goalSaving" @click="handleSubmitGoal">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -507,6 +534,9 @@ const statisticsReadError = ref('')
 const isLoadingStatistics = ref(false)
 const isTrendLoading = ref(false)
 const isUsageLoading = ref(false)
+const goalSaving = ref(false)
+const deletingGoalId = ref('')
+const goalActionBusy = computed(() => goalSaving.value || Boolean(deletingGoalId.value))
 
 const goalDialogVisible = ref(false)
 const editingGoalId = ref('')
@@ -542,6 +572,7 @@ const retryLoadAllData = () => {
 }
 
 const handleAddGoal = () => {
+  if (goalActionBusy.value) return
   editingGoalId.value = ''
   resetGoalForm()
   goalForm.bookId = selectedBook.value || ''
@@ -549,6 +580,7 @@ const handleAddGoal = () => {
 }
 
 const handleEditGoal = (goal) => {
+  if (goalActionBusy.value) return
   editingGoalId.value = goal.id
   Object.assign(goalForm, {
     title: goal.title,
@@ -563,6 +595,8 @@ const handleEditGoal = (goal) => {
 }
 
 const handleDeleteGoal = async (goal) => {
+  if (goalActionBusy.value) return
+  deletingGoalId.value = goal.id
   try {
     await ElMessageBox.confirm(`确定删除「${goal.title}」吗？`, t('statistics.deleteGoal'), {
       type: 'warning',
@@ -576,10 +610,13 @@ const handleDeleteGoal = async (goal) => {
     if (error !== 'cancel') {
       ElMessage.error(error?.message || '删除失败')
     }
+  } finally {
+    if (deletingGoalId.value === goal.id) deletingGoalId.value = ''
   }
 }
 
 const handleSubmitGoal = async () => {
+  if (goalActionBusy.value) return
   if (!goalForm.title.trim()) {
     ElMessage.warning('请输入目标名称')
     return
@@ -589,6 +626,7 @@ const handleSubmitGoal = async () => {
     return
   }
 
+  goalSaving.value = true
   try {
     const payload = { ...goalForm, title: goalForm.title.trim() }
     if (editingGoalId.value) {
@@ -601,6 +639,8 @@ const handleSubmitGoal = async () => {
     await loadGoals()
   } catch (error) {
     ElMessage.error(error?.message || '保存失败')
+  } finally {
+    goalSaving.value = false
   }
 }
 

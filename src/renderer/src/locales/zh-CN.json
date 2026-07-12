@@ -1473,6 +1473,30 @@
       "navy": "藏青"
     }
   },
+  "statistics": {
+    "aiTokens": "AI Token",
+    "aiUsage": "AI 使用",
+    "allBooks": "全部作品",
+    "createGoal": "创建目标",
+    "days": "天",
+    "deleteGoal": "删除目标",
+    "editGoal": "编辑目标",
+    "goalDeadline": "截止日期",
+    "goalName": "目标名称",
+    "goals": "写作目标",
+    "goalTarget": "目标字数",
+    "heatmap": "写作热力图",
+    "last30Days": "最近 30 天",
+    "last7Days": "最近 7 天",
+    "loadFailed": "统计数据加载失败",
+    "monthWords": "本月字数",
+    "selectBook": "选择作品",
+    "streakDays": "连续写作",
+    "todayWords": "今日字数",
+    "totalWords": "总字数",
+    "trend": "写作趋势",
+    "words": "字"
+  },
   "book": {
     "wordCount": "字数：{count}",
     "updatedAt": "更新：{time}",

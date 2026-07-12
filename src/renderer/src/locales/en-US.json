@@ -1473,6 +1473,30 @@
       "navy": "Navy"
     }
   },
+  "statistics": {
+    "aiTokens": "AI Tokens",
+    "aiUsage": "AI Usage",
+    "allBooks": "All books",
+    "createGoal": "Create goal",
+    "days": "days",
+    "deleteGoal": "Delete goal",
+    "editGoal": "Edit goal",
+    "goalDeadline": "Deadline",
+    "goalName": "Goal name",
+    "goals": "Writing goals",
+    "goalTarget": "Target words",
+    "heatmap": "Writing heatmap",
+    "last30Days": "Last 30 days",
+    "last7Days": "Last 7 days",
+    "loadFailed": "Failed to load statistics",
+    "monthWords": "Words this month",
+    "selectBook": "Select a book",
+    "streakDays": "Writing streak",
+    "todayWords": "Words today",
+    "totalWords": "Total words",
+    "trend": "Writing trend",
+    "words": "words"
+  },
   "book": {
     "wordCount": "Words: {count}",
     "updatedAt": "Updated: {time}",
