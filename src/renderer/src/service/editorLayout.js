@@ -16,6 +16,16 @@ export function getEditorDevice(width) {
   return 'desktop'
 }
 
+export function getEditorPanelVisibility(device, focusMode = false) {
+  if (focusMode) return { left: false, right: false }
+  if (device === 'mobile') return { left: false, right: false }
+  return { left: true, right: true }
+}
+
+export function shouldExitEditorFocusMode(event, focusMode = false) {
+  return focusMode === true && event?.key === 'Escape' && !event.defaultPrevented
+}
+
 export function createEditorLayoutKey(bookName, device) {
   const safeBookName = encodeURIComponent(String(bookName || 'default').trim() || 'default')
   const safeDevice = ['mobile', 'tablet', 'desktop'].includes(device) ? device : 'desktop'

@@ -1,7 +1,10 @@
 <template>
   <div
     class="editor-container"
-    :class="{ 'is-focus-mode': focusMode }"
+    :class="{
+      'is-focus-mode': focusMode,
+      'are-side-panels-hidden': !panelVisibility.left
+    }"
     :style="editorReadingStyle"
   >
     <el-splitter>
@@ -109,7 +112,16 @@
 </template>
 
 <script setup>
-import { computed, ref, nextTick, onDeactivated, onMounted, onBeforeUnmount, watch } from 'vue'
+import {
+  computed,
+  ref,
+  nextTick,
+  onActivated,
+  onDeactivated,
+  onMounted,
+  onBeforeUnmount,
+  watch
+} from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 
@@ -121,8 +133,10 @@ import FloatingQuickActions from '@renderer/components/Editor/FloatingQuickActio
 import {
   createEditorLayoutKey,
   getEditorDevice,
+  getEditorPanelVisibility,
   normalizeEditorLayout,
-  readEditorLayout
+  readEditorLayout,
+  shouldExitEditorFocusMode
 } from '@renderer/service/editorLayout'
 
 const route = useRoute()
@@ -152,14 +166,9 @@ onMounted(() => {
   if (bookName.value) {
     document.title = `${bookName.value} - 织梦工坊`
   }
-  window.addEventListener('refresh-chapters-requested', refreshChapters)
   void nextTick(() => {
     refreshNotes()
   })
-})
-
-onDeactivated(() => {
-  window.removeEventListener('refresh-chapters-requested', refreshChapters)
 })
 
 const editorPanelRef = ref(null)
@@ -174,6 +183,9 @@ const rightPanelSize = ref(180)
 const lastLeftPanelSize = ref(240)
 const lastRightPanelSize = ref(180)
 const focusMode = ref(false)
+const panelVisibility = computed(() =>
+  getEditorPanelVisibility(editorDevice.value, focusMode.value)
+)
 const catalogVisible = ref(false)
 const readingSettingsVisible = ref(false)
 const mobileToolsVisible = ref(false)
@@ -319,20 +331,38 @@ function handleViewportResize() {
   viewportWidth.value = window.innerWidth
 }
 
+function handleEditorKeydown(event) {
+  if (!shouldExitEditorFocusMode(event, focusMode.value)) return
+  event.preventDefault()
+  toggleFocusMode()
+}
+
+function attachWindowListeners() {
+  window.addEventListener('refresh-chapters-requested', refreshChapters)
+  window.addEventListener('resize', handleViewportResize)
+  window.addEventListener('keydown', handleEditorKeydown)
+}
+
+function detachWindowListeners() {
+  window.removeEventListener('refresh-chapters-requested', refreshChapters)
+  window.removeEventListener('resize', handleViewportResize)
+  window.removeEventListener('keydown', handleEditorKeydown)
+}
+
 watch(
   [leftPanelSize, rightPanelSize, lastLeftPanelSize, lastRightPanelSize, focusMode, readingSettings],
   persistLayout,
   { deep: true }
 )
 
-onMounted(() => {
-  window.addEventListener('resize', handleViewportResize)
+onActivated(() => {
+  detachWindowListeners()
+  attachWindowListeners()
   handleViewportResize()
 })
 
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', handleViewportResize)
-})
+onDeactivated(detachWindowListeners)
+onBeforeUnmount(detachWindowListeners)
 
 // function handleSelectFile(file) {
 //   // 预留：可做高亮、聚焦等
@@ -353,6 +383,19 @@ onBeforeUnmount(() => {
   bottom: 24px;
   z-index: 120;
   transition: right 180ms ease;
+}
+
+.editor-container.are-side-panels-hidden {
+  :deep(.editor-left-panel),
+  :deep(.editor-right-panel),
+  :deep(.el-splitter-bar) {
+    display: none;
+  }
+
+  :deep(.editor-main-panel) {
+    width: 100% !important;
+    flex-basis: 100% !important;
+  }
 }
 
 .catalog-volume {

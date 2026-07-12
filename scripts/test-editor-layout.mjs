@@ -2,13 +2,23 @@ import assert from 'node:assert/strict'
 import {
   createEditorLayoutKey,
   getEditorDevice,
+  getEditorPanelVisibility,
   normalizeEditorLayout,
-  readEditorLayout
+  readEditorLayout,
+  shouldExitEditorFocusMode
 } from '../src/renderer/src/service/editorLayout.js'
 
 assert.equal(getEditorDevice(390), 'mobile')
 assert.equal(getEditorDevice(768), 'tablet')
 assert.equal(getEditorDevice(1180), 'desktop')
+assert.deepEqual(getEditorPanelVisibility('desktop', false), { left: true, right: true })
+assert.deepEqual(getEditorPanelVisibility('tablet', false), { left: true, right: true })
+assert.deepEqual(getEditorPanelVisibility('mobile', false), { left: false, right: false })
+assert.deepEqual(getEditorPanelVisibility('desktop', true), { left: false, right: false })
+assert.equal(shouldExitEditorFocusMode({ key: 'Escape' }, true), true)
+assert.equal(shouldExitEditorFocusMode({ key: 'Escape', defaultPrevented: true }, true), false)
+assert.equal(shouldExitEditorFocusMode({ key: 'Enter' }, true), false)
+assert.equal(shouldExitEditorFocusMode({ key: 'Escape' }, false), false)
 assert.equal(
   createEditorLayoutKey('我的书', 'mobile'),
   'dreamloom:editor-layout:v2:%E6%88%91%E7%9A%84%E4%B9%A6:mobile'
