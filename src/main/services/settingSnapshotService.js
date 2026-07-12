@@ -113,6 +113,19 @@ function restoreSnapshot(bookPath, snapshotId) {
   return snapshot
 }
 
+function restoreSnapshotWithBackup(bookPath, snapshotId) {
+  const snapshots = loadSnapshots(bookPath)
+  const snapshot = snapshots.find((item) => item.id === snapshotId)
+  if (!snapshot) return null
+
+  const backup = createSnapshot(bookPath, {
+    name: '恢复前备份',
+    trigger: 'before_restore'
+  })
+  assertSaved(safeWriteJson(join(bookPath, 'settings.json'), snapshot.data), '设定恢复写入失败')
+  return { snapshot, backup }
+}
+
 function deleteSnapshot(bookPath, snapshotId) {
   const snapshots = loadSnapshots(bookPath)
   const index = snapshots.findIndex((s) => s.id === snapshotId)
@@ -163,6 +176,7 @@ export {
   listSnapshots,
   createSnapshot,
   restoreSnapshot,
+  restoreSnapshotWithBackup,
   deleteSnapshot,
   diffSnapshots,
   flattenSettingsData

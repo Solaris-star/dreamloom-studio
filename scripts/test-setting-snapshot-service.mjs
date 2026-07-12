@@ -7,7 +7,8 @@ import {
   deleteSnapshot,
   diffSnapshots,
   listSnapshots,
-  restoreSnapshot
+  restoreSnapshot,
+  restoreSnapshotWithBackup
 } from '../src/main/services/settingSnapshotService.js'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dreamloom-setting-snapshots-'))
@@ -33,13 +34,19 @@ try {
     { path: '世界', type: 'category', introduction: '新设定' }
   ])
 
-  assert.equal(restoreSnapshot(root, first.id).id, first.id)
+  const restored = restoreSnapshotWithBackup(root, first.id)
+  assert.equal(restored.snapshot.id, first.id)
+  assert.equal(restored.backup.name, '恢复前备份')
+  assert.equal(restored.backup.trigger, 'before_restore')
+  assert.equal(restored.backup.data.categories[0].introduction, '新设定')
   assert.equal(JSON.parse(fs.readFileSync(settingsPath, 'utf8')).categories[0].introduction, '旧设定')
+  assert.equal(restoreSnapshot(root, first.id).id, first.id)
   assert.equal(restoreSnapshot(root, 'missing'), null)
+  assert.equal(restoreSnapshotWithBackup(root, 'missing'), null)
 
   assert.equal(deleteSnapshot(root, second.id), true)
   assert.equal(deleteSnapshot(root, second.id), false)
-  assert.equal(listSnapshots(root).length, 1)
+  assert.equal(listSnapshots(root).length, 2)
 
   console.log('设定快照服务测试通过')
 } finally {

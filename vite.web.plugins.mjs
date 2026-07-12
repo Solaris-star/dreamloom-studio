@@ -20,8 +20,6 @@ import {
 import marketService from './src/main/services/marketService.js'
 import * as promptPresetService from './src/main/services/promptPresetService.js'
 import * as workbenchDatabaseService from './src/main/services/workbenchDatabaseService.js'
-import * as settingSnapshotService from './src/main/services/settingSnapshotService.js'
-import * as chapterVersionService from './src/main/services/chapterVersionService.js'
 import vectorService from './src/main/services/vectorService.js'
 import plotEvolutionAiService from './src/main/services/plotEvolutionAi.js'
 import settingTreeAiService from './src/main/services/settingTreeAi.js'
@@ -45,6 +43,7 @@ import { handleAssetRoute } from './src/main/webApi/assetRoutes.js'
 import { handleKnowledgeRoute } from './src/main/webApi/knowledgeRoutes.js'
 import { handleImportExportRoute } from './src/main/webApi/importExportRoutes.js'
 import { handleAgentQueueRoute } from './src/main/webApi/agentQueueRoutes.js'
+import { handleVersionSnapshotRoute } from './src/main/webApi/versionSnapshotRoutes.js'
 
 export function createWebServerPlugins() {
   const configuredBooksDir = String(process.env.NOVEL_BOOKS_DIR || '').trim()
@@ -675,6 +674,17 @@ export function createWebServerPlugins() {
               body,
               res,
               sendJson
+            })
+          ) {
+            return
+          } else if (
+            handleVersionSnapshotRoute({
+              path,
+              body,
+              res,
+              booksDir: getActiveBooksDir(),
+              sendJson,
+              resolveBookPath: resolveBookPathForWebPayload
             })
           ) {
             return
@@ -1391,90 +1401,6 @@ export function createWebServerPlugins() {
                   bookPath,
                   textProvider: provider.service
                 })
-              )
-            } else if (path === '/api/setting-snapshots/list') {
-              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
-                ensure: true
-              })
-              sendJson(res, {
-                success: true,
-                snapshots: settingSnapshotService.listSnapshots(bookPath)
-              })
-            } else if (path === '/api/setting-snapshots/create') {
-              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
-                ensure: true
-              })
-              sendJson(res, {
-                success: true,
-                snapshot: settingSnapshotService.createSnapshot(bookPath, body || {})
-              })
-            } else if (path === '/api/setting-snapshots/restore') {
-              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
-                ensure: true
-              })
-              const snapshot = settingSnapshotService.restoreSnapshot(bookPath, body.snapshotId)
-              sendJson(
-                res,
-                snapshot
-                  ? { success: true, snapshot }
-                  : { success: false, message: '设定快照不存在' }
-              )
-            } else if (path === '/api/setting-snapshots/delete') {
-              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
-                ensure: true
-              })
-              const deleted = settingSnapshotService.deleteSnapshot(bookPath, body.snapshotId)
-              sendJson(
-                res,
-                deleted
-                  ? { success: true, deletedId: body.snapshotId }
-                  : { success: false, message: '设定快照不存在' }
-              )
-            } else if (path === '/api/setting-snapshots/diff') {
-              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
-                ensure: true
-              })
-              const diff = settingSnapshotService.diffSnapshots(
-                bookPath,
-                body.snapshotIdA,
-                body.snapshotIdB
-              )
-              sendJson(
-                res,
-                diff ? { success: true, diff } : { success: false, message: '设定快照不存在' }
-              )
-            } else if (path === '/api/editor-snapshots/create') {
-              const bookPath = resolveBookPathForWebPayload(
-                { ...body, bookName: body.bookName || body.bookId },
-                getActiveBooksDir(),
-                { ensure: true }
-              )
-              sendJson(res, {
-                success: true,
-                snapshot: chapterVersionService.createChapterVersion(bookPath, body)
-              })
-            } else if (path === '/api/editor-snapshots/list') {
-              const bookPath = resolveBookPathForWebPayload(
-                { ...body, bookName: body.bookName || body.bookId },
-                getActiveBooksDir(),
-                { ensure: true }
-              )
-              sendJson(res, {
-                success: true,
-                snapshots: chapterVersionService.listChapterVersions(bookPath, body.chapterId)
-              })
-            } else if (path === '/api/editor-snapshots/delete') {
-              const bookPath = resolveBookPathForWebPayload(
-                { ...body, bookName: body.bookName || body.bookId },
-                getActiveBooksDir(),
-                { ensure: true }
-              )
-              const deleted = chapterVersionService.deleteChapterVersion(bookPath, body)
-              sendJson(
-                res,
-                deleted
-                  ? { success: true, snapshotId: body.snapshotId }
-                  : { success: false, message: '章节版本不存在' }
               )
             } else if (path === '/api/prompts/list') {
               sendJson(res, {
