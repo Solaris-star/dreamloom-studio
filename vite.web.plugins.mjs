@@ -47,6 +47,7 @@ import { handleVectorRoute } from './src/main/webApi/vectorRoutes.js'
 import { handleSettingsRoute } from './src/main/webApi/settingsRoutes.js'
 import { handlePromptRoute } from './src/main/webApi/promptRoutes.js'
 import { handleNovelDownloadRoute } from './src/main/webApi/novelDownloadRoutes.js'
+import { handleAuthRoute } from './src/main/webApi/authRoutes.js'
 import { setWebBooksDirectory } from './src/main/services/webBooksDirectoryService.js'
 
 export function createWebServerPlugins() {
@@ -112,6 +113,12 @@ export function createWebServerPlugins() {
       'Set-Cookie',
       'dreamloom_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0'
     )
+  }
+
+  function createAuthSession(password) {
+    const token = randomBytes(32).toString('hex')
+    authSessions.set(token, { passwordHash: passwordDigest(password).toString('hex') })
+    return token
   }
 
   function readJsonBody(req) {
@@ -498,36 +505,21 @@ export function createWebServerPlugins() {
         }
 
         const path = req.url.split('?')[0]
-        if (path === '/api/auth/status') {
-          const auth = getAuthenticatedSession(req)
-          const password = getBookshelfPassword()
-          const hint = password
-            ? password.length <= 4
-              ? '****'
-              : `${password.slice(0, 2)}****${password.slice(-2)}`
-            : ''
-          sendJson(res, { success: true, ...auth, hint })
-          return
-        }
-        if (path === '/api/auth/login') {
-          const password = getBookshelfPassword()
-          if (!password) {
-            sendJson(res, { success: true, authenticated: true, passwordConfigured: false })
-            return
-          }
-          if (!passwordsMatch(body.password, password)) {
-            sendJson(res, { success: false, message: '密码错误' }, 401)
-            return
-          }
-          const token = randomBytes(32).toString('hex')
-          authSessions.set(token, { passwordHash: passwordDigest(password).toString('hex') })
-          setAuthCookie(res, token)
-          sendJson(res, { success: true, authenticated: true, passwordConfigured: true })
-          return
-        }
-        if (path === '/api/auth/logout') {
-          clearAuthCookie(req, res)
-          sendJson(res, { success: true })
+        if (
+          handleAuthRoute({
+            path,
+            body,
+            req,
+            res,
+            sendJson,
+            getAuthenticatedSession,
+            getBookshelfPassword,
+            passwordsMatch,
+            createSession: createAuthSession,
+            setAuthCookie,
+            clearAuthCookie
+          })
+        ) {
           return
         }
         if (!getAuthenticatedSession(req).authenticated) {
