@@ -290,7 +290,13 @@ test('图库删除检查引用期间不会重复提交', async ({ page, request 
       contentType: 'application/json',
       body: JSON.stringify({
         success: true,
-        references: [{ file: 'mazi.json', fields: ['$.coverUrl'] }]
+        references: [
+          {
+            file: 'mazi.json',
+            fields: ['$.coverUrl'],
+            usages: [{ type: 'cover', label: '作品封面' }]
+          }
+        ]
       })
     })
   })
@@ -309,7 +315,7 @@ test('图库删除检查引用期间不会重复提交', async ({ page, request 
   await deleteButton.click()
   await deleteButton.click({ force: true })
 
-  await expect(page.getByText(/该图片仍被引用，不能删除.*mazi\.json/)).toBeVisible()
+  await expect(page.getByText(/该图片仍被引用，不能删除.*作品封面/)).toBeVisible()
   await expect.poll(() => referenceRequests).toBe(1)
   expect(deleteRequests).toBe(0)
 })

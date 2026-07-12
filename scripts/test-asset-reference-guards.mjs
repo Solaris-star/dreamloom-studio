@@ -54,13 +54,25 @@ try {
   assert.ok(sceneAsset)
   assert.ok(coverAsset)
   assert.deepEqual(findAssetReferences(root, characterAsset.id), [
-    { file: 'characters.json', fields: ['$[0].imagePath', '$[0].gallery[0]'] }
+    {
+      file: 'characters.json',
+      fields: ['$[0].imagePath', '$[0].gallery[0]'],
+      usages: [{ type: 'character', label: '人物「林溪」' }]
+    }
   ])
   assert.deepEqual(findAssetReferences(root, sceneAsset.id), [
-    { file: 'scenes.json', fields: ['$[0].image'] }
+    {
+      file: 'scenes.json',
+      fields: ['$[0].image'],
+      usages: [{ type: 'scene', label: '场景「雨夜」' }]
+    }
   ])
   assert.deepEqual(findAssetReferences(root, coverAsset.id), [
-    { file: 'mazi.json', fields: ['$.coverUrl', '$.alternateCover'] }
+    {
+      file: 'mazi.json',
+      fields: ['$.coverUrl', '$.alternateCover'],
+      usages: [{ type: 'cover', label: '作品封面' }]
+    }
   ])
   assert.throws(() => deleteAsset(root, characterAsset.id), /characters\.json.*imagePath/)
   assert.throws(() => deleteAsset(root, sceneAsset.id), /scenes\.json.*image/)

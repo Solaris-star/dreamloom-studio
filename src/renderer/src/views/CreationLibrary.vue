@@ -2364,7 +2364,10 @@ async function deleteImage(asset) {
 function formatAssetReferences(references) {
   return references
     .slice(0, 5)
-    .map((item) => `${item.file}（${(item.fields || []).join('、')}）`)
+    .map((item) => {
+      const labels = (item.usages || []).map((usage) => usage.label).filter(Boolean)
+      return labels.length ? labels.join('、') : `${item.file}（${(item.fields || []).join('、')}）`
+    })
     .join('；')
 }
 

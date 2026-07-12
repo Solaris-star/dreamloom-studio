@@ -182,6 +182,30 @@ function collectMatchingJsonPaths(value, candidates, jsonPath = '$', result = []
   return result
 }
 
+function referenceUsage(file, field, data) {
+  const normalizedFile = String(file || '').replaceAll('\\', '/')
+  if (normalizedFile === 'mazi.json' && /(?:cover|封面)/i.test(field)) {
+    return { type: 'cover', label: '作品封面' }
+  }
+
+  const indexed = field.match(/^\$\[(\d+)\]/)
+  const item = indexed && Array.isArray(data) ? data[Number(indexed[1])] : null
+  const subject = String(item?.name || item?.title || '').trim()
+  if (normalizedFile.endsWith('characters.json')) {
+    return { type: 'character', label: subject ? `人物「${subject}」` : '人物资料' }
+  }
+  if (normalizedFile.endsWith('scenes.json')) {
+    return { type: 'scene', label: subject ? `场景「${subject}」` : '场景资料' }
+  }
+  if (normalizedFile.endsWith('organizations.json')) {
+    return { type: 'organization', label: subject ? `组织「${subject}」` : '组织资料' }
+  }
+  if (normalizedFile.endsWith('maps.json')) {
+    return { type: 'map', label: subject ? `地图「${subject}」` : '地图资料' }
+  }
+  return { type: 'other', label: '作品资料' }
+}
+
 export function findAssetReferences(booksDir, id) {
   const filePath = getActiveAssetPath(booksDir, id)
   const assetRelativePath = relative(booksDir, filePath).replaceAll('\\', '/')
@@ -203,9 +227,11 @@ export function findAssetReferences(booksDir, id) {
     }
     const paths = collectMatchingJsonPaths(data, candidates)
     if (!paths.length) continue
+    const usages = paths.map((field) => referenceUsage(relative(bookPath, jsonFile), field, data))
     references.push({
       file: relative(bookPath, jsonFile).replaceAll('\\', '/'),
-      fields: [...new Set(paths)].slice(0, 10)
+      fields: [...new Set(paths)].slice(0, 10),
+      usages: [...new Map(usages.map((usage) => [`${usage.type}:${usage.label}`, usage])).values()]
     })
   }
   return references
