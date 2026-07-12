@@ -17,7 +17,6 @@ import {
   runConsistencyCheck,
   listConsistencyChecks
 } from './src/main/services/consistencyCheckService.js'
-import marketService from './src/main/services/marketService.js'
 import * as promptPresetService from './src/main/services/promptPresetService.js'
 import * as workbenchDatabaseService from './src/main/services/workbenchDatabaseService.js'
 import vectorService from './src/main/services/vectorService.js'
@@ -46,6 +45,7 @@ import { handleAgentQueueRoute } from './src/main/webApi/agentQueueRoutes.js'
 import { handleVersionSnapshotRoute } from './src/main/webApi/versionSnapshotRoutes.js'
 import { handleBookChapterRoute } from './src/main/webApi/bookChapterRoutes.js'
 import { handleStudioContentRoute } from './src/main/webApi/studioContentRoutes.js'
+import { handleMarketRoute } from './src/main/webApi/marketRoutes.js'
 
 export function createWebServerPlugins() {
   const configuredBooksDir = String(process.env.NOVEL_BOOKS_DIR || '').trim()
@@ -711,6 +711,16 @@ export function createWebServerPlugins() {
             })
           ) {
             return
+          } else if (
+            await handleMarketRoute({
+              path,
+              body,
+              res,
+              booksDir: getActiveBooksDir(),
+              sendJson
+            })
+          ) {
+            return
           } else if (path === '/api/books/cover' || path === '/api/books/image') {
               const url = new URL(req.url, 'http://localhost')
               const bookName = sanitizeText(url.searchParams.get('book'))
@@ -1041,108 +1051,6 @@ export function createWebServerPlugins() {
                 count += 1
               }
               sendJson(res, { success: true, count })
-            } else if (path === '/api/market/hotspots') {
-              sendJson(res, {
-                success: true,
-                items: marketService.listHotspots(getActiveBooksDir(), body || {})
-              })
-            } else if (path === '/api/market/hotspots/create') {
-              sendJson(res, marketService.createHotspot(getActiveBooksDir(), body || {}))
-            } else if (path === '/api/market/hotspots/update') {
-              sendJson(
-                res,
-                marketService.updateHotspot(getActiveBooksDir(), body.id, body.patch || {})
-              )
-            } else if (path === '/api/market/hotspots/save-to-knowledge') {
-              sendJson(res, marketService.saveHotspotToKnowledge(getActiveBooksDir(), body.id))
-            } else if (path === '/api/market/hotspots/create-topic-card') {
-              sendJson(res, marketService.createTopicCardFromHotspot(getActiveBooksDir(), body.id))
-            } else if (path === '/api/market/activities') {
-              sendJson(res, {
-                success: true,
-                items: marketService.listActivities(getActiveBooksDir(), body || {})
-              })
-            } else if (path === '/api/market/activities/create') {
-              sendJson(res, marketService.createActivity(getActiveBooksDir(), body || {}))
-            } else if (path === '/api/market/activities/update') {
-              sendJson(
-                res,
-                marketService.updateActivity(getActiveBooksDir(), body.id, body.patch || {})
-              )
-            } else if (path === '/api/market/activities/save-to-knowledge') {
-              sendJson(res, marketService.saveActivityToKnowledge(getActiveBooksDir(), body.id))
-            } else if (path === '/api/market/refresh') {
-              sendJson(res, await marketService.refreshMarketTrends(getActiveBooksDir(), body || {}))
-            } else if (path === '/api/market/activities/create-topic-card') {
-              sendJson(res, marketService.createTopicCardFromActivity(getActiveBooksDir(), body.id))
-            } else if (path === '/api/market/hot-topics') {
-              sendJson(res, {
-                success: true,
-                items: marketService.listHotTopics(getActiveBooksDir(), body || {})
-              })
-            } else if (path === '/api/market/trends') {
-              if (body.keyword) {
-                sendJson(res, {
-                  success: true,
-                  data: marketService.getTrendRecord(getActiveBooksDir(), body.keyword)
-                })
-              } else {
-                sendJson(res, {
-                  success: true,
-                  items: marketService.listTrendRecords(getActiveBooksDir(), body || {})
-                })
-              }
-            } else if (path === '/api/market/source-status') {
-              sendJson(res, {
-                success: true,
-                items: marketService.listSourceStatus(getActiveBooksDir())
-              })
-            } else if (path === '/api/market/opportunities') {
-              sendJson(res, {
-                success: true,
-                items: marketService.listMarketOpportunities(getActiveBooksDir(), body || {})
-              })
-            } else if (path === '/api/market/dashboard') {
-              sendJson(res, {
-                success: true,
-                ...marketService.getMarketDashboard(getActiveBooksDir(), body || {})
-              })
-            } else if (path === '/api/market/overview') {
-              sendJson(res, {
-                success: true,
-                ...marketService.getMarketOverview(getActiveBooksDir(), body || {})
-              })
-            } else if (path === '/api/market/hot-rank') {
-              sendJson(res, {
-                success: true,
-                ...marketService.getMarketHotRank(getActiveBooksDir(), body || {})
-              })
-            } else if (path === '/api/market/keyword-cloud') {
-              sendJson(res, {
-                success: true,
-                ...marketService.getMarketKeywordCloud(getActiveBooksDir(), body || {})
-              })
-            } else if (path === '/api/market/keyword-combination') {
-              sendJson(
-                res,
-                marketService.getMarketKeywordCombination(getActiveBooksDir(), body || {})
-              )
-            } else if (path === '/api/market/activities-board') {
-              sendJson(res, {
-                success: true,
-                ...marketService.getMarketActivities(getActiveBooksDir(), body || {})
-              })
-            } else if (path === '/api/market/save-inspiration') {
-              sendJson(res, marketService.saveInsightToKnowledge(getActiveBooksDir(), body || {}))
-            } else if (path === '/api/market/generate-outline') {
-              sendJson(
-                res,
-                marketService.generateOutlineFromInsight(getActiveBooksDir(), body || {})
-              )
-            } else if (path === '/api/market/apply-to-current-book') {
-              sendJson(res, marketService.applyInsightToBook(getActiveBooksDir(), body || {}))
-            } else if (path === '/api/market/create-book-from-insight') {
-              sendJson(res, marketService.createBookFromInsight(getActiveBooksDir(), body || {}))
             } else if (path === '/api/vector/search') {
               const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
                 ensure: true
