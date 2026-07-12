@@ -8,6 +8,7 @@ node_modules
 venv
 
 # Production
+coverage
 dist
 dist-web
 dist-ssr
