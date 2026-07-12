@@ -47,20 +47,19 @@ global.window = {
     throw new Error('不应在进度服务不可用时创建 WebSocket')
   },
   clearTimeout,
-  setTimeout,
-  electron: {
-    getEditorAgentProgressServer: async () => ({
-      success: false,
-      message: 'Web 预览没有启动 Agent 进度服务'
-    })
-  }
+  setTimeout
 }
 
-const progressSocket = useAgentTaskProgressSocket()
+const progressSocket = useAgentTaskProgressSocket({
+  getServerInfo: async () => ({
+    success: false,
+    message: 'Web 服务没有启动 Agent 进度服务'
+  })
+})
 progressSocket.connect({ bookName: '风雪试剑' })
 await new Promise((resolve) => setTimeout(resolve, 0))
 assert.equal(progressSocket.status.value, 'unavailable')
-assert.equal(progressSocket.error.value, 'Web 预览没有启动 Agent 进度服务')
+assert.equal(progressSocket.error.value, 'Web 服务没有启动 Agent 进度服务')
 assert.equal(progressSocket.currentUrl.value, '')
 
 function listenOnFreePort() {
