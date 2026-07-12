@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import JSZip from 'jszip'
 
 import {
   MAX_LOCAL_BOOK_FILE_SIZE,
@@ -70,6 +71,38 @@ assert.deepEqual(
   { success: 2, failed: 2 }
 )
 assert.deepEqual(summarizeLocalBookImportResults(), { success: 0, failed: 0 })
+
+const validDocx = new JSZip()
+validDocx.file(
+  '[Content_Types].xml',
+  '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'
+)
+validDocx.folder('_rels').file(
+  '.rels',
+  '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>'
+)
+validDocx.folder('word').file(
+  'document.xml',
+  '<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>第1章 雨夜</w:t></w:r></w:p><w:p><w:r><w:t>林舟推开旧书铺的门。</w:t></w:r></w:p><w:p><w:r><w:t>第2章 来信</w:t></w:r></w:p><w:p><w:r><w:t>柜台上放着一封信。</w:t></w:r></w:p></w:body></w:document>'
+)
+validDocx.folder('word').folder('_rels').file(
+  'document.xml.rels',
+  '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>'
+)
+const validDocxBuffer = await validDocx.generateAsync({ type: 'arraybuffer' })
+const parsedDocx = await parseLocalBookFile({
+  name: '旧书铺.docx',
+  size: validDocxBuffer.byteLength,
+  arrayBuffer: async () => validDocxBuffer
+})
+assert.equal(parsedDocx.title, '旧书铺')
+assert.equal(parsedDocx.extension, 'docx')
+assert.equal(parsedDocx.chapterCount, 2)
+assert.deepEqual(
+  parsedDocx.chapters.map((chapter) => chapter.title),
+  ['第1章 雨夜', '第2章 来信']
+)
+assert.equal(parsedDocx.chapters[0].content, '林舟推开旧书铺的门。')
 
 await assert.rejects(
   () =>

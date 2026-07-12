@@ -24,7 +24,7 @@
           accept=".txt,.md,.markdown,.docx,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           @change="handleFileChange"
         />
-        <el-button type="primary" :loading="parsing" @click="openFilePicker">
+        <el-button type="primary" :loading="parsing" :disabled="batchImporting" @click="openFilePicker">
           <Upload :size="16" />
           选择文件
         </el-button>
@@ -34,7 +34,12 @@
       </div>
     </div>
 
-    <label class="file-drop-zone" @dragover.prevent @drop.prevent="handleDrop">
+    <label
+      class="file-drop-zone"
+      :class="{ disabled: parsing || batchImporting }"
+      @dragover.prevent
+      @drop.prevent="handleDrop"
+    >
       <input
         class="file-input"
         type="file"
@@ -129,6 +134,10 @@ async function handleDrop(event) {
 }
 
 async function parseFiles(files) {
+  if (parsing.value || batchImporting.value) {
+    ElMessage.info('文件正在处理中，请稍候')
+    return
+  }
   const targets = files.filter((file) => isSupportedLocalBookFile(file))
   const skipped = files.length - targets.length
   if (skipped > 0) {
@@ -355,6 +364,11 @@ defineExpose({
   color: var(--wabi-muted);
   cursor: pointer;
   padding: 18px;
+
+  &.disabled {
+    cursor: wait;
+    opacity: 0.64;
+  }
 
   svg {
     color: var(--wabi-moss-dark);

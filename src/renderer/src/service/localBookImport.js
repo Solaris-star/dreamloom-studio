@@ -201,7 +201,11 @@ async function readDocxText(file) {
 
   let result
   try {
-    result = await mammoth.extractRawText({ arrayBuffer })
+    const input =
+      typeof globalThis.Buffer?.from === 'function'
+        ? { buffer: globalThis.Buffer.from(arrayBuffer) }
+        : { arrayBuffer }
+    result = await mammoth.extractRawText(input)
   } catch {
     throw new Error('DOCX 文件无法解析，请确认文件未损坏且未加密')
   }
