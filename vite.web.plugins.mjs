@@ -56,6 +56,8 @@ import { handleKnowledgeAiRoute } from './src/main/webApi/knowledgeAiRoutes.js'
 import { handleConsistencyRoute } from './src/main/webApi/consistencyRoutes.js'
 import { handleWritingSkillRoute } from './src/main/webApi/writingSkillRoutes.js'
 import { handleBookImageRoute } from './src/main/webApi/bookImageRoutes.js'
+import { handleCreativePlanningRoute } from './src/main/webApi/creativePlanningRoutes.js'
+import { createSnapshot as createSettingSnapshot } from './src/main/services/settingSnapshotService.js'
 import { setWebBooksDirectory } from './src/main/services/webBooksDirectoryService.js'
 
 export function createWebServerPlugins() {
@@ -200,40 +202,6 @@ export function createWebServerPlugins() {
       throw Object.assign(new Error('书籍目录不存在'), { statusCode: 404 })
     }
     return bookPath
-  }
-
-  function resolveOptionalBookPath(payload = {}) {
-    return payload.bookPath || payload.bookName
-      ? resolveBookPathForWebPayload(payload, getActiveBooksDir(), { ensure: true })
-      : ''
-  }
-
-  function createPlotProvider(selection = {}) {
-    const normalized =
-      typeof selection === 'string'
-        ? { providerId: selection }
-        : selection && typeof selection === 'object'
-          ? selection
-          : {}
-    const provider = createTextProvider(webStoreAdapter(), normalized)
-    return {
-      ...normalized,
-      id: provider.providerId,
-      providerId: provider.providerId,
-      model: provider.model,
-      service: provider.service
-    }
-  }
-
-  function toSettingTreeNode(node = {}) {
-    return {
-      name: sanitizeText(node.name),
-      description: sanitizeText(node.introduction || node.description),
-      children: [
-        ...(Array.isArray(node.children) ? node.children.map(toSettingTreeNode) : []),
-        ...(Array.isArray(node.items) ? node.items.map(toSettingTreeNode) : [])
-      ].filter((item) => item.name)
-    }
   }
 
   function inferWebBookNameFromPath(bookPath, booksDir) {
@@ -802,91 +770,29 @@ export function createWebServerPlugins() {
             })
           ) {
             return
-          } else if (path === '/api/setting-tree/apply') {
-              sendJson(res, {
-                success: false,
-                message: '设定树应用尚未提供安全的 Web 实现'
-              })
-            } else if (path === '/api/plot-evolution/evolve') {
-              const selections = Array.isArray(body.providerIds)
-                ? body.providerIds
-                : Array.isArray(body.providers)
-                  ? body.providers
-                  : []
-              const providers = selections.map(createPlotProvider)
-              const bookPath = resolveOptionalBookPath(body)
-              sendJson(
-                res,
-                await plotEvolutionAiService.evolvePlot({
-                  ...body,
-                  bookPath,
-                  providers
-                })
-              )
-            } else if (path === '/api/plot-evolution/regenerate') {
-              const selection = body.provider || {
-                providerId: body.providerId,
-                model: body.model || body.modelName
-              }
-              const provider = createPlotProvider(selection)
-              const bookPath = resolveOptionalBookPath(body)
-              sendJson(
-                res,
-                await plotEvolutionAiService.regenerateProposal({
-                  ...body,
-                  bookPath,
-                  provider
-                })
-              )
-            } else if (path === '/api/setting-tree/generate') {
+          } else if (
+            await handleCreativePlanningRoute({
+              path,
+              body,
+              res,
+              booksDir: getActiveBooksDir(),
+              sendJson,
+              store: webStoreAdapter(),
+              createProvider: createTextProvider,
+              resolveBookPath: resolveBookPathForWebPayload,
+              plotService: plotEvolutionAiService,
+              settingService: settingTreeAiService,
+              booksApi: webBooksApi,
+              createSettingSnapshot
+            })
+          ) {
+            return
+          } else if (path === '/api/ai/chat') {
               const provider = createTextProvider(webStoreAdapter(), body || {})
-              const bookPath = resolveOptionalBookPath(body)
-              const result = await settingTreeAiService.generateSettingTree(
-                {
-                  ...body,
-                  idea: body.idea || body.creativity,
-                  bookPath
-                },
-                provider.service
-              )
-              sendJson(res, {
-                success: true,
-                tree: result.categories.map(toSettingTreeNode),
-                usage: result.usage,
-                model: result.model,
-                providerId: result.providerId
-              })
-            } else if (path === '/api/setting-tree/regenerate-node') {
-              const provider = createTextProvider(webStoreAdapter(), body || {})
-              const bookPath = resolveOptionalBookPath(body)
-              const result = await settingTreeAiService.regenerateSettingNode(
-                {
-                  ...body,
-                  bookPath,
-                  nodeIntroduction: body.nodeIntroduction || body.nodeDescription
-                },
-                provider.service
-              )
-              const nodes = result.categories.map(toSettingTreeNode)
-              sendJson(res, {
-                success: true,
-                node:
-                  nodes.length === 1
-                    ? nodes[0]
-                    : {
-                        name: sanitizeText(body.nodeName),
-                        description: sanitizeText(
-                          body.nodeIntroduction || body.nodeDescription
-                        ),
-                        children: nodes
-                      },
-                usage: result.usage,
-                model: result.model,
-                providerId: result.providerId
-              })
-            } else if (path === '/api/ai/chat') {
-              const provider = createTextProvider(webStoreAdapter(), body || {})
-              const bookPath = resolveOptionalBookPath(body)
+              const bookPath =
+                body.bookPath || body.bookName
+                  ? resolveBookPathForWebPayload(body, getActiveBooksDir(), { ensure: true })
+                  : ''
               sendJson(
                 res,
                 await sendChatMessage({
