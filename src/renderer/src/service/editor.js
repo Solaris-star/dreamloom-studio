@@ -2,15 +2,6 @@ import { getAiProviders, getActiveTextProvider } from './aiProvider.js'
 import { postJson } from './webHttpClient.js'
 import { getStoreValue, setStoreValue } from './webStore.js'
 
-function getElectronApi(name, label = '编辑器接口') {
-  const api = globalThis.window?.electron?.[name]
-  if (api == null) return null
-  if (typeof api !== 'function') {
-    throw new Error(`当前环境没有可用的${label}：${name}`)
-  }
-  return api
-}
-
 function requireSuccessResult(response, label) {
   if (response?.success !== true) {
     throw new Error(response.message || `${label}失败`)
@@ -1083,37 +1074,11 @@ function fallbackDeepSeekBinding() {
 }
 
 async function getLegacyDeepSeekBinding() {
-  const getDeepSeekApiKey = getElectronApi('getDeepSeekApiKey', '旧版 DeepSeek 配置接口')
-  if (!getDeepSeekApiKey) return null
-  const response = await getDeepSeekApiKey()
-  if (response?.success !== true) {
-    throw new Error(response?.message || '读取旧版 DeepSeek 配置失败')
-  }
-  if (
-    typeof response.configured !== 'boolean' &&
-    response.apiKey !== null &&
-    typeof response.apiKey !== 'string'
-  ) {
-    throw new Error('读取旧版 DeepSeek 配置失败：接口返回格式不正确')
-  }
-  const apiKey = response?.apiKey || ''
-  return response?.configured || apiKey ? fallbackDeepSeekBinding() : null
+  const apiKey = String(await getStoreValue('deepseek.apiKey', ''))
+  return apiKey.trim() ? fallbackDeepSeekBinding() : null
 }
 
 export async function listModelBindings() {
-  const listEditorModelBindings = getElectronApi('listEditorModelBindings', '编辑器模型接口')
-  if (listEditorModelBindings) {
-    const response = await listEditorModelBindings()
-    requireArrayResult(response, 'bindings', '读取编辑器模型')
-    const bindings = response.bindings
-    const legacy = await getLegacyDeepSeekBinding()
-    const hasDeepSeek = bindings.some((item) => item.id === 'deepseek::deepseek-chat')
-    return {
-      ...response,
-      bindings: legacy && !hasDeepSeek ? [...bindings, legacy] : bindings
-    }
-  }
-
   const response = await getAiProviders()
   if (response?.success !== true) {
     throw new Error(response?.message || '读取 Provider 失败')
@@ -2388,56 +2353,32 @@ export async function appendAgentMessage(sessionId, message) {
 }
 
 export async function generateAgentPreview(payload = {}) {
-  const generateEditorAgent = getElectronApi('generateEditorAgent', '创作台 Agent 后端')
-  if (!generateEditorAgent) {
-    throw new Error('当前环境没有可用的创作台 Agent 后端，无法执行生成与审核流程')
-  }
-  const response = await generateEditorAgent(payload)
-  return requireAgentGenerationResult(response, '创作台 Agent 生成')
+  void payload
+  throw new Error('单次 Agent 生成已停用，请使用写作队列执行生成与审核')
 }
 
 export async function repairAgentResult(payload = {}) {
-  const repairEditorAgent = getElectronApi('repairEditorAgent', '创作台 Agent 后端')
-  if (!repairEditorAgent) {
-    throw new Error('当前环境没有可用的创作台 Agent 后端，无法执行返修流程')
-  }
-  const response = await repairEditorAgent(payload)
-  return requireAgentGenerationResult(response, '创作台 Agent 返修')
+  void payload
+  throw new Error('单次 Agent 返修已停用，请使用写作队列执行返修')
 }
 
 export async function cancelAgentGeneration(payload = {}) {
-  const cancelEditorAgent = getElectronApi('cancelEditorAgent', '创作台 Agent 后端')
-  if (!cancelEditorAgent) {
-    throw new Error('当前环境没有可用的创作台 Agent 后端，无法停止生成')
-  }
-  const response = await cancelEditorAgent(payload)
-  return requireCancelAgentGenerationResult(response, payload)
+  void payload
+  throw new Error('单次 Agent 生成已停用，请在写作队列中停止任务')
 }
 
 export async function listWritingSkills() {
-  const listWritingSkillsApi = getElectronApi('listWritingSkills', 'writing skill 后端')
-  if (!listWritingSkillsApi) {
-    throw new Error('当前环境没有可用的 writing skill 后端')
-  }
-  const response = await listWritingSkillsApi()
+  const response = await postJson('/api/editor-agent/writing-skills', {})
   return requireWritingSkillListResult(response)
 }
 
 export async function runWritingSkill(payload = {}) {
-  const runWritingSkillApi = getElectronApi('runWritingSkill', 'writing skill 后端')
-  if (!runWritingSkillApi) {
-    throw new Error('当前环境没有可用的 writing skill 后端')
-  }
-  const response = await runWritingSkillApi(payload)
+  const response = await postJson('/api/editor-agent/run-writing-skill', payload)
   return requireWritingSkillRunResult(response)
 }
 
 export async function enqueueAgentWriteTask(payload = {}) {
-  const enqueueEditorAgentWriteTask = getElectronApi('enqueueEditorAgentWriteTask', '写作队列后端')
-  if (!enqueueEditorAgentWriteTask) {
-    throw new Error('当前环境没有可用的写作队列后端')
-  }
-  const response = await enqueueEditorAgentWriteTask(payload)
+  const response = await postJson('/api/editor-agent/queue-write', payload)
   if (response?.success === true) {
     if (!response?.jobId || !response?.taskId) {
       throw new Error('提交写作队列失败：接口返回格式不正确')
@@ -2448,14 +2389,7 @@ export async function enqueueAgentWriteTask(payload = {}) {
 }
 
 export async function enqueueAgentRepairTask(payload = {}) {
-  const enqueueEditorAgentRepairTask = getElectronApi(
-    'enqueueEditorAgentRepairTask',
-    '返修队列后端'
-  )
-  if (!enqueueEditorAgentRepairTask) {
-    throw new Error('当前环境没有可用的返修队列后端')
-  }
-  const response = await enqueueEditorAgentRepairTask(payload)
+  const response = await postJson('/api/editor-agent/queue-repair', payload)
   if (response?.success === true) {
     if (!response?.jobId || !response?.taskId) {
       throw new Error('提交返修队列失败：接口返回格式不正确')
@@ -2466,11 +2400,7 @@ export async function enqueueAgentRepairTask(payload = {}) {
 }
 
 export async function getAgentQueueStatus() {
-  const getEditorAgentQueueStatus = getElectronApi('getEditorAgentQueueStatus', '写作队列后端')
-  if (!getEditorAgentQueueStatus) {
-    throw new Error('当前环境没有可用的写作队列后端')
-  }
-  const response = await getEditorAgentQueueStatus()
+  const response = await postJson('/api/editor-agent/queue-status', {})
   if (response?.success === true) {
     if (!response?.queueName || !response?.counts || typeof response.counts !== 'object') {
       throw new Error('读取写作队列状态失败：接口返回格式不正确')
@@ -2481,11 +2411,7 @@ export async function getAgentQueueStatus() {
 }
 
 export async function getAgentQueueJob(jobId) {
-  const getEditorAgentQueueJob = getElectronApi('getEditorAgentQueueJob', '写作队列后端')
-  if (!getEditorAgentQueueJob) {
-    throw new Error('当前环境没有可用的写作队列后端')
-  }
-  const response = await getEditorAgentQueueJob({ jobId })
+  const response = await postJson('/api/editor-agent/queue-job', { jobId })
   if (response?.success === true) {
     if (!('job' in (response || {}))) {
       throw new Error('读取写作队列任务失败：接口返回格式不正确')
@@ -2496,11 +2422,7 @@ export async function getAgentQueueJob(jobId) {
 }
 
 export async function listAgentQueueJobs(payload = {}) {
-  const listEditorAgentQueueJobs = getElectronApi('listEditorAgentQueueJobs', '写作队列后端')
-  if (!listEditorAgentQueueJobs) {
-    throw new Error('当前环境没有可用的写作队列后端')
-  }
-  const response = await listEditorAgentQueueJobs(payload)
+  const response = await postJson('/api/editor-agent/queue-jobs', payload)
   if (response?.success === true) {
     if (!Array.isArray(response?.jobs)) {
       throw new Error('读取写作队列任务列表失败：接口返回格式不正确')
@@ -2511,11 +2433,7 @@ export async function listAgentQueueJobs(payload = {}) {
 }
 
 export async function cancelAgentQueueJob(payload = {}) {
-  const cancelEditorAgentQueueJob = getElectronApi('cancelEditorAgentQueueJob', '写作队列后端')
-  if (!cancelEditorAgentQueueJob) {
-    throw new Error('当前环境没有可用的写作队列后端')
-  }
-  const response = await cancelEditorAgentQueueJob(payload)
+  const response = await postJson('/api/editor-agent/queue-cancel', payload)
   if (response?.success === true) {
     if (
       !response?.jobId ||
@@ -2532,20 +2450,12 @@ export async function cancelAgentQueueJob(payload = {}) {
 }
 
 export async function runConsistencyCheck(payload = {}) {
-  const runConsistencyCheck = getElectronApi('runConsistencyCheck', '一致性检查后端')
-  if (!runConsistencyCheck) {
-    throw new Error('当前环境没有可用的一致性检查后端')
-  }
-  const response = await runConsistencyCheck(payload)
+  const response = await postJson('/api/consistency/check', payload)
   return requireConsistencyCheckResult(response)
 }
 
 export async function listConsistencyChecks(payload = {}) {
-  const listConsistencyChecks = getElectronApi('listConsistencyChecks', '一致性检查后端')
-  if (!listConsistencyChecks) {
-    throw new Error('当前环境没有可用的一致性检查后端')
-  }
-  const response = await listConsistencyChecks(payload)
+  const response = await postJson('/api/consistency/list', payload)
   return requireConsistencyCheckListResult(response)
 }
 
@@ -2584,12 +2494,12 @@ export async function listAgentHistory(bookId) {
 }
 
 export async function listAgentTasks(payload = {}) {
-  const listEditorAgentTasks = getElectronApi('listEditorAgentTasks', 'Agent 任务记录后端')
-  if (!listEditorAgentTasks) {
-    throw new Error('当前环境没有可用的 Agent 任务记录后端')
-  }
-  const response = await listEditorAgentTasks(payload)
-  return requireArrayResult(response, 'tasks', '读取 Agent 任务记录')
+  const response = await postJson('/api/editor-agent/queue-jobs', payload)
+  return requireArrayResult(
+    { ...response, tasks: Array.isArray(response?.jobs) ? response.jobs : null },
+    'tasks',
+    '读取 Agent 任务记录'
+  )
 }
 
 export async function getAgentProgressServer() {

@@ -33,6 +33,10 @@ import settingTreeAiService from './src/main/services/settingTreeAi.js'
 import { sendChatMessage } from './src/main/services/aiChatService.js'
 import { requestWebAiProxy } from './src/main/services/webAiProxyService.js'
 import { getAgentTaskProgressServerInfo } from './src/main/services/agentTaskProgressWebSocket.js'
+import {
+  listInstalledWritingSkills,
+  runWritingSkill
+} from './src/main/services/writingAgentRunner.js'
 import bookIdeaAiService from './src/main/services/bookIdeaAi.js'
 import outlineChapterAiService from './src/main/services/outlineChapterAi.js'
 import {
@@ -989,6 +993,23 @@ export function createWebServerPlugins() {
                 )
               } catch (error) {
                 sendJson(res, { success: false, message: queueUnavailableMessage(error) })
+              }
+            } else if (path === '/api/editor-agent/writing-skills') {
+              sendJson(res, listInstalledWritingSkills())
+            } else if (path === '/api/editor-agent/run-writing-skill') {
+              try {
+                sendJson(
+                  res,
+                  await runWritingSkill({
+                    ...(body || {}),
+                    booksDir: getActiveBooksDir()
+                  })
+                )
+              } catch (error) {
+                sendJson(res, {
+                  success: false,
+                  message: error instanceof Error ? error.message : String(error)
+                })
               }
             } else if (path === '/api/setting-tree/apply') {
               sendJson(res, {

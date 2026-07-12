@@ -120,6 +120,11 @@ assert.doesNotMatch(
   /requireElectronApi\(/,
   '编辑器服务不能保留强制 Electron 调用'
 )
+assert.doesNotMatch(
+  editorServiceSource,
+  /getElectronApi\(|window\.electron/,
+  '编辑器服务必须只使用 Web API 和 Web Store'
+)
 for (const method of [
   'setEditorModelDefault',
   'createNotebook',
