@@ -83,6 +83,30 @@ try {
       }),
     /DOCX|ZIP/
   )
+  assert.throws(
+    () =>
+      previewImport(booksDir, {
+        fileName: '非法.txt',
+        base64: '这不是base64'
+      }),
+    /Base64/
+  )
+  assert.throws(
+    () =>
+      previewImport(booksDir, {
+        fileName: '空文件.txt',
+        base64: ''
+      }),
+    /缺少导入文件内容|内容为空/
+  )
+  assert.throws(
+    () =>
+      previewImport(booksDir, {
+        fileName: '超大.txt',
+        base64: Buffer.alloc(50 * 1024 * 1024 + 1).toString('base64')
+      }),
+    /不能超过 50 MB/
+  )
 
   const txtExport = exportBook(booksDir, { bookName: '长夜灯火', format: 'txt' })
   assert.match(txtExport.content, /第1章/)

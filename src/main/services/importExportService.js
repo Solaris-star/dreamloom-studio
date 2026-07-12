@@ -11,6 +11,7 @@ const DEFAULT_VOLUME_NAME = '正文'
 const TEXT_EXTENSIONS = new Set(['.txt', '.md', '.markdown'])
 const ZIP_STORE = 0
 const ZIP_DEFLATE = 8
+const MAX_IMPORT_BYTES = 50 * 1024 * 1024
 
 const crcTable = (() => {
   const table = new Uint32Array(256)
@@ -185,16 +186,26 @@ function decodeInputBuffer(input = {}) {
     throw new Error('Web 服务必须通过网页上传文件内容，不能读取服务器本地路径')
   }
   if (input.dataUrl || input.base64) {
-    const raw = String(input.dataUrl || input.base64)
-    const base64 = raw.includes(',') ? raw.split(',').pop() : raw
+    const raw = String(input.dataUrl || input.base64).trim()
+    const separator = raw.indexOf(',')
+    const base64 = separator >= 0 ? raw.slice(separator + 1) : raw
+    if (!base64 || !/^[A-Za-z0-9+/]*={0,2}$/.test(base64) || base64.length % 4 !== 0) {
+      throw new Error('导入文件不是有效的 Base64 数据')
+    }
+    const buffer = Buffer.from(base64, 'base64')
+    if (!buffer.length) throw new Error('导入文件内容为空')
+    if (buffer.length > MAX_IMPORT_BYTES) throw new Error('导入文件不能超过 50 MB')
     return {
-      buffer: Buffer.from(base64, 'base64'),
+      buffer,
       fileName: input.fileName || `import_${Date.now()}`
     }
   }
   if (typeof input.textContent === 'string') {
+    const buffer = Buffer.from(input.textContent, 'utf-8')
+    if (!buffer.length) throw new Error('导入文件内容为空')
+    if (buffer.length > MAX_IMPORT_BYTES) throw new Error('导入文件不能超过 50 MB')
     return {
-      buffer: Buffer.from(input.textContent, 'utf-8'),
+      buffer,
       fileName: input.fileName || `import_${Date.now()}.txt`
     }
   }
