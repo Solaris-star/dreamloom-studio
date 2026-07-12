@@ -144,6 +144,15 @@ const agentWritingDockSource = read('src/renderer/src/components/Editor/AgentWri
 const editorServiceSource = read('src/renderer/src/service/editor.js')
 const webShimPath = path.join(root, 'src/renderer/src/service/webElectronShim.js')
 assert.equal(fs.existsSync(webShimPath), false, '纯 Web 项目不能保留 Electron 兼容层')
+
+const webLogoPath = path.join(root, 'src/renderer/src/assets/images/logo_web.webp')
+assert.equal(fs.existsSync(webLogoPath), true, 'Web 界面必须使用轻量品牌图')
+assert.ok(fs.statSync(webLogoPath).size <= 100 * 1024, 'Web 品牌图不能超过 100 KB')
+assert.doesNotMatch(
+  fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf-8'),
+  /logo_big\.png/,
+  '浏览器图标不能引用超大原始 Logo'
+)
 const webShimSource = ''
 const rendererMainSource = read('src/renderer/src/main.js')
 assert.doesNotMatch(

@@ -125,7 +125,7 @@ import { ElMessage } from 'element-plus'
 import { readBooksDir } from '@renderer/service/books'
 import { getStoreValue, setStoreValue } from '@renderer/service/webStore'
 import { pageBeforeEnter, pageEnter, pageLeave } from '@renderer/composables/useMotion'
-import brandLogoUrl from '@renderer/assets/images/logo_big.png'
+import brandLogoUrl from '@renderer/assets/images/logo_web.webp'
 
 const route = useRoute()
 const router = useRouter()
