@@ -15,7 +15,9 @@ const ENV_KEYS = [
   'CUSTOM_IMAGE_API_KEY',
   'CUSTOM_IMAGE_BASE_URL',
   'CUSTOM_IMAGE_MODEL',
-  'CUSTOM_IMAGE_MODELS'
+  'CUSTOM_IMAGE_MODELS',
+  'TONGYI_API_KEY',
+  'UNRELATED_ENV_TEST'
 ]
 
 const originalEnv = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]))
@@ -50,7 +52,12 @@ try {
       'CUSTOM_IMAGE_API_KEY=image-key-1,image-key-2',
       'CUSTOM_IMAGE_BASE_URL=https://image.example',
       'CUSTOM_IMAGE_MODEL=image-model-a',
-      'CUSTOM_IMAGE_MODELS=image-model-b,image-model-a'
+      'CUSTOM_IMAGE_MODELS=image-model-b,image-model-a',
+      'TONGYI_API_KEY="tongyi quoted key"',
+      '# 注释不会进入环境变量',
+      'INVALID KEY=ignored',
+      'NO_EQUALS_SIGN',
+      'UNRELATED_ENV_TEST=first-value'
     ].join('\n'),
     'utf8'
   )
@@ -60,6 +67,12 @@ try {
 
   assert.equal(process.env.DEEPSEEK_API_KEY, 'deepseek-from-env')
   assert.equal(process.env.CUSTOM_TEXT_MODEL, 'text-model-a')
+  assert.equal(process.env.TONGYI_API_KEY, 'tongyi quoted key')
+  assert.equal(process.env['INVALID KEY'], undefined)
+
+  fs.writeFileSync(join(cwd, '.env'), 'UNRELATED_ENV_TEST=second-value\n', 'utf8')
+  config.loadEnvFile(cwd)
+  assert.equal(process.env.UNRELATED_ENV_TEST, 'first-value')
 
   const providers = config.getEnvAiProviders()
   assert.equal(providers.length, 3)
@@ -103,6 +116,9 @@ try {
     config.getConfiguredStoreValue(fakeStore, 'customTextApi.baseUrl', ''),
     'https://text.example'
   )
+  assert.equal(config.getEnvStoreValue('tongyiwanxiang.apiKey'), 'tongyi quoted key')
+  assert.equal(config.getEnvStoreValue('unknown.key'), '')
+  assert.equal(config.getConfiguredStoreValue(null, 'unknown.key', 'fallback'), 'fallback')
 
   delete process.env.CUSTOM_IMAGE_MODEL
   assert.equal(
@@ -121,6 +137,25 @@ try {
   noOverrideConfig.loadEnvFile(cwdNoOverride)
   assert.equal(process.env.DEEPSEEK_API_KEY, 'existing-value')
   fs.rmSync(cwdNoOverride, { recursive: true, force: true })
+
+  const emptyCwd = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-env-empty-'))
+  const emptyConfig = await freshEnvConfigModule('empty')
+  emptyConfig.loadEnvFile(emptyCwd)
+  assert.deepEqual(emptyConfig.getEnvAiProviders(), [
+    {
+      id: 'env:deepseek',
+      name: 'Env DeepSeek',
+      category: 'text',
+      apiType: 'openai',
+      baseUrl: 'https://api.deepseek.com',
+      model: 'deepseek-chat',
+      models: ['deepseek-chat', 'deepseek-reasoner'],
+      apiKeys: ['existing-value'],
+      source: 'env',
+      readonly: true
+    }
+  ])
+  fs.rmSync(emptyCwd, { recursive: true, force: true })
 } finally {
   restoreEnv()
 }
