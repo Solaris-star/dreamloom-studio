@@ -5,6 +5,13 @@ import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8')
+const listFiles = (directory, extensions) => {
+  if (!fs.existsSync(directory)) return []
+  return fs
+    .readdirSync(directory, { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile() && extensions.has(path.extname(entry.name).toLowerCase()))
+    .map((entry) => path.join(entry.parentPath || entry.path, entry.name))
+}
 
 const packageJson = JSON.parse(read('package.json'))
 const allDependencies = {
@@ -66,6 +73,25 @@ for (const relativePath of userFacingFiles) {
     read(relativePath),
     legacyUserFacingPattern,
     `用户可见内容不能包含旧项目品牌或桌面端说明：${relativePath}`
+  )
+}
+
+const userFacingRoots = [
+  ...fs
+    .readdirSync(root, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && ['.md', '.html'].includes(path.extname(entry.name)))
+    .map((entry) => path.join(root, entry.name)),
+  ...listFiles(path.join(root, 'docs'), new Set(['.md', '.html'])),
+  ...listFiles(path.join(root, 'src/renderer'), new Set(['.html', '.vue'])),
+  ...listFiles(path.join(root, 'src/renderer/src/locales'), new Set(['.json']))
+]
+const desktopUserFacingPattern =
+  /织梦书房|51\s*码字|51mazi|QQQRCode|AliPayQRCode|WeChatPayQRCode|Electron|桌面(?:端|客户端|应用|版本)|客户端(?:下载|安装包)|desktop\s+(?:app|client|version)/i
+for (const absolutePath of new Set(userFacingRoots)) {
+  assert.doesNotMatch(
+    fs.readFileSync(absolutePath, 'utf8'),
+    desktopUserFacingPattern,
+    `用户可见文件不能包含旧项目或桌面端内容：${path.relative(root, absolutePath)}`
   )
 }
 
