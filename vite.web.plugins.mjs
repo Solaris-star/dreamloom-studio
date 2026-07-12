@@ -1,6 +1,6 @@
 import { resolve, relative, isAbsolute, join } from 'node:path'
 import fs from 'node:fs'
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto'
 import { runWebAiTextTask } from './src/main/services/webAiTextTaskService.js'
 import { createTextProvider } from './src/main/services/textGenerationRouter.js'
 import extractionAiService, {
@@ -66,6 +66,10 @@ export function createWebServerPlugins() {
   const booksDir = configuredBooksDir || resolve('.booksDir')
   const maxRequestBodyBytes = Number(process.env.NOVEL_MAX_REQUEST_BODY_BYTES) || 16 * 1024 * 1024
   const authSessions = new Map()
+  const loginFailures = new Map()
+  const authSessionMaxAgeMs = 12 * 60 * 60 * 1000
+  const loginWindowMs = 15 * 60 * 1000
+  const maxLoginFailures = 5
   const webExtractionTasks = new WebExtractionTaskService({
     extractionService: extractionAiService,
     createTextProvider
@@ -76,7 +80,21 @@ export function createWebServerPlugins() {
   }
 
   function passwordsMatch(actual, expected) {
+    const stored = String(expected || '')
+    if (stored.startsWith('scrypt$v1$')) {
+      const [, , saltHex, hashHex] = stored.split('$')
+      if (!saltHex || !hashHex) return false
+      const actualHash = scryptSync(String(actual || ''), Buffer.from(saltHex, 'hex'), 64)
+      const expectedHash = Buffer.from(hashHex, 'hex')
+      return actualHash.length === expectedHash.length && timingSafeEqual(actualHash, expectedHash)
+    }
     return timingSafeEqual(passwordDigest(actual), passwordDigest(expected))
+  }
+
+  function hashAccessKey(accessKey) {
+    const salt = randomBytes(16)
+    const hash = scryptSync(String(accessKey), salt, 64)
+    return `scrypt$v1$${salt.toString('hex')}$${hash.toString('hex')}`
   }
 
   function parseCookies(req) {
@@ -103,17 +121,42 @@ export function createWebServerPlugins() {
     if (!password) return { authenticated: true, passwordConfigured: false }
     const token = parseCookies(req).dreamloom_session
     const session = token ? authSessions.get(token) : null
-    if (!session || session.passwordHash !== passwordDigest(password).toString('hex')) {
+    if (
+      !session ||
+      session.expiresAt <= Date.now() ||
+      session.passwordHash !== passwordDigest(password).toString('hex')
+    ) {
       if (token) authSessions.delete(token)
       return { authenticated: false, passwordConfigured: true }
     }
     return { authenticated: true, passwordConfigured: true }
   }
 
-  function setAuthCookie(res, token) {
+  function isLoopbackRequest(req) {
+    const address = String(req.socket?.remoteAddress || '')
+    return address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1'
+  }
+
+  function isHttpsRequest(req) {
+    if (req.socket?.encrypted) return true
+    const trustProxy = ['1', 'true', 'yes', 'on'].includes(
+      String(process.env.NOVEL_TRUST_PROXY || '').trim().toLowerCase()
+    )
+    return (
+      trustProxy &&
+      String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase() === 'https'
+    )
+  }
+
+  function isSecureAuthRequest(req) {
+    return isLoopbackRequest(req) || isHttpsRequest(req)
+  }
+
+  function setAuthCookie(req, res, token) {
+    const secure = isHttpsRequest(req) ? '; Secure' : ''
     res.setHeader(
       'Set-Cookie',
-      `dreamloom_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict`
+      `dreamloom_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${Math.floor(authSessionMaxAgeMs / 1000)}${secure}`
     )
   }
 
@@ -128,8 +171,61 @@ export function createWebServerPlugins() {
 
   function createAuthSession(password) {
     const token = randomBytes(32).toString('hex')
-    authSessions.set(token, { passwordHash: passwordDigest(password).toString('hex') })
+    authSessions.set(token, {
+      passwordHash: passwordDigest(password).toString('hex'),
+      expiresAt: Date.now() + authSessionMaxAgeMs
+    })
     return token
+  }
+
+  function storeAccessKey(accessKey) {
+    const credential = hashAccessKey(accessKey)
+    webStoreSet('bookshelfPassword', credential)
+    return credential
+  }
+
+  function clearAccessKey() {
+    webStoreDelete('bookshelfPassword')
+    authSessions.clear()
+  }
+
+  function normalizeStoredCredential(accessKey, credential) {
+    if (String(credential).startsWith('scrypt$v1$')) return credential
+    const hashed = storeAccessKey(accessKey)
+    authSessions.clear()
+    return hashed
+  }
+
+  function loginClientKey(req) {
+    return String(req.socket?.remoteAddress || 'unknown')
+  }
+
+  function activeLoginFailures(req) {
+    const key = loginClientKey(req)
+    const cutoff = Date.now() - loginWindowMs
+    const failures = (loginFailures.get(key) || []).filter((time) => time > cutoff)
+    if (failures.length) loginFailures.set(key, failures)
+    else loginFailures.delete(key)
+    return { key, failures }
+  }
+
+  function checkLoginAllowed(req) {
+    const { failures } = activeLoginFailures(req)
+    if (failures.length < maxLoginFailures) return { allowed: true, retryAfterSeconds: 0 }
+    return {
+      allowed: false,
+      retryAfterSeconds: Math.max(1, Math.ceil((failures[0] + loginWindowMs - Date.now()) / 1000))
+    }
+  }
+
+  function recordLoginFailure(req) {
+    const { key, failures } = activeLoginFailures(req)
+    failures.push(Date.now())
+    loginFailures.set(key, failures)
+  }
+
+  function clearLoginFailures(req) {
+    loginFailures.delete(loginClientKey(req))
   }
 
   function readJsonBody(req) {
@@ -483,6 +579,13 @@ export function createWebServerPlugins() {
             getAuthenticatedSession,
             getBookshelfPassword,
             passwordsMatch,
+            storeAccessKey,
+            clearAccessKey,
+            normalizeStoredCredential,
+            isSecureAuthRequest,
+            checkLoginAllowed,
+            recordLoginFailure,
+            clearLoginFailures,
             createSession: createAuthSession,
             setAuthCookie,
             clearAuthCookie

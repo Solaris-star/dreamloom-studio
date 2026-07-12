@@ -103,6 +103,21 @@ async function connectWebSocket({ port, path }) {
   }
 }
 
+async function rejectedWebSocket({ port, path }) {
+  const socket = net.createConnection({ host: '127.0.0.1', port })
+  const response = await new Promise((resolve, reject) => {
+    socket.once('error', reject)
+    socket.once('connect', () => {
+      socket.write(
+        `GET ${path} HTTP/1.1\r\nHost: 127.0.0.1\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: ${randomBytes(16).toString('base64')}\r\nSec-WebSocket-Version: 13\r\n\r\n`
+      )
+    })
+    socket.once('data', (chunk) => resolve(chunk.toString('utf8')))
+  })
+  socket.destroy()
+  return response
+}
+
 async function waitForMessage(messages, predicate, timeoutMs = 3000) {
   const startedAt = Date.now()
   while (Date.now() - startedAt < timeoutMs) {
@@ -121,10 +136,17 @@ try {
   const server = await startAgentTaskProgressServer({ host: '127.0.0.1', port: 0 })
   assert.equal(server.success, true)
   assert.equal(server.path, '/agent-tasks')
+  assert.match(await rejectedWebSocket({ port: server.port, path: server.path }), /401 Unauthorized/)
+  assert.match(
+    await rejectedWebSocket({ port: server.port, path: `${server.path}?token=wrong` }),
+    /401 Unauthorized/
+  )
 
+  const serverUrl = new URL(server.url)
+  serverUrl.searchParams.set('bookName', '寒灯写剑')
   const client = await connectWebSocket({
     port: server.port,
-    path: `/agent-tasks?bookName=${encodeURIComponent('寒灯写剑')}`
+    path: `${serverUrl.pathname}${serverUrl.search}`
   })
   await waitForMessage(client.messages, (message) => message.type === 'agent_task_ws_ready')
 

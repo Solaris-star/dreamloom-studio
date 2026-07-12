@@ -36,7 +36,7 @@
     <div v-else>
       <!-- 已设置密码：显示缩略密码和操作按钮 -->
       <div v-if="!isModifyingPassword" class="password-display">
-        <div class="masked-password-text">{{ maskedPassword }}</div>
+        <div>{{ t('bookshelfPassword.configured') }}</div>
       </div>
       <!-- 修改密码表单 -->
       <el-form
@@ -101,10 +101,9 @@ import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import {
-  deleteStoreValue,
-  getStoreValue,
-  setStoreValue
-} from '@renderer/service/webStore'
+  getBookshelfAuthStatus,
+  updateBookshelfAccessKey
+} from '@renderer/service/bookshelfAuth'
 
 const props = defineProps({
   modelValue: {
@@ -113,7 +112,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'saved'])
 const { t } = useI18n()
 
 const dialogVisible = computed({
@@ -122,7 +121,6 @@ const dialogVisible = computed({
 })
 
 // 书架密码相关状态
-const storedPassword = ref('')
 const hasPassword = ref(false)
 const isModifyingPassword = ref(false)
 const passwordLoading = ref(false)
@@ -145,7 +143,7 @@ const modifyPasswordFormRef = ref(null)
 const validatePassword = (rule, value, callback) => {
   if (!value) {
     callback(new Error(t('bookshelfPassword.pleaseInputPassword')))
-  } else if (!/^[a-zA-Z0-9]{8,16}$/.test(value)) {
+  } else if (value.length < 8 || value.length > 128 || /\s/.test(value)) {
     callback(new Error(t('bookshelfPassword.passwordRuleError')))
   } else {
     callback()
@@ -170,8 +168,6 @@ const passwordRules = {
 const validateOldPassword = (rule, value, callback) => {
   if (!value) {
     callback(new Error(t('bookshelfPassword.pleaseInputOldPassword')))
-  } else if (value !== storedPassword.value) {
-    callback(new Error(t('bookshelfPassword.oldPasswordIncorrect')))
   } else {
     callback()
   }
@@ -181,7 +177,7 @@ const validateNewPassword = (rule, value, callback) => {
   // 允许空值（表示取消密码）
   if (!value || value.trim() === '') {
     callback()
-  } else if (!/^[a-zA-Z0-9]{8,16}$/.test(value)) {
+  } else if (value.length < 8 || value.length > 128 || /\s/.test(value)) {
     callback(new Error(t('bookshelfPassword.passwordRuleError')))
   } else {
     callback()
@@ -215,28 +211,10 @@ const modifyPasswordRules = {
   confirmNewPassword: [{ validator: validateConfirmNewPassword, trigger: 'blur' }]
 }
 
-// 计算缩略密码
-const maskedPassword = computed(() => {
-  if (!storedPassword.value) return ''
-  const pwd = storedPassword.value
-  if (pwd.length <= 4) {
-    return '****'
-  }
-  const start = pwd.substring(0, 2)
-  const end = pwd.substring(pwd.length - 2)
-  return `${start}****${end}`
-})
-
 // 加载密码数据
 async function loadPassword() {
-  const password = await getStoreValue('bookshelfPassword', '')
-  if (password) {
-    storedPassword.value = password
-    hasPassword.value = true
-  } else {
-    storedPassword.value = ''
-    hasPassword.value = false
-  }
+  const status = await getBookshelfAuthStatus()
+  hasPassword.value = status.passwordConfigured
 }
 
 // 监听弹框打开，加载密码数据
@@ -275,10 +253,10 @@ async function handleSetPassword() {
     if (valid) {
       passwordLoading.value = true
       try {
-        await setStoreValue('bookshelfPassword', passwordForm.value.password)
-        storedPassword.value = passwordForm.value.password
+        await updateBookshelfAccessKey('', passwordForm.value.password)
         hasPassword.value = true
         ElMessage.success(t('bookshelfPassword.setSuccess'))
+        emit('saved')
         handleClose()
         // 刷新页面，进入认证流程
         window.location.reload()
@@ -314,17 +292,16 @@ async function handleModifyPassword() {
         const newPassword = modifyPasswordForm.value.newPassword?.trim()
         if (!newPassword) {
           // 新密码为空，表示取消密码
-          await deleteStoreValue('bookshelfPassword')
-          storedPassword.value = ''
+          await updateBookshelfAccessKey(modifyPasswordForm.value.oldPassword, '')
           hasPassword.value = false
           ElMessage.success(t('bookshelfPassword.cancelSuccess'))
         } else {
           // 设置新密码
-          await setStoreValue('bookshelfPassword', newPassword)
-          storedPassword.value = newPassword
+          await updateBookshelfAccessKey(modifyPasswordForm.value.oldPassword, newPassword)
           hasPassword.value = true
           ElMessage.success(t('bookshelfPassword.modifySuccess'))
         }
+        emit('saved')
         isModifyingPassword.value = false
         modifyPasswordForm.value = {
           oldPassword: '',
@@ -351,10 +328,4 @@ async function handleModifyPassword() {
   text-align: center;
 }
 
-.masked-password-text {
-  font-size: 18px;
-  color: var(--text-base);
-  font-family: 'Courier New', monospace;
-  letter-spacing: 2px;
-}
 </style>

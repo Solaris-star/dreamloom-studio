@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 
 let request
-let response = { success: true, authenticated: false, passwordConfigured: true, hint: 'ab****cd' }
+let response = { success: true, authenticated: false, passwordConfigured: true }
 
 globalThis.fetch = async (url, options = {}) => {
   request = {
@@ -19,8 +19,7 @@ const service = await import('../src/renderer/src/service/bookshelfAuth.js')
 
 assert.deepEqual(await service.getBookshelfAuthStatus(), {
   authenticated: false,
-  passwordConfigured: true,
-  hint: 'ab****cd'
+  passwordConfigured: true
 })
 assert.deepEqual(request, {
   url: '/api/auth/status',
@@ -36,6 +35,13 @@ assert.deepEqual(request, {
   payload: { password: 'secret' }
 })
 await assert.rejects(() => service.authenticateBookshelf(''), /密码不能为空/)
+
+await service.updateBookshelfAccessKey('secret', 'new-secret')
+assert.deepEqual(request, {
+  url: '/api/auth/access-key',
+  method: 'POST',
+  payload: { currentKey: 'secret', newKey: 'new-secret' }
+})
 
 response = { success: true }
 assert.equal(await service.logoutBookshelf(), true)

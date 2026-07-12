@@ -118,6 +118,10 @@ try {
   const cookie = response.headers.get('set-cookie')
   assert.match(cookie, /dreamloom_session=/)
   assert.match(cookie, /HttpOnly/)
+  assert.match(cookie, /Max-Age=43200/)
+  const migratedStore = JSON.parse(fs.readFileSync(join(root, '.store.json'), 'utf8'))
+  assert.match(migratedStore.bookshelfPassword, /^scrypt\$v1\$/)
+  assert.doesNotMatch(fs.readFileSync(join(root, '.store.json'), 'utf8'), /test1234/)
 
   response = await fetch(`${baseUrl}/api/books/list`, {
     method: 'POST',
@@ -125,6 +129,17 @@ try {
     body: '{}'
   })
   assert.equal(response.status, 200)
+
+  response = await fetch(`${baseUrl}/api/auth/access-key`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ currentKey: 'test1234', newKey: 'newSecret123' })
+  })
+  assert.equal(response.status, 200)
+  const updatedCookie = response.headers.get('set-cookie')
+  const updatedStoreText = fs.readFileSync(join(root, '.store.json'), 'utf8')
+  assert.match(JSON.parse(updatedStoreText).bookshelfPassword, /^scrypt\$v1\$/)
+  assert.doesNotMatch(updatedStoreText, /newSecret123/)
 
   response = await fetch(`${baseUrl}/api/auth/login`, {
     method: 'POST',
@@ -148,7 +163,7 @@ try {
 
   response = await fetch(`${baseUrl}/api/auth/logout`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    headers: { 'Content-Type': 'application/json', Cookie: updatedCookie },
     body: '{}'
   })
   assert.equal(response.status, 200)
@@ -159,6 +174,21 @@ try {
     body: '{}'
   })
   assert.equal(response.status, 401)
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    response = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'wrong' })
+    })
+    assert.equal(response.status, 401)
+  }
+  response = await fetch(`${baseUrl}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: 'newSecret123' })
+  })
+  assert.equal(response.status, 429)
 } finally {
   if (server) await close(server)
   process.chdir(originalCwd)

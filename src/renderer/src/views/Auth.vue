@@ -24,14 +24,6 @@
             {{ t('auth.submit') }}
           </el-button>
         </el-form-item>
-        <el-form-item class="password-hint-item">
-          <el-button type="text" style="width: 100%" @click="showPasswordHint = !showPasswordHint">
-            {{ showPasswordHint ? t('auth.hideHint') : t('auth.showHint') }}
-          </el-button>
-          <div v-if="showPasswordHint" class="password-hint">
-            {{ t('auth.passwordHint', { password: maskedPassword }) }}
-          </div>
-        </el-form-item>
       </el-form>
     </div>
   </div>
@@ -51,8 +43,6 @@ const router = useRouter()
 const { t } = useI18n()
 const authPassword = ref('')
 const authLoading = ref(false)
-const showPasswordHint = ref(false)
-const maskedPassword = ref('')
 
 // 加载密码
 onMounted(async () => {
@@ -62,7 +52,6 @@ onMounted(async () => {
       router.push('/')
       return
     }
-    maskedPassword.value = status.hint || '****'
   } catch (error) {
     ElMessage.error(error.message || t('auth.statusFailed'))
   }
@@ -111,29 +100,7 @@ async function handleAuthSubmit() {
   color: #303133;
 }
 
-.auth-form {
-  .el-form-item {
-    margin-bottom: 20px;
-  }
-
-  .password-hint-item {
-    position: relative;
-  }
-}
-
-.password-hint {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-top: 10px;
-  text-align: center;
-  font-size: 14px;
-  color: #909399;
-  padding: 10px 15px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
-  white-space: nowrap;
-  z-index: 10;
+.auth-form .el-form-item {
+  margin-bottom: 20px;
 }
 </style>

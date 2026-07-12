@@ -94,7 +94,7 @@ try {
   assert.notEqual(info.port, port)
   assert.equal(info.fallbackUsed, true)
   assert.match(info.message, /已改用/)
-  assert.match(info.url, /^ws:\/\/127\.0\.0\.1:\d+\/agent-tasks$/)
+  assert.match(info.url, /^ws:\/\/127\.0\.0\.1:\d+\/agent-tasks\?token=[a-f0-9]{64}$/)
 } finally {
   await closeServer(blocker)
   await stopAgentTaskProgressServer({ closeQueueProgress: false })

@@ -1,5 +1,5 @@
 import http from 'node:http'
-import { createHash, randomBytes } from 'node:crypto'
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { QueueEvents } from 'bullmq'
 import { onAgentTaskProgress } from './editorAgentTaskService.js'
 import { normalizeAgentTaskQueueProgress } from './agentTaskQueueService.js'
@@ -87,6 +87,16 @@ function isWebSocketUpgrade(req) {
 
 function acceptKey(key = '') {
   return createHash('sha1').update(`${key}${WS_GUID}`).digest('base64')
+}
+
+function tokensMatch(actual, expected) {
+  const actualBuffer = Buffer.from(cleanText(actual))
+  const expectedBuffer = Buffer.from(cleanText(expected))
+  return (
+    actualBuffer.length === expectedBuffer.length &&
+    actualBuffer.length > 0 &&
+    timingSafeEqual(actualBuffer, expectedBuffer)
+  )
 }
 
 function encodeTextFrame(payload) {
@@ -215,6 +225,12 @@ function attachUpgradeHandler(controller, req, socket) {
     return
   }
 
+  if (!tokensMatch(url.searchParams.get('token'), controller.accessToken)) {
+    socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n')
+    socket.destroy()
+    return
+  }
+
   const key = cleanText(req.headers['sec-websocket-key'])
   if (!key) {
     socket.write('HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n')
@@ -255,6 +271,7 @@ function createController(options = {}) {
     port,
     actualPort: port,
     path,
+    accessToken: randomBytes(32).toString('hex'),
     server,
     clients: new Set(),
     unsubscribe: null,
@@ -280,7 +297,7 @@ function controllerInfo(controller) {
     message: fallbackUsed
       ? `默认端口 ${controller.requestedPort} 被占用，已改用 ${controller.actualPort}`
       : '',
-    url: `ws://${controller.host === '0.0.0.0' ? '127.0.0.1' : controller.host}:${controller.actualPort}${controller.path}`
+    url: `ws://${controller.host === '0.0.0.0' ? '127.0.0.1' : controller.host}:${controller.actualPort}${controller.path}?token=${encodeURIComponent(controller.accessToken)}`
   }
 }
 

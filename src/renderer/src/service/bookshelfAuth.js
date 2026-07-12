@@ -10,8 +10,7 @@ function requireAuthStatus(result, action) {
   }
   return {
     authenticated: result.authenticated,
-    passwordConfigured: result.passwordConfigured,
-    hint: typeof result.hint === 'string' ? result.hint : ''
+    passwordConfigured: result.passwordConfigured
   }
 }
 
@@ -36,4 +35,14 @@ export async function logoutBookshelf() {
     throw new Error(result?.message || '退出书架认证失败')
   }
   return true
+}
+
+export async function updateBookshelfAccessKey(currentKey, newKey) {
+  return requireAuthStatus(
+    await postJson('/api/auth/access-key', {
+      currentKey: String(currentKey || ''),
+      newKey: String(newKey || '')
+    }),
+    '更新书架密钥'
+  )
 }

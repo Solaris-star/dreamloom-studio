@@ -179,12 +179,17 @@
               <h2 class="section-title">{{ t('home.systemSettings.tabs.security') }}</h2>
               <div class="security-card">
                 <div class="info">
-                  <h3>书架访问密码</h3>
-                  <p>{{ hasPassword ? '已启用密码保护' : '当前未设置密码' }}</p>
+                  <h3>Web 访问密钥</h3>
+                  <p>{{ hasPassword ? '已启用密钥登录' : '当前未设置密钥，访问时无需登录' }}</p>
                 </div>
-                <el-button type="primary" @click="showPasswordDialog = true">
-                  {{ hasPassword ? '修改密码' : '设置密码' }}
-                </el-button>
+                <div class="security-actions">
+                  <el-button type="primary" @click="showPasswordDialog = true">
+                    {{ hasPassword ? '修改密钥' : '设置密钥' }}
+                  </el-button>
+                  <el-button v-if="hasPassword" :icon="LogOut" @click="handleLogout">
+                    退出登录
+                  </el-button>
+                </div>
               </div>
               <div class="setting-card">
                 <h3>隐私</h3>
@@ -324,7 +329,8 @@ import {
   Database,
   HardDrive,
   Pencil,
-  Check
+  Check,
+  LogOut
 } from 'lucide-vue-next'
 
 import AISettingsContent from '@renderer/components/AISettings.vue'
@@ -337,7 +343,10 @@ import brandLogoUrl from '@renderer/assets/images/logo_web.webp'
 import { useThemeStore } from '@renderer/stores/theme'
 import { getCurrentLocale, setLocale } from '@renderer/i18n'
 import { getBookDirectoryInfo, setBookDir } from '@renderer/service/books'
-import { getBookshelfAuthStatus } from '@renderer/service/bookshelfAuth'
+import {
+  getBookshelfAuthStatus,
+  logoutBookshelf
+} from '@renderer/service/bookshelfAuth'
 import { getStoreValue, setStoreValue } from '@renderer/service/webStore'
 import {
   clearAssetTrash,
@@ -526,7 +535,16 @@ async function loadPasswordStatus() {
     hasPassword.value = status.passwordConfigured
   } catch (error) {
     hasPassword.value = false
-    showSettingsError(error, '读取书架密码状态失败')
+    showSettingsError(error, '读取 Web 访问密钥状态失败')
+  }
+}
+
+async function handleLogout() {
+  try {
+    await logoutBookshelf()
+    await router.replace({ name: 'Auth' })
+  } catch (error) {
+    showSettingsError(error, '退出登录失败')
   }
 }
 
@@ -1081,6 +1099,17 @@ async function handleThemeChange(theme) {
       margin: 0;
       font-size: 14px;
       color: var(--text-secondary);
+    }
+  }
+
+  .security-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+
+    .el-button + .el-button {
+      margin-left: 0;
     }
   }
 }
