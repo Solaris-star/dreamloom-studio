@@ -413,29 +413,11 @@
       "systemSetting": "System Settings",
       "aiSetting": "AI Settings",
       "writingGuide": "Writing Guide",
-      "helpCenter": "Help Center",
-      "sponsorAuthor": "Sponsor Author"
+      "helpCenter": "Help Center"
     },
     "theme": {
       "title": "Theme Settings",
       "switchSuccess": "Switched to {themeName} theme"
-    },
-    "help": {
-      "title": "Help Center",
-      "qqAlt": "QQ group QR code",
-      "qqGroup": "QQ Group",
-      "contactEmail": "Issue feedback / business cooperation"
-    },
-    "sponsor": {
-      "title": "Sponsor Author",
-      "thanks": "Thank you for supporting this project! You can sponsor via:",
-      "wechatPayAlt": "WeChat payment QR code",
-      "wechatPayLabel": "WeChat Pay",
-      "alipayAlt": "Alipay QR code",
-      "alipayLabel": "Alipay",
-      "consider": "Maybe Later",
-      "rewarded": "Rewarded",
-      "rewardedGifAlt": "Reward animation"
     },
     "systemSettings": {
       "title": "System Settings",

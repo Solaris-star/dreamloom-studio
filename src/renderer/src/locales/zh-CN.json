@@ -413,29 +413,11 @@
       "systemSetting": "系统设置",
       "aiSetting": "AI 设置",
       "writingGuide": "写作指南",
-      "helpCenter": "帮助中心",
-      "sponsorAuthor": "赞助作者"
+      "helpCenter": "帮助中心"
     },
     "theme": {
       "title": "主题设置",
       "switchSuccess": "已切换到{themeName}主题"
-    },
-    "help": {
-      "title": "帮助中心",
-      "qqAlt": "QQ 群二维码",
-      "qqGroup": "QQ 交流群",
-      "contactEmail": "问题反馈 / 商务合作邮箱"
-    },
-    "sponsor": {
-      "title": "赞助作者",
-      "thanks": "感谢每一位支持本项目的朋友！可通过以下方式打赏支持：",
-      "wechatPayAlt": "微信收款码",
-      "wechatPayLabel": "微信收款码",
-      "alipayAlt": "支付宝收款码",
-      "alipayLabel": "支付宝收款码",
-      "consider": "考虑一下",
-      "rewarded": "朕已恩赏",
-      "rewardedGifAlt": "谢主隆恩"
     },
     "systemSettings": {
       "title": "系统设置",

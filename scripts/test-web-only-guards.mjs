@@ -52,6 +52,23 @@ for (const relativePath of forbiddenDesktopArtifacts) {
   )
 }
 
+const userFacingFiles = [
+  'README.md',
+  'src/renderer/index.html',
+  'src/renderer/src/locales/zh-CN.json',
+  'src/renderer/src/locales/en-US.json',
+  'src/renderer/src/views/UserGuide.vue'
+].filter((relativePath) => fs.existsSync(path.join(root, relativePath)))
+const legacyUserFacingPattern =
+  /织梦书房|51\s*码字|51mazi|QQQRCode|AliPayQRCode|WeChatPayQRCode|桌面客户端|Electron\s*(?:客户端|版本|安装包)/i
+for (const relativePath of userFacingFiles) {
+  assert.doesNotMatch(
+    read(relativePath),
+    legacyUserFacingPattern,
+    `用户可见内容不能包含旧项目品牌或桌面端说明：${relativePath}`
+  )
+}
+
 const editorSource = read('src/renderer/src/views/Editor.vue')
 assert.doesNotMatch(editorSource, /window\.process|process\.argv/, '编辑器不能读取桌面进程参数')
 
