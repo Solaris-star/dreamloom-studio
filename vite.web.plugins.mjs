@@ -46,6 +46,7 @@ import { handleBookChapterRoute } from './src/main/webApi/bookChapterRoutes.js'
 import { handleStudioContentRoute } from './src/main/webApi/studioContentRoutes.js'
 import { handleMarketRoute } from './src/main/webApi/marketRoutes.js'
 import { handleVectorRoute } from './src/main/webApi/vectorRoutes.js'
+import { handleSettingsRoute } from './src/main/webApi/settingsRoutes.js'
 
 export function createWebServerPlugins() {
   const configuredBooksDir = String(process.env.NOVEL_BOOKS_DIR || '').trim()
@@ -277,84 +278,6 @@ export function createWebServerPlugins() {
     return true
   }
 
-  function fileSize(filePath) {
-    try {
-      const stats = fs.statSync(filePath)
-      return stats.isFile() ? stats.size : 0
-    } catch {
-      return 0
-    }
-  }
-
-  function dirSize(dirPath) {
-    try {
-      const stats = fs.statSync(dirPath)
-      if (stats.isFile()) return stats.size
-      if (!stats.isDirectory()) return 0
-      return fs.readdirSync(dirPath, { withFileTypes: true }).reduce((total, entry) => {
-        if (entry.isSymbolicLink()) return total
-        const entryPath = join(dirPath, entry.name)
-        if (entry.isDirectory()) return total + dirSize(entryPath)
-        if (entry.isFile()) return total + fileSize(entryPath)
-        return total
-      }, 0)
-    } catch {
-      return 0
-    }
-  }
-
-  function getStorageStats() {
-    const activeBooksDir = getActiveBooksDir()
-    return {
-      success: true,
-      booksDir: activeBooksDir,
-      booksSize: dirSize(activeBooksDir),
-      storeSize: fileSize(resolve('.store.json')),
-      trashSize: dirSize(join(activeBooksDir, 'assets-trash'))
-    }
-  }
-
-  function clearAssetTrash() {
-    const activeBooksDir = getActiveBooksDir()
-    const trashDir = resolve(activeBooksDir, 'assets-trash')
-    if (!isPathInside(resolve(activeBooksDir), trashDir)) {
-      throw new Error('回收站目录不在当前书库内')
-    }
-    const bytesBefore = dirSize(trashDir)
-    fs.rmSync(trashDir, { recursive: true, force: true })
-    return { success: true, bytesBefore, bytesAfter: dirSize(trashDir) }
-  }
-
-  function exportAppSettings() {
-    const exportedAt = new Date().toISOString()
-    return {
-      success: true,
-      fileName: `zhimeng-settings-${exportedAt.slice(0, 10)}.json`,
-      content: JSON.stringify(
-        {
-          version: 1,
-          exportedAt,
-          settings: readWebStoreRaw()
-        },
-        null,
-        2
-      )
-    }
-  }
-
-  function normalizeSettingsImportPayload(payload = {}) {
-    if (payload.jsonString) {
-      let parsed
-      try {
-        parsed = JSON.parse(String(payload.jsonString))
-      } catch {
-        throw new Error('导入设置失败：JSON 格式不正确')
-      }
-      return parsed
-    }
-    return payload
-  }
-
   // --- Embedding Provider normalization ---
   function normalizeEmbeddingProviderPayload(payload = {}) {
     const source =
@@ -418,11 +341,6 @@ export function createWebServerPlugins() {
     if (result?.success !== true) return false
     const extractionId = sanitizeText(result.id || result.extractionId)
     return completedExtractionStatuses.has(result.status)
-  }
-
-  // --- Import / Export ---
-  function isUnsafeStoreKey(key) {
-    return ['password', 'secrets'].includes(key)
   }
 
   // --- Book Context Helper Functions ---
@@ -733,6 +651,19 @@ export function createWebServerPlugins() {
             })
           ) {
             return
+          } else if (
+            handleSettingsRoute({
+              path,
+              body,
+              res,
+              booksDir: getActiveBooksDir(),
+              sendJson,
+              readStore: readWebStoreRaw,
+              setStoreValue: webStoreSet,
+              isPathInside
+            })
+          ) {
+            return
           } else if (path === '/api/books/cover' || path === '/api/books/image') {
               const url = new URL(req.url, 'http://localhost')
               const bookName = sanitizeText(url.searchParams.get('book'))
@@ -1037,32 +968,6 @@ export function createWebServerPlugins() {
                 success: false,
                 message: '设定树应用尚未提供安全的 Web 实现'
               })
-            } else if (path === '/api/settings/storage-stats') {
-              sendJson(res, getStorageStats())
-            } else if (path === '/api/settings/clear-trash') {
-              sendJson(res, clearAssetTrash())
-            } else if (path === '/api/settings/export') {
-              sendJson(res, exportAppSettings())
-            } else if (path === '/api/settings/import') {
-              const importPayload = normalizeSettingsImportPayload(body || {})
-              if (
-                !importPayload ||
-                typeof importPayload !== 'object' ||
-                Array.isArray(importPayload) ||
-                !importPayload.settings ||
-                typeof importPayload.settings !== 'object' ||
-                Array.isArray(importPayload.settings)
-              ) {
-                sendJson(res, { success: false, message: '导入设置失败：备份格式不正确' }, 400)
-                return
-              }
-              let count = 0
-              for (const key of Object.keys(importPayload.settings || {})) {
-                if (isUnsafeStoreKey(key)) continue
-                webStoreSet(key, importPayload.settings[key])
-                count += 1
-              }
-              sendJson(res, { success: true, count })
             } else if (path === '/api/plot-evolution/evolve') {
               const selections = Array.isArray(body.providerIds)
                 ? body.providerIds
