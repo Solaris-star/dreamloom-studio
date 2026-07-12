@@ -44,6 +44,7 @@ import { handleKnowledgeRoute } from './src/main/webApi/knowledgeRoutes.js'
 import { handleImportExportRoute } from './src/main/webApi/importExportRoutes.js'
 import { handleAgentQueueRoute } from './src/main/webApi/agentQueueRoutes.js'
 import { handleVersionSnapshotRoute } from './src/main/webApi/versionSnapshotRoutes.js'
+import { handleBookChapterRoute } from './src/main/webApi/bookChapterRoutes.js'
 
 export function createWebServerPlugins() {
   const configuredBooksDir = String(process.env.NOVEL_BOOKS_DIR || '').trim()
@@ -688,6 +689,16 @@ export function createWebServerPlugins() {
             })
           ) {
             return
+          } else if (
+            await handleBookChapterRoute({
+              path,
+              body,
+              res,
+              booksDir: getActiveBooksDir(),
+              sendJson
+            })
+          ) {
+            return
           } else if (path === '/api/books/cover' || path === '/api/books/image') {
               const url = new URL(req.url, 'http://localhost')
               const bookName = sanitizeText(url.searchParams.get('book'))
@@ -1018,49 +1029,6 @@ export function createWebServerPlugins() {
                 count += 1
               }
               sendJson(res, { success: true, count })
-            } else if (path === '/api/books/dir') {
-              sendJson(res, { success: true, booksDir: getActiveBooksDir() })
-            } else if (path === '/api/books/list') {
-              sendJson(res, await webBooksApi.readBooksDir(getActiveBooksDir()))
-            } else if (path === '/api/books/create') {
-              sendJson(res, await webBooksApi.createBook(body || {}, getActiveBooksDir()))
-            } else if (path === '/api/books/edit') {
-              sendJson(res, await webBooksApi.editBook(body || {}, getActiveBooksDir()))
-            } else if (path === '/api/books/delete') {
-              sendJson(res, await webBooksApi.deleteBook(body.name, getActiveBooksDir()))
-            } else if (path === '/api/volumes/create') {
-              sendJson(res, await webBooksApi.createVolume(body.bookName, getActiveBooksDir()))
-            } else if (path === '/api/chapters/create') {
-              sendJson(res, await webBooksApi.createChapter(body || {}, getActiveBooksDir()))
-            } else if (path === '/api/chapters/load') {
-              sendJson(res, await webBooksApi.loadChapters(body.bookName, getActiveBooksDir()))
-            } else if (path === '/api/chapters/read') {
-              sendJson(res, await webBooksApi.readChapter(body || {}, getActiveBooksDir()))
-            } else if (path === '/api/chapters/save') {
-              sendJson(res, await webBooksApi.saveChapter(body || {}, getActiveBooksDir()))
-            } else if (path === '/api/chapters/check-exists') {
-              sendJson(res, await webBooksApi.checkChapterExists(body || {}, getActiveBooksDir()))
-            } else if (path === '/api/chapters/upsert') {
-              sendJson(res, await webBooksApi.upsertChapter(body || {}, getActiveBooksDir()))
-            } else if (path === '/api/nodes/edit') {
-              sendJson(res, await webBooksApi.editNode(body || {}, getActiveBooksDir()))
-            } else if (path === '/api/nodes/delete') {
-              sendJson(res, await webBooksApi.deleteNode(body || {}, getActiveBooksDir()))
-            } else if (path === '/api/sort-order/get') {
-              sendJson(res, { success: true, order: webBooksApi.getSortOrder(body.bookName) })
-            } else if (path === '/api/sort-order/set') {
-              sendJson(res, webBooksApi.setSortOrder(body || {}))
-            } else if (path === '/api/chapter-settings/get') {
-              sendJson(res, webBooksApi.getChapterSettings(body.bookName))
-            } else if (path === '/api/chapter-settings/target-words') {
-              sendJson(res, webBooksApi.setChapterTargetWords(body || {}))
-            } else if (path === '/api/chapter-format/update') {
-              sendJson(res, await webBooksApi.updateChapterFormat(body || {}, getActiveBooksDir()))
-            } else if (path === '/api/chapter-numbers/reformat') {
-              sendJson(
-                res,
-                await webBooksApi.reformatChapterNumbers(body || {}, getActiveBooksDir())
-              )
             } else if (path === '/api/studio/maps/list') {
               sendJson(res, webBooksApi.readMaps(body.bookName, getActiveBooksDir()))
             } else if (path === '/api/studio/maps/create') {
