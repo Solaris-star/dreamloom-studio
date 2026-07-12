@@ -106,9 +106,14 @@ async function runChapterWriteSkill(skill, input = {}, adapters = {}) {
   const chapterInput = normalizeChapterWriteInput(skill, input)
   const writeChapter = adapters.writeChapter || writeNovelChapter
   const result = await writeChapter(chapterInput)
+  if (!result || typeof result !== 'object' || Array.isArray(result)) {
+    throw new Error('章节写入服务返回格式不正确')
+  }
+  if (typeof result.success !== 'boolean') {
+    throw new Error('章节写入服务没有返回明确状态')
+  }
   return {
     ...result,
-    success: result?.success !== false,
     mode: 'chapter_write',
     skill: publicSkill(skill),
     ...skillExecutionRecord(skill)
