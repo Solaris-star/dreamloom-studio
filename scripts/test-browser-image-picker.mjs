@@ -13,9 +13,49 @@ class MockFileReader {
   }
 }
 
-globalThis.FileReader = MockFileReader
+class MockInput {
+  constructor() {
+    this.listeners = new Map()
+    this.files = []
+    this.removed = false
+    this.clicked = false
+  }
 
-const { readImageFile } = await import('../src/renderer/src/service/browserImagePicker.js')
+  addEventListener(type, listener) {
+    this.listeners.set(type, listener)
+  }
+
+  click() {
+    this.clicked = true
+  }
+
+  remove() {
+    this.removed = true
+  }
+
+  dispatch(type) {
+    this.listeners.get(type)?.()
+  }
+}
+
+globalThis.FileReader = MockFileReader
+const inputs = []
+globalThis.document = {
+  createElement(type) {
+    assert.equal(type, 'input')
+    const input = new MockInput()
+    inputs.push(input)
+    return input
+  },
+  body: {
+    appendChild(input) {
+      assert.equal(inputs.includes(input), true)
+    }
+  }
+}
+
+const { readImageFile, selectBrowserImage } =
+  await import('../src/renderer/src/service/browserImagePicker.js')
 const image = {
   name: 'cover.png',
   type: 'image/png',
@@ -40,5 +80,40 @@ await assert.rejects(
   /内容格式不正确/
 )
 await assert.rejects(() => readImageFile({ ...image, failRead: true }, 1024), /读取图片失败/)
+
+const successfulSelection = selectBrowserImage({ maxSize: 1024 })
+const successfulInput = inputs.at(-1)
+assert.equal(successfulInput.type, 'file')
+assert.equal(successfulInput.accept, 'image/*')
+assert.equal(successfulInput.hidden, true)
+assert.equal(successfulInput.clicked, true)
+successfulInput.files = [image]
+successfulInput.dispatch('change')
+assert.deepEqual(await successfulSelection, {
+  dataUrl: image.dataUrl,
+  fileName: image.name,
+  mimeType: image.type,
+  size: image.size
+})
+assert.equal(successfulInput.removed, true)
+
+const emptySelection = selectBrowserImage()
+const emptyInput = inputs.at(-1)
+emptyInput.dispatch('change')
+assert.equal(await emptySelection, null)
+assert.equal(emptyInput.removed, true)
+
+const cancelledSelection = selectBrowserImage()
+const cancelledInput = inputs.at(-1)
+cancelledInput.dispatch('cancel')
+assert.equal(await cancelledSelection, null)
+assert.equal(cancelledInput.removed, true)
+
+const invalidSelection = selectBrowserImage({ maxSize: 64 })
+const invalidInput = inputs.at(-1)
+invalidInput.files = [image]
+invalidInput.dispatch('change')
+await assert.rejects(() => invalidSelection, /不能超过/)
+assert.equal(invalidInput.removed, true)
 
 console.log('浏览器图片选择服务测试通过')
