@@ -164,6 +164,21 @@ for (const [file, label] of [
 const editorPanelSource = read('src/renderer/src/components/Editor/EditorPanel.vue')
 assert.match(
   editorPanelSource,
+  /emit\('cleanup-task-state', \{ \.\.\.cleanupTaskState\.value \}\)/,
+  'AI 选段清理和整章清理状态必须传给可见工具栏'
+)
+assert.match(
+  editorPanelSource,
+  /polishDialogVisible\.value && cleanupDiff\.value\.length/,
+  '未处理的 AI 清理差异不得被后续请求覆盖'
+)
+assert.match(
+  editorPanelSource,
+  /function resetPolishResult\(\) \{[\s\S]{0,200}setCleanupTaskState\('selection', 'idle'\)[\s\S]{0,100}setCleanupTaskState\('chapter', 'idle'\)/,
+  'AI 清理结果关闭后必须重置独立任务状态'
+)
+assert.match(
+  editorPanelSource,
   /const cleanupRequestSequence = \{\s*selection: 0,\s*chapter: 0\s*\}/,
   '选段清理和整章清理必须使用独立请求序号'
 )

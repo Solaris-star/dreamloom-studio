@@ -455,6 +455,12 @@ const cleanupRequestSequence = {
   selection: 0,
   chapter: 0
 }
+
+function setCleanupTaskState(task, state) {
+  cleanupTaskState.value[task] = state
+  emit('cleanup-task-state', { ...cleanupTaskState.value })
+}
+
 let polishRequestSequence = 0
 const polishSourceDocument = ref('')
 const polishSourceFilePath = ref('')
@@ -1376,6 +1382,10 @@ async function getPreviousChapterContextInfo() {
 }
 
   async function handleCleanGarbageSelection() {
+    if (polishDialogVisible.value && cleanupDiff.value.length) {
+      ElMessage.info('请先处理当前 AI 清理结果')
+      return
+    }
     if (cleanupTaskState.value.selection === 'running') {
       ElMessage.info('选段清理正在进行，请稍候')
       return
@@ -1398,7 +1408,7 @@ async function getPreviousChapterContextInfo() {
     const requestId = ++cleanupRequestSequence.selection
     const sourceDocument = editor.value.getText()
     const sourceFilePath = editorStore.file?.path || ''
-    cleanupTaskState.value.selection = 'running'
+    setCleanupTaskState('selection', 'running')
     try {
       const res = await cleanEditorText(text, {
         bookId: props.bookName,
@@ -1411,7 +1421,7 @@ async function getPreviousChapterContextInfo() {
         editorStore.file?.path !== sourceFilePath ||
         editor.value?.getText() !== sourceDocument
       ) {
-        cleanupTaskState.value.selection = 'idle'
+        setCleanupTaskState('selection', 'idle')
         ElMessage.warning('正文在 AI 处理期间已经变化，本次结果未应用')
         return
       }
@@ -1424,14 +1434,18 @@ async function getPreviousChapterContextInfo() {
       polishSourceDocument.value = sourceDocument
       polishSourceFilePath.value = sourceFilePath
       polishDialogVisible.value = true
-      cleanupTaskState.value.selection = 'success'
+      setCleanupTaskState('selection', 'success')
     } catch (e) {
-      cleanupTaskState.value.selection = 'error'
+      setCleanupTaskState('selection', 'error')
       ElMessage.error(e?.message || '清理乱码请求出错')
     }
   }
 
   async function handleCleanGarbageChapter() {
+    if (polishDialogVisible.value && cleanupDiff.value.length) {
+      ElMessage.info('请先处理当前 AI 清理结果')
+      return
+    }
     if (cleanupTaskState.value.chapter === 'running') {
       ElMessage.info('整章清理正在进行，请稍候')
       return
@@ -1448,7 +1462,7 @@ async function getPreviousChapterContextInfo() {
     }
     const requestId = ++cleanupRequestSequence.chapter
     const sourceFilePath = editorStore.file?.path || ''
-    cleanupTaskState.value.chapter = 'running'
+    setCleanupTaskState('chapter', 'running')
     try {
       const res = await cleanEditorText(fullText, {
         bookId: props.bookName,
@@ -1460,7 +1474,7 @@ async function getPreviousChapterContextInfo() {
         editorStore.file?.path !== sourceFilePath ||
         editor.value?.getText() !== fullText
       ) {
-        cleanupTaskState.value.chapter = 'idle'
+        setCleanupTaskState('chapter', 'idle')
         ElMessage.warning('正文在 AI 处理期间已经变化，本次结果未应用')
         return
       }
@@ -1471,9 +1485,9 @@ async function getPreviousChapterContextInfo() {
       polishSourceDocument.value = fullText
       polishSourceFilePath.value = sourceFilePath
       polishDialogVisible.value = true
-      cleanupTaskState.value.chapter = 'success'
+      setCleanupTaskState('chapter', 'success')
     } catch (e) {
-      cleanupTaskState.value.chapter = 'error'
+      setCleanupTaskState('chapter', 'error')
       ElMessage.error(e?.message || '清理乱码请求出错')
     }
   }
@@ -1845,6 +1859,8 @@ async function confirmPolishReplace() {
 }
 
 function resetPolishResult() {
+  setCleanupTaskState('selection', 'idle')
+  setCleanupTaskState('chapter', 'idle')
   polishOriginalText.value = ''
   polishResultText.value = ''
   polishSourceDocument.value = ''
@@ -2123,7 +2139,13 @@ function resumeChapterDecorationTimers() {
   }
 }
 
-const emit = defineEmits(['refresh-notes', 'refresh-chapters', 'toggle-left', 'toggle-right'])
+const emit = defineEmits([
+  'refresh-notes',
+  'refresh-chapters',
+  'toggle-left',
+  'toggle-right',
+  'cleanup-task-state'
+])
 
 // 监听当前文件类型，动态设置首行缩进和编辑器模式
 watch(

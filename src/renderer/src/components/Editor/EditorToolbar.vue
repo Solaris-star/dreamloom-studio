@@ -17,6 +17,14 @@
           </el-dropdown-menu>
         </template>
       </el-dropdown>
+      <div
+        v-if="cleanupStatusText"
+        class="ai-task-status"
+        :class="`is-${cleanupStatusTone}`"
+        aria-live="polite"
+      >
+        {{ cleanupStatusText }}
+      </div>
 
       <el-button class="tool-btn" @click="emit('trigger-ai', 'continue')" style="width: 100%; margin-left: 0; margin-top: 8px;">
         <el-icon :size="14"><EditPen /></el-icon>
@@ -81,7 +89,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { ArrowDown, MagicStick, EditPen, Picture } from '@element-plus/icons-vue'
 import RandomName from '@renderer/components/RandomName.vue'
 import BannedWordsDrawer from './BannedWordsDrawer.vue'
@@ -90,6 +98,39 @@ import SvgIcon from '@renderer/components/SvgIcon.vue'
 import { useI18n } from 'vue-i18n'
 
 const emit = defineEmits(['trigger-ai'])
+const props = defineProps({
+  cleanupTaskState: {
+    type: Object,
+    default: () => ({ selection: 'idle', chapter: 'idle' })
+  }
+})
+
+const cleanupStatusText = computed(() => {
+  const labels = {
+    running: '处理中',
+    success: '结果待确认',
+    error: '处理失败'
+  }
+  if (props.cleanupTaskState.selection !== 'idle') {
+    return `选段清理：${labels[props.cleanupTaskState.selection] || ''}`
+  }
+  if (props.cleanupTaskState.chapter !== 'idle') {
+    return `整章清理：${labels[props.cleanupTaskState.chapter] || ''}`
+  }
+  return ''
+})
+const cleanupStatusTone = computed(() => {
+  if (props.cleanupTaskState.selection === 'error' || props.cleanupTaskState.chapter === 'error') {
+    return 'error'
+  }
+  if (
+    props.cleanupTaskState.selection === 'success' ||
+    props.cleanupTaskState.chapter === 'success'
+  ) {
+    return 'success'
+  }
+  return 'running'
+})
 
 const randomNameRef = ref(null)
 const bannedWordsRef = ref(null)
@@ -221,6 +262,27 @@ const handleBannedWords = () => {
     }
   }
 
+  .ai-task-status {
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+
+    &.is-running {
+      color: var(--el-color-primary);
+    }
+
+    &.is-success {
+      color: var(--el-color-success);
+    }
+
+    &.is-error {
+      color: var(--el-color-danger);
+    }
+  }
+
   &.is-en {
     .toolbar-buttons .tool-btn span {
       font-size: 13px;
@@ -246,6 +308,9 @@ const handleBannedWords = () => {
   .tool-btn .el-icon,
   .tool-btn svg {
     margin: 0 !important;
+  }
+  .ai-task-status {
+    display: none;
   }
 }
 :deep(.el-drawer__header) {

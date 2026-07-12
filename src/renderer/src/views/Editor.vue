@@ -29,6 +29,7 @@
           @toggle-right="toggleRightPanel"
           @refresh-notes="refreshNotes"
           @refresh-chapters="refreshChapters"
+          @cleanup-task-state="handleCleanupTaskState"
         />
       </el-splitter-panel>
       <el-splitter-panel
@@ -38,7 +39,10 @@
         :max="320"
       >
         <!-- 右侧工具栏 -->
-        <EditorToolbar @trigger-ai="handleAiTrigger" />
+        <EditorToolbar
+          :cleanup-task-state="cleanupTaskState"
+          @trigger-ai="handleAiTrigger"
+        />
       </el-splitter-panel>
     </el-splitter>
 
@@ -87,7 +91,10 @@
       direction="btt"
       size="100%"
     >
-      <EditorToolbar @trigger-ai="handleMobileAiTrigger" />
+      <EditorToolbar
+        :cleanup-task-state="cleanupTaskState"
+        @trigger-ai="handleMobileAiTrigger"
+      />
     </el-drawer>
 
     <el-dialog v-model="readingSettingsVisible" title="阅读设置" width="min(420px, 92vw)">
@@ -143,6 +150,14 @@ const route = useRoute()
 const router = useRouter()
 
 const bookName = computed(() => String(route.query.name || route.params.bookId || '').trim())
+const cleanupTaskState = ref({ selection: 'idle', chapter: 'idle' })
+
+function handleCleanupTaskState(state) {
+  cleanupTaskState.value = {
+    selection: state?.selection || 'idle',
+    chapter: state?.chapter || 'idle'
+  }
+}
 
 // keep-alive 下用 activated/deactivated 绑定窗口事件，避免停用页仍监听刷新
 function handleAiTrigger(command, arg) {
