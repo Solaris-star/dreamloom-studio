@@ -49,6 +49,7 @@ import { handlePromptRoute } from './src/main/webApi/promptRoutes.js'
 import { handleNovelDownloadRoute } from './src/main/webApi/novelDownloadRoutes.js'
 import { handleAuthRoute } from './src/main/webApi/authRoutes.js'
 import { handleWebUtilityRoute } from './src/main/webApi/webUtilityRoutes.js'
+import { handleAiTextRoute } from './src/main/webApi/aiTextRoutes.js'
 import { setWebBooksDirectory } from './src/main/services/webBooksDirectoryService.js'
 
 export function createWebServerPlugins() {
@@ -698,6 +699,25 @@ export function createWebServerPlugins() {
             })
           ) {
             return
+          } else if (
+            await handleAiTextRoute({
+              path,
+              body,
+              res,
+              booksDir: getActiveBooksDir(),
+              sendJson,
+              store: webStoreAdapter(),
+              readHistory: readAiHistoryRows,
+              runTextTask: runWebAiTextTask,
+              requestProxy: requestWebAiProxy,
+              getProgressServerInfo: getAgentTaskProgressServerInfo,
+              createProvider: createTextProvider,
+              generateBookIdeas: bookIdeaAiService.generateBookIdeas,
+              generateChapter: outlineChapterAiService.generateChapterFromOutline,
+              resolveBookPath: resolveBookPathForWebPayload
+            })
+          ) {
+            return
           } else if (path === '/api/books/cover' || path === '/api/books/image') {
               const url = new URL(req.url, 'http://localhost')
               const bookName = sanitizeText(url.searchParams.get('book'))
@@ -719,25 +739,6 @@ export function createWebServerPlugins() {
               } else {
                 sendTransparentImage(res)
               }
-            } else if (path === '/api/ai/history') {
-              try {
-                const feature = body.feature
-                const rows = readAiHistoryRows('读取 AI 历史')
-                sendJson(res, {
-                  success: true,
-                  items: rows.filter((r) => !feature || r.feature === feature)
-                })
-              } catch (e) {
-                sendJson(res, { success: false, message: e.message || '读取 AI 历史失败' }, 500)
-              }
-            } else if (path === '/api/ai/text-task') {
-              const result = await runWebAiTextTask(webStoreAdapter(), body || {})
-              sendJson(res, result, result.success ? 200 : 502)
-            } else if (path === '/api/ai-proxy') {
-              const result = await requestWebAiProxy(body || {})
-              sendJson(res, result, result.success ? 200 : 502)
-            } else if (path === '/api/editor-agent/progress-server') {
-              sendJson(res, getAgentTaskProgressServerInfo())
             } else if (path === '/api/ai/image-task') {
               const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
                 ensure: true
@@ -750,26 +751,6 @@ export function createWebServerPlugins() {
               sendJson(res, {
                 ...saved,
                 imageUrl: webBookImageUrl(bookPath, saved.localPath)
-              })
-            } else if (path === '/api/ai/book-ideas') {
-              const provider = createTextProvider(webStoreAdapter(), body || {})
-              sendJson(
-                res,
-                await bookIdeaAiService.generateBookIdeas(body || {}, provider.service)
-              )
-            } else if (path === '/api/ai/generate-chapter-from-outline') {
-              const provider = createTextProvider(webStoreAdapter(), body || {})
-              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
-                ensure: true
-              })
-              const result = await outlineChapterAiService.generateChapterFromOutline(
-                { ...body, bookPath },
-                provider.service
-              )
-              sendJson(res, {
-                success: true,
-                content: result.content,
-                targetWords: Number(body.targetWords) || 2000
               })
             } else if (path === '/api/ai/cover/confirm') {
               const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
