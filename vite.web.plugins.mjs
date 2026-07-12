@@ -46,7 +46,8 @@ import {
 } from './src/main/services/webAiImageAssetService.js'
 
 export function createWebServerPlugins() {
-  const booksDir = process.env.NOVEL_BOOKS_DIR || resolve('.booksDir')
+  const configuredBooksDir = String(process.env.NOVEL_BOOKS_DIR || '').trim()
+  const booksDir = configuredBooksDir || resolve('.booksDir')
   const maxRequestBodyBytes = Number(process.env.NOVEL_MAX_REQUEST_BODY_BYTES) || 16 * 1024 * 1024
   const authSessions = new Map()
   const webExtractionTasks = new WebExtractionTaskService({
@@ -152,7 +153,7 @@ export function createWebServerPlugins() {
 
   function getActiveBooksDir() {
     const storedDir = webStoreGet('booksDir')
-    const dir = String(storedDir || booksDir).trim() || booksDir
+    const dir = String(configuredBooksDir || storedDir || booksDir).trim() || booksDir
     fs.mkdirSync(dir, { recursive: true })
     return dir
   }
