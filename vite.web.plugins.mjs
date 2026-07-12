@@ -53,6 +53,7 @@ import { handleAiTextRoute } from './src/main/webApi/aiTextRoutes.js'
 import { handleAiImageRoute } from './src/main/webApi/aiImageRoutes.js'
 import { handleExtractionRoute } from './src/main/webApi/extractionRoutes.js'
 import { handleKnowledgeAiRoute } from './src/main/webApi/knowledgeAiRoutes.js'
+import { handleConsistencyRoute } from './src/main/webApi/consistencyRoutes.js'
 import { setWebBooksDirectory } from './src/main/services/webBooksDirectoryService.js'
 
 export function createWebServerPlugins() {
@@ -770,6 +771,21 @@ export function createWebServerPlugins() {
             })
           ) {
             return
+          } else if (
+            await handleConsistencyRoute({
+              path,
+              body,
+              res,
+              booksDir: getActiveBooksDir(),
+              sendJson,
+              store: webStoreAdapter(),
+              createProvider: createTextProvider,
+              resolveBookPath: resolveBookPathForWebPayload,
+              runCheck: runConsistencyCheck,
+              listChecks: listConsistencyChecks
+            })
+          ) {
+            return
           } else if (path === '/api/books/cover' || path === '/api/books/image') {
               const url = new URL(req.url, 'http://localhost')
               const bookName = sanitizeText(url.searchParams.get('book'))
@@ -791,25 +807,6 @@ export function createWebServerPlugins() {
               } else {
                 sendTransparentImage(res)
               }
-            } else if (path === '/api/consistency/check') {
-              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
-                ensure: true
-              })
-              const wantsLlm =
-                body.useLlm === true || body.aiCheck === true || body.enableLlm === true
-              const provider = wantsLlm ? createTextProvider(webStoreAdapter(), body || {}) : null
-              sendJson(
-                res,
-                await runConsistencyCheck(
-                  { ...body, bookPath },
-                  { textProvider: provider?.service }
-                )
-              )
-            } else if (path === '/api/consistency/list') {
-              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
-                ensure: true
-              })
-              sendJson(res, listConsistencyChecks({ ...body, bookPath }))
             } else if (path === '/api/editor-agent/writing-skills') {
               sendJson(res, listInstalledWritingSkills())
             } else if (path === '/api/editor-agent/run-writing-skill') {
