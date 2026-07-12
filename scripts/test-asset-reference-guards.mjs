@@ -98,6 +98,48 @@ try {
     /不能读取服务器本地路径/
   )
   assert.equal(fs.existsSync(path.join(imageDir, '越权.png')), false)
+  assert.throws(
+    () =>
+      importAsset(root, {
+        bookName: '测试书',
+        type: 'character',
+        dataUrl: 'data:image/png;base64,不是base64',
+        fileName: '损坏.png'
+      }),
+    /Base64/
+  )
+  assert.throws(
+    () =>
+      importAsset(root, {
+        bookName: '测试书',
+        type: 'scene',
+        base64: Buffer.from('plain text').toString('base64'),
+        fileName: '伪造.png'
+      }),
+    /图片内容损坏/
+  )
+  assert.throws(
+    () =>
+      importAsset(root, {
+        bookName: '测试书',
+        type: 'cover',
+        base64: Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString('base64'),
+        fileName: '封面.txt'
+      }),
+    /只支持图片文件/
+  )
+  assert.throws(
+    () =>
+      importAsset(root, {
+        bookName: '测试书',
+        type: 'attachment',
+        base64: Buffer.alloc(10 * 1024 * 1024 + 1).toString('base64'),
+        fileName: '超大附件.bin'
+      }),
+    /不能超过 10 MB/
+  )
+  assert.equal(fs.existsSync(path.join(imageDir, '损坏.png')), false)
+  assert.equal(fs.existsSync(path.join(bookDir, 'scene_images', '伪造.png')), false)
 
   fs.writeFileSync(path.join(bookDir, 'characters.json'), JSON.stringify([{ name: '林溪' }]))
   const result = deleteAsset(root, characterAsset.id)

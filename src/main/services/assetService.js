@@ -5,7 +5,9 @@ import { nowIso, readJson, writeJson } from './webJsonRepository.js'
 
 const TRASH_DIR = 'assets-trash'
 const TRASH_MANIFEST = 'manifest.json'
+const MAX_ASSET_BYTES = 10 * 1024 * 1024
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'])
+const IMAGE_ASSET_TYPES = new Set(['cover', 'character', 'scene', 'map'])
 const ATTACHMENT_DIRS = ['attachments', '附件', 'assets']
 const IMAGE_CONTENT_TYPES = {
   '.jpg': 'image/jpeg',
@@ -117,6 +119,42 @@ function getContentType(filePath) {
 
 function isImage(filePath) {
   return IMAGE_EXTENSIONS.has(extname(filePath).toLowerCase())
+}
+
+function decodeUploadedAsset(input) {
+  const raw = String(input.dataUrl || input.base64 || '').trim()
+  const separator = raw.indexOf(',')
+  const encoded = separator >= 0 ? raw.slice(separator + 1) : raw
+  if (!encoded || !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded) || encoded.length % 4 !== 0) {
+    throw new Error('素材内容不是有效的 Base64 数据')
+  }
+  const buffer = Buffer.from(encoded, 'base64')
+  if (!buffer.length) throw new Error('素材内容为空')
+  if (buffer.length > MAX_ASSET_BYTES) throw new Error('素材文件不能超过 10 MB')
+  return buffer
+}
+
+function matchesImageSignature(buffer, extension) {
+  if (extension === '.png') {
+    return buffer.length >= 4 && buffer.subarray(0, 4).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+  }
+  if (extension === '.jpg' || extension === '.jpeg') {
+    return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff
+  }
+  if (extension === '.gif') {
+    return buffer.length >= 6 && /^GIF8[79]a$/.test(buffer.subarray(0, 6).toString('ascii'))
+  }
+  if (extension === '.webp') {
+    return (
+      buffer.length >= 12 &&
+      buffer.subarray(0, 4).toString('ascii') === 'RIFF' &&
+      buffer.subarray(8, 12).toString('ascii') === 'WEBP'
+    )
+  }
+  if (extension === '.avif') {
+    return buffer.length >= 12 && buffer.subarray(4, 8).toString('ascii') === 'ftyp'
+  }
+  return false
 }
 
 function makeAsset(booksDir, book, filePath, type, source = '') {
@@ -460,9 +498,15 @@ export function importAsset(booksDir, input = {}) {
   const targetPath = destinationForType(book.path, type, fileName)
 
   if (input.dataUrl || input.base64) {
-    const raw = String(input.dataUrl || input.base64)
-    const base64 = raw.includes(',') ? raw.split(',').pop() : raw
-    fs.writeFileSync(targetPath, Buffer.from(base64, 'base64'))
+    const buffer = decodeUploadedAsset(input)
+    if (IMAGE_ASSET_TYPES.has(type)) {
+      const extension = extname(targetPath).toLowerCase()
+      if (!IMAGE_EXTENSIONS.has(extension)) throw new Error('该素材类型只支持图片文件')
+      if (!matchesImageSignature(buffer, extension)) {
+        throw new Error('图片内容损坏，或文件扩展名与实际格式不符')
+      }
+    }
+    fs.writeFileSync(targetPath, buffer)
   } else {
     throw new Error('缺少导入文件')
   }
