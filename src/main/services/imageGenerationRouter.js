@@ -261,7 +261,9 @@ export async function generateImageBuffer(store, options) {
   return customImageApiService.generateImageBuffer({
     prompt,
     size,
-    negativePrompt
+    negativePrompt,
+    timeoutMs: options?.timeoutMs,
+    signal: options?.signal
   })
 }
 
