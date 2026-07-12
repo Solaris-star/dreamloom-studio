@@ -30,6 +30,7 @@ export function mapTongyiSizeToDoubaoSize(sizeStr) {
  * @param {string} [opts.size] 通义格式 宽*高
  * @param {string} [opts.negativePrompt]
  * @param {number} [opts.timeoutMs]
+ * @param {AbortSignal} [opts.signal]
  * @returns {Promise<Buffer>}
  */
 export async function generateImageBuffer({
@@ -39,7 +40,8 @@ export async function generateImageBuffer({
   prompt,
   size,
   negativePrompt,
-  timeoutMs = DEFAULT_DOUBAO_TIMEOUT_MS
+  timeoutMs = DEFAULT_DOUBAO_TIMEOUT_MS,
+  signal
 }) {
   if (!apiKey?.trim()) {
     throw new Error('豆包 API Key 未设置，请在设置中配置')
@@ -69,7 +71,8 @@ export async function generateImageBuffer({
   const effectiveTimeout = Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0
     ? Number(timeoutMs)
     : DEFAULT_DOUBAO_TIMEOUT_MS
-  const signal = AbortSignal.timeout(effectiveTimeout)
+  const timeoutSignal = AbortSignal.timeout(effectiveTimeout)
+  const requestSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
 
   let response
   try {
@@ -80,10 +83,11 @@ export async function generateImageBuffer({
         Authorization: `Bearer ${apiKey.trim()}`
       },
       body: JSON.stringify(body),
-      signal
+      signal: requestSignal
     })
   } catch (error) {
     if (error?.name === 'AbortError' || error?.name === 'TimeoutError') {
+      if (signal?.aborted) throw createCancelledError()
       throw new Error(`豆包图像 API 请求超时（${effectiveTimeout} ms）`)
     }
     throw error
@@ -119,9 +123,10 @@ export async function generateImageBuffer({
     }
     let imgRes
     try {
-      imgRes = await fetch(parsedImageUrl, { signal })
+      imgRes = await fetch(parsedImageUrl, { signal: requestSignal })
     } catch (error) {
       if (error?.name === 'AbortError' || error?.name === 'TimeoutError') {
+        if (signal?.aborted) throw createCancelledError()
         throw new Error(`下载豆包返回的图片超时（${effectiveTimeout} ms）`)
       }
       throw error
@@ -135,6 +140,12 @@ export async function generateImageBuffer({
   }
 
   throw new Error('豆包图像 API 未返回有效图片数据')
+}
+
+function createCancelledError() {
+  const error = new Error('豆包图像生成已取消')
+  error.name = 'AbortError'
+  return error
 }
 
 /**

@@ -105,6 +105,44 @@ try {
     () => generateImageBuffer({ ...baseOptions, timeoutMs: 10 }),
     /请求超时（10 ms）/
   )
+
+  const requestController = new AbortController()
+  const cancelledRequest = generateImageBuffer({
+    ...baseOptions,
+    timeoutMs: 1000,
+    signal: requestController.signal
+  })
+  requestController.abort()
+  await assert.rejects(cancelledRequest, (error) => {
+    assert.equal(error.name, 'AbortError')
+    assert.match(error.message, /图像生成已取消/)
+    return true
+  })
+
+  let fetchCount = 0
+  globalThis.fetch = async (_url, { signal }) => {
+    fetchCount += 1
+    if (fetchCount === 1) {
+      return {
+        ok: true,
+        async json() {
+          return { data: [{ url: 'https://images.example/cancelled.png' }] }
+        }
+      }
+    }
+    return new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(signal.reason), { once: true })
+    })
+  }
+  const downloadController = new AbortController()
+  const cancelledDownload = generateImageBuffer({
+    ...baseOptions,
+    timeoutMs: 1000,
+    signal: downloadController.signal
+  })
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 0))
+  downloadController.abort()
+  await assert.rejects(cancelledDownload, /图像生成已取消/)
 } finally {
   globalThis.fetch = originalFetch
 }

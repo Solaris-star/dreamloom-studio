@@ -272,7 +272,9 @@ export async function generateImageBuffer(store, options) {
       baseUrl: config.baseUrl || undefined,
       prompt,
       size,
-      negativePrompt
+      negativePrompt,
+      timeoutMs,
+      signal
     })
   }
 
