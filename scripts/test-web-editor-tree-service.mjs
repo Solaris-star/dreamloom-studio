@@ -13,6 +13,70 @@ globalThis.fetch = async (url, options = {}) => {
 
 const service = await import('../src/renderer/src/service/editor.js')
 
+await assert.rejects(() => service.getSortOrder(' '), /缺少作品名/)
+await assert.rejects(() => service.setSortOrder('', 'asc'), /缺少作品名/)
+await assert.rejects(() => service.getChapterSettings(''), /缺少作品名/)
+await assert.rejects(() => service.readChapterContent('', '第一卷', '第一章'), /缺少作品名/)
+await assert.rejects(() => service.readChapterContent('作品', '', '第一章'), /缺少卷名/)
+await assert.rejects(() => service.readChapterContent('作品', '第一卷', ''), /缺少章节名/)
+await assert.rejects(
+  () => service.checkChapterExistsForOutline({ volumeName: '第一卷', chapterName: '第一章' }),
+  /缺少作品名/
+)
+await assert.rejects(
+  () => service.checkChapterExistsForOutline({ bookName: '作品', chapterName: '第一章' }),
+  /缺少卷名/
+)
+await assert.rejects(
+  () => service.checkChapterExistsForOutline({ bookName: '作品', volumeName: '第一卷' }),
+  /缺少章节名/
+)
+await assert.rejects(
+  () =>
+    service.upsertOutlineChapter({
+      bookName: '作品',
+      volumeName: '第一卷',
+      chapterName: '第一章',
+      content: ' '
+    }),
+  /正文为空/
+)
+await assert.rejects(() => service.createChapterDocument('', '第一卷'), /缺少作品名/)
+await assert.rejects(() => service.createChapterDocument('作品', ''), /缺少卷名/)
+await assert.rejects(
+  () => service.saveChapterDocument({ volumeName: '第一卷', chapterName: '第一章' }),
+  /缺少作品名/
+)
+await assert.rejects(
+  () => service.saveChapterDocument({ bookName: '作品', chapterName: '第一章' }),
+  /缺少卷名/
+)
+await assert.rejects(
+  () => service.saveChapterDocument({ bookName: '作品', volumeName: '第一卷' }),
+  /缺少章节名/
+)
+await assert.rejects(() => service.writeOutlineDocument('', {}), /缺少作品名/)
+await assert.rejects(() => service.writeOutlineDocument('作品', []), /内容格式不正确/)
+await assert.rejects(
+  () => service.writeOutlineDocument('作品', { children: {} }),
+  /内容格式不正确/
+)
+await assert.rejects(() => service.readOutlineAiSessionsDocument(''), /缺少作品名/)
+await assert.rejects(
+  () => service.writeOutlineAiSessionsDocument('作品', { nodes: [] }),
+  /会话内容格式不正确/
+)
+await assert.rejects(() => service.listChapterTree(''), /缺少作品名/)
+await assert.rejects(() => service.createVolumeDocument(''), /缺少作品名/)
+await assert.rejects(() => service.listNoteTree(''), /缺少作品名/)
+await assert.rejects(() => service.createNotebookDocument(''), /缺少作品名/)
+await assert.rejects(() => service.createNoteDocument('作品', ''), /缺少笔记本名称/)
+await assert.rejects(() => service.readNoteDocument('作品', '资料', ''), /缺少笔记名称/)
+await assert.rejects(
+  () => service.writeNoteDocument({ bookName: '作品', notebookName: '资料' }),
+  /缺少笔记名称/
+)
+
 response = { success: true, order: 'desc' }
 assert.equal(await service.getSortOrder('作品'), 'desc')
 assert.deepEqual(request, {
@@ -42,6 +106,53 @@ assert.deepEqual(request, {
   url: '/api/chapters/create',
   payload: { bookName: '作品', volumeId: '第一卷' }
 })
+
+response = {
+  success: true,
+  bookName: '作品',
+  volumeName: '第一卷',
+  chapterName: '新章名',
+  filePath: 'D:/books/作品/正文/第一卷/新章名.txt',
+  wordCount: 4,
+  databaseSync: { success: true, chapterName: '新章名' }
+}
+await service.saveChapterDocument({
+  bookName: '作品',
+  volumeName: '第一卷',
+  chapterName: '旧章名',
+  newName: '新章名',
+  content: '新的正文'
+})
+assert.deepEqual(request, {
+  url: '/api/chapters/save',
+  payload: {
+    bookName: '作品',
+    volumeName: '第一卷',
+    chapterName: '旧章名',
+    newName: '新章名',
+    content: '新的正文'
+  }
+})
+
+response = {
+  success: true,
+  bookName: '作品',
+  volumeName: '第一卷',
+  chapterName: '错误章名',
+  filePath: 'D:/books/作品/正文/第一卷/错误章名.txt',
+  wordCount: 4,
+  databaseSync: { success: true, chapterName: '错误章名' }
+}
+await assert.rejects(
+  () =>
+    service.saveChapterDocument({
+      bookName: '作品',
+      volumeName: '第一卷',
+      chapterName: '第一章',
+      content: '新的正文'
+    }),
+  /接口返回格式不正确/
+)
 
 response = { success: true, chapters: [{ type: 'volume', name: '第一卷', children: [] }] }
 assert.equal((await service.listChapterTree('作品')).length, 1)
@@ -97,6 +208,32 @@ assert.deepEqual(request, {
   url: '/api/notes/create',
   payload: { bookName: '作品', notebookName: '笔记本1' }
 })
+
+response = {
+  success: true,
+  bookName: '作品',
+  notebookName: '资料',
+  noteName: '人物',
+  filePath: 'D:/books/作品/笔记/资料/人物.txt',
+  content: '林青'
+}
+assert.equal((await service.readNoteDocument('作品', '资料', '人物')).content, '林青')
+
+response = {
+  success: true,
+  bookName: '作品',
+  notebookName: '资料',
+  noteName: '人物',
+  filePath: 'D:/books/作品/笔记/资料/人物.txt',
+  contentLength: 2
+}
+await service.writeNoteDocument({
+  bookName: '作品',
+  notebookName: '资料',
+  noteName: '人物',
+  content: '林青'
+})
+assert.equal(request.url, '/api/notes/edit')
 
 response = { success: false, message: '名称已存在' }
 await assert.rejects(
