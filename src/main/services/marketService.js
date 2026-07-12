@@ -1,4 +1,4 @@
-import { join } from 'node:path'
+import { join, relative, resolve, sep } from 'node:path'
 import fs from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import knowledgeBaseService, { calculateWriterActivityStatus } from './knowledgeBaseService.js'
@@ -849,14 +849,30 @@ export function applyInsightToBook(booksDir, input = {}) {
 }
 
 export function createBookFromInsight(booksDir, input = {}) {
+  if (!booksDir || typeof booksDir !== 'string') {
+    return { success: false, message: '请先设置书籍目录' }
+  }
   const insight = input.insight || findInsight(booksDir, input.insightId, input.channel || 'all')
   if (!insight) return { success: false, message: '灵感不存在' }
   const title = String(
     input.selectedTitle || insight.bookTitleIdeas?.[0] || insight.title || '市场灵感新书'
   ).trim()
   const safeName = title.replace(/[\\/:*?"<>|]/g, '_')
+  if (!safeName || safeName === '.' || safeName === '..') {
+    return { success: false, message: '作品名称无效' }
+  }
   const bookName = uniqueMarketBookName(booksDir, safeName)
-  const bookPath = join(booksDir, bookName)
+  const booksRoot = resolve(booksDir)
+  const bookPath = resolve(booksRoot, bookName)
+  const relativeBookPath = relative(booksRoot, bookPath)
+  if (
+    !relativeBookPath ||
+    relativeBookPath === '..' ||
+    relativeBookPath.startsWith(`..${sep}`) ||
+    resolve(bookPath) === booksRoot
+  ) {
+    return { success: false, message: '作品目录无效' }
+  }
   const typeInfo = typeFromGenre(insight.genre)
   const outline = buildOutlineDraft({ ...insight, title: bookName })
   writeMarketBookFiles(
