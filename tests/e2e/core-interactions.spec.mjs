@@ -90,6 +90,8 @@ async function removeTestBook(request, projectName) {
 
 async function openEditor(page, bookName) {
   await page.goto(`/#/editor/${encodeURIComponent(bookName)}?name=${encodeURIComponent(bookName)}`)
+  await expect(page).toHaveURL(/#\/editor\//)
+  await expect(page).toHaveTitle(new RegExp(bookName))
   await expect(page.getByLabel('创作台快捷操作')).toBeVisible()
   await expect(page.locator('.ProseMirror')).toContainText(/夜雨落在青石长街上|天亮以后/)
 }
@@ -129,6 +131,44 @@ test('首页继续写作可以进入创作台', async ({ page }, testInfo) => {
 
   await expect(page).toHaveURL(/#\/editor\//)
   await expect(page).toHaveTitle(new RegExp(bookName))
+})
+
+test('创作台资料入口携带当前书籍并打开对应页面', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '资料入口巡检仅在桌面项目执行')
+  test.setTimeout(60_000)
+  const runtimeErrors = []
+  const bookName = testBookName(testInfo.project.name)
+  const entries = [
+    { buttonName: '大纲管理', pageTitle: '大纲管理', path: 'outline-manager' },
+    { buttonName: '设定管理', pageTitle: '设定管理', path: 'setting-manager' },
+    { buttonName: '词条字典', pageTitle: '词典', path: 'dictionary' },
+    { buttonName: '人物谱', pageTitle: '角色档案', path: 'character-profile' },
+    { buttonName: '时间线', pageTitle: '时间线', path: 'timeline' }
+  ]
+  page.on('pageerror', (error) => runtimeErrors.push(error.message))
+  await openEditor(page, bookName)
+
+  for (const [index, entry] of entries.entries()) {
+    await page.getByRole('button', { name: entry.buttonName, exact: true }).click()
+
+    await expect(page).toHaveURL((url) => {
+      return (
+        url.hash.startsWith(`#/${entry.path}`) &&
+        new URLSearchParams(url.hash.split('?')[1]).get('name') === bookName
+      )
+    })
+    await expect(page).toHaveTitle(new RegExp(entry.pageTitle))
+    await expect(page.locator('#app-main')).toBeVisible()
+
+    if (index < entries.length - 1) {
+      await page.goBack()
+      await expect(page).toHaveURL(/#\/editor\//)
+      await expect(page).toHaveTitle(new RegExp(bookName))
+      await expect(page.getByLabel('创作台快捷操作')).toBeVisible()
+    }
+  }
+
+  expect(runtimeErrors).toEqual([])
 })
 
 test('主导航和子导航可以连续切换且不会产生运行时异常', async ({ page }, testInfo) => {
