@@ -37,6 +37,8 @@ lerna-debug.log*
 # Cache
 .eslintcache
 .playwright-mcp
+playwright-report
+test-results
 tmp
 
 # Local writing data

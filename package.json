@@ -15,7 +15,8 @@
     "test:unit": "node scripts/test-chapter-version-service.mjs && node scripts/test-chapter-version-restore.mjs && node scripts/test-editor-save-queue.mjs && node scripts/test-editor-text-cleanup.mjs && node scripts/test-text-hint-decorations.mjs && node scripts/test-editor-layout.mjs && node scripts/test-local-book-import-parser.mjs && node scripts/test-import-book-transaction.mjs && node scripts/test-asset-reference-guards.mjs && node scripts/test-creation-starter-storage-redline-guards.mjs && node scripts/test-web-http-client.mjs && node scripts/test-web-store-service.mjs && node scripts/test-web-bookshelf-auth-service.mjs && node scripts/test-web-system-settings-service.mjs && node scripts/test-web-ui-preferences.mjs && node scripts/test-web-image-url.mjs && node scripts/test-web-books-service.mjs && node scripts/test-web-chapters-service.mjs && node scripts/test-web-editor-tree-service.mjs && node scripts/test-web-editor-export.mjs && node scripts/test-web-editor-store.mjs && node scripts/test-web-editor-records.mjs && node scripts/test-web-novel-service.mjs && node scripts/test-setting-snapshot-service.mjs && node scripts/test-web-ai-text-task-service.mjs && node scripts/test-web-ai-proxy-service.mjs && node scripts/test-web-extraction-task-service.mjs && node scripts/test-plot-evolution-ai.mjs && node scripts/test-setting-tree-ai.mjs && node scripts/test-web-editor-ai-services.mjs && node scripts/test-web-outline-ai-task.mjs && node scripts/test-web-knowledge-service.mjs && node scripts/test-web-market-service.mjs && node scripts/test-web-statistics-service.mjs && node scripts/test-web-image-ai-services.mjs && node scripts/test-web-deepseek-service.mjs && node scripts/test-web-ai-provider-service.mjs && node scripts/test-web-ai-workshop-service.mjs && node scripts/test-ai-chat-service.mjs && node scripts/test-book-idea-ai.mjs && node scripts/test-outline-chapter-ai.mjs && node scripts/test-image-generation-router.mjs && node scripts/test-web-ai-image-asset-service.mjs",
     "test:editor-clipboard": "node scripts/test-editor-clipboard.mjs",
     "test:api": "node scripts/test-api-route-contracts.mjs && node scripts/test-workbench-database-service.mjs",
-    "test:web": "node scripts/test-web-only-guards.mjs"
+    "test:web": "node scripts/test-web-only-guards.mjs",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
@@ -46,6 +47,7 @@
     "vue-router": "^4.6.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@vitejs/plugin-vue": "^5.2.4",
     "eslint": "^9.37.0",
     "eslint-plugin-vue": "^10.5.1",
