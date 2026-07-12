@@ -13,6 +13,19 @@ import { createWebServerPlugins } from './vite.web.plugins.mjs'
 
 const projectRoot = dirname(fileURLToPath(import.meta.url))
 
+export function webVendorChunk(id) {
+  if (!id.includes('node_modules')) return undefined
+  if (/[\\/]node_modules[\\/](@tiptap|prosemirror-)/.test(id)) return 'vendor-editor'
+  if (/[\\/]node_modules[\\/]echarts[\\/]/.test(id)) return 'vendor-charts'
+  if (/[\\/]node_modules[\\/]zrender[\\/]/.test(id)) return 'vendor-renderer'
+  if (/[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/.test(id)) return 'vendor-vue'
+  if (/[\\/]node_modules[\\/]lucide-vue-next[\\/]/.test(id)) return 'vendor-icons'
+  if (/[\\/]node_modules[\\/]mammoth[\\/]/.test(id)) return 'vendor-docx'
+  if (/[\\/]node_modules[\\/](jszip|pako)[\\/]/.test(id)) return 'vendor-zip'
+  if (/[\\/]node_modules[\\/](sax|xmlbuilder|@xmldom)[\\/]/.test(id)) return 'vendor-xml'
+  return undefined
+}
+
 export default defineConfig({
   root: resolve(projectRoot, 'src/renderer'),
   resolve: {
@@ -44,6 +57,11 @@ export default defineConfig({
   },
   build: {
     outDir: resolve(projectRoot, 'dist-web'),
-    emptyOutDir: true
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: webVendorChunk
+      }
+    }
   }
 })
