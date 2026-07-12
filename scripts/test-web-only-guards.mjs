@@ -115,6 +115,31 @@ assert.doesNotMatch(
   /getElectronApi\(\s*['"]getEditorAgentProgressServer['"]/,
   'Agent 进度服务状态必须直接使用 Web API'
 )
+assert.doesNotMatch(
+  editorServiceSource,
+  /requireElectronApi\(/,
+  '编辑器服务不能保留强制 Electron 调用'
+)
+for (const method of [
+  'setEditorModelDefault',
+  'createNotebook',
+  'renameNotebook',
+  'createNote',
+  'openEditorSession',
+  'updateEditorSessionContext',
+  'listEditorMessages',
+  'appendEditorMessage',
+  'markEditorGenerationApplied',
+  'listEditorGenerations',
+  'saveEditorMaterial',
+  'listEditorMaterials'
+]) {
+  assert.doesNotMatch(
+    webShimSource,
+    new RegExp(`\\b${method}:`),
+    `Web shim 不应保留已迁移的编辑器方法：${method}`
+  )
+}
 for (const method of [
   'editNote',
   'saveChapter',

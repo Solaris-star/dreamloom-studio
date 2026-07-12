@@ -67,11 +67,6 @@ function requireStoredAiProviders(raw, label = '读取 Provider 失败') {
   throw new Error(`${label}：接口返回格式不正确`)
 }
 
-function requireStoreArray(value, label = '读取本地记录失败') {
-  if (Array.isArray(value)) return value
-  throw new Error(`${label}：本地记录格式不正确`)
-}
-
 function buildImageTestBody(modelName = '') {
   const body = {
     prompt: 'test',
@@ -520,12 +515,6 @@ function resolveTextAiModelPayload(payload = {}, modelPayload = {}) {
   }
 }
 
-function statusFromApplyAction(action = '') {
-  if (action === 'discard') return 'discarded'
-  if (['save_material', 'save_snippet', 'send_to_asset_workspace'].includes(action)) return 'saved'
-  return 'applied'
-}
-
 function normalizeWebSecret(value) {
   return String(value || '')
 }
@@ -762,13 +751,8 @@ function buildElectronShim() {
       }
       return data
     },
-    createNotebook: (bookName) => postJson('/api/notebooks/create', { bookName }),
     deleteNotebook: (bookName, notebookName) =>
       postJson('/api/notebooks/delete', { bookName, notebookName }),
-    renameNotebook: (bookName, oldName, newName) =>
-      postJson('/api/notebooks/rename', { bookName, oldName, newName }),
-    createNote: (bookName, notebookName, noteName) =>
-      postJson('/api/notes/create', { bookName, notebookName, noteName }),
     deleteNote: (bookName, notebookName, noteName) =>
       postJson('/api/notes/delete', { bookName, notebookName, noteName }),
     renameNote: (bookName, notebookName, oldName, newName) =>
@@ -1028,88 +1012,6 @@ function buildElectronShim() {
       }
       return { success: true, bindings }
     },
-    setEditorModelDefault: async ({ task = 'writing', modelId = '' } = {}) => {
-      const defaults = await readEditorModelDefaults()
-      const nextDefaults = { ...(defaults || {}), [task]: modelId }
-      await setStoreValue('editorModelDefaults', nextDefaults)
-      let activeTextProviderId = await getStoreValue('aiProviders.activeTextId', '')
-      if (task === 'writing' || task === 'chat') {
-        activeTextProviderId = String(modelId || '').split('::')[0] || modelId
-        await setStoreValue('aiProviders.activeTextId', activeTextProviderId)
-      }
-      return {
-        success: true,
-        task,
-        modelId,
-        defaults: nextDefaults,
-        providerId: activeTextProviderId
-      }
-    },
-    openEditorSession: async (payload = {}) => {
-      const sessions = requireStoreArray(
-        await getStoreValue('editorSessions', []),
-        '读取编辑器会话记录失败'
-      )
-      const id = payload.id || `editor_session:${payload.bookId || 'empty'}`
-      const session = {
-        id,
-        userId: payload.userId || 'local',
-        bookId: payload.bookId || '',
-        chapterId: payload.chapterId || '',
-        mode: payload.mode || 'write',
-        selectedModelId: payload.selectedModelId || '',
-        contextOptions: payload.contextOptions || {},
-        lastOpenedAt: new Date().toISOString()
-      }
-      await setStoreValue(
-        'editorSessions',
-        [session, ...sessions.filter((item) => item.id !== id)].slice(0, 80)
-      )
-      await setStoreValue('lastActiveBookId', session.bookId)
-      return { success: true, session }
-    },
-    updateEditorSessionContext: async ({ sessionId, contextOptions } = {}) => {
-      const sessions = requireStoreArray(
-        await getStoreValue('editorSessions', []),
-        '读取编辑器会话记录失败'
-      )
-      const session = sessions.find((item) => item.id === sessionId) || { id: sessionId }
-      const next = {
-        ...session,
-        contextOptions: { ...(session.contextOptions || {}), ...(contextOptions || {}) },
-        lastOpenedAt: new Date().toISOString()
-      }
-      await setStoreValue(
-        'editorSessions',
-        [next, ...sessions.filter((item) => item.id !== sessionId)].slice(0, 80)
-      )
-      return { success: true, session: next }
-    },
-    listEditorMessages: async (sessionId) => {
-      const messages = requireStoreArray(
-        await getStoreValue('editorMessages', []),
-        '读取编辑器消息失败'
-      )
-      return { success: true, messages: messages.filter((item) => item.sessionId === sessionId) }
-    },
-    appendEditorMessage: async ({ sessionId, message } = {}) => {
-      const messages = requireStoreArray(
-        await getStoreValue('editorMessages', []),
-        '读取编辑器消息失败'
-      )
-      const next = {
-        id: message?.id || crypto.randomUUID(),
-        sessionId,
-        role: message?.role || 'assistant',
-        blocks: message?.blocks || [{ type: 'text', content: { text: message?.content || '' } }],
-        title: message?.title || '',
-        content: message?.content || '',
-        modelId: message?.modelId || '',
-        createdAt: message?.createdAt || new Date().toISOString()
-      }
-      await setStoreValue('editorMessages', [...messages, next].slice(-400))
-      return { success: true, message: next }
-    },
     generateEditorAgent: async () => ({
       success: false,
       message: 'Web 版暂不支持创作台 Agent，请改用当前页面里的 Writer / Editor 多步生成。'
@@ -1125,63 +1027,7 @@ function buildElectronShim() {
       postJson('/api/editor-agent/queue-jobs', payload || {}),
     cancelEditorAgentQueueJob: async (payload = {}) =>
       postJson('/api/editor-agent/queue-cancel', payload || {}),
-    getEditorAgentProgressServer: async () => postJson('/api/editor-agent/progress-server', {}),
-    markEditorGenerationApplied: async ({ generationId, applyAction, status } = {}) => {
-      const id = String(generationId || '').trim()
-      if (!id) return { success: false, message: '缺少生成记录 ID' }
-      const nextStatus = status || statusFromApplyAction(applyAction)
-      const rows = requireStoreArray(
-        await getStoreValue('editorGenerations', []),
-        '读取生成记录失败'
-      )
-      const target = rows.find((item) => item.id === id)
-      if (!target) return { success: false, message: '未找到生成记录，无法更新状态' }
-      const patch = { status: nextStatus, applyAction, appliedAt: new Date().toISOString() }
-      await setStoreValue(
-        'editorGenerations',
-        rows.map((item) => (item.id === id ? { ...item, ...patch } : item))
-      )
-      return { success: true, generation: { ...target, ...patch } }
-    },
-    listEditorGenerations: async (bookId = '') => {
-      const generations = requireStoreArray(
-        await getStoreValue('editorGenerations', []),
-        '读取生成记录失败'
-      )
-      return {
-        success: true,
-        items: generations.filter((item) => !bookId || item.bookId === bookId)
-      }
-    },
-    saveEditorMaterial: async (payload = {}) => {
-      const materials = requireStoreArray(
-        await getStoreValue('editorMaterials', []),
-        '读取编辑器素材失败'
-      )
-      const material = {
-        id: crypto.randomUUID(),
-        source: 'editor_agent',
-        tags: [],
-        ...payload,
-        createdAt: new Date().toISOString()
-      }
-      await setStoreValue('editorMaterials', [material, ...materials].slice(0, 300))
-      return { success: true, material }
-    },
-    listEditorMaterials: async ({ bookId = '', chapterId = '' } = {}) => {
-      const materials = requireStoreArray(
-        await getStoreValue('editorMaterials', []),
-        '读取编辑器素材失败'
-      )
-      return {
-        success: true,
-        materials: materials.filter((item) => {
-          if (bookId && item.bookId !== bookId) return false
-          if (chapterId && item.chapterId !== chapterId) return false
-          return true
-        })
-      }
-    }
+    getEditorAgentProgressServer: async () => postJson('/api/editor-agent/progress-server', {})
   }
 }
 

@@ -11,19 +11,31 @@ function getElectronApi(name, label = '编辑器接口') {
   return api
 }
 
-function requireElectronApi(name, label = '编辑器接口') {
-  const api = getElectronApi(name, label)
-  if (!api) {
-    throw new Error(`当前环境没有可用的${label}：${name}`)
-  }
-  return api
-}
-
 function requireSuccessResult(response, label) {
   if (response?.success !== true) {
     throw new Error(response.message || `${label}失败`)
   }
   return response
+}
+
+function requireStoreArray(value, label) {
+  if (!Array.isArray(value)) {
+    throw new Error(`${label}：本地记录格式不正确`)
+  }
+  return value
+}
+
+function createRecordId(prefix = 'record') {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID()
+  }
+  return `${prefix}:${Date.now()}:${Math.random().toString(16).slice(2)}`
+}
+
+function statusFromApplyAction(action = '') {
+  if (action === 'discard') return 'discarded'
+  if (['save_material', 'save_snippet', 'send_to_asset_workspace'].includes(action)) return 'saved'
+  return 'applied'
 }
 
 function requireObjectResult(response, fieldName, label) {
@@ -1129,8 +1141,27 @@ export async function listModelBindings() {
 }
 
 export async function updateModelDefaults(payload = {}) {
-  const response = await requireElectronApi('setEditorModelDefault', '编辑器模型接口')(payload)
-  return requireModelDefaultResult(response)
+  const task = String(payload.task || 'writing')
+  const modelId = String(payload.modelId || '')
+  const storedDefaults = await getStoreValue('editorModelDefaults', {})
+  const defaults =
+    storedDefaults && typeof storedDefaults === 'object' && !Array.isArray(storedDefaults)
+      ? storedDefaults
+      : {}
+  const nextDefaults = { ...defaults, [task]: modelId }
+  await setStoreValue('editorModelDefaults', nextDefaults)
+  let providerId = String(await getStoreValue('aiProviders.activeTextId', ''))
+  if (task === 'writing' || task === 'chat') {
+    providerId = modelId.split('::')[0] || modelId
+    await setStoreValue('aiProviders.activeTextId', providerId)
+  }
+  return requireModelDefaultResult({
+    success: true,
+    task,
+    modelId,
+    defaults: nextDefaults,
+    providerId
+  })
 }
 
 export async function getSortOrder(bookName) {
@@ -1568,16 +1599,10 @@ export async function ensureNotebookDocument(bookName, notebookName) {
   if (notes.some((item) => sameText(item?.name || item?.id, targetNotebookName))) {
     return { notebookName: targetNotebookName, created: false, renamed: false }
   }
-  const createdName = requireCreatedNotebookResult(
-    await requireElectronApi('createNotebook', '笔记本创建接口')(targetBookName)
-  )
+  const createdName = requireCreatedNotebookResult(await createNotebookDocument(targetBookName))
   if (!sameText(createdName, targetNotebookName)) {
     await requireRenamedNotebookResult(
-      await requireElectronApi('renameNotebook', '笔记本重命名接口')(
-        targetBookName,
-        createdName,
-        targetNotebookName
-      ),
+      await renameNotebookDocument(targetBookName, createdName, targetNotebookName),
       targetNotebookName
     )
     return { notebookName: targetNotebookName, created: true, renamed: true }
@@ -1608,11 +1633,7 @@ export async function ensureNoteDocument(bookName, notebookName, noteName) {
     return { notebookName: targetNotebookName, noteName: targetNoteName, created: false }
   }
   await requireCreatedNoteResult(
-    await requireElectronApi('createNote', '笔记创建接口')(
-      targetBookName,
-      targetNotebookName,
-      targetNoteName
-    ),
+    await createNoteDocument(targetBookName, targetNotebookName, targetNoteName),
     targetNoteName
   )
   return { notebookName: targetNotebookName, noteName: targetNoteName, created: true }
@@ -2291,35 +2312,79 @@ export async function reformatChapterNumbers(bookName, volumeName, settings = {}
 }
 
 export async function openEditorSession(payload = {}) {
-  const response = await requireElectronApi('openEditorSession', '编辑器会话接口')(payload)
-  return requireObjectResult(response, 'session', '打开编辑器会话')
+  const sessions = requireStoreArray(
+    await getStoreValue('editorSessions', []),
+    '读取编辑器会话记录失败'
+  )
+  const id = payload.id || `editor_session:${payload.bookId || 'empty'}`
+  const session = {
+    id,
+    userId: payload.userId || 'local',
+    bookId: payload.bookId || '',
+    chapterId: payload.chapterId || '',
+    mode: payload.mode || 'write',
+    selectedModelId: payload.selectedModelId || '',
+    contextOptions: payload.contextOptions || {},
+    lastOpenedAt: new Date().toISOString()
+  }
+  await setStoreValue(
+    'editorSessions',
+    [session, ...sessions.filter((item) => item.id !== id)].slice(0, 80)
+  )
+  await setStoreValue('lastActiveBookId', session.bookId)
+  return requireObjectResult({ success: true, session }, 'session', '打开编辑器会话')
 }
 
 export async function updateEditorSessionContext(sessionId, contextOptions = {}) {
-  const response = await requireElectronApi(
-    'updateEditorSessionContext',
-    '编辑器会话接口'
-  )({
-    sessionId,
-    contextOptions
-  })
-  return requireObjectResult(response, 'session', '更新编辑器会话')
+  const sessions = requireStoreArray(
+    await getStoreValue('editorSessions', []),
+    '读取编辑器会话记录失败'
+  )
+  const session = sessions.find((item) => item.id === sessionId) || { id: sessionId }
+  const next = {
+    ...session,
+    contextOptions: { ...(session.contextOptions || {}), ...(contextOptions || {}) },
+    lastOpenedAt: new Date().toISOString()
+  }
+  await setStoreValue(
+    'editorSessions',
+    [next, ...sessions.filter((item) => item.id !== sessionId)].slice(0, 80)
+  )
+  return requireObjectResult({ success: true, session: next }, 'session', '更新编辑器会话')
 }
 
 export async function listAgentMessages(sessionId) {
-  const response = await requireElectronApi('listEditorMessages', '编辑器消息接口')(sessionId)
-  return requireArrayResult(response, 'messages', '读取编辑器消息')
+  const messages = requireStoreArray(
+    await getStoreValue('editorMessages', []),
+    '读取编辑器消息失败'
+  )
+  return requireArrayResult(
+    {
+      success: true,
+      messages: messages.filter((item) => item.sessionId === sessionId)
+    },
+    'messages',
+    '读取编辑器消息'
+  )
 }
 
 export async function appendAgentMessage(sessionId, message) {
-  const response = await requireElectronApi(
-    'appendEditorMessage',
-    '编辑器消息接口'
-  )({
+  const messages = requireStoreArray(
+    await getStoreValue('editorMessages', []),
+    '读取编辑器消息失败'
+  )
+  const next = {
+    id: message?.id || createRecordId('editor_message'),
     sessionId,
-    message
-  })
-  return requireObjectResult(response, 'message', '保存编辑器消息')
+    role: message?.role || 'assistant',
+    blocks: message?.blocks || [{ type: 'text', content: { text: message?.content || '' } }],
+    title: message?.title || '',
+    content: message?.content || '',
+    modelId: message?.modelId || '',
+    createdAt: message?.createdAt || new Date().toISOString()
+  }
+  await setStoreValue('editorMessages', [...messages, next].slice(-400))
+  return requireObjectResult({ success: true, message: next }, 'message', '保存编辑器消息')
 }
 
 export async function generateAgentPreview(payload = {}) {
@@ -2487,20 +2552,35 @@ export async function listConsistencyChecks(payload = {}) {
 export async function markGenerationApplied(generationId, applyAction, status = '') {
   const id = String(generationId || '').trim()
   if (!id) return { success: false, message: '缺少生成记录 ID' }
-  const response = await requireElectronApi(
-    'markEditorGenerationApplied',
-    '生成记录接口'
-  )({
-    generationId: id,
+  const rows = requireStoreArray(await getStoreValue('editorGenerations', []), '读取生成记录失败')
+  const target = rows.find((item) => item.id === id)
+  if (!target) throw new Error('未找到生成记录，无法更新状态')
+  const patch = {
+    status: status || statusFromApplyAction(applyAction),
     applyAction,
-    status
-  })
-  return requireObjectResult(response, 'generation', '更新生成记录')
+    appliedAt: new Date().toISOString()
+  }
+  const generation = { ...target, ...patch }
+  await setStoreValue(
+    'editorGenerations',
+    rows.map((item) => (item.id === id ? generation : item))
+  )
+  return requireObjectResult({ success: true, generation }, 'generation', '更新生成记录')
 }
 
 export async function listAgentHistory(bookId) {
-  const response = await requireElectronApi('listEditorGenerations', '生成记录接口')(bookId)
-  return requireArrayResult(response, 'items', '读取生成记录')
+  const generations = requireStoreArray(
+    await getStoreValue('editorGenerations', []),
+    '读取生成记录失败'
+  )
+  return requireArrayResult(
+    {
+      success: true,
+      items: generations.filter((item) => !bookId || item.bookId === bookId)
+    },
+    'items',
+    '读取生成记录'
+  )
 }
 
 export async function listAgentTasks(payload = {}) {
@@ -2535,11 +2615,37 @@ export async function deleteEditorSnapshot(snapshotId, filter = {}) {
 }
 
 export async function saveEditorMaterial(payload = {}) {
-  const response = await requireElectronApi('saveEditorMaterial', '编辑器素材接口')(payload)
-  return requireObjectResult(response, 'material', '保存编辑器素材')
+  const materials = requireStoreArray(
+    await getStoreValue('editorMaterials', []),
+    '读取编辑器素材失败'
+  )
+  const material = {
+    id: createRecordId('editor_material'),
+    source: 'editor_agent',
+    tags: [],
+    ...payload,
+    createdAt: new Date().toISOString()
+  }
+  await setStoreValue('editorMaterials', [material, ...materials].slice(0, 300))
+  return requireObjectResult({ success: true, material }, 'material', '保存编辑器素材')
 }
 
 export async function listEditorMaterials(filter = {}) {
-  const response = await requireElectronApi('listEditorMaterials', '编辑器素材接口')(filter)
-  return requireArrayResult(response, 'materials', '读取编辑器素材')
+  const { bookId = '', chapterId = '' } = filter
+  const materials = requireStoreArray(
+    await getStoreValue('editorMaterials', []),
+    '读取编辑器素材失败'
+  )
+  return requireArrayResult(
+    {
+      success: true,
+      materials: materials.filter((item) => {
+        if (bookId && item.bookId !== bookId) return false
+        if (chapterId && item.chapterId !== chapterId) return false
+        return true
+      })
+    },
+    'materials',
+    '读取编辑器素材'
+  )
 }
