@@ -8,6 +8,7 @@ import {
   generateNovelOutline,
   initNovelProject,
   listNovelTasks,
+  repairNovelChapter,
   researchNovelMarket,
   runNovelLifecycle,
   writeNovelChapter,
@@ -288,6 +289,72 @@ function createAbortableProvider(abortController) {
 try {
   fs.mkdirSync(emptyEnvDir, { recursive: true })
 
+  await assert.rejects(() => initNovelProject({ booksDir }), /缺少书籍名称/)
+  await assert.rejects(() => initNovelProject({ bookName: '缺少书库' }), /缺少书库目录/)
+  await assert.rejects(
+    () => generateNovelOutline({ booksDir, idea: '生成大纲' }),
+    /缺少书籍名称/
+  )
+  await assert.rejects(
+    () => generateNovelOutline({ booksDir, bookName }),
+    /缺少大纲方向/
+  )
+  await assert.rejects(
+    () => generateNovelOutline({ booksDir, bookName, idea: '生成大纲', count: 1 }),
+    /大纲段数无效/
+  )
+  await assert.rejects(
+    () => generateNovelOutline({ booksDir, bookName, idea: '生成大纲', count: 'invalid' }),
+    /大纲段数无效/
+  )
+  await assert.rejects(
+    () => writeNovelChapters({ booksDir, targetWords: 100 }),
+    /缺少书籍名称/
+  )
+  await assert.rejects(
+    () => writeNovelChapters({ booksDir, bookName, targetWords: -1 }),
+    /目标字数无效/
+  )
+  await assert.rejects(
+    () => writeNovelChapter({ booksDir, prompt: '写一章' }),
+    /缺少书籍名称/
+  )
+  await assert.rejects(
+    () => writeNovelChapter({ booksDir, bookName }),
+    /缺少写作要求/
+  )
+  await assert.rejects(
+    () => writeNovelChapter({ booksDir, bookName, prompt: '写一章', targetWords: -1 }),
+    /目标字数无效/
+  )
+  await assert.rejects(
+    () => repairNovelChapter({ booksDir }),
+    /缺少书籍名称/
+  )
+  await assert.rejects(
+    () => repairNovelChapter({ booksDir, bookName }),
+    /缺少要返修的正文/
+  )
+  await assert.rejects(
+    () =>
+      repairNovelChapter({
+        booksDir,
+        bookName,
+        currentText: '待返修正文'
+      }),
+    /缺少一致性检查问题/
+  )
+  await assert.rejects(
+    () => runNovelLifecycle({ booksDir, idea: '创作一本书' }),
+    /缺少书籍名称/
+  )
+  await assert.rejects(
+    () => runNovelLifecycle({ booksDir, bookName }),
+    /缺少创作方向/
+  )
+  assert.throws(() => exportNovelBook({ booksDir }), /缺少书籍名称/)
+  assert.throws(() => listNovelTasks({ booksDir }), /缺少书籍名称/)
+
   const initResult = await initNovelProject({
     booksDir,
     bookName,
@@ -297,6 +364,20 @@ try {
   assert.equal(initResult.bookName, bookName)
   assert.equal(fs.existsSync(initResult.bookPath), true)
   assert.equal(fs.existsSync(join(booksDir, bookName, 'mazi.json')), true)
+
+  const reusedInitResult = await initNovelProject({
+    booksDir,
+    bookName,
+    intro: '重复初始化不应覆盖已有作品。'
+  })
+  assert.equal(reusedInitResult.success, true)
+  assert.equal(reusedInitResult.existed, true)
+
+  fs.mkdirSync(join(booksDir, '无效已有目录'), { recursive: true })
+  await assert.rejects(
+    () => initNovelProject({ booksDir, bookName: '无效已有目录' }),
+    /目标目录已存在，但不是有效书籍/
+  )
 
   const cachedAt = new Date().toISOString()
   fs.mkdirSync(join(booksDir, 'market'), { recursive: true })
