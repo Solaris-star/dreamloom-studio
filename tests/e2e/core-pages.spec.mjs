@@ -1,14 +1,8 @@
 import { expect, test } from '@playwright/test'
 
-const pages = [
-  { path: '/#/', title: '织梦工坊' },
-  { path: '/#/knowledge', title: '创作库' },
-  { path: '/#/knowledge/images', title: '图库' },
-  { path: '/#/ai/creation-starter', title: 'AI 工坊' },
-  { path: '/#/analytics/overview', title: '数据中心' },
-  { path: '/#/settings/general', title: '系统设置' },
-  { path: '/#/route-that-does-not-exist', title: '页面不存在' }
-]
+import { pageOpenCases } from './page-catalog.mjs'
+
+const pageCheckBookName = '织梦工坊页面巡检'
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/bookshelf-auth/status', async (route) => {
@@ -23,9 +17,50 @@ test.beforeEach(async ({ page }) => {
   })
 })
 
-for (const target of pages) {
-  test(`${target.title}页面可正常打开`, async ({ page }) => {
+for (const target of pageOpenCases) {
+  test(`${target.title}页面可正常打开`, async ({ page, request }) => {
     const runtimeErrors = []
+    const needsBook = target.path.includes('__book__')
+
+    if (needsBook) {
+      await request.post('/api/books/delete', { data: { name: pageCheckBookName } })
+      const createResponse = await request.post('/api/books/create', {
+        data: {
+          name: pageCheckBookName,
+          intro: '仅用于页面打开巡检',
+          type: 'xuanhuan',
+          typeName: '玄幻',
+          bookRole: 'original'
+        }
+      })
+      expect(createResponse.ok()).toBeTruthy()
+      const createResult = await createResponse.json()
+      expect(createResult.success).toBe(true)
+
+      if (target.routeName === 'RelationshipDesign') {
+        const graphResponse = await request.post('/api/studio/relationships/create', {
+          data: {
+            bookName: pageCheckBookName,
+            relationshipName: '__page_check__',
+            relationshipData: { nodes: [], lines: [] }
+          }
+        })
+        expect(graphResponse.ok()).toBeTruthy()
+        expect((await graphResponse.json()).success).toBe(true)
+      }
+
+      if (target.routeName === 'OrganizationDesign') {
+        const graphResponse = await request.post('/api/studio/organizations/create', {
+          data: {
+            bookName: pageCheckBookName,
+            organizationName: '__page_check__',
+            organizationData: { nodes: [], lines: [] }
+          }
+        })
+        expect(graphResponse.ok()).toBeTruthy()
+        expect((await graphResponse.json()).success).toBe(true)
+      }
+    }
 
     page.on('pageerror', (error) => runtimeErrors.push(`pageerror: ${error.message}`))
     page.on('console', (message) => {
@@ -37,7 +72,8 @@ for (const target of pages) {
       }
     })
 
-    await page.goto(target.path, { waitUntil: 'domcontentloaded' })
+    const targetPath = target.path.replaceAll('__book__', encodeURIComponent(pageCheckBookName))
+    await page.goto(targetPath, { waitUntil: 'domcontentloaded' })
     await expect(page).toHaveTitle(new RegExp(target.title))
     await expect(page.locator('#app')).toBeVisible()
     await expect(page.locator('body')).not.toHaveText(/Internal Server Error|页面加载失败/)
@@ -51,5 +87,9 @@ for (const target of pages) {
     expect(layout.bodyWidth).toBeLessThanOrEqual(viewport.width + 1)
     expect(layout.documentWidth).toBeLessThanOrEqual(viewport.width + 1)
     expect(runtimeErrors).toEqual([])
+
+    if (needsBook) {
+      await request.post('/api/books/delete', { data: { name: pageCheckBookName } })
+    }
   })
 }
