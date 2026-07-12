@@ -54,6 +54,9 @@ assert.equal(queueProgress.bookName, bookName)
 assert.equal(queueProgress.event.type, 'queue_active')
 assert.equal(normalizeAgentTaskQueueProgress({ task: { id: '' }, event: {} }), null)
 assert.equal(normalizeAgentTaskQueueProgress(null), null)
+assert.equal(normalizeAgentTaskQueueProgress('invalid'), null)
+assert.equal(normalizeAgentTaskQueueProgress({ task: { id: 'task-only' } }), null)
+assert.equal(normalizeAgentTaskQueueProgress({ event: {}, task: null }), null)
 const fallbackQueueProgress = normalizeAgentTaskQueueProgress({
   bookId: 'book-id',
   generationId: 'generation-id',
@@ -75,6 +78,32 @@ assert.equal(fallbackQueueProgress.generationId, 'generation-id')
 assert.equal(fallbackQueueProgress.sourceGenerationId, 'source-id')
 assert.equal(fallbackQueueProgress.repairGenerationId, 'repair-id')
 assert.equal(fallbackQueueProgress.writeTaskId, 'write-id')
+assert.match(fallbackQueueProgress.updatedAt, /^\d{4}-\d{2}-\d{2}T/)
+
+const taskFieldQueueProgress = normalizeAgentTaskQueueProgress({
+  bookName: 123,
+  taskId: ' ',
+  updatedAt: ' ',
+  event: { type: 'queue_waiting' },
+  task: {
+    id: 'task-fields',
+    bookName: '任务作品',
+    bookId: 'task-book-id',
+    generationId: 'task-generation-id',
+    sourceGenerationId: 'task-source-id',
+    repairGenerationId: 'task-repair-id',
+    writeTaskId: 'task-write-id',
+    updatedAt: '2026-06-08T01:00:00.000Z'
+  }
+})
+assert.equal(taskFieldQueueProgress.bookName, '任务作品')
+assert.equal(taskFieldQueueProgress.bookId, 'task-book-id')
+assert.equal(taskFieldQueueProgress.taskId, 'task-fields')
+assert.equal(taskFieldQueueProgress.generationId, 'task-generation-id')
+assert.equal(taskFieldQueueProgress.sourceGenerationId, 'task-source-id')
+assert.equal(taskFieldQueueProgress.repairGenerationId, 'task-repair-id')
+assert.equal(taskFieldQueueProgress.writeTaskId, 'task-write-id')
+assert.equal(taskFieldQueueProgress.updatedAt, '2026-06-08T01:00:00.000Z')
 
 const firstAttemptRetryEvent = buildQueueRetryEvent(
   { attemptsMade: 1, opts: { attempts: 2 } },
@@ -95,6 +124,16 @@ assert.equal(
 assert.match(
   buildQueueRetryEvent({ attemptsMade: 'invalid', opts: { attempts: 3 } }, '临时错误').content,
   /第 1 次执行失败/
+)
+assert.match(
+  buildQueueRetryEvent({ attemptsMade: -2, opts: { attempts: 3 } }).content,
+  /失败原因：队列执行失败/
+)
+assert.equal(buildQueueRetryEvent({}, new Error('默认仅执行一次')), null)
+assert.match(
+  buildQueueRetryEvent({ attemptsMade: 1.9, opts: { attempts: 2.9 } }, new Error('临时失败'))
+    .content,
+  /第 1 次执行失败，准备第 2 次执行，共 2 次/
 )
 
 let duplicateLookupCount = 0
@@ -182,7 +221,12 @@ try {
   )
 
   await assert.rejects(() => getAgentTaskQueueStatus(), /真实任务队列未启用/)
+  await assert.rejects(
+    () => getAgentTaskQueueStatus({ enabled: false }),
+    /真实任务队列未启用/
+  )
   await assert.rejects(() => getAgentTaskQueueJob('', { enabled: true }), /缺少队列任务 ID/)
+  await assert.rejects(() => getAgentTaskQueueJob(' ', { enabled: true }), /缺少队列任务 ID/)
 
   await assert.rejects(() => listAgentTaskQueueJobs(), /真实任务队列未启用/)
   await assert.rejects(() => startAgentTaskWorker(), /真实任务队列未启用/)
@@ -263,6 +307,23 @@ try {
   )
 
   await assert.rejects(() => cancelAgentTaskQueueJob({ jobId: 'write:test' }), /真实任务队列未启用/)
+  await assert.rejects(() => cancelAgentTaskQueueJob('write:test'), /真实任务队列未启用/)
+
+  const previousQueueEnabled = process.env.AGENT_TASK_QUEUE_ENABLED
+  try {
+    for (const value of ['0', 'false', 'no', 'off', 'unexpected']) {
+      process.env.AGENT_TASK_QUEUE_ENABLED = value
+      await assert.rejects(() => getAgentTaskQueueStatus(), /真实任务队列未启用/)
+    }
+    process.env.AGENT_TASK_QUEUE_ENABLED = 'true'
+    await assert.rejects(
+      () => getAgentTaskQueueStatus({ enabled: false }),
+      /真实任务队列未启用/
+    )
+  } finally {
+    if (previousQueueEnabled === undefined) delete process.env.AGENT_TASK_QUEUE_ENABLED
+    else process.env.AGENT_TASK_QUEUE_ENABLED = previousQueueEnabled
+  }
 
   const helpCli = spawnSync(process.execPath, [join(process.cwd(), 'bin', 'novel.js'), '--help'], {
     encoding: 'utf-8'
@@ -404,6 +465,13 @@ try {
   assert.equal(closeResult.closedWorker, false)
   assert.equal(closeResult.closedQueue, false)
   assert.equal(closeResult.abortedActiveJobs, 0)
+
+  const defaultCloseResult = await closeAgentTaskQueue()
+  assert.equal(defaultCloseResult.success, true)
+  assert.equal(defaultCloseResult.queueName, 'novel-agent-writing')
+  assert.equal(defaultCloseResult.redisUrl, 'redis://127.0.0.1:6379/0')
+  assert.equal(defaultCloseResult.closedWorker, false)
+  assert.equal(defaultCloseResult.closedQueue, false)
 } finally {
   fs.rmSync(rootDir, { recursive: true, force: true })
 }

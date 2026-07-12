@@ -135,15 +135,18 @@ export function normalizeAgentTaskQueueProgress(progress = {}) {
   return {
     type: 'agent_task_updated',
     bookPath: cleanText(progress.bookPath),
-    bookName: cleanText(progress.bookName || task.bookName),
-    bookId: cleanText(progress.bookId || task.bookId),
-    taskId: cleanText(progress.taskId || task.id),
-    chapterId: cleanText(progress.chapterId || task.chapterId),
-    generationId: cleanText(progress.generationId || task.generationId),
-    sourceGenerationId: cleanText(progress.sourceGenerationId || task.sourceGenerationId),
-    repairGenerationId: cleanText(progress.repairGenerationId || task.repairGenerationId),
-    writeTaskId: cleanText(progress.writeTaskId || task.writeTaskId),
-    updatedAt: cleanText(progress.updatedAt || task.updatedAt) || new Date().toISOString(),
+    bookName: cleanText(progress.bookName) || cleanText(task.bookName),
+    bookId: cleanText(progress.bookId) || cleanText(task.bookId),
+    taskId: cleanText(progress.taskId) || cleanText(task.id),
+    chapterId: cleanText(progress.chapterId) || cleanText(task.chapterId),
+    generationId: cleanText(progress.generationId) || cleanText(task.generationId),
+    sourceGenerationId:
+      cleanText(progress.sourceGenerationId) || cleanText(task.sourceGenerationId),
+    repairGenerationId:
+      cleanText(progress.repairGenerationId) || cleanText(task.repairGenerationId),
+    writeTaskId: cleanText(progress.writeTaskId) || cleanText(task.writeTaskId),
+    updatedAt:
+      cleanText(progress.updatedAt) || cleanText(task.updatedAt) || new Date().toISOString(),
     task,
     event
   }
