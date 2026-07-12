@@ -265,6 +265,7 @@ import {
   writeNoteDocument
 } from '../../service/editor'
 import { cleanEditorText } from '../../service/editorTextCleanup'
+import { restoreChapterVersion } from '../../service/chapterVersionRestore'
 import { continueWriteWithAI, polishTextWithAI } from '../../service/editorText'
 import { getStoreValue, setStoreValue } from '../../service/webStore'
 import { useI18n } from 'vue-i18n'
@@ -1162,18 +1163,32 @@ async function restoreVersion(item) {
       confirmButtonText: '恢复',
       cancelButtonText: '取消'
     })
+    const chapterId = editorStore.file?.path
+    const chapterName = editorStore.file?.name
+    if (!chapterId || editorStore.file?.type !== 'chapter') {
+      throw new Error('当前没有可恢复的章节')
+    }
     const currentContent = editor.value?.getHTML() || editorStore.content
-    await createEditorSnapshot({
-      bookId: props.bookName,
-      chapterId: editorStore.file.path,
-      chapterName: editorStore.file.name,
-      contentBefore: currentContent,
-      reason: 'before_restore',
-      name: '恢复前备份'
+    await restoreChapterVersion({
+      expectedChapterId: chapterId,
+      getCurrentChapterId: () => editorStore.file?.path,
+      currentContent,
+      restoredContent: item.contentBefore || '<p></p>',
+      createBackup: (contentBefore) =>
+        createEditorSnapshot({
+          bookId: props.bookName,
+          chapterId,
+          chapterName,
+          contentBefore,
+          reason: 'before_restore',
+          name: '恢复前备份'
+        }),
+      applyContent(content) {
+        editor.value?.commands.setContent(content)
+        editorStore.setContent(content)
+      },
+      persistContent: () => saveFile(false)
     })
-    editor.value?.commands.setContent(item.contentBefore || '<p></p>')
-    const saved = await saveFile(false)
-    if (!saved) throw new Error('恢复内容保存失败，当前页面仍保留恢复结果')
     await loadVersionSnapshots()
     ElMessage.success('历史版本已恢复')
   } catch (error) {
