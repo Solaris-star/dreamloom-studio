@@ -31,20 +31,25 @@ globalThis.fetch = async (url, options = {}) => {
 
 const {
   appendAgentMessage,
+  cancelAgentGeneration,
   cancelAgentQueueJob,
   createEditorSnapshot,
   deleteEditorSnapshot,
   enqueueAgentRepairTask,
   enqueueAgentWriteTask,
+  generateAgentPreview,
   getAgentQueueJob,
   getAgentQueueStatus,
+  getAgentProgressServer,
   listAgentHistory,
   listAgentMessages,
   listAgentQueueJobs,
+  listAgentTasks,
   listEditorMaterials,
   listEditorSnapshots,
   markGenerationApplied,
   openEditorSession,
+  repairAgentResult,
   saveEditorMaterial,
   updateEditorSessionContext,
   updateModelDefaults
@@ -75,7 +80,14 @@ assert.equal((await listAgentMessages(opened.session.id)).messages.length, 1)
 const marked = await markGenerationApplied('generation-1', 'replace')
 assert.equal(marked.generation.status, 'applied')
 assert.equal((await listAgentHistory('book-1')).items[0].status, 'applied')
+assert.deepEqual(await markGenerationApplied('', 'replace'), {
+  success: false,
+  message: '缺少生成记录 ID'
+})
 await assert.rejects(() => markGenerationApplied('missing', 'replace'), /未找到生成记录/)
+await assert.rejects(() => generateAgentPreview(), /单次 Agent 生成已停用/)
+await assert.rejects(() => repairAgentResult(), /单次 Agent 返修已停用/)
+await assert.rejects(() => cancelAgentGeneration(), /请在写作队列中停止任务/)
 
 const savedMaterial = await saveEditorMaterial({
   bookId: 'book-1',
@@ -107,6 +119,15 @@ apiResponses.set('/api/editor-agent/queue-repair', {
   taskId: 'task-1'
 })
 assert.equal((await enqueueAgentRepairTask({ taskId: 'task-1' })).jobId, 'repair:task-1')
+apiResponses.set('/api/editor-agent/queue-repair', {
+  success: true,
+  jobId: '',
+  taskId: 'task-1'
+})
+await assert.rejects(
+  () => enqueueAgentRepairTask({ taskId: 'task-1' }),
+  /接口返回格式不正确/
+)
 
 apiResponses.set('/api/editor-agent/queue-status', {
   success: true,
@@ -148,6 +169,46 @@ await assert.rejects(
   () => cancelAgentQueueJob({ jobId: 'write:task-1' }),
   /接口返回的任务不匹配/
 )
+apiResponses.set('/api/editor-agent/queue-cancel', {
+  success: true,
+  jobId: 'write:task-1',
+  cancelled: false,
+  cancellationRequested: false
+})
+await assert.rejects(
+  () => cancelAgentQueueJob({ jobId: 'write:task-1' }),
+  /接口返回格式不正确/
+)
+
+apiResponses.set('/api/editor-agent/queue-jobs', {
+  success: true,
+  jobs: [{ id: 'write:task-1' }]
+})
+assert.equal((await listAgentTasks()).tasks.length, 1)
+apiResponses.set('/api/editor-agent/queue-jobs', {
+  success: true,
+  jobs: null
+})
+await assert.rejects(() => listAgentTasks(), /接口返回格式不正确/)
+
+apiResponses.set('/api/editor-agent/progress-server', {
+  success: true,
+  enabled: true,
+  host: '127.0.0.1',
+  port: 8787,
+  path: '/agent-progress',
+  url: 'ws://127.0.0.1:8787'
+})
+assert.equal((await getAgentProgressServer()).enabled, true)
+apiResponses.set('/api/editor-agent/progress-server', {
+  success: true,
+  enabled: true,
+  host: '127.0.0.1',
+  port: 8787,
+  path: '/agent-progress',
+  url: ''
+})
+await assert.rejects(() => getAgentProgressServer(), /没有返回 WebSocket 地址/)
 
 apiResponses.set('/api/editor-snapshots/create', {
   success: true,
@@ -157,11 +218,24 @@ assert.equal(
   (await createEditorSnapshot({ chapterId: 'chapter-1' })).snapshot.id,
   'snapshot-1'
 )
+apiResponses.set('/api/editor-snapshots/create', {
+  success: true,
+  snapshot: null
+})
+await assert.rejects(
+  () => createEditorSnapshot({ chapterId: 'chapter-1' }),
+  /接口返回格式不正确/
+)
 apiResponses.set('/api/editor-snapshots/list', {
   success: true,
   snapshots: [{ id: 'snapshot-1', chapterId: 'chapter-1' }]
 })
 assert.equal((await listEditorSnapshots({ chapterId: 'chapter-1' })).snapshots.length, 1)
+apiResponses.set('/api/editor-snapshots/list', {
+  success: true,
+  snapshots: {}
+})
+await assert.rejects(() => listEditorSnapshots(), /接口返回格式不正确/)
 apiResponses.set('/api/editor-snapshots/delete', (payload) => ({
   success: true,
   snapshotId: payload.snapshotId
@@ -172,5 +246,8 @@ apiResponses.set('/api/editor-snapshots/delete', {
   snapshotId: 'snapshot-2'
 })
 await assert.rejects(() => deleteEditorSnapshot('snapshot-1'), /删除编辑器快照失败/)
+
+store.set('editorMaterials', {})
+await assert.rejects(() => listEditorMaterials(), /本地记录格式不正确/)
 
 console.log('Web 编辑器记录服务测试通过')
