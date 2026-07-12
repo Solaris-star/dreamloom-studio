@@ -114,6 +114,90 @@ try {
   assert.equal(preCancelled.message, '拆书任务已取消')
   assert.equal(ignoredSignalRequestCalled, false)
 
+  const chapterBookPath = createBook('chapter-files')
+  const volumePath = path.join(chapterBookPath, '正文', '第一卷')
+  fs.mkdirSync(volumePath, { recursive: true })
+  fs.writeFileSync(path.join(volumePath, '第十章.txt'), '第十章\n后发生的事情', 'utf-8')
+  fs.writeFileSync(path.join(volumePath, '第二章.txt'), '第二章\n先发生的事情', 'utf-8')
+  const chapterRequests = []
+  const chapterResult = await service.createExtraction({
+    bookPath: chapterBookPath,
+    sourceBookName: '章节文件作品',
+    dimensions: ['plot', 'invalid-dimension'],
+    chapterStart: 1,
+    chapterLimit: 1,
+    runMode: 'unknown',
+    textProvider: {
+      async chat(options) {
+        chapterRequests.push(options)
+        return {
+          content: JSON.stringify({
+            knowledge: [{ point: true, detail: 2, tags: ['开端', '冲突'] }]
+          }),
+          usage: { input_tokens: 3, output_tokens: 4 }
+        }
+      }
+    }
+  })
+  assert.equal(chapterResult.success, true)
+  assert.equal(chapterResult.runMode, 'append')
+  assert.equal(chapterResult.chapterScope.selectedChapterCount, 1)
+  assert.match(chapterRequests[0].messages[1].content, /第二章/)
+  assert.doesNotMatch(chapterRequests[0].messages[1].content, /第十章/)
+
+  const legacyBookPath = createBook('legacy-records')
+  const legacyKnowledgePath = path.join(legacyBookPath, 'knowledge')
+  fs.mkdirSync(legacyKnowledgePath, { recursive: true })
+  fs.writeFileSync(
+    path.join(legacyKnowledgePath, 'extractions.json'),
+    JSON.stringify([null, { id: 'legacy', status: 'completed', results: {} }]),
+    'utf-8'
+  )
+  assert.equal(service.listExtractions(legacyBookPath).extractions.length, 1)
+  assert.equal(service.getExtractionRecord(legacyBookPath, 'legacy').id, 'legacy')
+
+  const malformedBookPath = createBook('malformed-records')
+  const malformedKnowledgePath = path.join(malformedBookPath, 'knowledge')
+  fs.mkdirSync(malformedKnowledgePath, { recursive: true })
+  const malformedRecordPath = path.join(malformedKnowledgePath, 'extractions.json')
+  fs.writeFileSync(malformedRecordPath, '{invalid', 'utf-8')
+  assert.throws(
+    () => service.listExtractions(malformedBookPath),
+    /拆书任务记录读取失败/
+  )
+  fs.writeFileSync(malformedRecordPath, JSON.stringify({ extractions: 'invalid' }), 'utf-8')
+  assert.throws(
+    () => service.listExtractions(malformedBookPath),
+    /拆书任务记录格式异常/
+  )
+
+  const emptyResult = await service.createExtraction({
+    bookPath: createBook('empty-result'),
+    sourceText: '没有章节标题的正文',
+    dimensions: ['narrative'],
+    textProvider: {
+      async chat() {
+        return { content: '' }
+      }
+    }
+  })
+  assert.equal(emptyResult.success, false)
+  assert.match(emptyResult.message, /模型没有返回可用拆书内容/)
+
+  const timeoutResult = await service.createExtraction({
+    bookPath: createBook('timeout'),
+    sourceText: '第一章\n等待超时',
+    dimensions: ['narrative'],
+    requestTimeoutMs: 5,
+    textProvider: {
+      chat() {
+        return new Promise(() => {})
+      }
+    }
+  })
+  assert.equal(timeoutResult.success, false)
+  assert.match(timeoutResult.message, /模型没有返回可用拆书内容/)
+
   await assert.rejects(
     () =>
       service.createExtraction({
@@ -131,13 +215,52 @@ try {
       }),
     /书籍路径不能为空/
   )
+  await assert.rejects(
+    () =>
+      service.createExtraction({
+        bookPath: createBook('invalid-dimensions'),
+        sourceText: '第一章 正文',
+        dimensions: ['invalid'],
+        textProvider: { chat() {} }
+      }),
+    /未指定有效的提取维度/
+  )
+  await assert.rejects(
+    () =>
+      service.createExtraction({
+        bookPath: createBook('missing-content'),
+        dimensions: ['narrative'],
+        textProvider: { chat() {} }
+      }),
+    /书籍正文目录不存在/
+  )
   assert.deepEqual(service.listExtractions(''), { success: true, extractions: [] })
   assert.throws(() => service.getExtraction(bookPath, ''), /参数不完整/)
   assert.throws(() => service.getExtraction(bookPath, 'missing'), /拆书任务不存在/)
+  assert.throws(() => service.getExtractionRecord('', extractionId), /参数不完整/)
+  assert.throws(() => service.getExtractionRecord(bookPath, 'missing'), /拆书任务不存在/)
+  assert.throws(() => service.getExtractionResultPage('', extractionId), /参数不完整/)
+  assert.throws(
+    () => service.getExtractionResultPage(bookPath, 'missing'),
+    /拆书任务不存在/
+  )
+  await assert.rejects(() => service.deleteExtraction('', extractionId), /参数不完整/)
   await assert.rejects(() => service.deleteExtraction(bookPath, 'missing'), /拆书任务不存在/)
   await assert.rejects(
     () => service.searchKnowledge('', { query: 'test' }),
     /书籍路径和查询内容不能为空/
+  )
+  assert.deepEqual(
+    await service.searchKnowledge(chapterBookPath, {
+      query: '开端',
+      dimensions: ['plot'],
+      topK: 1
+    }),
+    service.searchStoredKnowledge(chapterBookPath, {
+      query: '开端',
+      dimensions: ['plot'],
+      topK: 1
+    })
   )
 } finally {
   fs.rmSync(tempRoot, { recursive: true, force: true })
