@@ -99,14 +99,116 @@ try {
   )
 
   writeFileSync('.store.json', JSON.stringify({}), 'utf8')
+  writeFileSync(
+    '.store.json',
+    JSON.stringify({
+      'stats:word_logs': [
+        {
+          id: 'word-today',
+          bookId: 'book-1',
+          date: new Date().toISOString().slice(0, 10),
+          delta: 300,
+          createdAt: Date.now()
+        },
+        {
+          id: 'word-range',
+          bookId: 'book-1',
+          date: '2026-07-01',
+          delta: 200,
+          createdAt: new Date('2026-07-01T09:00:00').getTime()
+        }
+      ]
+    }),
+    'utf8'
+  )
   const createResult = goalService.createGoal(
-    { title: '本月目标', targetValue: 1000 },
+    {
+      id: 'goal-range',
+      title: '本月目标',
+      type: 'range',
+      bookId: 'book-1',
+      targetValue: 1000,
+      startDate: '2026-07-01',
+      endDate: '2026-07-31'
+    },
     join(tempRoot, 'books')
   )
   assert.equal(createResult.success, true)
   assert.equal(createResult.item.title, '本月目标')
+  assert.equal(createResult.item.currentValue, 500)
+  assert.equal(createResult.item.percent, 50)
+  assert.equal(createResult.item.remaining, 500)
   assert.equal(Array.isArray(JSON.parse(readFileSync('.store.json', 'utf8'))['stats:goals']), true)
 
+  const dailyResult = goalService.createGoal(
+    {
+      id: 'goal-daily',
+      title: '今日目标',
+      type: 'daily',
+      bookId: 'book-1',
+      targetValue: 300
+    },
+    join(tempRoot, 'books')
+  )
+  assert.equal(dailyResult.success, true)
+  assert.equal(dailyResult.item.currentValue, 300)
+  assert.equal(dailyResult.item.percent, 100)
+  assert.equal(dailyResult.item.status, 'completed')
+
+  const totalResult = goalService.createGoal(
+    {
+      id: 'goal-total',
+      title: '全书目标',
+      type: 'total',
+      bookId: 'book-1',
+      targetValue: 1000
+    },
+    join(tempRoot, 'books')
+  )
+  assert.equal(totalResult.success, true)
+  assert.equal(totalResult.item.currentValue, 0)
+  assert.equal(totalResult.item.percent, 0)
+
+  assert.deepEqual(
+    goalService.createGoal({ title: '', targetValue: 1000 }, join(tempRoot, 'books')),
+    { success: false, message: '目标名称不能为空' }
+  )
+  assert.deepEqual(
+    goalService.createGoal({ title: '无效目标', targetValue: 0 }, join(tempRoot, 'books')),
+    { success: false, message: '目标字数必须大于 0' }
+  )
+  assert.deepEqual(
+    goalService.updateGoal('missing', { targetValue: 2000 }, join(tempRoot, 'books')),
+    { success: false, message: '目标不存在' }
+  )
+  assert.deepEqual(
+    goalService.updateGoal('goal-range', { title: '   ' }, join(tempRoot, 'books')),
+    { success: false, message: '目标名称不能为空' }
+  )
+  assert.deepEqual(
+    goalService.updateGoal('goal-range', { targetValue: 0 }, join(tempRoot, 'books')),
+    { success: false, message: '目标字数必须大于 0' }
+  )
+
+  const updateResult = goalService.updateGoal(
+    'goal-range',
+    { title: '调整后的目标', targetValue: 400 },
+    join(tempRoot, 'books')
+  )
+  assert.equal(updateResult.success, true)
+  assert.equal(updateResult.item.id, 'goal-range')
+  assert.equal(updateResult.item.title, '调整后的目标')
+  assert.equal(updateResult.item.percent, 100)
+  assert.equal(updateResult.item.targetValue, 400)
+
+  const listedGoals = goalService.listGoals(join(tempRoot, 'books'))
+  assert.equal(listedGoals.length, 3)
+  assert.equal(listedGoals.at(-1).status, 'completed')
+
+  assert.deepEqual(goalService.deleteGoal('missing', join(tempRoot, 'books')), {
+    success: false,
+    message: '目标不存在'
+  })
   const deleteResult = goalService.deleteGoal(createResult.item.id, join(tempRoot, 'books'))
   assert.equal(deleteResult.success, true)
   assert.equal(deleteResult.id, createResult.item.id)

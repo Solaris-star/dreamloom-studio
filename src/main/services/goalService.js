@@ -44,6 +44,13 @@ function asNumber(value, fallback = 0) {
   return Number.isFinite(number) ? number : fallback
 }
 
+function hasExplicitEmptyTitle(input = {}) {
+  if (!input || typeof input !== 'object') return false
+  if (Object.hasOwn(input, 'title')) return !String(input.title || '').trim()
+  if (Object.hasOwn(input, 'name')) return !String(input.name || '').trim()
+  return false
+}
+
 function readGoalsRows() {
   const value = storeGet(GOALS_KEY, undefined)
   if (value == null) return []
@@ -148,6 +155,7 @@ export function listGoals(booksDir = '') {
 }
 
 export function createGoal(input = {}, booksDir = '') {
+  if (hasExplicitEmptyTitle(input)) return { success: false, message: '目标名称不能为空' }
   const goal = normalizeGoal({
     ...input,
     id: input.id || `goal_${randomUUID()}`,
@@ -166,6 +174,7 @@ export function updateGoal(id, patch = {}, booksDir = '') {
   const goals = readGoals()
   const index = goals.findIndex((goal) => goal.id === id)
   if (index === -1) return { success: false, message: '目标不存在' }
+  if (hasExplicitEmptyTitle(patch)) return { success: false, message: '目标名称不能为空' }
 
   const updated = normalizeGoal({
     ...goals[index],
