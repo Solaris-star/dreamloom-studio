@@ -161,6 +161,21 @@ assert.doesNotMatch(
   'Web 启动入口不能注入 Electron 兼容层'
 )
 assert.doesNotMatch(
+  read('src/renderer/src/service/localBookImport.js'),
+  /import\s+(?:\w+|\{[^}]*\}|\*\s+as\s+\w+)\s+from\s+['"]mammoth['"]/,
+  'DOCX 解析器必须按需加载，不能进入书库页面首批代码'
+)
+for (const absolutePath of listFiles(
+  path.join(root, 'src/renderer/src'),
+  new Set(['.js', '.vue'])
+)) {
+  assert.doesNotMatch(
+    fs.readFileSync(absolutePath, 'utf8'),
+    /import\s+\*\s+as\s+\w+\s+from\s+['"]lucide-vue-next['"]/,
+    `Lucide 图标必须按需导入：${path.relative(root, absolutePath)}`
+  )
+}
+assert.doesNotMatch(
   editorPanelSource,
   /window\.electron(?:Store)?\b/,
   '正文编辑面板不应依赖 Electron'

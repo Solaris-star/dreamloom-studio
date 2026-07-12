@@ -17,7 +17,14 @@
 
 <script setup>
 import { computed } from 'vue'
-import * as icons from 'lucide-vue-next'
+import { Book, Calendar, ChartNoAxesColumn, Edit3, Zap } from 'lucide-vue-next'
+
+const icons = {
+  Book,
+  Calendar,
+  Edit3,
+  Zap
+}
 
 const props = defineProps({
   title: String,
@@ -30,7 +37,7 @@ const props = defineProps({
   }
 })
 
-const lucideIcon = computed(() => icons[props.icon])
+const lucideIcon = computed(() => icons[props.icon] || ChartNoAxesColumn)
 
 const formattedValue = computed(() => {
   if (typeof props.value === 'number') {

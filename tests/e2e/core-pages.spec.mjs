@@ -5,6 +5,7 @@ const pages = [
   { path: '/#/knowledge', title: '创作库' },
   { path: '/#/knowledge/images', title: '图库' },
   { path: '/#/ai/creation-starter', title: 'AI 工坊' },
+  { path: '/#/analytics/overview', title: '数据中心' },
   { path: '/#/settings/general', title: '系统设置' },
   { path: '/#/route-that-does-not-exist', title: '页面不存在' }
 ]

@@ -1,5 +1,3 @@
-import mammoth from 'mammoth'
-
 export const SUPPORTED_LOCAL_BOOK_EXTENSIONS = ['txt', 'md', 'markdown', 'docx']
 export const MAX_LOCAL_BOOK_FILE_SIZE = 50 * 1024 * 1024
 
@@ -201,6 +199,8 @@ async function readDocxText(file) {
 
   let result
   try {
+    const mammothModule = await import('mammoth')
+    const mammoth = mammothModule.default || mammothModule
     const input =
       typeof globalThis.Buffer?.from === 'function'
         ? { buffer: globalThis.Buffer.from(arrayBuffer) }
