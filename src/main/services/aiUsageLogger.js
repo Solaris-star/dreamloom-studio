@@ -2,9 +2,33 @@ import { randomUUID } from 'node:crypto'
 
 export const AI_LOGS_KEY = 'stats:ai_logs'
 
+const SENSITIVE_METADATA_KEY =
+  /^(?:api[-_]?key|authorization|password|secret|token|access[-_]?token|refresh[-_]?token|prompt|messages?|content|sourceContent|text|body|filePath|path|bookDir)$/i
+
 function toNumber(value, fallback = 0) {
   const number = Number(value)
   return Number.isFinite(number) ? number : fallback
+}
+
+export function sanitizeAiLogValue(value, key = '') {
+  if (SENSITIVE_METADATA_KEY.test(key)) return '***'
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeAiLogValue(item))
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([itemKey, item]) => [
+        itemKey,
+        sanitizeAiLogValue(item, itemKey)
+      ])
+    )
+  }
+  if (typeof value !== 'string') return value
+  return value
+    .replace(/\bBearer\s+\S+/gi, 'Bearer ***')
+    .replace(/\bsk-[A-Za-z0-9_-]{8,}\b/g, '***')
+    .replace(/[A-Za-z]:\\(?:[^\\/:*?"<>|\r\n]+\\)*[^\\/:*?"<>|\r\n]*/g, '[本地路径]')
+    .replace(/(?:^|\s)\/(?:home|Users|var|tmp)\/\S+/g, ' [本地路径]')
 }
 
 export function normalizeAiUsage(usage = {}) {
@@ -76,8 +100,9 @@ export function buildAiUsageLog({
     ...normalized,
     estimatedCost: estimateAiCost(provider, usage),
     success: Boolean(success),
-    error: error ? String(error) : '',
-    metadata: metadata && typeof metadata === 'object' ? metadata : {},
+    error: error ? sanitizeAiLogValue(String(error)) : '',
+    metadata:
+      metadata && typeof metadata === 'object' ? sanitizeAiLogValue(metadata) : {},
     createdAt: Date.now()
   }
 }
