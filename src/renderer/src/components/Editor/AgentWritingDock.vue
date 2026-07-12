@@ -1001,7 +1001,7 @@ const joinForm = ref({
   usage: 'reference'
 })
 let contextTimer = null
-let stopCurrentStream = null
+let activeStreamMessageId = ''
 
 const {
   status: agentTaskProgressStatus,
@@ -1015,7 +1015,8 @@ const {
   connect: connectAgentTaskProgress,
   disconnect: disconnectAgentTaskProgress
 } = useAgentTaskProgressSocket({
-  onTask: handleAgentTaskProgress
+  onTask: handleAgentTaskProgress,
+  onMessage: handleAgentStreamMessage
 })
 
 const bookKind = computed(() => normalizeBookKind(props.bookMeta))
@@ -2445,40 +2446,54 @@ function createAgentStreamChannel(seed = '') {
 }
 
 function stopActiveAgentStream() {
-  if (typeof stopCurrentStream === 'function') {
-    stopCurrentStream()
-    stopCurrentStream = null
-  }
+  activeStreamMessageId = ''
 }
 
 function bindAgentStream(channel, messageId) {
   stopActiveAgentStream()
-  if (!channel || !window.electron?.onEditorAgentStream) return
-  stopCurrentStream = window.electron.onEditorAgentStream(channel, (event = {}) => {
-    if (event.status === 'cancelled') {
-      updateTimelineMessage(messageId, {
-        title: event.title || '任务已停止',
-        content: event.content || '生成已停止。',
-        streaming: false,
-        streamStatus: 'cancelled',
-        chunkCount: event.chunkCount || 0,
-        wordCount: event.wordCount || 0
-      })
-      return
-    }
-    const text = String(event.fullText || event.content || '').trim()
-    const preview = text.length > 360 ? `${text.slice(-360)}` : text
-    const title = event.title || 'Writer 流式写作'
-    updateTimelineMessage(messageId, {
-      title,
-      content: preview
-        ? `${preview}${event.status === 'done' ? '' : '\n\n正在接收真实输出片段...'}`
-        : '正在等待模型返回第一段内容。',
-      streaming: true,
-      streamStatus: event.status || 'running',
+  if (!channel || !messageId) return
+  activeStreamMessageId = messageId
+}
+
+function handleAgentStreamMessage(payload = {}) {
+  if (!activeStreamMessageId || !isGenerating.value) return
+  const task = payload.task || {}
+  const event = payload.event || {}
+  if (payload.type !== 'agent_task_updated') return
+  if (
+    props.bookName &&
+    ![payload.bookName, payload.bookId, task.bookName, task.bookId].includes(props.bookName)
+  ) {
+    return
+  }
+  if (chapterName.value && task.chapterId && task.chapterId !== chapterName.value) return
+  if (activeTaskId.value && task.id && task.id !== activeTaskId.value) return
+  if (!['writer_stream', 'task_cancelled'].includes(event.type)) return
+
+  if (task.id) activeTaskId.value = task.id
+  if (event.status === 'cancelled' || task.status === 'cancelled') {
+    updateTimelineMessage(activeStreamMessageId, {
+      title: event.title || '任务已停止',
+      content: event.content || '生成已停止。',
+      streaming: false,
+      streamStatus: 'cancelled',
       chunkCount: event.chunkCount || 0,
-      wordCount: event.wordCount || countWords(text)
+      wordCount: event.wordCount || 0
     })
+    return
+  }
+
+  const text = String(event.fullText || event.content || '').trim()
+  const preview = text.length > 360 ? text.slice(-360) : text
+  updateTimelineMessage(activeStreamMessageId, {
+    title: event.title || 'Writer 流式写作',
+    content: preview
+      ? `${preview}${event.status === 'done' ? '' : '\n\n正在接收真实输出片段...'}`
+      : '正在等待模型返回第一段内容。',
+    streaming: event.status !== 'done',
+    streamStatus: event.status || 'running',
+    chunkCount: event.chunkCount || 0,
+    wordCount: event.wordCount || countWords(text)
   })
 }
 

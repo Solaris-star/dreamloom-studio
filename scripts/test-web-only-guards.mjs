@@ -28,7 +28,9 @@ for (const [name, command] of Object.entries(packageJson.scripts || {})) {
 
 const preloadDir = path.join(root, 'src/preload')
 const preloadFiles = fs.existsSync(preloadDir)
-  ? fs.readdirSync(preloadDir, { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile())
+  ? fs
+      .readdirSync(preloadDir, { recursive: true, withFileTypes: true })
+      .filter((entry) => entry.isFile())
   : []
 assert.equal(preloadFiles.length, 0, '纯 Web 项目不能保留 preload 入口文件')
 
@@ -95,12 +97,23 @@ for (const [file, label] of [
   )
 }
 const editorPanelSource = read('src/renderer/src/components/Editor/EditorPanel.vue')
+const agentWritingDockSource = read('src/renderer/src/components/Editor/AgentWritingDock.vue')
 const editorServiceSource = read('src/renderer/src/service/editor.js')
 const webShimSource = read('src/renderer/src/service/webElectronShim.js')
 assert.doesNotMatch(
   editorPanelSource,
   /window\.electron(?:Store)?\b/,
   '正文编辑面板不应依赖 Electron'
+)
+assert.doesNotMatch(
+  agentWritingDockSource,
+  /window\.electron(?:Store)?\b/,
+  'Agent 写作面板必须通过 WebSocket 和 Web API 工作'
+)
+assert.doesNotMatch(
+  editorServiceSource,
+  /getElectronApi\(\s*['"]getEditorAgentProgressServer['"]/,
+  'Agent 进度服务状态必须直接使用 Web API'
 )
 for (const method of [
   'editNote',
@@ -327,8 +340,18 @@ for (const method of [
     `Web shim 不应保留小说下载方法：${method}`
   )
 }
-for (const method of ['listAssets:', 'importAsset:', 'deleteAsset:', 'restoreAsset:', 'attachAssetToBook:']) {
-  assert.doesNotMatch(webShimSource, new RegExp(`\\b${method}`), `Web shim 不应保留素材方法：${method}`)
+for (const method of [
+  'listAssets:',
+  'importAsset:',
+  'deleteAsset:',
+  'restoreAsset:',
+  'attachAssetToBook:'
+]) {
+  assert.doesNotMatch(
+    webShimSource,
+    new RegExp(`\\b${method}`),
+    `Web shim 不应保留素材方法：${method}`
+  )
 }
 const importExportServiceSource = read('src/renderer/src/service/importExport.js')
 assert.doesNotMatch(
@@ -345,7 +368,11 @@ for (const method of [
   'restoreLibraryBackup:',
   'listImportExportTasks:'
 ]) {
-  assert.doesNotMatch(webShimSource, new RegExp(`\\b${method}`), `Web shim 不应保留导入导出方法：${method}`)
+  assert.doesNotMatch(
+    webShimSource,
+    new RegExp(`\\b${method}`),
+    `Web shim 不应保留导入导出方法：${method}`
+  )
 }
 const extractionServiceSource = read('src/renderer/src/service/extraction.js')
 assert.doesNotMatch(
@@ -361,7 +388,11 @@ for (const method of [
   'getExtractionResultPage:',
   'deleteExtraction:'
 ]) {
-  assert.doesNotMatch(webShimSource, new RegExp(`\\b${method}`), `Web shim 不应保留拆书方法：${method}`)
+  assert.doesNotMatch(
+    webShimSource,
+    new RegExp(`\\b${method}`),
+    `Web shim 不应保留拆书方法：${method}`
+  )
 }
 const outlineChapterServiceSource = read('src/renderer/src/service/outlineChapter.js')
 assert.doesNotMatch(
@@ -369,11 +400,7 @@ assert.doesNotMatch(
   /window\.electron|ensureElectronApi/,
   '章节生成服务必须直接使用 Web API'
 )
-assert.doesNotMatch(
-  webShimSource,
-  /\bgenerateChapterFromOutline:/,
-  'Web shim 不应保留章节生成方法'
-)
+assert.doesNotMatch(webShimSource, /\bgenerateChapterFromOutline:/, 'Web shim 不应保留章节生成方法')
 for (const [file, label] of [
   ['src/renderer/src/service/settingTree.js', '设定树'],
   ['src/renderer/src/service/plotEvolution.js', '剧情演化'],
@@ -455,7 +482,11 @@ for (const method of [
   'deleteBook:',
   'editBook:'
 ]) {
-  assert.doesNotMatch(webShimSource, new RegExp(`\\b${method}`), `Web shim 不应保留 AI 方法：${method}`)
+  assert.doesNotMatch(
+    webShimSource,
+    new RegExp(`\\b${method}`),
+    `Web shim 不应保留 AI 方法：${method}`
+  )
 }
 for (const method of [
   'setTongyiwanxiangApiKey:',

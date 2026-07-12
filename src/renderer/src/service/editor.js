@@ -2513,14 +2513,7 @@ export async function listAgentTasks(payload = {}) {
 }
 
 export async function getAgentProgressServer() {
-  const getEditorAgentProgressServer = getElectronApi(
-    'getEditorAgentProgressServer',
-    'Agent 进度服务状态'
-  )
-  if (getEditorAgentProgressServer) {
-    return requireAgentProgressServerResult(await getEditorAgentProgressServer())
-  }
-  return { success: false, message: '当前环境没有可用的 Agent 进度服务状态' }
+  return requireAgentProgressServerResult(await postJson('/api/editor-agent/progress-server', {}))
 }
 
 export async function createEditorSnapshot(payload = {}) {

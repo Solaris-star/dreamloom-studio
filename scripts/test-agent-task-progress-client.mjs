@@ -79,14 +79,6 @@ async function withWindow(windowValue, action) {
 
 await withWindow(
   {
-    electron: {
-      getEditorAgentProgressServer: async () => ({
-        success: true,
-        host: '127.0.0.1',
-        port: 8787,
-        path: '/agent-tasks'
-      })
-    },
     WebSocket: class {
       constructor() {
         throw new Error('不应连接缺少 url 的进度服务')
@@ -97,7 +89,11 @@ await withWindow(
     clearTimeout
   },
   async () => {
-    const progressSocket = useAgentTaskProgressSocket()
+    const progressSocket = useAgentTaskProgressSocket({
+      getServerInfo: async () => {
+        throw new Error('读取 Agent 进度服务状态失败：接口没有返回 WebSocket 地址')
+      }
+    })
     progressSocket.connect({ bookName: '风雪试剑' })
     await new Promise((resolve) => setTimeout(resolve, 0))
     assert.equal(progressSocket.status.value, 'unavailable')
@@ -108,15 +104,6 @@ await withWindow(
 
 await withWindow(
   {
-    electron: {
-      getEditorAgentProgressServer: async () => ({
-        success: true,
-        host: '127.0.0.1',
-        port: 8787,
-        path: '/agent-tasks',
-        url: 'ws://127.0.0.1:8787/agent-tasks'
-      })
-    },
     WebSocket: class {
       constructor(url) {
         this.url = url
@@ -129,7 +116,15 @@ await withWindow(
     clearTimeout
   },
   async () => {
-    const progressSocket = useAgentTaskProgressSocket()
+    const progressSocket = useAgentTaskProgressSocket({
+      getServerInfo: async () => ({
+        success: true,
+        host: '127.0.0.1',
+        port: 8787,
+        path: '/agent-tasks',
+        url: 'ws://127.0.0.1:8787/agent-tasks'
+      })
+    })
     progressSocket.connect({ bookName: '风雪试剑', taskId: 'task-1' })
     await new Promise((resolve) => setTimeout(resolve, 0))
     assert.equal(
