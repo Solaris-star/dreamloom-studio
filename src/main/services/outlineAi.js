@@ -15,11 +15,17 @@ function extractJsonBlock(text) {
   const source = stripCodeFence(text)
   if (!source) return ''
   const firstObject = source.indexOf('{')
+  const firstArray = source.indexOf('[')
+  if (firstArray !== -1 && (firstObject === -1 || firstArray < firstObject)) {
+    const lastArray = source.lastIndexOf(']')
+    if (lastArray > firstArray) {
+      return source.slice(firstArray, lastArray + 1)
+    }
+  }
   const lastObject = source.lastIndexOf('}')
   if (firstObject !== -1 && lastObject > firstObject) {
     return source.slice(firstObject, lastObject + 1)
   }
-  const firstArray = source.indexOf('[')
   const lastArray = source.lastIndexOf(']')
   if (firstArray !== -1 && lastArray > firstArray) {
     return source.slice(firstArray, lastArray + 1)
@@ -220,7 +226,10 @@ class OutlineAiService {
       messages: buildRefineMessages(payload),
       temperature: 0.6,
       max_tokens: 5000,
-      requestId: `outline_refine_${Date.now()}`
+      requestId: `outline_refine_${Date.now()}`,
+      model: sanitizeText(payload.model || payload.modelName) || undefined,
+      timeoutMs: payload.timeoutMs,
+      signal: payload.signal
     })
 
     const content = sanitizeText(result.content)
@@ -247,7 +256,10 @@ class OutlineAiService {
       messages: buildSplitMessages(payload),
       temperature: 0.4,
       max_tokens: 6000,
-      requestId: `outline_split_${Date.now()}`
+      requestId: `outline_split_${Date.now()}`,
+      model: sanitizeText(payload.model || payload.modelName) || undefined,
+      timeoutMs: payload.timeoutMs,
+      signal: payload.signal
     })
 
     const rawText = sanitizeText(result.content)
