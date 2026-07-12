@@ -6,6 +6,14 @@ function createTimeoutError(timeoutMs) {
   return error
 }
 
+function isOfflineError(error) {
+  if (error?.offline === true) return true
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true
+  const code = String(error?.code || '').toUpperCase()
+  if (['ERR_NETWORK', 'NETWORK_ERROR', 'ECONNREFUSED', 'ENETUNREACH'].includes(code)) return true
+  return error instanceof TypeError && /fetch|network|failed/i.test(error.message || '')
+}
+
 export function createEditorSaveQueue({
   persist,
   onStatusChange = () => {},
@@ -80,14 +88,16 @@ export function createEditorSaveQueue({
           if (!result?.success) {
             throw new Error(result?.message || '保存失败')
           }
-          report('saved', {
+          const hasNewerPending = pendingByKey.has(key)
+          report(hasNewerPending ? 'saving' : 'saved', {
             requestId: entry.snapshot.requestId,
             filePath: key,
+            hasPending: hasNewerPending,
             savedAt: Date.now()
           })
           entry.resolve(result)
         } catch (error) {
-          report(error?.offline ? 'offline' : 'error', {
+          report(isOfflineError(error) ? 'offline' : 'error', {
             requestId: entry.snapshot.requestId,
             filePath: key,
             error

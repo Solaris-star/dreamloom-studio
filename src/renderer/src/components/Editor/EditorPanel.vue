@@ -1807,7 +1807,7 @@ function resetPolishResult() {
 
 // 自动保存内容
 async function autoSaveContent() {
-  await saveFile(false)
+  return saveFile(false)
 }
 
 // 加载人物数据
@@ -2100,7 +2100,8 @@ defineExpose({
   getEditorContentComponent,
   handlePolishCommand,
   handleContinueClick,
-  handleAISceneImageClick
+  handleAISceneImageClick,
+  saveBeforeLeave: () => saveFile(false)
 })
 </script>
 

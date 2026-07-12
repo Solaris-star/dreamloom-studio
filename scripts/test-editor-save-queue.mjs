@@ -27,7 +27,7 @@ assert.equal((await first).success, true)
 assert.equal((await latest).success, true)
 assert.deepEqual(calls.map((item) => item.content), ['first', 'latest'])
 assert.ok(calls[0].requestId < calls[1].requestId)
-assert.deepEqual(statuses, ['saving', 'saved', 'saving', 'saved'])
+assert.deepEqual(statuses, ['saving', 'saving', 'saving', 'saved'])
 
 const failedQueue = createEditorSaveQueue({
   async persist() {
@@ -93,6 +93,19 @@ const timedOut = await timeoutQueue.enqueue({ filePath: 'timeout', content: 'tex
 assert.equal(timedOut.success, false)
 assert.equal(timedOut.error.code, 'SAVE_TIMEOUT')
 assert.match(timedOut.message, /保存请求超时/)
+
+const offlineStatuses = []
+const offlineQueue = createEditorSaveQueue({
+  async persist() {
+    throw new TypeError('Failed to fetch')
+  },
+  onStatusChange(state) {
+    offlineStatuses.push(state.status)
+  }
+})
+const offline = await offlineQueue.enqueue({ filePath: 'offline', content: 'text' })
+assert.equal(offline.success, false)
+assert.deepEqual(offlineStatuses, ['saving', 'offline'])
 
 const invalid = await queue.enqueue({ filePath: '', content: 'text' })
 assert.equal(invalid.success, false)

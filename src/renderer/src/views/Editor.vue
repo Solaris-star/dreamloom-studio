@@ -110,7 +110,8 @@
 
 <script setup>
 import { computed, ref, nextTick, onDeactivated, onMounted, onBeforeUnmount, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 
 defineOptions({ name: 'Editor' })
 import NoteChapter from '@renderer/components/Editor/NoteChapter.vue'
@@ -290,6 +291,15 @@ function handleNextChapter() {
 function handleHome() {
   router.push('/')
 }
+
+onBeforeRouteLeave(async () => {
+  const saved = await editorPanelRef.value?.saveBeforeLeave?.()
+  if (saved === false) {
+    ElMessage.error('当前内容保存失败，已取消离开，请重试')
+    return false
+  }
+  return true
+})
 
 function openCatalog() {
   chapterOutline.value = noteChapterRef.value?.getChapterOutline?.() || []
