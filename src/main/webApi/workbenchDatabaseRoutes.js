@@ -9,6 +9,7 @@ export function isWorkbenchDatabaseRoute(path) {
 
 export function handleWorkbenchDatabaseRoute({
   path,
+  req,
   body,
   res,
   booksDir,
@@ -16,6 +17,10 @@ export function handleWorkbenchDatabaseRoute({
   workbenchDatabaseService
 }) {
   if (!isWorkbenchDatabaseRoute(path)) return false
+  if (req?.method !== 'POST') {
+    sendJson(res, { success: false, message: '请求方法不受支持' }, 405)
+    return true
+  }
 
   const payload = body || {}
   const result =

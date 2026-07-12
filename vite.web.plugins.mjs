@@ -499,6 +499,7 @@ export function createWebServerPlugins() {
           if (
             handleWorkbenchDatabaseRoute({
               path,
+              req,
               body,
               res,
               booksDir: getActiveBooksDir(),
