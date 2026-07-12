@@ -36,6 +36,17 @@ function fakeTextProvider(handler) {
 }
 
 {
+  const fake = fakeTextProvider(() => '一\n二\n三')
+  const result = await editorTextAiService.generateNames(
+    { type: 'place', surname: '云', count: 999 },
+    fake.provider
+  )
+  assert.equal(result.names.length, 3)
+  assert.match(fake.calls[0].messages[1].content, /生成100个地名/)
+  assert.match(fake.calls[0].messages[1].content, /前缀或核心词：云/)
+}
+
+{
   const fake = fakeTextProvider(() => '润色后的正文')
   const result = await editorTextAiService.polishChapter({ text: '原文' }, fake.provider)
   assert.equal(result.content, '润色后的正文')
@@ -69,12 +80,67 @@ await assert.rejects(
 )
 
 await assert.rejects(
+  () => editorTextAiService.polishChapter({ text: '原文' }, null),
+  /文本 AI 服务不可用/
+)
+
+await assert.rejects(
+  () => editorTextAiService.polishChapter({ text: '原文' }, fakeTextProvider(() => '  ').provider),
+  /润色结果为空/
+)
+
+await assert.rejects(
   () =>
     editorTextAiService.continueChapter(
       { text: '已有正文', maxAddWords: 0 },
       fakeTextProvider(() => '').provider
     ),
   /可续写字数不足/
+)
+
+await assert.rejects(
+  () =>
+    editorTextAiService.continueChapter(
+      { text: '  ', maxAddWords: 100 },
+      fakeTextProvider(() => '新增').provider
+    ),
+  /当前章节内容为空/
+)
+
+await assert.rejects(
+  () =>
+    editorTextAiService.continueChapter(
+      { text: '已有正文', maxAddWords: 100 },
+      fakeTextProvider(() => '').provider
+    ),
+  /续写结果为空/
+)
+
+await assert.rejects(
+  () =>
+    editorTextAiService.generateNames(
+      { count: 2 },
+      fakeTextProvider(() => 'Alice\nカナ').provider
+    ),
+  /AI 未返回可用名称/
+)
+
+await assert.rejects(
+  () =>
+    editorTextAiService.sceneVisualPromptFromExcerpt(
+      { text: '' },
+      fakeTextProvider(() => '画面').provider
+    ),
+  /节选内容为空/
+)
+
+await assert.rejects(
+  () =>
+    editorTextAiService.sceneVisualPromptFromExcerpt(
+      { text: '正文' },
+      fakeTextProvider(() => '画面描述：  ').provider
+    ),
+  /提炼结果为空/
 )
 
 console.log('editor text ai tests passed')
