@@ -182,12 +182,7 @@ function moveDirectory(sourcePath, targetPath) {
 
 function decodeInputBuffer(input = {}) {
   if (input.sourcePath) {
-    const sourcePath = resolve(String(input.sourcePath))
-    if (!fs.existsSync(sourcePath)) throw new Error('导入文件不存在')
-    return {
-      buffer: fs.readFileSync(sourcePath),
-      fileName: input.fileName || basename(sourcePath)
-    }
+    throw new Error('Web 服务必须通过网页上传文件内容，不能读取服务器本地路径')
   }
   if (input.dataUrl || input.base64) {
     const raw = String(input.dataUrl || input.base64)
@@ -375,10 +370,13 @@ function readImportText(input = {}) {
   return { text: decodeTextBuffer(buffer).replace(/\r\n/g, '\n'), fileName, format }
 }
 
-function isChapterTitle(line, index, format) {
+function isChapterTitle(line, index, format, markdownHeadingLevel = null) {
   const text = String(line || '').trim()
   if (!text || text.length > 90) return false
-  if (format === 'md' && /^#{1,3}\s+\S+/.test(text)) return true
+  if (format === 'md' && markdownHeadingLevel) {
+    return new RegExp(`^#{${markdownHeadingLevel}}\\s+\\S+`).test(text)
+  }
+  if (format === 'md' && /^#{2,3}\s+\S+/.test(text)) return true
   return (
     /^第[零〇一二三四五六七八九十百千万两\d]+[章回节卷集部]\s*\S*/.test(text) ||
     /^Chapter\s+\d+\b/i.test(text) ||
@@ -475,6 +473,8 @@ function splitChapters(text, format) {
   const lines = String(text || '')
     .replace(/\r\n/g, '\n')
     .split('\n')
+  const markdownHeadingLevel =
+    format === 'md' && lines.some((line) => /^###\s+\S+/.test(line.trim())) ? 3 : 2
   const chapters = []
   let current = null
   let buffer = []
@@ -493,7 +493,10 @@ function splitChapters(text, format) {
   }
 
   lines.forEach((line, index) => {
-    if (isChapterTitle(line, index, format)) {
+    if (format === 'md' && markdownHeadingLevel === 3 && /^##\s+\S+/.test(line.trim())) {
+      return
+    }
+    if (isChapterTitle(line, index, format, markdownHeadingLevel)) {
       flush()
       current = line
       buffer = []
