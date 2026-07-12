@@ -191,6 +191,39 @@ test('书架筛选和本地导入入口可以操作', async ({ page }, testInfo)
   await expect(page.getByRole('dialog', { name: '添加书籍' })).toContainText(/TXT|MD|DOCX/)
 })
 
+test('在线拆书搜索结果可以通过选择按钮操作', async ({ page }) => {
+  await page.route('**/api/novel/search', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        list: [
+          {
+            title: '雨夜旧书铺',
+            author: '测试作者',
+            url: 'https://example.test/books/rainy-night',
+            sourceId: 'test-source'
+          }
+        ],
+        sourceErrors: []
+      })
+    })
+  })
+
+  await page.goto('/#/knowledge-library/all')
+  await page.getByRole('button', { name: '拆书', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: '新建拆书知识' })
+  await dialog.locator('.el-radio').filter({ hasText: '在线书籍' }).click()
+  await dialog.getByPlaceholder('输入书名关键词').fill('雨夜')
+  await dialog.getByRole('button', { name: '搜索', exact: true }).click()
+
+  const selectButton = dialog.getByRole('button', { name: '选择', exact: true })
+  await expect(selectButton).toBeVisible()
+  await selectButton.focus()
+  await page.keyboard.press('Enter')
+  await expect(dialog.getByRole('button', { name: '已选', exact: true })).toBeVisible()
+})
+
 test('DOCX 可以预览导入且损坏文件不会加入书架', async ({ page, request }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'DOCX 浏览器解析仅在桌面项目执行')
   const importedBookName = 'DOCX 浏览器导入'

@@ -632,6 +632,7 @@
                   :type="createForm.selectedBook?.url === row.url ? 'success' : 'primary'"
                   size="small"
                   round
+                  @click.stop="selectOnlineBook(row)"
                 >
                   {{ createForm.selectedBook?.url === row.url ? '已选' : '选择' }}
                 </el-button>
