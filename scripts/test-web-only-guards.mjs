@@ -367,6 +367,11 @@ assert.doesNotMatch(
 const noteChapterSource = read('src/renderer/src/components/Editor/NoteChapter.vue')
 assert.doesNotMatch(
   noteChapterSource,
+  /currentFile\.name === data\.name[\s\S]{0,300}path: data\.path/,
+  '点击其他卷的同名章节前，不得猜测卷已改名并改写当前文件路径'
+)
+assert.doesNotMatch(
+  noteChapterSource,
   /window\.electron(?:Store)?\b/,
   '章节树与笔记面板必须直接使用 Web 服务'
 )

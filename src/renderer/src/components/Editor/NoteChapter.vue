@@ -429,22 +429,6 @@ async function handleChapterClick(data, node) {
     const currentFile = editorStore.file
     if (currentFile && currentFile.path === data.path) return
 
-    // 如果当前打开的文件是章节，且卷名与树节点中的卷名不一致，说明卷名已经改了
-    // 需要先更新 editorStore.file.volume，确保保存时使用正确的卷名
-    if (
-      currentFile &&
-      currentFile.type === 'chapter' &&
-      currentFile.name === data.name &&
-      currentFile.volume !== node.parent.data.name
-    ) {
-      // 卷名已经改了，更新 editorStore.file 中的卷名和路径
-      editorStore.setFile({
-        ...currentFile,
-        volume: node.parent.data.name,
-        path: data.path
-      })
-    }
-
     const saved = await editorStore.saveCurrentFileThroughHandler(false)
     if (currentFile && !saved) {
       ElMessage.error('当前内容保存失败，已取消切换，请重试')
