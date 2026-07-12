@@ -17,7 +17,6 @@ import {
   runConsistencyCheck,
   listConsistencyChecks
 } from './src/main/services/consistencyCheckService.js'
-import * as promptPresetService from './src/main/services/promptPresetService.js'
 import * as workbenchDatabaseService from './src/main/services/workbenchDatabaseService.js'
 import plotEvolutionAiService from './src/main/services/plotEvolutionAi.js'
 import settingTreeAiService from './src/main/services/settingTreeAi.js'
@@ -47,6 +46,7 @@ import { handleStudioContentRoute } from './src/main/webApi/studioContentRoutes.
 import { handleMarketRoute } from './src/main/webApi/marketRoutes.js'
 import { handleVectorRoute } from './src/main/webApi/vectorRoutes.js'
 import { handleSettingsRoute } from './src/main/webApi/settingsRoutes.js'
+import { handlePromptRoute } from './src/main/webApi/promptRoutes.js'
 
 export function createWebServerPlugins() {
   const configuredBooksDir = String(process.env.NOVEL_BOOKS_DIR || '').trim()
@@ -664,6 +664,16 @@ export function createWebServerPlugins() {
             })
           ) {
             return
+          } else if (
+            handlePromptRoute({
+              path,
+              body,
+              res,
+              sendJson,
+              resolvePresetPath: resolvePromptPresetPath
+            })
+          ) {
+            return
           } else if (path === '/api/books/cover' || path === '/api/books/image') {
               const url = new URL(req.url, 'http://localhost')
               const bookName = sanitizeText(url.searchParams.get('book'))
@@ -1056,60 +1066,6 @@ export function createWebServerPlugins() {
                   textProvider: provider.service
                 })
               )
-            } else if (path === '/api/prompts/list') {
-              sendJson(res, {
-                success: true,
-                presets: promptPresetService.listPresets(
-                  resolvePromptPresetPath(body || {}),
-                  body || {}
-                )
-              })
-            } else if (path === '/api/prompts/create') {
-              const preset = promptPresetService.createPreset(
-                resolvePromptPresetPath(body || {}),
-                body.preset || body,
-                body || {}
-              )
-              sendJson(res, { success: true, preset })
-            } else if (path === '/api/prompts/update') {
-              const presetPayload = body.preset || {}
-              const presetId = body.id || body.presetId || presetPayload.id
-              const preset = promptPresetService.updatePreset(
-                resolvePromptPresetPath(body || {}),
-                presetId,
-                presetPayload,
-                body || {}
-              )
-              sendJson(
-                res,
-                preset
-                  ? { success: true, preset }
-                  : { success: false, message: 'Prompt 模板不存在' },
-                preset ? 200 : 404
-              )
-            } else if (path === '/api/prompts/delete') {
-              const presetId = body.id || body.presetId
-              const ok = promptPresetService.deletePreset(
-                resolvePromptPresetPath(body || {}),
-                presetId
-              )
-              sendJson(
-                res,
-                ok ? { success: true, presetId } : { success: false, message: 'Prompt 模板不存在' },
-                ok ? 200 : 404
-              )
-            } else if (path === '/api/prompts/export') {
-              sendJson(res, {
-                success: true,
-                jsonString: promptPresetService.exportPresets(resolvePromptPresetPath(body || {}))
-              })
-            } else if (path === '/api/prompts/import') {
-              const presets = promptPresetService.importPresets(
-                resolvePromptPresetPath(body || {}),
-                body.jsonString || '[]',
-                body || {}
-              )
-              sendJson(res, { success: true, presets, count: presets.length })
             } else if (path === '/api/books/set-dir') {
               const { dir } = body
               res.end(JSON.stringify({ success: true, booksDir: dir }))
