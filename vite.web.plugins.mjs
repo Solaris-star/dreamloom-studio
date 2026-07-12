@@ -48,6 +48,7 @@ import { handleSettingsRoute } from './src/main/webApi/settingsRoutes.js'
 import { handlePromptRoute } from './src/main/webApi/promptRoutes.js'
 import { handleNovelDownloadRoute } from './src/main/webApi/novelDownloadRoutes.js'
 import { handleAuthRoute } from './src/main/webApi/authRoutes.js'
+import { handleWebUtilityRoute } from './src/main/webApi/webUtilityRoutes.js'
 import { setWebBooksDirectory } from './src/main/services/webBooksDirectoryService.js'
 
 export function createWebServerPlugins() {
@@ -684,6 +685,19 @@ export function createWebServerPlugins() {
             })
           ) {
             return
+          } else if (
+            handleWebUtilityRoute({
+              path,
+              body,
+              res,
+              booksDir: getActiveBooksDir(),
+              sendJson,
+              storeGet: webStoreGet,
+              storeSet: webStoreSet,
+              storeDelete: webStoreDelete
+            })
+          ) {
+            return
           } else if (path === '/api/books/cover' || path === '/api/books/image') {
               const url = new URL(req.url, 'http://localhost')
               const bookName = sanitizeText(url.searchParams.get('book'))
@@ -704,68 +718,6 @@ export function createWebServerPlugins() {
                 res.end(fs.readFileSync(target))
               } else {
                 sendTransparentImage(res)
-              }
-            } else if (path === '/api/fs/list') {
-              const requestedDir = sanitizeText(body.dir)
-              if (!requestedDir || !isAbsolute(requestedDir)) {
-                throw Object.assign(new Error('目录路径必须是绝对路径'), { statusCode: 400 })
-              }
-              let realDir
-              try {
-                realDir = fs.realpathSync(requestedDir)
-              } catch {
-                throw Object.assign(new Error('目录不存在或无法访问'), { statusCode: 404 })
-              }
-              const stat = fs.statSync(realDir)
-              if (!stat.isDirectory()) {
-                throw Object.assign(new Error('所选路径不是目录'), { statusCode: 400 })
-              }
-              const dirs = fs
-                .readdirSync(realDir, { withFileTypes: true })
-                .filter((entry) => entry.isDirectory())
-                .map((entry) => ({ name: entry.name }))
-                .sort((left, right) => left.name.localeCompare(right.name, 'zh-CN'))
-              sendJson(res, { success: true, path: realDir, dirs })
-            } else if (path === '/api/store/get') {
-              const { key } = body
-              try {
-                sendJson(res, { success: true, key, value: webStoreGet(key) })
-              } catch (error) {
-                sendJson(
-                  res,
-                  { success: false, message: error?.message || '读取本地设置失败' },
-                  500
-                )
-              }
-            } else if (path === '/api/store/set') {
-              const { key, value } = body
-              try {
-                const ok = webStoreSet(key, value)
-                sendJson(
-                  res,
-                  ok ? { success: true, key } : { success: false, message: '保存本地设置失败' }
-                )
-              } catch (error) {
-                sendJson(
-                  res,
-                  { success: false, message: error?.message || '保存本地设置失败' },
-                  500
-                )
-              }
-            } else if (path === '/api/store/delete') {
-              const { key } = body
-              try {
-                const ok = webStoreDelete(key)
-                sendJson(
-                  res,
-                  ok ? { success: true, key } : { success: false, message: '删除本地设置失败' }
-                )
-              } catch (error) {
-                sendJson(
-                  res,
-                  { success: false, message: error?.message || '删除本地设置失败' },
-                  500
-                )
               }
             } else if (path === '/api/ai/history') {
               try {

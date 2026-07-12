@@ -59,6 +59,7 @@ const dirs = ref([])
 const loading = ref(false)
 const error = ref('')
 const canGoUp = ref(false)
+const rootPath = ref('')
 
 function joinPath(parent, name) {
   if (!parent) return name
@@ -99,10 +100,11 @@ async function loadDir(dir) {
       throw new Error('目录接口返回格式错误: ' + jsonError.message)
     })
     if (!res.ok) {
-      throw new Error(data?.error || `读取目录失败 (${res.status})`)
+      throw new Error(data?.message || data?.error || `读取目录失败 (${res.status})`)
     }
     dirs.value = requireDirectoryListResult(data)
     currentPath.value = data.path || dir
+    rootPath.value = data.root || rootPath.value
   } catch (e) {
     error.value = '加载失败: ' + e.message
     dirs.value = []
@@ -127,7 +129,7 @@ function requireDirectoryListResult(result) {
 
 function updateCanGoUp() {
   const p = currentPath.value
-  if (!p) {
+  if (!p || (rootPath.value && p === rootPath.value)) {
     canGoUp.value = false
     return
   }
