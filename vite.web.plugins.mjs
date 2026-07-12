@@ -9,7 +9,6 @@ import extractionAiService, {
 } from './src/main/services/extractionAi.js'
 import { WebExtractionTaskService } from './src/main/services/webExtractionTaskService.js'
 import { generateImageResult as generateImageResultByProvider } from './src/main/services/imageGenerationRouter.js'
-import novelDownloader from './src/main/services/novelDownloader.js'
 import * as webBooksApi from './src/main/services/webBooksApi.js'
 import knowledgeBaseService from './src/main/services/knowledgeBaseService.js'
 import knowledgeTopicAiService from './src/main/services/knowledgeTopicAi.js'
@@ -47,6 +46,7 @@ import { handleMarketRoute } from './src/main/webApi/marketRoutes.js'
 import { handleVectorRoute } from './src/main/webApi/vectorRoutes.js'
 import { handleSettingsRoute } from './src/main/webApi/settingsRoutes.js'
 import { handlePromptRoute } from './src/main/webApi/promptRoutes.js'
+import { handleNovelDownloadRoute } from './src/main/webApi/novelDownloadRoutes.js'
 
 export function createWebServerPlugins() {
   const configuredBooksDir = String(process.env.NOVEL_BOOKS_DIR || '').trim()
@@ -674,6 +674,16 @@ export function createWebServerPlugins() {
             })
           ) {
             return
+          } else if (
+            await handleNovelDownloadRoute({
+              path,
+              body,
+              res,
+              sendJson,
+              sanitizeText
+            })
+          ) {
+            return
           } else if (path === '/api/books/cover' || path === '/api/books/image') {
               const url = new URL(req.url, 'http://localhost')
               const bookName = sanitizeText(url.searchParams.get('book'))
@@ -1069,95 +1079,6 @@ export function createWebServerPlugins() {
             } else if (path === '/api/books/set-dir') {
               const { dir } = body
               res.end(JSON.stringify({ success: true, booksDir: dir }))
-            } else if (path === '/api/novel/sources') {
-              sendJson(res, novelDownloader.getBookSources())
-            } else if (path === '/api/novel/search') {
-              const keyword = sanitizeText(body.keyword)
-              const sourceId = sanitizeText(body.sourceId)
-              try {
-                if (!keyword) {
-                  sendJson(res, { success: true, list: [], sourceErrors: [] })
-                  return
-                }
-                const sources = novelDownloader.getBookSources()
-                const searchSources =
-                  sourceId === 'all'
-                    ? sources
-                    : sources.filter((source) => source.id === (sourceId || sources[0]?.id))
-                if (!searchSources.length) {
-                  throw new Error(`未知书源: ${sourceId}`)
-                }
-                const list = []
-                const sourceErrors = []
-                for (const source of searchSources) {
-                  try {
-                    const rows = await novelDownloader.search(keyword, source.id)
-                    list.push(
-                      ...rows.map((row) => ({
-                        ...row,
-                        sourceName: row.sourceName || source.name
-                      }))
-                    )
-                  } catch (error) {
-                    sourceErrors.push(`${source.name}: ${error?.message || '搜索失败'}`)
-                  }
-                }
-                sendJson(res, {
-                  success: true,
-                  list,
-                  sourceErrors,
-                  message: list.length ? '' : sourceErrors[0] || '没有找到相关小说'
-                })
-              } catch (error) {
-                sendJson(
-                  res,
-                  {
-                    success: false,
-                    list: [],
-                    sourceErrors: [],
-                    message: error?.message || '搜索失败'
-                  },
-                  500
-                )
-              }
-            } else if (path === '/api/novel/chapters') {
-              try {
-                const chapters = await novelDownloader.getChapterList(
-                  sanitizeText(body.bookUrl),
-                  sanitizeText(body.sourceId)
-                )
-                sendJson(res, { success: true, chapters })
-              } catch (error) {
-                sendJson(
-                  res,
-                  { success: false, chapters: [], message: error?.message || '读取章节目录失败' },
-                  500
-                )
-              }
-            } else if (path === '/api/novel/book-info') {
-              sendJson(res, { success: true, info: {} })
-            } else if (path === '/api/novel/download') {
-              const chapterList = Array.isArray(body.chapterList) ? body.chapterList : []
-              const sourceId = sanitizeText(body.sourceId)
-              const chapters = []
-              for (const chapter of chapterList) {
-                const title = sanitizeText(chapter?.title) || '正文'
-                try {
-                  const content = await novelDownloader.getChapterContent(
-                    sanitizeText(chapter?.url),
-                    sourceId
-                  )
-                  chapters.push({ title, content, failed: false, error: '' })
-                } catch (error) {
-                  chapters.push({
-                    title,
-                    content: '',
-                    failed: true,
-                    error: error?.message || '下载失败'
-                  })
-                }
-              }
-              sendJson(res, { success: true, chapters })
             } else {
               // Default to 404
               sendJson(res, { success: false, message: 'Not Found' }, 404)

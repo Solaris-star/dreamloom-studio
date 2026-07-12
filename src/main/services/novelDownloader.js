@@ -289,6 +289,31 @@ function getSource(sourceId) {
   return source
 }
 
+function getSourceHosts(source) {
+  const urls = [
+    typeof source.searchUrl === 'string' ? source.searchUrl : source.searchUrl('test'),
+    source.tocUrlPattern
+  ].filter(Boolean)
+  return new Set(urls.map((url) => new URL(url).hostname.toLowerCase()))
+}
+
+export function assertSourceUrl(url, sourceId) {
+  const source = getSource(sourceId)
+  let parsed
+  try {
+    parsed = new URL(String(url || '').trim())
+  } catch {
+    throw Object.assign(new Error('书源地址无效'), { statusCode: 400 })
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw Object.assign(new Error('书源地址协议不受支持'), { statusCode: 400 })
+  }
+  if (!getSourceHosts(source).has(parsed.hostname.toLowerCase())) {
+    throw Object.assign(new Error('书源地址与所选书源不匹配'), { statusCode: 400 })
+  }
+  return parsed.toString()
+}
+
 /**
  * 获取搜索请求 URL 或 POST 体（供 search 使用）
  */
@@ -349,7 +374,7 @@ export async function search(keyword, sourceId) {
  */
 export async function getChapterList(bookUrl, sourceId) {
   const source = getSource(sourceId)
-  let tocUrl = bookUrl
+  let tocUrl = assertSourceUrl(bookUrl, sourceId)
   if (source.tocUrlPattern) {
     const match = bookUrl.match(/\/([^/]+)\/?$/)
     const bookId = match ? match[1].replace(/\.html?$/, '') : ''
@@ -377,7 +402,8 @@ export async function getChapterList(bookUrl, sourceId) {
  */
 export async function getChapterContent(chapterUrl, sourceId) {
   const source = getSource(sourceId)
-  const html = await fetchHtml(chapterUrl, source.encoding)
+  const safeChapterUrl = assertSourceUrl(chapterUrl, sourceId)
+  const html = await fetchHtml(safeChapterUrl, source.encoding)
   const $ = cheerio.load(html)
   const contentHtml = $(source.contentSelector).html() || ''
   return cleanContent(contentHtml, source.filterTxt)
@@ -391,5 +417,6 @@ export default {
   search,
   getChapterList,
   getChapterContent,
-  getBookSources
+  getBookSources,
+  assertSourceUrl
 }
