@@ -55,6 +55,7 @@ import { handleExtractionRoute } from './src/main/webApi/extractionRoutes.js'
 import { handleKnowledgeAiRoute } from './src/main/webApi/knowledgeAiRoutes.js'
 import { handleConsistencyRoute } from './src/main/webApi/consistencyRoutes.js'
 import { handleWritingSkillRoute } from './src/main/webApi/writingSkillRoutes.js'
+import { handleBookImageRoute } from './src/main/webApi/bookImageRoutes.js'
 import { setWebBooksDirectory } from './src/main/services/webBooksDirectoryService.js'
 
 export function createWebServerPlugins() {
@@ -418,15 +419,6 @@ export function createWebServerPlugins() {
     res.statusCode = status
     res.setHeader('Content-Type', 'application/json; charset=utf-8')
     res.end(JSON.stringify(obj))
-  }
-
-  function contentTypeFromFileName(fileName = '') {
-    const lower = String(fileName || '').toLowerCase()
-    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg'
-    if (lower.endsWith('.webp')) return 'image/webp'
-    if (lower.endsWith('.gif')) return 'image/gif'
-    if (lower.endsWith('.avif')) return 'image/avif'
-    return 'image/png'
   }
 
   function webBookImageUrl(bookPath, filePath) {
@@ -799,28 +791,18 @@ export function createWebServerPlugins() {
             })
           ) {
             return
-          } else if (path === '/api/books/cover' || path === '/api/books/image') {
-              const url = new URL(req.url, 'http://localhost')
-              const bookName = sanitizeText(url.searchParams.get('book'))
-              const fileName = sanitizeText(url.searchParams.get('file'))
-              const root = getActiveBooksDir()
-              const bookPath = resolve(root, bookName)
-              const target = resolve(bookPath, fileName)
-              if (
-                bookName &&
-                fileName &&
-                isPathInside(root, bookPath) &&
-                isPathInside(bookPath, target) &&
-                fs.existsSync(target) &&
-                fs.statSync(target).isFile()
-              ) {
-                res.statusCode = 200
-                res.setHeader('Content-Type', contentTypeFromFileName(fileName))
-                res.end(fs.readFileSync(target))
-              } else {
-                sendTransparentImage(res)
-              }
-            } else if (path === '/api/setting-tree/apply') {
+          } else if (
+            handleBookImageRoute({
+              path,
+              req,
+              res,
+              booksDir: getActiveBooksDir(),
+              sendTransparentImage,
+              sanitizeText
+            })
+          ) {
+            return
+          } else if (path === '/api/setting-tree/apply') {
               sendJson(res, {
                 success: false,
                 message: '设定树应用尚未提供安全的 Web 实现'
