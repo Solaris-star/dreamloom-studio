@@ -1030,3 +1030,37 @@ test('书籍导出失败时不会重复提交或误报完成', async ({ page }) 
   await expect(exportButton).toBeEnabled()
   expect(runtimeErrors).toEqual([])
 })
+
+test('创建备份失败时不会重复提交或触发下载', async ({ page }) => {
+  const runtimeErrors = []
+  let backupRequests = 0
+  let downloads = 0
+  page.on('pageerror', (error) => runtimeErrors.push(error.message))
+  page.on('download', () => {
+    downloads += 1
+  })
+  await page.route('**/api/backup/create', async (route) => {
+    backupRequests += 1
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 300))
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: false,
+        message: '测试备份失败'
+      })
+    })
+  })
+
+  await page.goto('/#/import-export/backup')
+  const backupButton = page.getByRole('button', { name: '创建备份', exact: true })
+  await expect(backupButton).toBeEnabled()
+  await backupButton.click()
+  await backupButton.click({ force: true })
+
+  await expect(page.getByText('测试备份失败')).toBeVisible()
+  await expect(page.getByText('备份完成')).toHaveCount(0)
+  await expect.poll(() => backupRequests).toBe(1)
+  await expect(backupButton).toBeEnabled()
+  expect(downloads).toBe(0)
+  expect(runtimeErrors).toEqual([])
+})
