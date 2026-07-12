@@ -317,14 +317,14 @@ async function handleDownloadToBookshelf() {
   const book = selectedBook.value
   if (!book || chapterList.value.length === 0) return
 
-  const booksDir = await getBookDir().catch(() => '')
-  if (!booksDir) {
-    ElMessage.warning(t('novelDownload.pleaseSetBooksDirFirst'))
-    return
-  }
-
   confirmingAction.value = true
   try {
+    const booksDir = await getBookDir().catch(() => '')
+    if (!booksDir) {
+      ElMessage.warning(t('novelDownload.pleaseSetBooksDirFirst'))
+      return
+    }
+
     await ElMessageBox.confirm(
       t('novelDownload.confirmDownloadToBookshelf', {
         title: book.title,
