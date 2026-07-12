@@ -470,7 +470,11 @@
               <el-icon><Search /></el-icon>
             </template>
           </el-input>
-          <el-button v-motion-feedback type="primary" @click="handleUploadImage"
+          <el-button
+            v-motion-feedback
+            type="primary"
+            :loading="uploadingImages"
+            @click="handleUploadImage"
             >上传图片</el-button
           >
         </div>
@@ -503,7 +507,13 @@
                 <button type="button" class="action-btn" title="下载图片" @click.stop="downloadImage(asset)">
                   <Download :size="16" />
                 </button>
-                <button type="button" class="action-btn delete" title="删除图片" @click.stop="deleteImage(asset)">
+                <button
+                  type="button"
+                  class="action-btn delete"
+                  title="删除图片"
+                  :disabled="deletingImageId === asset.id"
+                  @click.stop="deleteImage(asset)"
+                >
                   <Trash2 :size="16" />
                 </button>
               </div>
@@ -570,7 +580,12 @@
               >设为封面</el-button
             >
             <el-button v-motion-feedback @click="downloadImage(selectedImage)">下载</el-button>
-            <el-button v-motion-feedback type="danger" plain @click="deleteImage(selectedImage)"
+            <el-button
+              v-motion-feedback
+              type="danger"
+              plain
+              :loading="deletingImageId === selectedImage.id"
+              @click="deleteImage(selectedImage)"
               >删除</el-button
             >
           </div>
@@ -1070,6 +1085,8 @@ const mainStore = useMainStore()
 
 const loading = ref(false)
 const isDraggingImage = ref(false)
+const uploadingImages = ref(false)
+const deletingImageId = ref('')
 const imagePreviewVisible = ref(false)
 const previewImageUrl = ref('')
 const previewImageName = ref('')
@@ -2126,10 +2143,12 @@ async function deleteSelectedMaterials() {
 }
 
 async function handleUploadImage() {
+  if (uploadingImages.value) return
   if (!books.value.length) {
     ElMessage.warning('请先创建或导入一本书，再上传图片')
     return
   }
+  uploadingImages.value = true
   try {
     const result = await selectBrowserImage()
     const imageInput = imageSelectionToImportInput(result)
@@ -2150,6 +2169,8 @@ async function handleUploadImage() {
     await loadLibrary()
   } catch (error) {
     ElMessage.error(error?.message || '上传图片失败')
+  } finally {
+    uploadingImages.value = false
   }
 }
 
@@ -2229,6 +2250,10 @@ function handleImageDragLeave() {
 }
 
 async function handleImageDrop(event) {
+  if (uploadingImages.value) {
+    ElMessage.info('图片正在上传，请稍候')
+    return
+  }
   isDraggingImage.value = false
   const files = Array.from(event.dataTransfer?.files || [])
   const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
@@ -2258,34 +2283,39 @@ async function handleImageDrop(event) {
     selectedBook.value?.name ||
     books.value[0].folderName ||
     books.value[0].name
-  const results = await Promise.allSettled(
-    imageFiles.map(async (file) => {
-      const dataUrl = await readFileAsDataUrl(file)
-      const result = await importAsset({
-        dataUrl,
-        fileName: file.name,
-        bookName: targetBookName,
-        type: 'attachment'
+  uploadingImages.value = true
+  try {
+    const results = await Promise.allSettled(
+      imageFiles.map(async (file) => {
+        const dataUrl = await readFileAsDataUrl(file)
+        const result = await importAsset({
+          dataUrl,
+          fileName: file.name,
+          bookName: targetBookName,
+          type: 'attachment'
+        })
+        if (result?.success === false) {
+          throw new Error(result.message || '上传失败')
+        }
+        return result
       })
-      if (result?.success === false) {
-        throw new Error(result.message || '上传失败')
-      }
-      return result
-    })
-  )
-  const successCount = results.filter((result) => result.status === 'fulfilled').length
-  const failed = results
-    .map((result, index) => ({ result, file: imageFiles[index] }))
-    .filter(({ result }) => result.status === 'rejected')
+    )
+    const successCount = results.filter((result) => result.status === 'fulfilled').length
+    const failed = results
+      .map((result, index) => ({ result, file: imageFiles[index] }))
+      .filter(({ result }) => result.status === 'rejected')
 
-  if (successCount) {
-    await loadLibrary()
-  }
-  if (!failed.length) {
-    ElMessage.success(`成功上传 ${successCount} 张图片`)
-  } else {
-    const firstReason = failed[0].result.reason?.message || '读取或上传失败'
-    ElMessage.warning(`上传成功 ${successCount} 张，失败 ${failed.length} 张：${firstReason}`)
+    if (successCount) {
+      await loadLibrary()
+    }
+    if (!failed.length) {
+      ElMessage.success(`成功上传 ${successCount} 张图片`)
+    } else {
+      const firstReason = failed[0].result.reason?.message || '读取或上传失败'
+      ElMessage.warning(`上传成功 ${successCount} 张，失败 ${failed.length} 张：${firstReason}`)
+    }
+  } finally {
+    uploadingImages.value = false
   }
 }
 
@@ -2307,6 +2337,8 @@ function readFileAsDataUrl(file) {
 }
 
 async function deleteImage(asset) {
+  if (!asset?.id || deletingImageId.value) return
+  deletingImageId.value = asset.id
   try {
     const references = await findAssetReferences(asset.id)
     if (references.length) {
@@ -2323,7 +2355,9 @@ async function deleteImage(asset) {
     selectedImageId.value = ''
     await loadLibrary()
   } catch (error) {
-    if (error !== 'cancel') ElMessage.error(error?.message || '删除失败')
+    if (error !== 'cancel' && error !== 'close') ElMessage.error(error?.message || '删除失败')
+  } finally {
+    deletingImageId.value = ''
   }
 }
 

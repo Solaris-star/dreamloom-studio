@@ -6,6 +6,9 @@ function testBookName(projectName) {
   return `织梦工坊 E2E ${projectName}`
 }
 
+const onePixelPng =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='
+
 async function postApi(request, path, body) {
   const response = await request.post(path, { data: body })
   expect(response.ok(), `${path} 应返回成功的 HTTP 状态`).toBeTruthy()
@@ -224,4 +227,89 @@ test('清理回收站失败时保留页面并显示原因', async ({ page }) => 
   await expect(page.getByText('清理服务暂时不可用')).toBeVisible()
   await expect(page).toHaveURL(/#\/settings\/storage/)
   await expect(page.getByRole('button', { name: '清理回收站' })).toBeEnabled()
+})
+
+test('图库连续拖入时不会重复上传', async ({ page }, testInfo) => {
+  let importRequests = 0
+  const bookName = testBookName(testInfo.project.name)
+  await page.route('**/api/assets/import', async (route) => {
+    importRequests += 1
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 300))
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        item: {
+          id: 'e2e-upload-image',
+          name: '连续上传.png',
+          bookName,
+          bookFolderName: bookName,
+          type: 'attachment',
+          isImage: true
+        }
+      })
+    })
+  })
+
+  await page.goto('/#/knowledge/images')
+  const dropZone = page.locator('.manager-grid.images-grid')
+  await dropZone.evaluate(
+    (element, payload) => {
+      const transfer = new DataTransfer()
+      const bytes = Uint8Array.from(atob(payload.split(',')[1]), (character) =>
+        character.charCodeAt(0)
+      )
+      transfer.items.add(new File([bytes], '连续上传.png', { type: 'image/png' }))
+      element.dispatchEvent(new DragEvent('drop', { bubbles: true, dataTransfer: transfer }))
+      element.dispatchEvent(new DragEvent('drop', { bubbles: true, dataTransfer: transfer }))
+    },
+    onePixelPng
+  )
+
+  await expect(page.getByText('图片正在上传，请稍候')).toBeVisible()
+  await expect(page.getByText('成功上传 1 张图片')).toBeVisible()
+  await expect.poll(() => importRequests).toBe(1)
+})
+
+test('图库删除检查引用期间不会重复提交', async ({ page, request }, testInfo) => {
+  const bookName = testBookName(testInfo.project.name)
+  const imported = await postApi(request, '/api/assets/import', {
+    dataUrl: onePixelPng,
+    fileName: '引用保护.png',
+    bookName,
+    type: 'attachment'
+  })
+  expect(imported.success).toBe(true)
+
+  let referenceRequests = 0
+  let deleteRequests = 0
+  await page.route('**/api/assets/references', async (route) => {
+    referenceRequests += 1
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 300))
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        references: [{ file: 'mazi.json', fields: ['$.coverUrl'] }]
+      })
+    })
+  })
+  await page.route('**/api/assets/delete', async (route) => {
+    deleteRequests += 1
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, item: { id: imported.item.id } })
+    })
+  })
+
+  await page.goto('/#/knowledge/images')
+  const card = page.locator('.image-card').filter({ hasText: '引用保护.png' })
+  await expect(card).toBeVisible()
+  const deleteButton = card.getByTitle('删除图片')
+  await deleteButton.click()
+  await deleteButton.click({ force: true })
+
+  await expect(page.getByText(/该图片仍被引用，不能删除.*mazi\.json/)).toBeVisible()
+  await expect.poll(() => referenceRequests).toBe(1)
+  expect(deleteRequests).toBe(0)
 })
