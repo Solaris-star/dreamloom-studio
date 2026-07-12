@@ -9,6 +9,9 @@ import {
   recordAgentTaskStream
 } from '../src/main/services/editorAgentTaskService.js'
 import {
+  broadcastAgentTaskProgress,
+  getAgentTaskProgressServerInfo,
+  startAgentTaskQueueProgressListener,
   startAgentTaskProgressServer,
   stopAgentTaskProgressServer
 } from '../src/main/services/agentTaskProgressWebSocket.js'
@@ -118,6 +121,28 @@ async function rejectedWebSocket({ port, path }) {
   return response
 }
 
+async function rawUpgradeResponse({ port, path, headers = [] }) {
+  const socket = net.createConnection({ host: '127.0.0.1', port })
+  const response = await new Promise((resolve, reject) => {
+    socket.once('error', reject)
+    socket.once('connect', () => {
+      socket.write(
+        [
+          `GET ${path} HTTP/1.1`,
+          'Host: 127.0.0.1',
+          'Upgrade: websocket',
+          'Connection: Upgrade',
+          ...headers,
+          '\r\n'
+        ].join('\r\n')
+      )
+    })
+    socket.once('data', (chunk) => resolve(chunk.toString('utf8')))
+  })
+  socket.destroy()
+  return response
+}
+
 async function waitForMessage(messages, predicate, timeoutMs = 3000) {
   const startedAt = Date.now()
   while (Date.now() - startedAt < timeoutMs) {
@@ -133,9 +158,28 @@ const bookPath = join(rootDir, '寒灯写剑')
 
 try {
   fs.mkdirSync(bookPath, { recursive: true })
+  const beforeStart = getAgentTaskProgressServerInfo({ host: '127.0.0.1', port: 0 })
+  assert.equal(beforeStart.success, false)
+  assert.equal(beforeStart.message, 'Agent 任务进度服务尚未启动')
+  assert.deepEqual(await startAgentTaskQueueProgressListener({ enabled: false }), {
+    success: true,
+    enabled: false
+  })
+
   const server = await startAgentTaskProgressServer({ host: '127.0.0.1', port: 0 })
   assert.equal(server.success, true)
   assert.equal(server.path, '/agent-tasks')
+  const reusedServer = await startAgentTaskProgressServer({
+    host: '127.0.0.1',
+    port: server.port,
+    listenQueueProgress: false
+  })
+  assert.equal(reusedServer.port, server.port)
+  assert.equal(reusedServer.clientCount, 0)
+  assert.equal(
+    getAgentTaskProgressServerInfo({ host: '127.0.0.1', port: server.port }).success,
+    true
+  )
   assert.match(await rejectedWebSocket({ port: server.port, path: server.path }), /401 Unauthorized/)
   assert.match(
     await rejectedWebSocket({ port: server.port, path: `${server.path}?token=wrong` }),
@@ -143,6 +187,20 @@ try {
   )
 
   const serverUrl = new URL(server.url)
+  assert.match(
+    await rejectedWebSocket({
+      port: server.port,
+      path: `/wrong-path?token=${serverUrl.searchParams.get('token')}`
+    }),
+    /404 Not Found/
+  )
+  assert.match(
+    await rawUpgradeResponse({
+      port: server.port,
+      path: `${serverUrl.pathname}${serverUrl.search}`
+    }),
+    /400 Bad Request/
+  )
   serverUrl.searchParams.set('bookName', '寒灯写剑')
   const client = await connectWebSocket({
     port: server.port,
@@ -189,8 +247,39 @@ try {
   assert.equal(streamed.event.content, '寒灯下第一行正文。')
   assert.equal(streamed.event.modelUsed, 'test-stream-model')
 
+  assert.equal(
+    broadcastAgentTaskProgress({
+      type: 'agent_task_updated',
+      bookName: '另一部作品',
+      taskId: 'filtered-out'
+    }),
+    0
+  )
+  const longContent = '长'.repeat(200)
+  assert.equal(
+    broadcastAgentTaskProgress({
+      type: 'agent_task_updated',
+      bookName: '寒灯写剑',
+      taskId: 'manual-long-frame',
+      content: longContent
+    }),
+    1
+  )
+  const longFrame = await waitForMessage(
+    client.messages,
+    (message) => message.taskId === 'manual-long-frame'
+  )
+  assert.equal(longFrame.content, longContent)
+
   client.send(JSON.stringify({ type: 'client_ping' }))
   client.close()
+  const unrelatedStop = await stopAgentTaskProgressServer({
+    host: '127.0.0.1',
+    port: server.port === 65535 ? 65534 : server.port + 1,
+    closeQueueProgress: false
+  })
+  assert.equal(unrelatedStop.stoppedServerCount, 0)
+  assert.equal(unrelatedStop.closeQueueProgress, false)
 } finally {
   const stopResult = await stopAgentTaskProgressServer()
   assert.equal(stopResult.success, true)
