@@ -110,4 +110,116 @@ await assert.rejects(
   /返回目标不匹配/
 )
 
+responses.set('/api/analytics/overview', {
+  success: false,
+  message: '统计服务暂不可用'
+})
+await assert.rejects(() => statisticsService.getOverview(), /统计服务暂不可用/)
+
+responses.set('/api/books/list', {
+  success: true,
+  books: [{ id: '', name: '', folderName: '' }]
+})
+await assert.rejects(() => statisticsService.getAllBooksDailyStats(), /作品列表接口返回格式异常/)
+await assert.rejects(() => statisticsService.getBookDailyStats('  '), /缺少作品名/)
+
+responses.set('/api/analytics/daily-words', {
+  success: true,
+  items: [{ words: 10 }]
+})
+await assert.rejects(() => statisticsService.getTrendData(), /每日写作统计接口返回格式异常/)
+
+responses.set('/api/analytics/writing-habit', {
+  success: true,
+  data: { heatmap: [{ count: 10 }] }
+})
+await assert.rejects(() => statisticsService.getHeatmapData(), /写作习惯接口返回格式异常/)
+
+responses.set('/api/store/get', {
+  success: false,
+  key: 'stats:word_logs',
+  message: '字数日志读取失败'
+})
+await assert.rejects(() => statisticsService.getWordLogs(), /字数日志读取失败/)
+
+responses.set('/api/store/get', {
+  success: true,
+  key: 'stats:word_logs',
+  value: []
+})
+responses.set('/api/store/set', {
+  success: true,
+  key: 'wrong-key'
+})
+await assert.rejects(
+  () =>
+    statisticsService.recordWordCount({
+      bookId: 'book-1',
+      chapterId: 'chapter-1',
+      wordCount: 100,
+      delta: 10
+    }),
+  /接口返回的设置项不匹配/
+)
+
+const requestCountBeforeZeroDelta = requests.length
+await statisticsService.recordWordCount({
+  bookId: 'book-1',
+  chapterId: 'chapter-1',
+  wordCount: 100,
+  delta: 0
+})
+assert.equal(requests.length, requestCountBeforeZeroDelta)
+
+responses.set('/api/goals/create', {
+  success: true,
+  item: null
+})
+await assert.rejects(() => statisticsService.createGoal({ title: '日更' }), /接口返回格式异常/)
+
+responses.set('/api/goals/delete', {
+  success: true,
+  id: 'goal-2',
+  items: [{ id: 'goal-2' }]
+})
+await assert.rejects(() => statisticsService.deleteGoal('goal-2'), /目标仍在列表中/)
+
+responses.set('/api/goals/delete', {
+  success: true,
+  id: 'wrong-goal',
+  items: []
+})
+await assert.rejects(() => statisticsService.deleteGoal('goal-2'), /返回目标不匹配/)
+
+responses.set('/api/analytics/token-stats', {
+  success: true,
+  data: { byFeature: [], byModel: {}, daily: [] }
+})
+await assert.rejects(() => statisticsService.getTokenStats(), /AI 模型用量接口返回格式异常/)
+
+responses.set('/api/analytics/session-stats', {
+  success: true,
+  data: { sessions: null }
+})
+await assert.rejects(
+  () => statisticsService.getSessionStats(),
+  /写作会话列表接口返回格式异常/
+)
+
+responses.set('/api/analytics/weekly-report', {
+  success: true,
+  data: { period: null, daily: [] }
+})
+await assert.rejects(() => statisticsService.getWeeklyReport(), /周报周期接口返回格式异常/)
+
+assert.deepEqual(statisticsService.calculateStreak([]), { current: 0, max: 0 })
+assert.deepEqual(
+  statisticsService.calculateStreak([
+    { date: '2026-07-09' },
+    { date: '2026-07-10' },
+    { date: '2026-07-12' }
+  ]),
+  { current: 1, max: 2 }
+)
+
 console.log('Web 统计服务测试通过')
