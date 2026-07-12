@@ -101,8 +101,14 @@ export function createEditorSaveQueue({
           lastResultByKey.set(key, result)
           entry.resolve(result)
         } catch (error) {
-          const failure = { success: false, message: error?.message || '保存失败', error }
-          report(isOfflineError(error) ? 'offline' : 'error', {
+          const offline = isOfflineError(error)
+          const failure = {
+            success: false,
+            message: error?.message || '保存失败',
+            error,
+            offline
+          }
+          report(offline ? 'offline' : 'error', {
             requestId: entry.snapshot.requestId,
             filePath: key,
             error

@@ -218,6 +218,43 @@ test('保存失败会阻止章节切换并保留恢复副本', async ({ page }, 
   expect(recoveryDrafts.length).toBeGreaterThan(0)
 })
 
+test('离线保存会保留正文并在网络恢复后完成换章', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '自动保存故障仅在桌面项目执行')
+  const bookName = testBookName(testInfo.project.name)
+  await openEditor(page, bookName)
+  await openFirstChapter(page)
+  const saveRoute = async (route) => route.abort('internetdisconnected')
+  await page.route('**/api/chapters/save', saveRoute)
+
+  await page.locator('.ProseMirror').fill('离线期间不能丢失的正文')
+  await page.getByRole('button', { name: '下一章' }).click()
+
+  await expect(page.locator('.ProseMirror')).toContainText('离线期间不能丢失的正文')
+  await expect(page.locator('.save-state')).toHaveText('离线待保存')
+  const draftsWhileOffline = await page.evaluate(() =>
+    Object.entries(localStorage).filter(
+      ([key, value]) => key.includes('recovery') && value.includes('离线期间不能丢失的正文')
+    )
+  )
+  expect(draftsWhileOffline.length).toBeGreaterThan(0)
+
+  await page.unroute('**/api/chapters/save', saveRoute)
+  await page.getByRole('button', { name: '下一章' }).click()
+
+  await expect(page.locator('.ProseMirror')).toContainText('天亮以后')
+  const savedResponse = await page.request.post('/api/chapters/read', {
+    data: { bookName, volumeName: '正文', chapterName: '第1章' }
+  })
+  expect(savedResponse.ok()).toBeTruthy()
+  expect((await savedResponse.json()).content).toBe('离线期间不能丢失的正文')
+  const draftsAfterRecovery = await page.evaluate(() =>
+    Object.entries(localStorage).filter(
+      ([key, value]) => key.includes('recovery') && value.includes('离线期间不能丢失的正文')
+    )
+  )
+  expect(draftsAfterRecovery).toEqual([])
+})
+
 test('创作台阅读设置和专注模式可以恢复', async ({ page }, testInfo) => {
   await openEditor(page, testBookName(testInfo.project.name))
 

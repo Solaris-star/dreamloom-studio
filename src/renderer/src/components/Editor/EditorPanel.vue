@@ -1264,7 +1264,7 @@ async function saveFile(showMessage = false) {
     return true
   } else {
     if (editorStore.file?.path === snapshot.filePath) {
-      editorStore.setSaveState(result?.error?.offline ? 'offline' : 'error', {
+      editorStore.setSaveState(result?.offline === true ? 'offline' : 'error', {
         error: result?.message
       })
     }

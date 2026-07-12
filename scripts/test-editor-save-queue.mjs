@@ -137,6 +137,7 @@ const offlineQueue = createEditorSaveQueue({
 })
 const offline = await offlineQueue.enqueue({ filePath: 'offline', content: 'text' })
 assert.equal(offline.success, false)
+assert.equal(offline.offline, true)
 assert.deepEqual(offlineStatuses, ['saving', 'offline'])
 
 const invalid = await queue.enqueue({ filePath: '', content: 'text' })
