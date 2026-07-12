@@ -319,3 +319,33 @@ test('图库删除检查引用期间不会重复提交', async ({ page, request 
   await expect.poll(() => referenceRequests).toBe(1)
   expect(deleteRequests).toBe(0)
 })
+
+test('AI 工坊运行期间不会重复提交或切换任务', async ({ page }) => {
+  let taskRequests = 0
+  await page.route('**/api/ai/text-task', async (route) => {
+    taskRequests += 1
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 400))
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        content: '林舟推门后，看见柜台上放着一封没有署名的信。'
+      })
+    })
+  })
+
+  await page.goto('/#/ai/text-tools')
+  const input = page.locator('.main-input-block textarea')
+  const taskSelect = page.locator('.setup-strip .el-select').first()
+  const submitButton = page.getByRole('button', { name: '续写' })
+  await input.fill('林舟推开旧书铺的门。')
+
+  await submitButton.click()
+  await submitButton.click({ force: true })
+
+  await expect(input).toBeDisabled()
+  await expect(taskSelect.locator('input')).toBeDisabled()
+  await expect(page.locator('.generation-status-card').getByText('生成完成')).toBeVisible()
+  await expect.poll(() => taskRequests).toBe(1)
+  await expect(input).toBeEnabled()
+})

@@ -1,5 +1,7 @@
 import { postJson } from './webHttpClient.js'
 
+const AI_TASK_TIMEOUT_MS = 120_000
+
 function requireAiWorkshopSuccess(result, fallback = '操作失败') {
   if (result?.success !== true) {
     throw new Error(result?.message || result?.error || fallback)
@@ -82,15 +84,21 @@ function requirePromptPresetExportResult(result, fallback = '导出 Prompt 模�
 }
 
 export async function runAiTextTask(payload = {}) {
-  return requireAiTextTaskResult(await postJson('/api/ai/text-task', payload))
+  return requireAiTextTaskResult(
+    await postJson('/api/ai/text-task', payload, { timeoutMs: AI_TASK_TIMEOUT_MS })
+  )
 }
 
 export async function runAiImageTask(payload = {}) {
-  return requireAiImageTaskResult(await postJson('/api/ai/image-task', payload))
+  return requireAiImageTaskResult(
+    await postJson('/api/ai/image-task', payload, { timeoutMs: AI_TASK_TIMEOUT_MS })
+  )
 }
 
 export async function sendAiChat(payload = {}) {
-  return requireAiChatResult(await postJson('/api/ai/chat', payload))
+  return requireAiChatResult(
+    await postJson('/api/ai/chat', payload, { timeoutMs: AI_TASK_TIMEOUT_MS })
+  )
 }
 
 export async function listAiHistory(filter = {}) {

@@ -5,7 +5,7 @@ const requests = []
 
 globalThis.fetch = async (url, options = {}) => {
   const payload = options.body ? JSON.parse(options.body) : {}
-  requests.push({ url, payload })
+  requests.push({ url, payload, signal: options.signal })
   const body = responses.get(url)
   return new Response(JSON.stringify(body), {
     status: 200,
@@ -23,6 +23,7 @@ assert.equal((await service.runAiImageTask({ prompt: '场景' })).imageUrl, 'htt
 
 responses.set('/api/ai/chat', { success: true, content: ' 回答 ' })
 assert.equal((await service.sendAiChat({ message: '问题' })).content, '回答')
+assert.equal(requests.slice(0, 3).every((item) => item.signal instanceof AbortSignal), true)
 
 responses.set('/api/ai/history', { success: true, items: [{ id: 'history-a' }] })
 assert.equal((await service.listAiHistory({ type: 'text' })).items[0].id, 'history-a')

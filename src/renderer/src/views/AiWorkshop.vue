@@ -128,7 +128,12 @@
         <div class="setup-strip">
           <label v-if="activeTools.length > 1" class="field-block strip-field">
             <span>任务</span>
-            <el-select v-model="activeToolKey" placeholder="选择任务" @change="selectTool">
+            <el-select
+              v-model="activeToolKey"
+              placeholder="选择任务"
+              :disabled="running"
+              @change="selectTool"
+            >
               <el-option
                 v-for="tool in activeTools"
                 :key="tool.key"
@@ -145,6 +150,7 @@
               v-model="selectedPresetId"
               clearable
               filterable
+              :disabled="running"
               placeholder="默认提示词"
             >
               <el-option
@@ -206,6 +212,7 @@
             type="textarea"
             :rows="activeTool.kind === 'image' ? 7 : 10"
             resize="none"
+            :disabled="running"
             :placeholder="activeTool.placeholder"
           />
         </label>
@@ -218,6 +225,7 @@
               type="textarea"
               :rows="3"
               resize="none"
+              :disabled="running"
               placeholder="补充要求，可选。例如：风格轻松、节奏快、不要过度解释设定。"
             />
           </el-collapse-item>
@@ -226,7 +234,7 @@
         <div v-if="activeTool.kind === 'image'" class="image-setting-row">
           <label>
             <span>图片尺寸</span>
-            <el-select v-model="imageSize" placeholder="尺寸">
+            <el-select v-model="imageSize" :disabled="running" placeholder="尺寸">
               <el-option label="方图 1024" value="1024x1024" />
               <el-option label="横图 1280x720" value="1280x720" />
               <el-option label="竖图 720x1280" value="720x1280" />
@@ -234,7 +242,7 @@
           </label>
           <label>
             <span>不想出现的内容</span>
-            <el-input v-model="negativePrompt" placeholder="可选" />
+            <el-input v-model="negativePrompt" :disabled="running" placeholder="可选" />
           </label>
         </div>
 
@@ -1630,6 +1638,10 @@ async function runStarterGeneration() {
 }
 
 async function handlePrimaryAction() {
+  if (running.value) {
+    ElMessage.info('当前 AI 任务仍在运行，请稍候')
+    return
+  }
   if (activeTool.value.key === 'starter' && starterJob.value?.status === 'pending') {
     await runStarterGeneration()
     return
