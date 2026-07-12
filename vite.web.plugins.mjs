@@ -54,6 +54,7 @@ import { handleAiImageRoute } from './src/main/webApi/aiImageRoutes.js'
 import { handleExtractionRoute } from './src/main/webApi/extractionRoutes.js'
 import { handleKnowledgeAiRoute } from './src/main/webApi/knowledgeAiRoutes.js'
 import { handleConsistencyRoute } from './src/main/webApi/consistencyRoutes.js'
+import { handleWritingSkillRoute } from './src/main/webApi/writingSkillRoutes.js'
 import { setWebBooksDirectory } from './src/main/services/webBooksDirectoryService.js'
 
 export function createWebServerPlugins() {
@@ -786,6 +787,18 @@ export function createWebServerPlugins() {
             })
           ) {
             return
+          } else if (
+            await handleWritingSkillRoute({
+              path,
+              body,
+              res,
+              booksDir: getActiveBooksDir(),
+              sendJson,
+              listSkills: listInstalledWritingSkills,
+              runSkill: runWritingSkill
+            })
+          ) {
+            return
           } else if (path === '/api/books/cover' || path === '/api/books/image') {
               const url = new URL(req.url, 'http://localhost')
               const bookName = sanitizeText(url.searchParams.get('book'))
@@ -806,23 +819,6 @@ export function createWebServerPlugins() {
                 res.end(fs.readFileSync(target))
               } else {
                 sendTransparentImage(res)
-              }
-            } else if (path === '/api/editor-agent/writing-skills') {
-              sendJson(res, listInstalledWritingSkills())
-            } else if (path === '/api/editor-agent/run-writing-skill') {
-              try {
-                sendJson(
-                  res,
-                  await runWritingSkill({
-                    ...(body || {}),
-                    booksDir: getActiveBooksDir()
-                  })
-                )
-              } catch (error) {
-                sendJson(res, {
-                  success: false,
-                  message: error instanceof Error ? error.message : String(error)
-                })
               }
             } else if (path === '/api/setting-tree/apply') {
               sendJson(res, {
