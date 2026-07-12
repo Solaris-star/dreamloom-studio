@@ -211,19 +211,21 @@ export function resolveImageProviderConfig(store, options = {}) {
 
 /**
  * @param {*} store - 本地 store 实例
- * @param {{ imageProvider?: string, prompt: string, size: string, negativePrompt?: string }} options
+ * @param {{ imageProvider?: string, prompt: string, size: string, negativePrompt?: string, timeoutMs?: number, signal?: AbortSignal }} options
  * @returns {Promise<Buffer>}
  */
 export async function generateImageBuffer(store, options) {
   const config = resolveImageProviderConfig(store, options)
-  const { prompt, size, negativePrompt = '' } = options || {}
+  const { prompt, size, negativePrompt = '', timeoutMs, signal } = options || {}
 
   if (config.providerId === 'tongyi') {
     await tongyiwanxiangService.initApiKey((key) => store.get(key))
     const imageUrl = await tongyiwanxiangService.generateCover({
       prompt,
       size,
-      negativePrompt
+      negativePrompt,
+      timeoutMs,
+      signal
     })
     const res = await fetch(imageUrl)
     if (!res.ok) {

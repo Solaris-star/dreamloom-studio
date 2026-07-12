@@ -6,6 +6,23 @@
 
 const IMAGEN_MODEL = 'imagen-4.0-generate-001'
 const PREDICT_URL = `https://generativelanguage.googleapis.com/v1beta/models/${IMAGEN_MODEL}:predict`
+export const DEFAULT_GEMINI_IMAGEN_TIMEOUT_MS = 60000
+
+function requestSignal(signal, timeoutMs) {
+  const effectiveTimeout =
+    Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0
+      ? Number(timeoutMs)
+      : DEFAULT_GEMINI_IMAGEN_TIMEOUT_MS
+  const timeoutSignal = AbortSignal.timeout(effectiveTimeout)
+  return {
+    effectiveTimeout,
+    signal: signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
+  }
+}
+
+function isAbortError(error) {
+  return error?.name === 'AbortError' || error?.name === 'TimeoutError'
+}
 
 /**
  * 将「宽*高」映射到 Imagen 支持的 aspectRatio
@@ -63,9 +80,18 @@ function extractBase64FromPrediction(pred) {
  * @param {string} opts.prompt
  * @param {string} [opts.size]
  * @param {string} [opts.negativePrompt]
+ * @param {number} [opts.timeoutMs]
+ * @param {AbortSignal} [opts.signal]
  * @returns {Promise<Buffer>}
  */
-export async function generateImageBuffer({ apiKey, prompt, size, negativePrompt }) {
+export async function generateImageBuffer({
+  apiKey,
+  prompt,
+  size,
+  negativePrompt,
+  timeoutMs = DEFAULT_GEMINI_IMAGEN_TIMEOUT_MS,
+  signal
+}) {
   if (!apiKey?.trim()) {
     throw new Error('Gemini API Key 未设置，请在设置中配置')
   }
@@ -90,14 +116,25 @@ export async function generateImageBuffer({ apiKey, prompt, size, negativePrompt
     }
   }
 
-  const response = await fetch(PREDICT_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-goog-api-key': apiKey.trim()
-    },
-    body: JSON.stringify(body)
-  })
+  const request = requestSignal(signal, timeoutMs)
+  let response
+  try {
+    response = await fetch(PREDICT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey.trim()
+      },
+      body: JSON.stringify(body),
+      signal: request.signal
+    })
+  } catch (error) {
+    if (isAbortError(error)) {
+      if (signal?.aborted) throw error
+      throw new Error(`Gemini Imagen 请求超时（${request.effectiveTimeout} ms）`)
+    }
+    throw error
+  }
 
   const data = await response.json().catch(() => ({}))
 
@@ -119,7 +156,11 @@ export async function generateImageBuffer({ apiKey, prompt, size, negativePrompt
     throw new Error('Gemini Imagen 返回格式异常，无法解析图片')
   }
 
-  return Buffer.from(b64, 'base64')
+  const imageBuffer = Buffer.from(b64, 'base64')
+  if (!imageBuffer.length) {
+    throw new Error('Gemini Imagen 返回了空图片数据')
+  }
+  return imageBuffer
 }
 
 /**
@@ -127,14 +168,19 @@ export async function generateImageBuffer({ apiKey, prompt, size, negativePrompt
  * @param {string} apiKey
  * @returns {Promise<{ isValid: boolean, message?: string }>}
  */
-export async function validateApiKey(apiKey) {
+export async function validateApiKey(
+  apiKey,
+  { timeoutMs = DEFAULT_GEMINI_IMAGEN_TIMEOUT_MS, signal } = {}
+) {
   if (!apiKey?.trim()) {
     return { isValid: false, message: 'API Key 未设置' }
   }
   try {
     const url = 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=1'
+    const request = requestSignal(signal, timeoutMs)
     const res = await fetch(url, {
-      headers: { 'x-goog-api-key': apiKey.trim() }
+      headers: { 'x-goog-api-key': apiKey.trim() },
+      signal: request.signal
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) {
@@ -145,6 +191,14 @@ export async function validateApiKey(apiKey) {
     }
     return { isValid: true }
   } catch (e) {
+    if (isAbortError(e)) {
+      if (signal?.aborted) return { isValid: false, message: e?.message || '校验已取消' }
+      const effectiveTimeout =
+        Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0
+          ? Number(timeoutMs)
+          : DEFAULT_GEMINI_IMAGEN_TIMEOUT_MS
+      return { isValid: false, message: `校验超时（${effectiveTimeout} ms）` }
+    }
     return { isValid: false, message: e?.message || '网络错误' }
   }
 }
