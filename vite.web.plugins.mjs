@@ -52,6 +52,7 @@ import { handleWebUtilityRoute } from './src/main/webApi/webUtilityRoutes.js'
 import { handleAiTextRoute } from './src/main/webApi/aiTextRoutes.js'
 import { handleAiImageRoute } from './src/main/webApi/aiImageRoutes.js'
 import { handleExtractionRoute } from './src/main/webApi/extractionRoutes.js'
+import { handleKnowledgeAiRoute } from './src/main/webApi/knowledgeAiRoutes.js'
 import { setWebBooksDirectory } from './src/main/services/webBooksDirectoryService.js'
 
 export function createWebServerPlugins() {
@@ -754,6 +755,21 @@ export function createWebServerPlugins() {
             })
           ) {
             return
+          } else if (
+            await handleKnowledgeAiRoute({
+              path,
+              body,
+              res,
+              booksDir: getActiveBooksDir(),
+              sendJson,
+              sanitizeText,
+              store: webStoreAdapter(),
+              createProvider: createTextProvider,
+              aiService: knowledgeTopicAiService,
+              knowledge: knowledgeBaseService
+            })
+          ) {
+            return
           } else if (path === '/api/books/cover' || path === '/api/books/image') {
               const url = new URL(req.url, 'http://localhost')
               const bookName = sanitizeText(url.searchParams.get('book'))
@@ -775,23 +791,6 @@ export function createWebServerPlugins() {
               } else {
                 sendTransparentImage(res)
               }
-            } else if (path === '/api/knowledge/ai-task') {
-              const provider = createTextProvider(webStoreAdapter(), body || {})
-              sendJson(res, await knowledgeTopicAiService.runTask(body || {}, provider.service))
-            } else if (path === '/api/knowledge/create-topic-from-ai') {
-              const sourceItem =
-                body.sourceItem && typeof body.sourceItem === 'object' ? body.sourceItem : {}
-              const aiResult =
-                body.aiResult && typeof body.aiResult === 'object' ? body.aiResult : {}
-              sendJson(
-                res,
-                knowledgeBaseService.createTopicCardFromAiResult(
-                  getActiveBooksDir(),
-                  sourceItem,
-                  aiResult,
-                  sanitizeText(body.rawOutput)
-                )
-              )
             } else if (path === '/api/consistency/check') {
               const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
                 ensure: true
