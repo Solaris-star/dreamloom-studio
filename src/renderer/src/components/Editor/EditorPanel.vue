@@ -254,6 +254,11 @@ import { ArrowDown } from '@element-plus/icons-vue'
 import { EditorContent } from '@tiptap/vue-3'
 import { createEditorSaveQueue } from '../../service/editorSaveQueue'
 import {
+  readEditorRecoveryDraft,
+  removeEditorRecoveryDraft,
+  writeEditorRecoveryDraft
+} from '../../service/editorRecoveryDraft'
+import {
   createEditorSnapshot,
   deleteEditorSnapshot,
   listBannedWords,
@@ -710,12 +715,6 @@ function handleKeydown(event) {
   }
 }
 
-const RECOVERY_DRAFT_PREFIX = 'dreamloom:editor-recovery-draft:'
-
-function recoveryDraftKey(bookName, filePath) {
-  return `${RECOVERY_DRAFT_PREFIX}${encodeURIComponent(bookName || '')}:${encodeURIComponent(filePath || '')}`
-}
-
 function saveRecoveryDraft() {
   const file = editorStore.file
   if (!file?.path) return
@@ -724,17 +723,13 @@ function saveRecoveryDraft() {
     const content = editor.value && component
       ? component.getSaveContent(editor.value)
       : editorStore.content
-    localStorage.setItem(
-      recoveryDraftKey(props.bookName, file.path),
-      JSON.stringify({
-        bookName: props.bookName,
-        filePath: file.path,
-        fileType: file.type,
-        title: editorStore.chapterTitle,
-        content,
-        savedAt: Date.now()
-      })
-    )
+    writeEditorRecoveryDraft(localStorage, {
+      bookName: props.bookName,
+      filePath: file.path,
+      fileType: file.type,
+      title: editorStore.chapterTitle,
+      content
+    })
   } catch (error) {
     console.error('保存浏览器恢复副本失败:', error)
   }
@@ -743,20 +738,13 @@ function saveRecoveryDraft() {
 async function offerRecoveryDraft() {
   const file = editorStore.file
   if (!file?.path || !editor.value) return
-  const key = recoveryDraftKey(props.bookName, file.path)
-  let draft
-  try {
-    draft = JSON.parse(localStorage.getItem(key) || 'null')
-  } catch {
-    localStorage.removeItem(key)
-    return
-  }
-  if (!draft || typeof draft.content !== 'string') return
+  const draft = readEditorRecoveryDraft(localStorage, props.bookName, file.path)
+  if (!draft) return
 
   const component = getEditorContentComponent()
   const currentContent = component?.getSaveContent(editor.value)
   if (draft.content === currentContent) {
-    localStorage.removeItem(key)
+    removeEditorRecoveryDraft(localStorage, props.bookName, file.path)
     return
   }
 
@@ -777,8 +765,10 @@ async function offerRecoveryDraft() {
       editorStore.setContent(draft.content)
     }
     editorStore.setSaveState('offline', { error: '已恢复浏览器副本，请重新保存' })
-  } catch {
-    localStorage.removeItem(key)
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') {
+      console.error('恢复浏览器副本失败:', error)
+    }
   }
 }
 
@@ -1273,11 +1263,28 @@ async function saveFile(showMessage = false) {
     filePath: file.path
   }
 
+  try {
+    writeEditorRecoveryDraft(localStorage, {
+      bookName: snapshot.bookName,
+      filePath: snapshot.filePath,
+      fileType: snapshot.file.type,
+      title: snapshot.title,
+      content: snapshot.content
+    })
+  } catch (error) {
+    console.error('保存浏览器恢复副本失败:', error)
+  }
+
   const result = await saveQueue.enqueue(snapshot)
   if (result?.superseded) return true
 
   if (result?.success) {
-    localStorage.removeItem(recoveryDraftKey(snapshot.bookName, snapshot.filePath))
+    removeEditorRecoveryDraft(
+      localStorage,
+      snapshot.bookName,
+      snapshot.filePath,
+      snapshot.content
+    )
     const isStillCurrentFile = editorStore.file?.path === snapshot.filePath
     if (result.name && result.name !== file.name && isStillCurrentFile) {
       editorStore.setFile({ ...snapshot.file, name: result.name })
