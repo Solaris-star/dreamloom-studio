@@ -519,19 +519,21 @@ function flattenResultItems(results = {}) {
         chapterRange: item?._chapterRange || ''
       })
     }
-    for (const group of groups) {
-      const items = Array.isArray(group?.items) ? group.items : []
-      for (const item of items) {
-        const text = item?._text || toPlainText(item)
-        if (!text) continue
-        rows.push({
-          dimension: item?._dimension || dimension,
-          sourceDimension: dimension,
-          item,
-          text,
-          group: item?._group || group.groupTitle || '',
-          chapterRange: item?._chapterRange || group.chapterRange || ''
-        })
+    if (!directItems.length) {
+      for (const group of groups) {
+        const items = Array.isArray(group?.items) ? group.items : []
+        for (const item of items) {
+          const text = item?._text || toPlainText(item)
+          if (!text) continue
+          rows.push({
+            dimension: item?._dimension || dimension,
+            sourceDimension: dimension,
+            item,
+            text,
+            group: item?._group || group.groupTitle || '',
+            chapterRange: item?._chapterRange || group.chapterRange || ''
+          })
+        }
       }
     }
   }
@@ -827,16 +829,62 @@ function formatDuration(ms) {
   return rest ? `${minutes} 分 ${rest} 秒` : `${minutes} 分`
 }
 
-function withTimeout(promise, timeoutMs, message) {
+function createExtractionAbortError(message, cancelled = false) {
+  const error = new Error(message)
+  error.name = 'AbortError'
+  if (cancelled) error.cancelled = true
+  return error
+}
+
+function runModelRequest(requestFactory, timeoutMs, externalSignal) {
+  if (externalSignal?.aborted) {
+    return Promise.reject(createExtractionAbortError('拆书任务已取消', true))
+  }
+  const controller = new AbortController()
+  const effectiveTimeout =
+    Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0
+      ? Number(timeoutMs)
+      : EXTRACTION_MODEL_REQUEST_TIMEOUT_MS
   let timer = null
-  return Promise.race([
-    Promise.resolve(promise),
-    new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error(message)), timeoutMs)
-    })
-  ]).finally(() => {
-    if (timer) clearTimeout(timer)
+  let rejectGuard = null
+  let timedOut = false
+  let externallyAborted = false
+
+  const abortFromExternal = () => {
+    externallyAborted = true
+    controller.abort(externalSignal?.reason)
+    rejectGuard?.(createExtractionAbortError('拆书任务已取消', true))
+  }
+
+  externalSignal?.addEventListener?.('abort', abortFromExternal, { once: true })
+
+  const guard = new Promise((_, reject) => {
+    rejectGuard = reject
+    timer = setTimeout(() => {
+      timedOut = true
+      controller.abort()
+      reject(
+        new Error(`模型请求超时（${formatDuration(effectiveTimeout)}），已跳过当前章节组。`)
+      )
+    }, effectiveTimeout + 5000)
   })
+
+  return Promise.race([Promise.resolve().then(() => requestFactory(controller.signal)), guard])
+    .catch((error) => {
+      if (externallyAborted) {
+        throw createExtractionAbortError('拆书任务已取消', true)
+      }
+      if (timedOut) {
+        throw new Error(
+          `模型请求超时（${formatDuration(effectiveTimeout)}），已跳过当前章节组。`
+        )
+      }
+      throw error
+    })
+    .finally(() => {
+      if (timer) clearTimeout(timer)
+      externalSignal?.removeEventListener?.('abort', abortFromExternal)
+    })
 }
 
 async function readSourceText(bookPath, onlineText) {
@@ -898,7 +946,7 @@ async function readSourceText(bookPath, onlineText) {
   return allText.join('\n\n')
 }
 
-class ExtractionAiService {
+export class ExtractionAiService {
   async createExtraction(options = {}, fallbackTextProvider) {
     const {
       bookPath,
@@ -916,6 +964,7 @@ class ExtractionAiService {
       onProgress,
       textProvider
     } = options
+    const signal = options.signal
     const activeTextProvider = textProvider || fallbackTextProvider
     if (!activeTextProvider?.chat) {
       throw new Error('文本 AI 服务不可用')
@@ -1151,16 +1200,17 @@ class ExtractionAiService {
               })
             }, EXTRACTION_WAIT_PROGRESS_INTERVAL_MS)
 
-            const result = await withTimeout(
-              activeTextProvider.chat({
+            const result = await runModelRequest(
+              (requestSignal) => activeTextProvider.chat({
                 messages,
                 temperature: 0.3,
                 max_tokens: 4000,
                 timeoutMs: requestTimeoutMs,
+                signal: requestSignal,
                 requestId: `extraction_${extractionId}_${dimension}_${gi}`
               }),
-              requestTimeoutMs + 5000,
-              `模型请求超时（${formatDuration(requestTimeoutMs)}），已跳过当前章节组。`
+              requestTimeoutMs,
+              signal
             )
 
             const parsed = parseJsonFromAiResponse(result.content)
@@ -1205,6 +1255,9 @@ class ExtractionAiService {
               { dimension, groupIndex: gi, count: normalizedItems.length }
             )
           } catch (err) {
+            if (err?.cancelled || signal?.aborted) {
+              throw createExtractionAbortError('拆书任务已取消', true)
+            }
             const errorMessage = err?.message || '模型请求失败'
             const error = {
               groupTitle: group.title,
