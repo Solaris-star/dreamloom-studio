@@ -3,6 +3,48 @@ import { join } from 'path'
 import { randomUUID } from 'crypto'
 
 const TABLE_NAME = 'knowledge_chunks'
+const DEFAULT_EMBEDDING_TIMEOUT_MS = 60000
+
+function normalizeTimeoutMs(value) {
+  const timeout = Number(value)
+  return Number.isFinite(timeout) && timeout > 0 ? timeout : DEFAULT_EMBEDDING_TIMEOUT_MS
+}
+
+function createRequestController(timeoutMs, externalSignal) {
+  const controller = new AbortController()
+  let timedOut = false
+  const timer = setTimeout(() => {
+    timedOut = true
+    controller.abort()
+  }, normalizeTimeoutMs(timeoutMs))
+  const abortFromExternal = () => controller.abort(externalSignal.reason)
+
+  if (externalSignal?.aborted) {
+    abortFromExternal()
+  } else {
+    externalSignal?.addEventListener?.('abort', abortFromExternal, { once: true })
+  }
+
+  return {
+    signal: controller.signal,
+    didTimeOut: () => timedOut,
+    cleanup() {
+      clearTimeout(timer)
+      externalSignal?.removeEventListener?.('abort', abortFromExternal)
+    }
+  }
+}
+
+function requireEmbedding(value) {
+  if (
+    !Array.isArray(value) ||
+    value.length === 0 ||
+    value.some((item) => typeof item !== 'number' || !Number.isFinite(item))
+  ) {
+    throw new Error('Embedding API 未返回有效的向量数据')
+  }
+  return value
+}
 
 class VectorService {
   constructor() {
@@ -51,7 +93,7 @@ class VectorService {
   }
 
   async embedText(text, config = {}) {
-    const { apiKey, baseUrl, model } = config
+    const { apiKey, baseUrl, model, timeoutMs, signal } = config
     if (!apiKey) {
       throw new Error('Embedding API Key 未设置')
     }
@@ -64,6 +106,7 @@ class VectorService {
 
     const url = baseUrl.replace(/\/+$/, '') + '/v1/embeddings'
 
+    const request = createRequestController(timeoutMs, signal)
     let response
     try {
       response = await fetch(url, {
@@ -75,10 +118,20 @@ class VectorService {
         body: JSON.stringify({
           model,
           input: text
-        })
+        }),
+        signal: request.signal
       })
     } catch (err) {
+      if (request.didTimeOut()) {
+        const seconds = Math.max(1, Math.round(normalizeTimeoutMs(timeoutMs) / 1000))
+        throw new Error(`Embedding API 请求超时（${seconds} 秒）`)
+      }
+      if (signal?.aborted) {
+        throw new Error('Embedding API 请求已取消')
+      }
       throw new Error(`Embedding API 网络请求失败: ${err.message}`)
+    } finally {
+      request.cleanup()
     }
 
     if (!response.ok) {
@@ -106,12 +159,7 @@ class VectorService {
       throw new Error('Embedding API 返回数据解析失败')
     }
 
-    const embedding = data?.data?.[0]?.embedding
-    if (!Array.isArray(embedding) || embedding.length === 0) {
-      throw new Error('Embedding API 未返回有效的向量数据')
-    }
-
-    return embedding
+    return requireEmbedding(data?.data?.[0]?.embedding)
   }
 
   async addChunks(bookPath, chunks, embedConfig) {
@@ -129,6 +177,8 @@ class VectorService {
       const vector = await this.embedText(text, embedConfig)
       if (!dimension) {
         dimension = vector.length
+      } else if (vector.length !== dimension) {
+        throw new Error(`Embedding 向量维度不一致：期望 ${dimension}，实际 ${vector.length}`)
       }
 
       records.push({
