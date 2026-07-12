@@ -12,6 +12,7 @@ import { getConfiguredStoreValue } from './envConfig.js'
 export const IMAGE_PROVIDER_TONGYI = 'tongyi'
 export const IMAGE_PROVIDER_GEMINI = 'gemini'
 export const IMAGE_PROVIDER_DOUBAO = 'doubao'
+export const DEFAULT_IMAGE_DOWNLOAD_TIMEOUT_MS = 60000
 
 export const IMAGE_PROVIDERS = [IMAGE_PROVIDER_TONGYI, IMAGE_PROVIDER_GEMINI, IMAGE_PROVIDER_DOUBAO]
 
@@ -227,11 +228,30 @@ export async function generateImageBuffer(store, options) {
       timeoutMs,
       signal
     })
-    const res = await fetch(imageUrl)
+    const effectiveTimeout =
+      Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0
+        ? Number(timeoutMs)
+        : DEFAULT_IMAGE_DOWNLOAD_TIMEOUT_MS
+    const timeoutSignal = AbortSignal.timeout(effectiveTimeout)
+    const downloadSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
+    let res
+    try {
+      res = await fetch(imageUrl, { signal: downloadSignal })
+    } catch (error) {
+      if (error?.name === 'AbortError' || error?.name === 'TimeoutError') {
+        if (signal?.aborted) throw error
+        throw new Error(`下载通义万相图片超时（${effectiveTimeout} ms）`)
+      }
+      throw error
+    }
     if (!res.ok) {
       throw new Error(`下载生成图片失败: ${res.status} ${res.statusText}`)
     }
-    return Buffer.from(await res.arrayBuffer())
+    const imageBuffer = Buffer.from(await res.arrayBuffer())
+    if (!imageBuffer.length) {
+      throw new Error('通义万相下载到了空图片')
+    }
+    return imageBuffer
   }
 
   if (config.providerId === 'gemini') {
@@ -239,7 +259,9 @@ export async function generateImageBuffer(store, options) {
       apiKey: config.apiKey,
       prompt,
       size,
-      negativePrompt
+      negativePrompt,
+      timeoutMs,
+      signal
     })
   }
 

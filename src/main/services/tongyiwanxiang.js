@@ -8,8 +8,25 @@
 const DASHSCOPE_API_BASE =
   'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation'
 const MODEL = 'wan2.6-t2i'
+export const DEFAULT_TONGYI_TIMEOUT_MS = 60000
 
-class TongyiwanxiangService {
+function requestSignal(signal, timeoutMs) {
+  const effectiveTimeout =
+    Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0
+      ? Number(timeoutMs)
+      : DEFAULT_TONGYI_TIMEOUT_MS
+  const timeoutSignal = AbortSignal.timeout(effectiveTimeout)
+  return {
+    effectiveTimeout,
+    signal: signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
+  }
+}
+
+function isAbortError(error) {
+  return error?.name === 'AbortError' || error?.name === 'TimeoutError'
+}
+
+export class TongyiwanxiangService {
   constructor() {
     this.apiKey = null
   }
@@ -53,7 +70,13 @@ class TongyiwanxiangService {
       throw new Error('通义万相 API Key 未设置，请在设置中配置')
     }
 
-    const { prompt, size = '1280*1280', negativePrompt = '' } = options
+    const {
+      prompt,
+      size = '1280*1280',
+      negativePrompt = '',
+      timeoutMs = DEFAULT_TONGYI_TIMEOUT_MS,
+      signal
+    } = options
 
     if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
       throw new Error('封面提示词不能为空')
@@ -78,14 +101,25 @@ class TongyiwanxiangService {
       }
     }
 
-    const response = await fetch(DASHSCOPE_API_BASE, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`
-      },
-      body: JSON.stringify(body)
-    })
+    const request = requestSignal(signal, timeoutMs)
+    let response
+    try {
+      response = await fetch(DASHSCOPE_API_BASE, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify(body),
+        signal: request.signal
+      })
+    } catch (error) {
+      if (isAbortError(error)) {
+        if (signal?.aborted) throw error
+        throw new Error(`通义万相请求超时（${request.effectiveTimeout} ms）`)
+      }
+      throw error
+    }
 
     const data = await response.json().catch(() => ({}))
 
@@ -113,7 +147,16 @@ class TongyiwanxiangService {
     if (!imageUrl || typeof imageUrl !== 'string') {
       throw new Error('接口未返回有效图片地址')
     }
-    return imageUrl
+    let parsedUrl
+    try {
+      parsedUrl = new URL(imageUrl)
+    } catch {
+      throw new Error('接口返回了无效图片地址')
+    }
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      throw new Error('接口返回了不安全的图片地址')
+    }
+    return parsedUrl.href
   }
 
   /**
