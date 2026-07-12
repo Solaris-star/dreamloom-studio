@@ -19,6 +19,10 @@ assert.deepEqual(buildParagraphDiff('保留\n\n删除', '保留'), [
   { type: 'unchanged', before: '保留', after: '保留' },
   { type: 'removed', before: '删除', after: '' }
 ])
+assert.deepEqual(buildParagraphDiff('保留', '保留\n\n新增'), [
+  { type: 'unchanged', before: '保留', after: '保留' },
+  { type: 'added', before: '', after: '新增' }
+])
 assert.equal(
   applyParagraphDiffChoices(
     [
@@ -96,6 +100,60 @@ try {
     () => requestEditorTextCleanup({ text: '原文', providerId: 'p1' }),
     /模型不可用/
   )
+
+  let explicitModelRequests = 0
+  globalThis.fetch = async (url, options = {}) => {
+    explicitModelRequests += 1
+    assert.equal(url, '/api/ai/text-task')
+    const body = JSON.parse(options.body || '{}')
+    assert.equal(body.modelId, 'manual-model')
+    assert.equal(body.providerId, 'manual-provider')
+    return new Response(
+      JSON.stringify({
+        success: true,
+        result: '显式模型结果',
+        usage: { totalTokens: 12 },
+        model: 'manual-model'
+      })
+    )
+  }
+  const explicitModel = await requestEditorTextCleanup({
+    text: '原文',
+    modelId: 'manual-model',
+    providerId: 'manual-provider'
+  })
+  assert.equal(explicitModelRequests, 1)
+  assert.equal(explicitModel.content, '显式模型结果')
+  assert.deepEqual(explicitModel.usage, { totalTokens: 12 })
+  assert.equal(explicitModel.model, 'manual-model')
+
+  const fallbackRequests = []
+  globalThis.fetch = async (url, options = {}) => {
+    const body = JSON.parse(options.body || '{}')
+    fallbackRequests.push({ url, body })
+    if (url === '/api/store/get' && body.key === 'editorModelDefaults') {
+      return new Response(JSON.stringify({ success: true, key: body.key, value: {} }))
+    }
+    if (url === '/api/store/get' && body.key === 'aiProviders.activeTextId') {
+      return new Response(
+        JSON.stringify({ success: true, key: body.key, value: 'fallback-provider' })
+      )
+    }
+    return new Response(JSON.stringify({ success: true, text: '后备模型结果' }))
+  }
+  const fallbackModel = await requestEditorTextCleanup({ text: '原文' })
+  assert.equal(fallbackRequests.length, 3)
+  assert.equal(fallbackRequests[2].body.providerId, 'fallback-provider')
+  assert.equal(fallbackModel.content, '后备模型结果')
+  assert.equal(fallbackModel.providerId, 'fallback-provider')
+
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({ success: true, key: 'editorModelDefaults', value: ['invalid'] })
+    )
+  await assert.rejects(() => requestEditorTextCleanup({ text: '原文' }), /设置格式不正确/)
+
+  await assert.rejects(() => requestEditorTextCleanup({ text: '   ' }), /待清理内容不能为空/)
 } finally {
   globalThis.fetch = originalFetch
 }
