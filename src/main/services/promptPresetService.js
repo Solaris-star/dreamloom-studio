@@ -711,9 +711,12 @@ function buildCustomPreset(preset = {}, fallback = {}, existing = {}) {
   const now = new Date().toISOString()
   const modelParams = normalizeModelParams({ ...existing, ...preset })
   const scopeFields = normalizeScopeFields(preset, fallback)
-  const favorite = Boolean(
-    preset.favorite ?? preset.isFavorite ?? existing.favorite ?? existing.isFavorite ?? false
-  )
+  const favoriteValue = Object.hasOwn(preset, 'isFavorite')
+    ? preset.isFavorite
+    : Object.hasOwn(preset, 'favorite')
+      ? preset.favorite
+      : existing.isFavorite ?? existing.favorite ?? false
+  const favorite = Boolean(favoriteValue)
   const sourcePresetId =
     cleanPresetText(preset.sourcePresetId) || cleanPresetText(existing.sourcePresetId)
 
