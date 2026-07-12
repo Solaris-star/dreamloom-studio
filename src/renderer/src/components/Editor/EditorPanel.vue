@@ -451,7 +451,11 @@ const cleanupTaskState = ref({
   selection: 'idle',
   chapter: 'idle'
 })
-let cleanupRequestSequence = 0
+const cleanupRequestSequence = {
+  selection: 0,
+  chapter: 0
+}
+let polishRequestSequence = 0
 const polishSourceDocument = ref('')
 const polishSourceFilePath = ref('')
 
@@ -1376,6 +1380,10 @@ async function getPreviousChapterContextInfo() {
       ElMessage.info('选段清理正在进行，请稍候')
       return
     }
+    if (cleanupTaskState.value.chapter === 'running') {
+      ElMessage.info('整章清理正在进行，请稍候')
+      return
+    }
     if (!editor.value) return
     const { from, to, empty } = editor.value.state.selection
     if (empty) {
@@ -1387,7 +1395,7 @@ async function getPreviousChapterContextInfo() {
       ElMessage.warning('选中的内容太短')
       return
     }
-    const requestId = ++cleanupRequestSequence
+    const requestId = ++cleanupRequestSequence.selection
     const sourceDocument = editor.value.getText()
     const sourceFilePath = editorStore.file?.path || ''
     cleanupTaskState.value.selection = 'running'
@@ -1399,7 +1407,7 @@ async function getPreviousChapterContextInfo() {
         editVersion: createTextRevisionToken(sourceDocument)
       })
       if (
-        requestId !== cleanupRequestSequence ||
+        requestId !== cleanupRequestSequence.selection ||
         editorStore.file?.path !== sourceFilePath ||
         editor.value?.getText() !== sourceDocument
       ) {
@@ -1428,13 +1436,17 @@ async function getPreviousChapterContextInfo() {
       ElMessage.info('整章清理正在进行，请稍候')
       return
     }
+    if (cleanupTaskState.value.selection === 'running') {
+      ElMessage.info('选段清理正在进行，请稍候')
+      return
+    }
     if (!editor.value) return
     const fullText = editor.value.getText()
     if (getPlainTextWordCount(fullText) < 10) {
       ElMessage.warning('本章内容太少')
       return
     }
-    const requestId = ++cleanupRequestSequence
+    const requestId = ++cleanupRequestSequence.chapter
     const sourceFilePath = editorStore.file?.path || ''
     cleanupTaskState.value.chapter = 'running'
     try {
@@ -1444,7 +1456,7 @@ async function getPreviousChapterContextInfo() {
         editVersion: createTextRevisionToken(fullText)
       })
       if (
-        requestId !== cleanupRequestSequence ||
+        requestId !== cleanupRequestSequence.chapter ||
         editorStore.file?.path !== sourceFilePath ||
         editor.value?.getText() !== fullText
       ) {
@@ -1621,9 +1633,20 @@ async function handlePolishSelection() {
     ElMessage.warning(t('editorPanel.selectedTextEmpty'))
     return
   }
+  const requestId = ++polishRequestSequence
+  const sourceDocument = ed.getText()
+  const sourceFilePath = editorStore.file?.path || ''
   polishLoading.value = true
   try {
     const res = await polishTextWithAI(text)
+    if (
+      requestId !== polishRequestSequence ||
+      editorStore.file?.path !== sourceFilePath ||
+      editor.value?.getText() !== sourceDocument
+    ) {
+      ElMessage.warning('正文在 AI 处理期间已经变化，本次结果未应用')
+      return
+    }
     if (!res.success) {
       ElMessage.error(res.message || t('editorPanel.polishFailed'))
       return
@@ -1634,11 +1657,17 @@ async function handlePolishSelection() {
     cleanupDiff.value = []
     polishReplaceFrom.value = from
     polishReplaceTo.value = to
+    polishSourceDocument.value = sourceDocument
+    polishSourceFilePath.value = sourceFilePath
     polishDialogVisible.value = true
   } catch (e) {
-    ElMessage.error(e?.message || t('editorPanel.polishRequestError'))
+    if (requestId === polishRequestSequence) {
+      ElMessage.error(e?.message || t('editorPanel.polishRequestError'))
+    }
   } finally {
-    polishLoading.value = false
+    if (requestId === polishRequestSequence) {
+      polishLoading.value = false
+    }
   }
 }
 
@@ -1694,9 +1723,19 @@ async function handlePolishChapter() {
     ElMessage.warning(t('editorPanel.chapterContentEmptyCannotPolish'))
     return
   }
+  const requestId = ++polishRequestSequence
+  const sourceFilePath = editorStore.file?.path || ''
   polishLoading.value = true
   try {
     const res = await polishTextWithAI(fullText)
+    if (
+      requestId !== polishRequestSequence ||
+      editorStore.file?.path !== sourceFilePath ||
+      editor.value?.getText() !== fullText
+    ) {
+      ElMessage.warning('正文在 AI 处理期间已经变化，本次结果未应用')
+      return
+    }
     if (!res.success) {
       ElMessage.error(res.message || t('editorPanel.polishFailed'))
       return
@@ -1705,11 +1744,17 @@ async function handlePolishChapter() {
     polishOriginalText.value = fullText
     polishResultText.value = res.content || ''
     cleanupDiff.value = []
+    polishSourceDocument.value = fullText
+    polishSourceFilePath.value = sourceFilePath
     polishDialogVisible.value = true
   } catch (e) {
-    ElMessage.error(e?.message || t('editorPanel.polishRequestError'))
+    if (requestId === polishRequestSequence) {
+      ElMessage.error(e?.message || t('editorPanel.polishRequestError'))
+    }
   } finally {
-    polishLoading.value = false
+    if (requestId === polishRequestSequence) {
+      polishLoading.value = false
+    }
   }
 }
 

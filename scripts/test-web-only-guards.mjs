@@ -140,6 +140,30 @@ for (const [file, label] of [
   )
 }
 const editorPanelSource = read('src/renderer/src/components/Editor/EditorPanel.vue')
+assert.match(
+  editorPanelSource,
+  /const cleanupRequestSequence = \{\s*selection: 0,\s*chapter: 0\s*\}/,
+  '选段清理和整章清理必须使用独立请求序号'
+)
+assert.match(
+  editorPanelSource,
+  /cleanupTaskState\.value\.chapter === 'running'[\s\S]*整章清理正在进行，请稍候/,
+  '选段清理必须阻止与整章清理同时执行'
+)
+assert.match(
+  editorPanelSource,
+  /cleanupTaskState\.value\.selection === 'running'[\s\S]*选段清理正在进行，请稍候/,
+  '整章清理必须阻止与选段清理同时执行'
+)
+assert.ok(
+  (editorPanelSource.match(/polishSourceDocument\.value = (?:sourceDocument|fullText)/g) || [])
+    .length >= 4,
+  'AI 清理和普通润色都必须记录来源正文'
+)
+assert.ok(
+  (editorPanelSource.match(/polishSourceFilePath\.value = sourceFilePath/g) || []).length >= 4,
+  'AI 清理和普通润色都必须记录来源章节'
+)
 const agentWritingDockSource = read('src/renderer/src/components/Editor/AgentWritingDock.vue')
 const editorServiceSource = read('src/renderer/src/service/editor.js')
 const webShimPath = path.join(root, 'src/renderer/src/service/webElectronShim.js')
