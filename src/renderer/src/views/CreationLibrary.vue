@@ -961,7 +961,7 @@
       </el-form>
       <template #footer>
         <el-button @click="showPromptDialog = false">取消</el-button>
-        <el-button type="primary" @click="savePrompt">保存</el-button>
+        <el-button type="primary" :loading="savingPrompt" @click="savePrompt">保存</el-button>
       </template>
     </el-dialog>
 
@@ -1154,6 +1154,7 @@ const showImageBindDialog = ref(false)
 const showPromptDialog = ref(false)
 const showPromptBindDialog = ref(false)
 const savingMaterial = ref(false)
+const savingPrompt = ref(false)
 const batchDeletingMaterials = ref(false)
 const activeMaterialForBinding = ref(null)
 const activeImageForBinding = ref(null)
@@ -2007,6 +2008,7 @@ function requireDeletedPromptResult(result, expectedId, fallback = '删除提示
 }
 
 async function saveMaterial() {
+  if (savingMaterial.value) return
   if (!materialForm.title.trim()) {
     ElMessage.warning('请输入素材标题')
     return
@@ -2407,10 +2409,12 @@ function openPromptDialog(preset = null) {
 }
 
 async function savePrompt() {
+  if (savingPrompt.value) return
   if (!promptForm.name.trim()) {
     ElMessage.warning('请输入提示词标题')
     return
   }
+  savingPrompt.value = true
   try {
     if (promptForm.scope === 'book' && !promptForm.bookId) {
       ElMessage.warning('请选择作品')
@@ -2459,6 +2463,8 @@ async function savePrompt() {
     await loadLibrary()
   } catch (error) {
     ElMessage.error(error?.message || '保存提示词失败')
+  } finally {
+    savingPrompt.value = false
   }
 }
 

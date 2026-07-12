@@ -1100,6 +1100,106 @@ test('图库删除检查引用期间不会重复提交', async ({ page, request 
   expect(deleteRequests).toBe(0)
 })
 
+test('素材保存不会重复提交且失败后保留输入', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '素材写操作巡检仅在桌面项目执行')
+  let createRequests = 0
+  await page.route('**/api/knowledge/create', async (route) => {
+    createRequests += 1
+    const payload = await route.request().postDataJSON()
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 300))
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify(
+        createRequests === 1
+          ? { success: true, item: { ...payload, id: 'e2e-material-success' } }
+          : { success: false, message: '素材保存测试失败' }
+      )
+    })
+  })
+
+  await page.goto('/#/knowledge/materials')
+  await page.getByRole('button', { name: '新增素材', exact: true }).first().click()
+  let dialog = page.getByRole('dialog', { name: '新增素材' })
+  await dialog.getByLabel('标题').fill('雨夜旧书铺素材')
+  await dialog.getByLabel('内容').fill('门后的木楼梯传来脚步声。')
+  let saveButton = dialog.getByRole('button', { name: '保存', exact: true })
+  await saveButton.evaluate((button) => {
+    button.click()
+    button.click()
+  })
+
+  await expect(saveButton).toBeDisabled()
+  await expect(page.getByText('素材已保存')).toBeVisible()
+  await expect(dialog).toBeHidden()
+  await expect.poll(() => createRequests).toBe(1)
+
+  await page.getByRole('button', { name: '新增素材', exact: true }).first().click()
+  dialog = page.getByRole('dialog', { name: '新增素材' })
+  await dialog.getByLabel('标题').fill('失败后保留的素材')
+  await dialog.getByLabel('内容').fill('这段内容不能因请求失败而丢失。')
+  saveButton = dialog.getByRole('button', { name: '保存', exact: true })
+  await saveButton.click()
+
+  await expect(page.getByText('素材保存测试失败')).toBeVisible()
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByLabel('标题')).toHaveValue('失败后保留的素材')
+  await expect(dialog.getByLabel('内容')).toHaveValue('这段内容不能因请求失败而丢失。')
+  await expect(saveButton).toBeEnabled()
+  await expect.poll(() => createRequests).toBe(2)
+})
+
+test('提示词保存不会重复提交且失败后保留输入', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '提示词写操作巡检仅在桌面项目执行')
+  let createRequests = 0
+  await page.route('**/api/prompts/create', async (route) => {
+    createRequests += 1
+    const payload = await route.request().postDataJSON()
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 300))
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify(
+        createRequests === 1
+          ? {
+              success: true,
+              preset: { ...payload.preset, id: 'e2e-prompt-success', scope: 'global' }
+            }
+          : { success: false, message: '提示词保存测试失败' }
+      )
+    })
+  })
+
+  await page.goto('/#/knowledge/prompts')
+  await page.getByRole('button', { name: '新增提示词', exact: true }).first().click()
+  let dialog = page.getByRole('dialog', { name: '新增提示词' })
+  await dialog.getByLabel('标题').fill('场景续写提示词')
+  await dialog.getByLabel('Prompt 内容').fill('请续写 {{content}}，保持人物行动连续。')
+  let saveButton = dialog.getByRole('button', { name: '保存', exact: true })
+  await saveButton.evaluate((button) => {
+    button.click()
+    button.click()
+  })
+
+  await expect(saveButton).toBeDisabled()
+  await expect(page.getByText('提示词已保存')).toBeVisible()
+  await expect(dialog).toBeHidden()
+  await expect.poll(() => createRequests).toBe(1)
+
+  await page.getByRole('button', { name: '新增提示词', exact: true }).first().click()
+  dialog = page.getByRole('dialog', { name: '新增提示词' })
+  await dialog.getByLabel('标题').fill('失败后保留的提示词')
+  await dialog.getByLabel('Prompt 内容').fill('请求失败后仍应保留 {{content}}。')
+  saveButton = dialog.getByRole('button', { name: '保存', exact: true })
+  await saveButton.click()
+
+  await expect(page.getByText('提示词保存测试失败')).toBeVisible()
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByLabel('标题')).toHaveValue('失败后保留的提示词')
+  await expect(dialog.getByLabel('Prompt 内容')).toHaveValue('请求失败后仍应保留 {{content}}。')
+  await expect(saveButton).toBeEnabled()
+  await expect(page.getByText('提示词已保存')).toHaveCount(0)
+  await expect.poll(() => createRequests).toBe(2)
+})
+
 test('AI 工坊运行期间不会重复提交或切换任务', async ({ page }) => {
   let taskRequests = 0
   await page.route('**/api/ai/text-task', async (route) => {
