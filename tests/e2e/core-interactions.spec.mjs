@@ -935,3 +935,66 @@ test('AI 工坊运行期间不会重复提交或切换任务', async ({ page }) 
   await expect.poll(() => taskRequests).toBe(1)
   await expect(input).toBeEnabled()
 })
+
+test('系统设置分类和主题按钮可以连续操作', async ({ page }) => {
+  const runtimeErrors = []
+  page.on('pageerror', (error) => runtimeErrors.push(error.message))
+
+  await page.goto('/#/settings/general')
+  const settingsNavigation = page.getByRole('navigation', { name: '设置分类' })
+  const tabs = [
+    ['个人信息', /#\/settings\/profile$/],
+    ['编辑器设置', /#\/settings\/editor$/],
+    ['主题外观', /#\/settings\/appearance$/],
+    ['存储', /#\/settings\/storage$/],
+    ['隐私安全', /#\/settings\/privacy$/],
+    ['通知', /#\/settings\/notifications$/],
+    ['快捷键', /#\/settings\/shortcuts$/],
+    ['数据管理', /#\/settings\/data$/],
+    ['关于', /#\/settings\/about$/]
+  ]
+
+  for (const [name, path] of tabs) {
+    await settingsNavigation.getByRole('button', { name, exact: true }).click()
+    await expect(page).toHaveURL(path)
+    await expect(page.locator('.settings-section')).toBeVisible()
+  }
+
+  await settingsNavigation.getByRole('button', { name: '主题外观', exact: true }).click()
+  const themeButton = page.getByRole('button', { name: '切换到绿色' })
+  await themeButton.click()
+  await expect(themeButton).toHaveClass(/active/)
+  await expect(page.getByText('已切换到绿色')).toBeVisible()
+  expect(runtimeErrors).toEqual([])
+})
+
+test('编辑器设置保存不会重复提交或误报成功', async ({ page }) => {
+  let saveRequests = 0
+  await page.route('**/api/store/set', async (route) => {
+    const payload = route.request().postDataJSON()
+    if (payload.key !== 'editorSettings') {
+      await route.continue()
+      return
+    }
+    saveRequests += 1
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 300))
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: false,
+        key: payload.key,
+        message: '测试保存失败'
+      })
+    })
+  })
+
+  await page.goto('/#/settings/editor')
+  const saveButton = page.getByRole('button', { name: '保存编辑器设置' })
+  await saveButton.click()
+  await saveButton.click({ force: true })
+
+  await expect(page.getByText('测试保存失败')).toBeVisible()
+  await expect(page.getByText('已保存编辑器设置')).toHaveCount(0)
+  await expect.poll(() => saveRequests).toBe(1)
+  await expect(saveButton).toBeEnabled()
+})
