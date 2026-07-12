@@ -465,6 +465,96 @@ test('创作台阅读设置和专注模式可以恢复', async ({ page }, testIn
   await expect(page.locator('.editor-container')).not.toHaveClass(/is-focus-mode/)
 })
 
+test('AI 整章清理返回期间正文变化时不会应用旧结果', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'AI 清理并发巡检仅在桌面项目执行')
+  let releaseResponse
+  let markRequestStarted
+  const responseGate = new Promise((resolve) => {
+    releaseResponse = resolve
+  })
+  const requestStarted = new Promise((resolve) => {
+    markRequestStarted = resolve
+  })
+
+  await page.route('**/api/ai/text-task', async (route) => {
+    markRequestStarted()
+    await responseGate
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        content: '这是过期的 AI 清理结果，不应写入正文。',
+        usage: {}
+      })
+    })
+  })
+
+  await openEditor(page, testBookName(testInfo.project.name))
+  await page.getByRole('button', { name: 'AI 润色 / 清理' }).click()
+  await page.getByRole('menuitem', { name: 'AI 清理乱码 (整章)' }).click()
+  await requestStarted
+  await expect(page.getByText('整章清理：处理中')).toBeVisible()
+
+  const editor = page.locator('.ProseMirror')
+  await editor.click()
+  await page.keyboard.press('Control+End')
+  await page.keyboard.type('用户等待期间新增的正文。')
+  releaseResponse()
+
+  await expect(page.getByText('正文在 AI 处理期间已经变化，本次结果未应用')).toBeVisible()
+  await expect(editor).toContainText('用户等待期间新增的正文。')
+  await expect(editor).not.toContainText('这是过期的 AI 清理结果')
+  await expect(page.getByRole('dialog', { name: /AI 润色结果/ })).toHaveCount(0)
+})
+
+test('AI 整章清理先显示逐段差异并在确认前创建快照', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'AI 清理预览巡检仅在桌面项目执行')
+  const snapshotPayloads = []
+
+  await page.route('**/api/ai/text-task', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        content: '天亮以后，他在书页夹层里发现了一封没有署名的旧信。',
+        usage: {}
+      })
+    })
+  })
+  await page.route('**/api/editor-snapshots/create', async (route) => {
+    const payload = route.request().postDataJSON()
+    snapshotPayloads.push(payload)
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        snapshot: { id: 'ai-cleanup-snapshot', ...payload }
+      })
+    })
+  })
+
+  await openEditor(page, testBookName(testInfo.project.name))
+  const editor = page.locator('.ProseMirror')
+  await page.getByRole('button', { name: 'AI 润色 / 清理' }).click()
+  await page.getByRole('menuitem', { name: 'AI 清理乱码 (整章)' }).click()
+
+  const preview = page.getByRole('dialog', { name: /AI 润色结果/ })
+  await expect(preview).toBeVisible()
+  await expect(preview).toContainText('逐段差异')
+  await expect(preview).toContainText('原文：')
+  await expect(preview).toContainText('结果：')
+  await expect(editor).not.toContainText('没有署名的旧信')
+
+  await preview.getByRole('button', { name: '确认替换整章' }).click()
+  await expect(preview).toBeHidden()
+  await expect(editor).toContainText('没有署名的旧信')
+  expect(snapshotPayloads).toHaveLength(1)
+  expect(snapshotPayloads[0]).toMatchObject({
+    reason: 'ai_apply',
+    name: 'AI 清理前备份'
+  })
+})
+
 test('手机创作工具使用全屏抽屉', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile', '仅检查手机布局')
   await openEditor(page, testBookName(testInfo.project.name))
