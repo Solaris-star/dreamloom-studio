@@ -1,12 +1,30 @@
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig, devices } from '@playwright/test'
 
 process.env.NO_PROXY = [process.env.NO_PROXY, '127.0.0.1', 'localhost'].filter(Boolean).join(',')
 
+const projectRoot = dirname(fileURLToPath(import.meta.url))
 const e2eBooksDir = join(tmpdir(), 'dreamloom-studio-e2e-books')
+const e2eRuntimeDir = join(tmpdir(), 'dreamloom-studio-e2e-runtime')
 mkdirSync(e2eBooksDir, { recursive: true })
+if (process.env.TEST_WORKER_INDEX === undefined) {
+  rmSync(e2eRuntimeDir, { recursive: true, force: true })
+}
+mkdirSync(e2eRuntimeDir, { recursive: true })
+
+const webServerCommand = [
+  `"${process.execPath}"`,
+  `"${join(projectRoot, 'node_modules', 'vite', 'bin', 'vite.js')}"`,
+  '--config',
+  `"${join(projectRoot, 'vite.web.config.mjs')}"`,
+  '--host',
+  '127.0.0.1',
+  '--port',
+  '4173'
+].join(' ')
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -44,7 +62,8 @@ export default defineConfig({
     }
   ],
   webServer: {
-    command: 'npm run dev -- --host 127.0.0.1 --port 4173',
+    command: webServerCommand,
+    cwd: e2eRuntimeDir,
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: false,
     timeout: 120_000,

@@ -2,7 +2,8 @@
  * 纯 Web 端独立 Vite 配置
  * 直接启动 renderer 部分作为 Web 应用。
  */
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import AutoImport from 'unplugin-auto-import/vite'
@@ -10,11 +11,13 @@ import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import { createWebServerPlugins } from './vite.web.plugins.mjs'
 
+const projectRoot = dirname(fileURLToPath(import.meta.url))
+
 export default defineConfig({
-  root: resolve('src/renderer'),
+  root: resolve(projectRoot, 'src/renderer'),
   resolve: {
     alias: {
-      '@renderer': resolve('src/renderer/src')
+      '@renderer': resolve(projectRoot, 'src/renderer/src')
     }
   },
   plugins: [
@@ -40,7 +43,7 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: resolve('dist-web'),
+    outDir: resolve(projectRoot, 'dist-web'),
     emptyOutDir: true
   }
 })

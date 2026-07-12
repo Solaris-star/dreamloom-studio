@@ -57,6 +57,8 @@ async function openEditor(page, bookName) {
   await page.getByRole('option', { name: '18px' }).click()
   await page.locator('.toolbar-item').nth(2).click()
   await page.getByRole('option', { name: '1.8' }).click()
+  await page.locator('.toolbar-item').nth(3).click()
+  await page.getByRole('option', { name: '1', exact: true }).click()
   await page.locator('.toolbar-item').nth(4).click()
   await page.getByRole('option', { name: '自适应 (中)' }).click()
 }
@@ -71,6 +73,10 @@ async function expectPageScreenshot(page, name) {
 }
 
 test.beforeEach(async ({ page, request }, testInfo) => {
+  await postApi(request, '/api/store/set', {
+    key: 'config.locale',
+    value: 'zh-CN'
+  })
   await page.route('**/api/bookshelf-auth/status', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
