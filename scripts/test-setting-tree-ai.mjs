@@ -73,6 +73,52 @@ const treeJson = JSON.stringify({
   assert.match(fake.calls[0].messages[1].content, /科幻/)
 }
 
+{
+  const wrappedTree = JSON.stringify({
+    categories: [
+      null,
+      { name: '  ', introduction: '无效分类' },
+      {
+        name: ' 星港 ',
+        introduction: ' 连接各殖民地的交通中心。 ',
+        items: [
+          null,
+          { name: '', introduction: '无效条目' },
+          { name: ' 跃迁门 ', introduction: ' 只在固定时段开放。 ' }
+        ],
+        children: [
+          null,
+          {
+            name: ' 管制区 ',
+            introduction: ' 由港务局负责管理。 ',
+            items: 'invalid',
+            children: 'invalid'
+          }
+        ]
+      }
+    ]
+  })
+  const fake = fakeTextProvider(`说明文字\n${wrappedTree}\n以上是设定`)
+  const result = await settingTreeAiService.generateSettingTree(
+    {
+      idea: '星港里的失踪案',
+      strategy: 'unknown',
+      bookPath: '/path/that/does/not/exist'
+    },
+    fake.provider
+  )
+  assert.equal(result.strategy, 'free')
+  assert.equal(result.categories.length, 1)
+  assert.equal(result.categories[0].name, '星港')
+  assert.deepEqual(result.categories[0].items, [
+    { name: '跃迁门', introduction: '只在固定时段开放。' }
+  ])
+  assert.equal(result.categories[0].children[0].name, '管制区')
+  assert.deepEqual(result.categories[0].children[0].items, [])
+  assert.deepEqual(result.categories[0].children[0].children, [])
+  assert.match(fake.calls[0].messages[0].content, /自由生成/)
+}
+
 await assert.rejects(
   () => settingTreeAiService.generateSettingTree({ idea: '' }, fakeTextProvider(treeJson).provider),
   /请先输入小说创意/
@@ -82,5 +128,59 @@ await assert.rejects(
   () => settingTreeAiService.generateSettingTree({ idea: '新书' }, null),
   /文本 AI 服务不可用/
 )
+
+for (const [response, message] of [
+  ['', /AI 返回结果为空/],
+  ['not json', /无法解析为 JSON/],
+  ['{}', /缺少 categories 数组/],
+  [JSON.stringify({ categories: [null, { name: '' }] }), /未解析出有效分类/]
+]) {
+  await assert.rejects(
+    () =>
+      settingTreeAiService.generateSettingTree(
+        { idea: '测试异常响应' },
+        fakeTextProvider(response).provider
+      ),
+    message
+  )
+}
+
+await assert.rejects(
+  () =>
+    settingTreeAiService.regenerateSettingNode(
+      { nodeName: '测试节点' },
+      null
+    ),
+  /文本 AI 服务不可用/
+)
+
+await assert.rejects(
+  () =>
+    settingTreeAiService.regenerateSettingNode(
+      { nodeName: '  ' },
+      fakeTextProvider(treeJson).provider
+    ),
+  /请指定需要重新生成的节点名称/
+)
+
+for (const [response, message] of [
+  ['', /AI 返回结果为空/],
+  ['```json\ninvalid\n```', /无法解析为 JSON/],
+  ['{"categories":"invalid"}', /缺少 categories 数组/]
+]) {
+  await assert.rejects(
+    () =>
+      settingTreeAiService.regenerateSettingNode(
+        {
+          nodeName: '星港',
+          parentPath: 'invalid',
+          strategy: null,
+          idea: ''
+        },
+        fakeTextProvider(response).provider
+      ),
+    message
+  )
+}
 
 console.log('setting tree ai tests passed')
