@@ -22,11 +22,22 @@ function requireBookWriteResult(result, fallback) {
  * @returns {Promise<string>}
  */
 export async function getBookDir() {
+  return (await getBookDirectoryInfo()).booksDir
+}
+
+export async function getBookDirectoryInfo() {
   const result = await fetchJson('/api/books/dir')
-  if (result?.success !== true || typeof result.booksDir !== 'string') {
+  if (
+    result?.success !== true ||
+    typeof result.booksDir !== 'string' ||
+    (result.configurable != null && typeof result.configurable !== 'boolean')
+  ) {
     throw new Error('书库目录接口返回格式不正确')
   }
-  return result.booksDir
+  return {
+    booksDir: result.booksDir,
+    configurable: result.configurable !== false
+  }
 }
 
 export async function setBookDir(dir) {

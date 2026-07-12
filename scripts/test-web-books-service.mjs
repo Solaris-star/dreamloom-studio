@@ -21,8 +21,16 @@ const booksService = await import('../src/renderer/src/service/books.js')
 const { useMainStore } = await import('../src/renderer/src/stores/index.js')
 const mainStore = useMainStore()
 
-responses.set('/api/books/dir', { success: true, booksDir: 'D:/books' })
+responses.set('/api/books/dir', {
+  success: true,
+  booksDir: 'D:/books',
+  configurable: false
+})
 assert.equal(await booksService.getBookDir(), 'D:/books')
+assert.deepEqual(await booksService.getBookDirectoryInfo(), {
+  booksDir: 'D:/books',
+  configurable: false
+})
 assert.deepEqual(requests.at(-1), {
   url: '/api/books/dir',
   method: 'GET',

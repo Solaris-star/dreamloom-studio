@@ -47,6 +47,7 @@ import { handleVectorRoute } from './src/main/webApi/vectorRoutes.js'
 import { handleSettingsRoute } from './src/main/webApi/settingsRoutes.js'
 import { handlePromptRoute } from './src/main/webApi/promptRoutes.js'
 import { handleNovelDownloadRoute } from './src/main/webApi/novelDownloadRoutes.js'
+import { setWebBooksDirectory } from './src/main/services/webBooksDirectoryService.js'
 
 export function createWebServerPlugins() {
   const configuredBooksDir = String(process.env.NOVEL_BOOKS_DIR || '').trim()
@@ -563,6 +564,7 @@ export function createWebServerPlugins() {
               body,
               res,
               booksDir: getActiveBooksDir(),
+              booksDirConfigurable: !configuredBooksDir,
               sendJson,
               sendTransparentImage
             })
@@ -614,7 +616,13 @@ export function createWebServerPlugins() {
               body,
               res,
               booksDir: getActiveBooksDir(),
-              sendJson
+              sendJson,
+              setBooksDir: (requestedDir) =>
+                setWebBooksDirectory({
+                  requestedDir,
+                  configuredDir: configuredBooksDir,
+                  setStoreValue: webStoreSet
+                })
             })
           ) {
             return
@@ -1076,9 +1084,6 @@ export function createWebServerPlugins() {
                   textProvider: provider.service
                 })
               )
-            } else if (path === '/api/books/set-dir') {
-              const { dir } = body
-              res.end(JSON.stringify({ success: true, booksDir: dir }))
             } else {
               // Default to 404
               sendJson(res, { success: false, message: 'Not Found' }, 404)

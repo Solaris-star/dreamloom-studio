@@ -28,7 +28,12 @@
                 <label>{{ t('home.systemSettings.booksDir') }}</label>
                 <div class="dir-picker">
                   <el-input v-model="bookDir" readonly placeholder="未设置目录" />
-                  <el-button type="primary" :loading="savingBooksDir" @click="handleChooseDir"
+                  <el-button
+                    type="primary"
+                    :loading="savingBooksDir"
+                    :disabled="!booksDirConfigurable"
+                    :title="booksDirConfigurable ? '' : '书库目录由服务器配置'"
+                    @click="handleChooseDir"
                     >选择目录</el-button
                   >
                 </div>
@@ -333,7 +338,7 @@ import brandLogoUrl from '@renderer/assets/images/logo_big.png'
 
 import { useThemeStore } from '@renderer/stores/theme'
 import { getCurrentLocale, setLocale } from '@renderer/i18n'
-import { getBookDir, setBookDir } from '@renderer/service/books'
+import { getBookDirectoryInfo, setBookDir } from '@renderer/service/books'
 import { getBookshelfAuthStatus } from '@renderer/service/bookshelfAuth'
 import { getStoreValue, setStoreValue } from '@renderer/service/webStore'
 import {
@@ -350,6 +355,7 @@ const themeStore = useThemeStore()
 
 const activeTab = ref('general')
 const bookDir = ref('')
+const booksDirConfigurable = ref(true)
 const selectedLocale = ref('zh-CN')
 const currentVersion = ref('')
 const hasPassword = ref(false)
@@ -463,7 +469,9 @@ watch(
 
 onMounted(async () => {
   try {
-    bookDir.value = await getBookDir()
+    const directoryInfo = await getBookDirectoryInfo()
+    bookDir.value = directoryInfo.booksDir
+    booksDirConfigurable.value = directoryInfo.configurable
   } catch (error) {
     showSettingsError(error, '读取书库目录失败')
   }

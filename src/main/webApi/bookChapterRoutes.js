@@ -2,6 +2,7 @@ import * as webBooksApi from '../services/webBooksApi.js'
 
 const ROUTES = new Set([
   '/api/books/dir',
+  '/api/books/set-dir',
   '/api/books/list',
   '/api/books/create',
   '/api/books/edit',
@@ -32,7 +33,9 @@ export async function handleBookChapterRoute({
   body,
   res,
   booksDir,
+  booksDirConfigurable = true,
   sendJson,
+  setBooksDir,
   service = webBooksApi
 }) {
   if (!isBookChapterRoute(path)) return false
@@ -40,7 +43,9 @@ export async function handleBookChapterRoute({
   const payload = body || {}
   let result
   if (path === '/api/books/dir') {
-    result = { success: true, booksDir }
+    result = { success: true, booksDir, configurable: booksDirConfigurable }
+  } else if (path === '/api/books/set-dir') {
+    result = setBooksDir(payload.dir)
   } else if (path === '/api/books/list') {
     result = await service.readBooksDir(booksDir)
   } else if (path === '/api/books/create') {
