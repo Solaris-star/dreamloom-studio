@@ -22,6 +22,21 @@ async function createRemoteCoverBook(name, coverRemoteUrl = 'https://images.exam
 try {
   fs.mkdirSync(booksDir, { recursive: true })
 
+  const emptyName = await createBook({ id: 'empty-name', name: '' }, booksDir)
+  assert.equal(emptyName.success, false)
+  assert.match(emptyName.message, /书籍名称不能为空/)
+
+  const sanitizedName = await createBook(
+    {
+      id: 'sanitized-name',
+      name: '../危险\\作品:*?"<>|'
+    },
+    booksDir
+  )
+  assert.equal(sanitizedName.success, false)
+  assert.match(sanitizedName.message, /名称|路径/)
+  assert.equal(fs.existsSync(join(root, '危险', '作品')), false)
+
   const created = await createBook(
     {
       id: 'existing-book',
@@ -264,6 +279,33 @@ try {
     fs.readFileSync(join(booksDir, '正常远程封面', 'cover.png')).equals(remotePngBytes),
     true
   )
+
+  let remoteFetchCalls = 0
+  globalThis.fetch = async () => {
+    remoteFetchCalls += 1
+    throw new Error('测试网络中断')
+  }
+  const retainedCover = await createBook(
+    {
+      id: 'retained-cover',
+      name: '已有封面地址',
+      coverUrl: 'covers/existing.png',
+      coverRemoteUrl: 'https://images.example/unused.png'
+    },
+    booksDir
+  )
+  assert.equal(retainedCover.success, true)
+  assert.equal(
+    JSON.parse(fs.readFileSync(join(booksDir, '已有封面地址', 'mazi.json'), 'utf8')).coverUrl,
+    'covers/existing.png'
+  )
+  assert.equal(retainedCover.coverWarning, '')
+  assert.equal(remoteFetchCalls, 0)
+
+  const networkFailure = await createRemoteCoverBook('远程网络异常')
+  assert.equal(networkFailure.success, true)
+  assert.match(networkFailure.coverWarning, /测试网络中断/)
+  assert.equal(remoteFetchCalls, 1)
 } finally {
   globalThis.fetch = originalFetch
   fs.rmSync(root, { recursive: true, force: true })
