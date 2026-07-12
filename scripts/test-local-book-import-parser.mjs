@@ -23,6 +23,8 @@ assert.deepEqual(
   ['第1章 初见', '第2章 再会']
 )
 assert.equal(txtBook.totalWords, 15)
+assert.equal(txtBook.encoding, 'UTF-8')
+assert.equal(txtBook.chapters[0].wordCount, 8)
 
 const markdownBook = parseLocalBookText(
   [
@@ -97,12 +99,25 @@ const parsedDocx = await parseLocalBookFile({
 })
 assert.equal(parsedDocx.title, '旧书铺')
 assert.equal(parsedDocx.extension, 'docx')
+assert.equal(parsedDocx.fileSize, validDocxBuffer.byteLength)
+assert.equal(parsedDocx.encoding, 'DOCX')
+assert.deepEqual(parsedDocx.warnings, [])
 assert.equal(parsedDocx.chapterCount, 2)
 assert.deepEqual(
   parsedDocx.chapters.map((chapter) => chapter.title),
   ['第1章 雨夜', '第2章 来信']
 )
 assert.equal(parsedDocx.chapters[0].content, '林舟推开旧书铺的门。')
+assert.equal(parsedDocx.chapters[0].wordCount, 10)
+
+const gbText = new TextEncoder().encode('第1章 编码\n正文')
+const parsedTextFile = await parseLocalBookFile({
+  name: '编码.txt',
+  size: gbText.byteLength,
+  arrayBuffer: async () => gbText.buffer
+})
+assert.equal(parsedTextFile.encoding, 'UTF-8')
+assert.equal(parsedTextFile.fileSize, gbText.byteLength)
 
 await assert.rejects(
   () =>
@@ -112,6 +127,29 @@ await assert.rejects(
       arrayBuffer: async () => new TextEncoder().encode('not docx').buffer
     }),
   /DOCX 文件内容损坏/
+)
+
+const missingDocument = new JSZip()
+missingDocument.file('[Content_Types].xml', '<Types />')
+const missingDocumentBuffer = await missingDocument.generateAsync({ type: 'arraybuffer' })
+await assert.rejects(
+  () =>
+    parseLocalBookFile({
+      name: '缺少正文.docx',
+      size: missingDocumentBuffer.byteLength,
+      arrayBuffer: async () => missingDocumentBuffer
+    }),
+  /DOCX 文件无法解析/
+)
+
+await assert.rejects(
+  () =>
+    parseLocalBookFile({
+      name: '边界.txt',
+      size: MAX_LOCAL_BOOK_FILE_SIZE,
+      arrayBuffer: async () => new ArrayBuffer(0)
+    }),
+  /文件正文为空/
 )
 
 await assert.rejects(

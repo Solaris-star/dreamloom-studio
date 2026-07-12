@@ -65,12 +65,54 @@
           </div>
           <p v-if="row.status === 'error'">{{ row.error }}</p>
           <p v-else>
+            {{ formatFileSize(row.parsed?.fileSize) }} · {{ row.parsed?.encoding }} ·
             {{ formatWords(row.parsed?.totalWords) }} · {{ row.parsed?.chapterCount || 0 }} 章
           </p>
+          <p
+            v-if="row.parsed && row.proposedBookName !== row.parsed.title"
+            class="rename-notice"
+          >
+            书架已有同名书籍，将保存为《{{ row.proposedBookName }}》
+          </p>
+          <el-alert
+            v-if="row.parsed?.warnings?.length"
+            class="parse-warning"
+            type="warning"
+            :title="`解析时发现 ${row.parsed.warnings.length} 条提示`"
+            :closable="false"
+            show-icon
+          />
           <div v-if="row.parsed?.chapters?.length" class="chapter-preview">
             <span v-for="chapter in row.parsed.chapters.slice(0, 4)" :key="chapter.title">{{
               chapter.title
             }}</span>
+          </div>
+          <button
+            v-if="row.parsed?.chapters?.length"
+            class="preview-toggle"
+            type="button"
+            :aria-expanded="row.expanded"
+            @click="row.expanded = !row.expanded"
+          >
+            {{ row.expanded ? '收起预览' : '查看完整预览' }}
+            <ChevronDown :size="15" :class="{ rotated: row.expanded }" />
+          </button>
+          <div v-if="row.expanded && row.parsed" class="full-preview">
+            <div v-if="row.parsed.warnings.length" class="warning-list">
+              <p v-for="warning in row.parsed.warnings" :key="warning">{{ warning }}</p>
+            </div>
+            <ol>
+              <li
+                v-for="(chapter, chapterIndex) in row.parsed.chapters"
+                :key="`${chapterIndex}-${chapter.title}`"
+              >
+                <div>
+                  <strong>{{ chapter.title }}</strong>
+                  <span>{{ formatWords(chapter.wordCount) }}</span>
+                </div>
+                <p>{{ excerpt(chapter.content) }}</p>
+              </li>
+            </ol>
           </div>
         </div>
         <el-button
@@ -97,7 +139,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { AlertCircle, CheckCircle2, FileText, Upload } from 'lucide-vue-next'
+import { AlertCircle, CheckCircle2, ChevronDown, FileText, Upload } from 'lucide-vue-next'
 import { readBooksDir } from '@renderer/service/books'
 import { importBookFromFile } from '@renderer/service/importExport'
 import {
@@ -151,11 +193,20 @@ async function parseFiles(files) {
   parsing.value = true
   errorMsg.value = ''
   try {
+    const existingBooks = await readBooksDir()
+    const reservedBooks = [
+      ...existingBooks,
+      ...rows.value
+        .filter((row) => row.status !== 'done' && row.proposedBookName)
+        .map((row) => ({ name: row.proposedBookName }))
+    ]
     for (const file of targets) {
       const row = createPendingRow(file)
       rows.value.unshift(row)
       try {
         row.parsed = await parseLocalBookFile(file)
+        row.proposedBookName = uniqueLocalBookName(row.parsed.title, reservedBooks)
+        reservedBooks.push({ name: row.proposedBookName })
         row.status = 'ready'
       } catch (error) {
         row.status = 'error'
@@ -280,6 +331,8 @@ function createPendingRow(file) {
     extension: getLocalBookFileExtension(file.name),
     status: 'parsing',
     parsed: null,
+    proposedBookName: '',
+    expanded: false,
     error: ''
   }
 }
@@ -288,6 +341,20 @@ function formatWords(value) {
   const count = Number(value || 0)
   if (count >= 10000) return `${(count / 10000).toFixed(1)} 万字`
   return `${count.toLocaleString('zh-CN')} 字`
+}
+
+function formatFileSize(value) {
+  const bytes = Number(value || 0)
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${bytes} B`
+}
+
+function excerpt(value) {
+  const text = String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return text ? `${text.slice(0, 120)}${text.length > 120 ? '…' : ''}` : '本章没有正文'
 }
 
 defineExpose({
@@ -465,6 +532,73 @@ defineExpose({
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+}
+
+.rename-notice {
+  color: #8a5b20 !important;
+}
+
+.parse-warning {
+  margin-top: 9px;
+}
+
+.preview-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--wabi-moss-dark);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  margin-top: 9px;
+  padding: 2px 0;
+
+  svg {
+    transition: transform 160ms ease;
+  }
+
+  svg.rotated {
+    transform: rotate(180deg);
+  }
+}
+
+.full-preview {
+  max-height: 360px;
+  overflow: auto;
+  border-top: 1px solid rgba(111, 122, 104, 0.14);
+  margin-top: 10px;
+  padding-top: 10px;
+
+  ol {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding-left: 22px;
+  }
+
+  li > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  li span {
+    flex: 0 0 auto;
+    color: #756b5b;
+    font-size: 12px;
+  }
+
+  li p {
+    line-height: 1.6;
+  }
+}
+
+.warning-list {
+  border-left: 3px solid #b47a31;
+  margin-bottom: 12px;
+  padding-left: 10px;
 }
 
 .done-label {

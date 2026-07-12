@@ -43,17 +43,20 @@ export async function parseLocalBookFile(file) {
     throw new Error('文件超过 50 MB，无法导入')
   }
 
-  let text
+  let source
   try {
-    text = extension === 'docx' ? await readDocxText(file) : await readTextFile(file, extension)
+    source = extension === 'docx' ? await readDocxText(file) : await readTextFile(file)
   } catch (error) {
     if (error?.message?.startsWith('DOCX')) throw error
     throw new Error(`读取文件失败：${error?.message || '文件内容损坏'}`)
   }
 
-  return parseLocalBookText(text, {
+  return parseLocalBookText(source.text, {
     fileName: file.name,
-    extension
+    extension,
+    fileSize: Number(file.size) || 0,
+    encoding: source.encoding,
+    warnings: source.warnings
   })
 }
 
@@ -71,12 +74,21 @@ export function parseLocalBookText(text, options = {}) {
     ? markdownToPlainText(sourceText)
     : normalizedText
   const chapters = parseChapters(editorText, extension)
-  const safeChapters = chapters.length ? chapters : [{ title: '正文', content: editorText.trim() }]
+  const safeChapters = (chapters.length
+    ? chapters
+    : [{ title: '正文', content: editorText.trim() }]
+  ).map((chapter) => ({
+    ...chapter,
+    wordCount: countWords(chapter.content)
+  }))
   const totalWords = safeChapters.reduce((sum, chapter) => sum + countWords(chapter.content), 0)
 
   return {
     title,
     extension,
+    fileSize: Number(options.fileSize) || 0,
+    encoding: String(options.encoding || (extension === 'docx' ? 'DOCX' : 'UTF-8')),
+    warnings: normalizeWarnings(options.warnings),
     totalWords,
     chapterCount: safeChapters.length,
     chapters: safeChapters
@@ -209,26 +221,40 @@ async function readDocxText(file) {
   } catch {
     throw new Error('DOCX 文件无法解析，请确认文件未损坏且未加密')
   }
-  return result?.value || ''
+  return {
+    text: result?.value || '',
+    encoding: 'DOCX',
+    warnings: normalizeWarnings(result?.messages)
+  }
 }
 
-async function readTextFile(file, extension) {
+async function readTextFile(file) {
   const arrayBuffer = await file.arrayBuffer()
-  if (extension === 'txt') {
-    return decodeTextBuffer(arrayBuffer)
-  }
   return decodeTextBuffer(arrayBuffer)
 }
 
 function decodeTextBuffer(arrayBuffer) {
   for (const encoding of ['utf-8', 'gb18030', 'gbk']) {
     try {
-      return new TextDecoder(encoding, { fatal: encoding === 'utf-8' }).decode(arrayBuffer)
+      return {
+        text: new TextDecoder(encoding, { fatal: encoding === 'utf-8' }).decode(arrayBuffer),
+        encoding: encoding.toUpperCase()
+      }
     } catch {
       // 尝试下一种常见编码
     }
   }
-  return new TextDecoder().decode(arrayBuffer)
+  return {
+    text: new TextDecoder().decode(arrayBuffer),
+    encoding: 'UTF-8'
+  }
+}
+
+function normalizeWarnings(warnings = []) {
+  return warnings
+    .map((warning) => String(warning?.message || warning || '').trim())
+    .filter(Boolean)
+    .map((warning) => warning.replace(/[A-Za-z]:[\\/][^\s]+/g, '[本地文件]'))
 }
 
 function normalizeSourceText(text = '') {
