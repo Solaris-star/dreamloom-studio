@@ -16,7 +16,14 @@ function collectSourceFiles(dirPath, result = []) {
 
 const rendererDir = path.join(root, 'src/renderer/src')
 const clientSources = collectSourceFiles(rendererDir).map((file) => fs.readFileSync(file, 'utf8'))
-const serverSource = read('vite.web.plugins.mjs')
+const webApiDir = path.join(root, 'src/main/webApi')
+const serverSources = [read('vite.web.plugins.mjs')]
+if (fs.existsSync(webApiDir)) {
+  serverSources.push(
+    ...collectSourceFiles(webApiDir).map((file) => fs.readFileSync(file, 'utf8'))
+  )
+}
+const serverSource = serverSources.join('\n')
 
 const collectPaths = (source) =>
   new Set([...source.matchAll(/['"`](\/api\/[a-z0-9_./-]+)['"`]/gi)].map((match) => match[1]))

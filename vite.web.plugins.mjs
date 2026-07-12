@@ -18,10 +18,8 @@ import {
   listConsistencyChecks
 } from './src/main/services/consistencyCheckService.js'
 import marketService from './src/main/services/marketService.js'
-import analyticsService from './src/main/services/analyticsService.js'
 import * as promptPresetService from './src/main/services/promptPresetService.js'
 import * as assetService from './src/main/services/assetService.js'
-import * as goalService from './src/main/services/goalService.js'
 import * as importExportService from './src/main/services/importExportService.js'
 import * as agentTaskQueueService from './src/main/services/agentTaskQueueService.js'
 import * as workbenchDatabaseService from './src/main/services/workbenchDatabaseService.js'
@@ -44,6 +42,8 @@ import {
   discardWebAiImages,
   saveGeneratedWebImage
 } from './src/main/services/webAiImageAssetService.js'
+import { handleWorkbenchDatabaseRoute } from './src/main/webApi/workbenchDatabaseRoutes.js'
+import { handleAnalyticsGoalRoute } from './src/main/webApi/analyticsGoalRoutes.js'
 
 export function createWebServerPlugins() {
   const configuredBooksDir = String(process.env.NOVEL_BOOKS_DIR || '').trim()
@@ -652,7 +652,28 @@ export function createWebServerPlugins() {
         }
 
         try {
-          if (path === '/api/books/cover' || path === '/api/books/image') {
+          if (
+            handleWorkbenchDatabaseRoute({
+              path,
+              body,
+              res,
+              booksDir: getActiveBooksDir(),
+              sendJson,
+              workbenchDatabaseService
+            })
+          ) {
+            return
+          } else if (
+            handleAnalyticsGoalRoute({
+              path,
+              body,
+              res,
+              booksDir: getActiveBooksDir(),
+              sendJson
+            })
+          ) {
+            return
+          } else if (path === '/api/books/cover' || path === '/api/books/image') {
               const url = new URL(req.url, 'http://localhost')
               const bookName = sanitizeText(url.searchParams.get('book'))
               const fileName = sanitizeText(url.searchParams.get('file'))
@@ -1053,19 +1074,6 @@ export function createWebServerPlugins() {
               sendJson(res, await webBooksApi.editBook(body || {}, getActiveBooksDir()))
             } else if (path === '/api/books/delete') {
               sendJson(res, await webBooksApi.deleteBook(body.name, getActiveBooksDir()))
-            } else if (path === '/api/workbench-database/snapshot') {
-              sendJson(
-                res,
-                workbenchDatabaseService.getWorkbenchDatabaseSnapshot(
-                  getActiveBooksDir(),
-                  body || {}
-                )
-              )
-            } else if (path === '/api/workbench-database/query') {
-              sendJson(
-                res,
-                workbenchDatabaseService.queryWorkbenchDatabase(getActiveBooksDir(), body || {})
-              )
             } else if (path === '/api/volumes/create') {
               sendJson(res, await webBooksApi.createVolume(body.bookName, getActiveBooksDir()))
             } else if (path === '/api/chapters/create') {
@@ -1601,49 +1609,6 @@ export function createWebServerPlugins() {
                   ? { success: true, snapshotId: body.snapshotId }
                   : { success: false, message: '章节版本不存在' }
               )
-            } else if (path === '/api/analytics/overview') {
-              sendJson(res, {
-                success: true,
-                data: analyticsService.getOverview(getActiveBooksDir(), body || {})
-              })
-            } else if (path === '/api/analytics/daily-words') {
-              sendJson(res, {
-                success: true,
-                items: analyticsService.getDailyWords(getActiveBooksDir(), body || {})
-              })
-            } else if (path === '/api/analytics/writing-habit') {
-              sendJson(res, {
-                success: true,
-                data: analyticsService.getWritingHabit(getActiveBooksDir(), body || {})
-              })
-            } else if (path === '/api/analytics/session-stats') {
-              sendJson(res, {
-                success: true,
-                data: analyticsService.getSessionStats(getActiveBooksDir(), body || {})
-              })
-            } else if (path === '/api/analytics/token-stats') {
-              sendJson(res, {
-                success: true,
-                data: analyticsService.getTokenStats(getActiveBooksDir(), body || {})
-              })
-            } else if (path === '/api/analytics/weekly-report') {
-              sendJson(res, {
-                success: true,
-                data: analyticsService.getWeeklyReport(getActiveBooksDir(), body || {})
-              })
-            } else if (path === '/api/analytics/monthly-report') {
-              sendJson(res, {
-                success: true,
-                data: analyticsService.getMonthlyReport(getActiveBooksDir(), body || {})
-              })
-            } else if (path === '/api/goals/list') {
-              sendJson(res, { success: true, items: goalService.listGoals(getActiveBooksDir()) })
-            } else if (path === '/api/goals/create') {
-              sendJson(res, goalService.createGoal(body || {}, getActiveBooksDir()))
-            } else if (path === '/api/goals/update') {
-              sendJson(res, goalService.updateGoal(body.id, body.patch || {}, getActiveBooksDir()))
-            } else if (path === '/api/goals/delete') {
-              sendJson(res, goalService.deleteGoal(body.id, getActiveBooksDir()))
             } else if (path === '/api/prompts/list') {
               sendJson(res, {
                 success: true,

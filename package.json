@@ -16,7 +16,7 @@
     "test:coverage": "c8 --all --check-coverage --lines=20 --statements=20 --functions=50 --branches=50 --reporter=text --reporter=html --include=\"src/main/services/**/*.js\" --include=\"src/renderer/src/service/**/*.js\" npm run test:coverage:run",
     "test:coverage:run": "npm run test:unit && npm run test:api",
     "test:editor-clipboard": "node scripts/test-editor-clipboard.mjs",
-    "test:api": "node scripts/test-api-route-contracts.mjs && node scripts/test-workbench-database-service.mjs",
+    "test:api": "node scripts/test-api-route-contracts.mjs && node scripts/test-workbench-database-routes.mjs && node scripts/test-workbench-database-service.mjs && node scripts/test-analytics-goal-routes.mjs",
     "test:web": "node scripts/test-web-only-guards.mjs",
     "test:e2e": "playwright test"
   },
