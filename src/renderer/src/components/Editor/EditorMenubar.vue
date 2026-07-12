@@ -758,6 +758,24 @@ async function handleExport() {
   margin: 0;
 }
 
+@media (max-width: 767px) {
+  .editor-menubar {
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    .toolbar-left,
+    .toolbar-right,
+    .toolbar-item {
+      flex-shrink: 0;
+    }
+  }
+}
+
 .highlight-colors {
   display: flex;
   flex-wrap: wrap;

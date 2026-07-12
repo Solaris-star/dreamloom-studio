@@ -139,11 +139,10 @@ defineExpose({
 
 <style lang="scss" scoped>
 .editor-stats {
-  height: auto;
   min-height: 28px;
   width: 100%;
   line-height: 28px;
-  padding: 0px 15px;
+  padding: 0 15px;
   border-top: 1px solid var(--border-color);
   background-color: var(--bg-mute);
   font-size: 12px;
@@ -157,18 +156,40 @@ defineExpose({
     display: flex;
     align-items: center;
     gap: 10px;
+
     > span {
       color: var(--primary-color);
     }
   }
+
   &-right {
     display: flex;
     align-items: center;
     gap: 10px;
   }
 
+  &-left,
+  &-right,
+  span {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
   .typing-speed {
     color: var(--warning-color);
+  }
+}
+
+@media (max-width: 767px) {
+  .editor-stats {
+    justify-content: flex-start;
+    gap: 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 }
 </style>
