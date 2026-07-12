@@ -807,8 +807,8 @@ for (const entry of rendererSourceFiles) {
   const source = fs.readFileSync(absolutePath, 'utf8')
   assert.doesNotMatch(
     source,
-    /window\.electronStore\b/,
-    `纯 Web 运行代码不能依赖 Electron Store：${path.relative(root, absolutePath)}`
+    /window\.electron(?:Store)?\b/,
+    `纯 Web 运行代码不能依赖 Electron 接口：${path.relative(root, absolutePath)}`
   )
   assert.doesNotMatch(
     source,
