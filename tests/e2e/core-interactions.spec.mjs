@@ -405,6 +405,91 @@ test('市场灵感写操作不会重复提交或保留旧成功结果', async ({
   await expect.poll(() => saveRequests).toBe(2)
 })
 
+test('小说下载不会重复提交或写入失败章节', async ({ page }) => {
+  let downloadRequests = 0
+  const savedChapters = []
+  await page.route('**/api/novel/sources', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([{ id: 'e2e-source', name: '测试书源' }])
+    })
+  })
+  await page.route('**/api/novel/search', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        list: [
+          {
+            title: '下载保护测试',
+            author: '测试作者',
+            url: 'https://example.test/book',
+            sourceId: 'e2e-source'
+          }
+        ],
+        sourceErrors: []
+      })
+    })
+  })
+  await page.route('**/api/novel/chapters', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        chapters: [
+          { title: '第一章', url: 'https://example.test/chapter-1' },
+          { title: '第二章', url: 'https://example.test/chapter-2' }
+        ]
+      })
+    })
+  })
+  await page.route('**/api/novel/download', async (route) => {
+    downloadRequests += 1
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 400))
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        chapters: [
+          { title: '第一章', content: '可用正文', failed: false },
+          { title: '第二章', content: '', failed: true, error: '章节暂时不可用' }
+        ]
+      })
+    })
+  })
+  await page.route('**/api/books/create', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true })
+    })
+  })
+  await page.route('**/api/chapters/save', async (route) => {
+    savedChapters.push((await route.request().postDataJSON()).content)
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true })
+    })
+  })
+
+  await page.goto('/#/novel-download')
+  await page.getByPlaceholder(/书名|作者/).fill('下载保护')
+  await page.getByRole('button', { name: '搜索' }).click()
+  await page.getByRole('button', { name: '下载', exact: true }).click()
+  await expect(page.getByText('共 2 章')).toBeVisible()
+
+  const downloadButton = page.getByRole('button', { name: /下载并加入书架/ })
+  await downloadButton.evaluate((button) => {
+    button.click()
+    button.click()
+  })
+  const confirmDialog = page.getByRole('dialog', { name: /确认下载/ })
+  await confirmDialog.getByRole('button', { name: '确定' }).click()
+
+  await expect(page.getByText(/已加入书架/)).toBeVisible()
+  await expect.poll(() => downloadRequests).toBe(1)
+  expect(savedChapters).toEqual(['第一章\n\n可用正文'])
+})
+
 test('图库连续拖入时不会重复上传', async ({ page }, testInfo) => {
   let importRequests = 0
   const bookName = testBookName(testInfo.project.name)

@@ -95,7 +95,14 @@
             fixed="right"
           >
             <template #default="{ row }">
-              <el-button type="primary" size="small" round @click="handleSelectBook(row)">
+              <el-button
+                type="primary"
+                size="small"
+                round
+                :loading="selectingBookUrl === row.url"
+                :disabled="Boolean(selectingBookUrl) || downloading"
+                @click="handleSelectBook(row)"
+              >
                 {{ t('novelDownload.download') }}
               </el-button>
             </template>
@@ -105,7 +112,7 @@
     </section>
 
     <!-- 选中书籍后的下载操作区：悬浮在页面底部，滚动时列表不被遮挡 -->
-    <section v-if="selectedBook" class="download-card download-card--fixed">
+    <section v-if="selectedBook && !confirmingAction" class="download-card download-card--fixed">
       <div class="download-card-inner">
         <div class="download-header">
           <h3 class="download-title">《{{ selectedBook.title }}》</h3>
@@ -138,7 +145,9 @@
             <el-icon v-if="!downloading"><Document /></el-icon>
             <span>{{ t('novelDownload.exportTxt') }}</span>
           </el-button>
-          <el-button size="large" @click="clearSelection">{{ t('common.cancel') }}</el-button>
+          <el-button size="large" :disabled="downloading" @click="clearSelection">
+            {{ t('common.cancel') }}
+          </el-button>
         </div>
         <div v-if="downloading" class="progress-wrap">
           <el-progress
@@ -180,7 +189,9 @@ import {
   getNovelSources,
   searchNovel,
   getNovelChapterList,
-  downloadNovelChapters
+  downloadNovelChapters,
+  normalizeDownloadedChapters,
+  uniqueDownloadedBookName
 } from '@renderer/service/novel'
 import { createBook, getBookDir, readBooksDir } from '@renderer/service/books'
 import { createChapter, saveChapter } from '@renderer/service/chapters'
@@ -197,8 +208,12 @@ const searchResult = ref([])
 const selectedBook = ref(null)
 const chapterList = ref([])
 const downloading = ref(false)
+const confirmingAction = ref(false)
+const selectingBookUrl = ref('')
 const downloadProgress = ref({ current: 0, total: 0 })
 const errorMsg = ref('')
+let searchRequestId = 0
+let selectionRequestId = 0
 
 const progressPercent = computed(() => {
   const { current, total } = downloadProgress.value
@@ -223,6 +238,7 @@ async function loadSources() {
 }
 
 async function handleSearch() {
+  if (searching.value || downloading.value) return
   const k = keyword.value?.trim()
   if (!k) {
     ElMessage.warning(t('novelDownload.pleaseInputKeyword'))
@@ -233,8 +249,10 @@ async function handleSearch() {
   searchResult.value = []
   selectedBook.value = null
   chapterList.value = []
+  const requestId = ++searchRequestId
   try {
     const res = await searchNovel(k, currentSourceId.value)
+    if (requestId !== searchRequestId) return
     if (res.success && res.list?.length) {
       searchResult.value = res.list
       errorMsg.value = ''
@@ -243,14 +261,18 @@ async function handleSearch() {
       searchResult.value = []
     }
   } catch (e) {
+    if (requestId !== searchRequestId) return
     console.error(e)
     errorMsg.value = e.message || t('novelDownload.searchFailed')
   } finally {
-    searching.value = false
+    if (requestId === searchRequestId) searching.value = false
   }
 }
 
 async function handleSelectBook(book) {
+  if (selectingBookUrl.value || downloading.value) return
+  const requestId = ++selectionRequestId
+  selectingBookUrl.value = book.url
   selectedBook.value = book
   chapterList.value = []
   errorMsg.value = ''
@@ -258,18 +280,25 @@ async function handleSelectBook(book) {
   downloadProgress.value = { current: 0, total: 0 }
   try {
     const res = await getNovelChapterList(book.url, book.sourceId)
+    if (requestId !== selectionRequestId) return
     if (res.success && res.chapters?.length) {
       chapterList.value = res.chapters
     } else {
       ElMessage.warning(res.message || t('novelDownload.fetchChaptersFailed'))
     }
   } catch (e) {
+    if (requestId !== selectionRequestId) return
     console.error(e)
     errorMsg.value = e.message || t('novelDownload.fetchChaptersFailed')
+  } finally {
+    if (requestId === selectionRequestId) selectingBookUrl.value = ''
   }
 }
 
 function clearSelection() {
+  if (downloading.value) return
+  selectionRequestId += 1
+  selectingBookUrl.value = ''
   selectedBook.value = null
   chapterList.value = []
   downloading.value = false
@@ -284,6 +313,7 @@ function onDownloadProgress(e) {
 }
 
 async function handleDownloadToBookshelf() {
+  if (downloading.value || confirmingAction.value) return
   const book = selectedBook.value
   if (!book || chapterList.value.length === 0) return
 
@@ -293,6 +323,7 @@ async function handleDownloadToBookshelf() {
     return
   }
 
+  confirmingAction.value = true
   try {
     await ElMessageBox.confirm(
       t('novelDownload.confirmDownloadToBookshelf', {
@@ -308,6 +339,8 @@ async function handleDownloadToBookshelf() {
     )
   } catch {
     return
+  } finally {
+    confirmingAction.value = false
   }
 
   downloading.value = true
@@ -316,12 +349,14 @@ async function handleDownloadToBookshelf() {
 
   try {
     const res = await downloadNovelChapters(chapterList.value, book.sourceId)
-    if (!res.success || !res.chapters?.length) {
+    const chapters = normalizeDownloadedChapters(res.chapters)
+    if (!chapters.length) {
       ElMessage.error(res.message || t('novelDownload.downloadFailed'))
       return
     }
 
-    const safeName = book.title.replace(/[\\/:*?"<>|]/g, '_')
+    const existingBooks = await readBooksDir()
+    const safeName = uniqueDownloadedBookName(book.title, existingBooks)
     const bookId = Date.now().toString() + Math.floor(Math.random() * 10000).toString()
     const type = 'xuanhua'
     const typeName = BOOK_TYPES.find((item) => item.value === type)?.label || '玄幻'
@@ -339,7 +374,6 @@ async function handleDownloadToBookshelf() {
       coverImagePath: null
     })
 
-    const chapters = res.chapters
     const firstContent = `${chapters[0].title}\n\n${chapters[0].content}`
     await saveChapter({
       bookName: safeName,
@@ -375,9 +409,11 @@ async function handleDownloadToBookshelf() {
 }
 
 async function handleExportTxt() {
+  if (downloading.value || confirmingAction.value) return
   const book = selectedBook.value
   if (!book || chapterList.value.length === 0) return
 
+  confirmingAction.value = true
   try {
     await ElMessageBox.confirm(
       t('novelDownload.confirmExportTxt', { title: book.title, count: chapterList.value.length }),
@@ -390,6 +426,8 @@ async function handleExportTxt() {
     )
   } catch {
     return
+  } finally {
+    confirmingAction.value = false
   }
 
   downloading.value = true
@@ -397,13 +435,14 @@ async function handleExportTxt() {
 
   try {
     const res = await downloadNovelChapters(chapterList.value, book.sourceId)
-    if (!res.success || !res.chapters?.length) {
+    const chapters = normalizeDownloadedChapters(res.chapters)
+    if (!chapters.length) {
       ElMessage.error(res.message || t('novelDownload.downloadFailed'))
       return
     }
 
     const lines = []
-    for (const ch of res.chapters) {
+    for (const ch of chapters) {
       lines.push(`${ch.title}\n\n${ch.content}\n\n`)
     }
     const content = lines.join('')
@@ -618,7 +657,7 @@ $radius-card: 12px;
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: 90;
+    z-index: 10;
     margin: 0;
     border-radius: 0;
     border-left: none;
