@@ -103,6 +103,47 @@ test('首页继续写作可以进入创作台', async ({ page }, testInfo) => {
   await expect(page).toHaveTitle(new RegExp(bookName))
 })
 
+test('主导航和子导航可以连续切换且不会产生运行时异常', async ({ page }) => {
+  const runtimeErrors = []
+  page.on('pageerror', (error) => runtimeErrors.push(error.message))
+
+  await page.goto('/#/')
+  const navigation = page.getByRole('navigation', { name: '主导航' })
+  const routes = [
+    { name: '地图设计', path: /#\/map-list(?:\?|$)/ },
+    { name: '创作库', path: /#\/knowledge$/ },
+    { name: '素材箱', path: /#\/knowledge\/materials$/ },
+    { name: '图库', path: /#\/knowledge\/images$/ },
+    { name: '提示词', path: /#\/knowledge\/prompts$/ },
+    { name: '回收站', path: /#\/knowledge\/trash$/ },
+    { name: 'AI 工坊', path: /#\/ai\/creation-starter$/ },
+    { name: '文本处理', path: /#\/ai\/text-tools$/ },
+    { name: '剧情规划', path: /#\/ai\/plot$/ },
+    { name: '人物世界', path: /#\/ai\/world$/ },
+    { name: '图像生成', path: /#\/ai\/image$/ },
+    { name: '任务队列', path: /#\/ai\/queue$/ },
+    { name: '提示词调用', path: /#\/ai\/prompts$/ },
+    { name: '生成历史', path: /#\/ai\/history$/ },
+    { name: '市场灵感', path: /#\/market\/overview$/ },
+    { name: '数据中心', path: /#\/analytics\/overview$/ },
+    { name: '系统设置', path: /#\/settings\/general$/ },
+    { name: '首页', path: /#\/dashboard$/ }
+  ]
+
+  for (const route of routes) {
+    await navigation.getByRole('button', { name: route.name, exact: true }).click()
+    await expect(page).toHaveURL(route.path)
+    await expect(page.locator('#app-main')).toBeVisible()
+    await page.waitForTimeout(250)
+  }
+
+  await page.getByRole('button', { name: '收起侧栏' }).click()
+  await expect(page.getByRole('button', { name: '展开侧栏' })).toBeVisible()
+  await page.getByRole('button', { name: '展开侧栏' }).click()
+  await expect(page.getByRole('button', { name: '收起侧栏' })).toBeVisible()
+  expect(runtimeErrors).toEqual([])
+})
+
 test('书架筛选和本地导入入口可以操作', async ({ page }, testInfo) => {
   const bookName = testBookName(testInfo.project.name)
   await page.goto('/#/knowledge')

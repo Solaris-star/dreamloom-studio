@@ -62,6 +62,7 @@
             v-motion-feedback
             class="app-menu-item"
             type="button"
+            :aria-label="sidebarWidth < 100 ? '展开侧栏' : '收起侧栏'"
             @click="toggleSidebarCollapse"
           >
             <span class="app-menu-icon" aria-hidden="true">
