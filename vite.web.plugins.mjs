@@ -19,7 +19,6 @@ import {
 } from './src/main/services/consistencyCheckService.js'
 import marketService from './src/main/services/marketService.js'
 import * as promptPresetService from './src/main/services/promptPresetService.js'
-import * as importExportService from './src/main/services/importExportService.js'
 import * as agentTaskQueueService from './src/main/services/agentTaskQueueService.js'
 import * as workbenchDatabaseService from './src/main/services/workbenchDatabaseService.js'
 import * as settingSnapshotService from './src/main/services/settingSnapshotService.js'
@@ -45,6 +44,7 @@ import { handleWorkbenchDatabaseRoute } from './src/main/webApi/workbenchDatabas
 import { handleAnalyticsGoalRoute } from './src/main/webApi/analyticsGoalRoutes.js'
 import { handleAssetRoute } from './src/main/webApi/assetRoutes.js'
 import { handleKnowledgeRoute } from './src/main/webApi/knowledgeRoutes.js'
+import { handleImportExportRoute } from './src/main/webApi/importExportRoutes.js'
 
 export function createWebServerPlugins() {
   const configuredBooksDir = String(process.env.NOVEL_BOOKS_DIR || '').trim()
@@ -688,6 +688,16 @@ export function createWebServerPlugins() {
             return
           } else if (
             handleKnowledgeRoute({
+              path,
+              body,
+              res,
+              booksDir: getActiveBooksDir(),
+              sendJson
+            })
+          ) {
+            return
+          } else if (
+            handleImportExportRoute({
               path,
               body,
               res,
@@ -1596,20 +1606,6 @@ export function createWebServerPlugins() {
                 body || {}
               )
               sendJson(res, { success: true, presets, count: presets.length })
-            } else if (path === '/api/import/preview') {
-              sendJson(res, importExportService.previewImport(getActiveBooksDir(), body || {}))
-            } else if (path === '/api/import/book') {
-              sendJson(res, importExportService.importBook(getActiveBooksDir(), body || {}))
-            } else if (path === '/api/export/book') {
-              sendJson(res, importExportService.exportBook(getActiveBooksDir(), body || {}))
-            } else if (path === '/api/backup/create') {
-              sendJson(res, importExportService.createBackup(getActiveBooksDir(), body || {}))
-            } else if (path === '/api/backup/inspect') {
-              sendJson(res, importExportService.inspectBackup(getActiveBooksDir(), body || {}))
-            } else if (path === '/api/backup/restore') {
-              sendJson(res, importExportService.restoreBackup(getActiveBooksDir(), body || {}))
-            } else if (path === '/api/import-export/tasks') {
-              sendJson(res, importExportService.listTasks(getActiveBooksDir()))
             } else if (path === '/api/books/set-dir') {
               const { dir } = body
               res.end(JSON.stringify({ success: true, booksDir: dir }))
