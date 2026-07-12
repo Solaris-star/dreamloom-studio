@@ -1,6 +1,7 @@
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { expect, test } from '@playwright/test'
+import JSZip from 'jszip'
 
 function testBookName(projectName) {
   return `织梦工坊 E2E ${projectName}`
@@ -8,6 +9,33 @@ function testBookName(projectName) {
 
 const onePixelPng =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='
+
+async function createDocxBuffer(lines) {
+  const zip = new JSZip()
+  zip.file(
+    '[Content_Types].xml',
+    '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'
+  )
+  zip.folder('_rels').file(
+    '.rels',
+    '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>'
+  )
+  const paragraphs = lines
+    .map(
+      (line) =>
+        `<w:p><w:r><w:t>${String(line).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')}</w:t></w:r></w:p>`
+    )
+    .join('')
+  zip.folder('word').file(
+    'document.xml',
+    `<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${paragraphs}</w:body></w:document>`
+  )
+  zip.folder('word').folder('_rels').file(
+    'document.xml.rels',
+    '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>'
+  )
+  return zip.generateAsync({ type: 'nodebuffer' })
+}
 
 async function postApi(request, path, body) {
   const response = await request.post(path, { data: body })
@@ -161,6 +189,57 @@ test('书架筛选和本地导入入口可以操作', async ({ page }, testInfo)
   await expect(page.getByRole('dialog', { name: '添加书籍' })).toBeVisible()
   await page.getByRole('tab', { name: '本地文件导入' }).click()
   await expect(page.getByRole('dialog', { name: '添加书籍' })).toContainText(/TXT|MD|DOCX/)
+})
+
+test('DOCX 可以预览导入且损坏文件不会加入书架', async ({ page, request }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'DOCX 浏览器解析仅在桌面项目执行')
+  const importedBookName = 'DOCX 浏览器导入'
+  const docxBuffer = await createDocxBuffer([
+    '第1章 雨夜',
+    '林舟推开旧书铺的门。',
+    '第2章 来信',
+    '柜台上放着一封没有署名的信。'
+  ])
+
+  await postApi(request, '/api/books/delete', { name: importedBookName })
+  try {
+    await page.goto('/#/knowledge')
+    await page.getByText('添加书籍', { exact: true }).click()
+    const addBookDialog = page.getByRole('dialog', { name: '添加书籍' })
+    await addBookDialog.getByRole('tab', { name: '本地文件导入' }).click()
+    const fileInput = addBookDialog.locator('input[type="file"]').first()
+
+    await fileInput.setInputFiles({
+      name: `${importedBookName}.docx`,
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      buffer: docxBuffer
+    })
+
+    const readyRow = addBookDialog.locator('.local-import-item').filter({ hasText: importedBookName })
+    await expect(readyRow).toContainText('DOCX')
+    await expect(readyRow).toContainText('2 章')
+    await expect(readyRow).toContainText('第1章 雨夜')
+    await expect(readyRow).toContainText('第2章 来信')
+    await readyRow.getByRole('button', { name: '查看完整预览' }).click()
+    await expect(readyRow).toContainText('林舟推开旧书铺的门。')
+
+    await readyRow.getByRole('button', { name: '加入书架' }).click()
+    await page.getByRole('dialog', { name: '确认导入' }).getByRole('button', {
+      name: '导入'
+    }).click()
+    await expect(readyRow).toContainText('已加入')
+
+    await fileInput.setInputFiles({
+      name: '损坏文档.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      buffer: Buffer.from('not-a-docx', 'utf8')
+    })
+    const brokenRow = addBookDialog.locator('.local-import-item').filter({ hasText: '损坏文档' })
+    await expect(brokenRow).toContainText('DOCX 文件内容损坏')
+    await expect(brokenRow.getByRole('button', { name: '加入书架' })).toBeDisabled()
+  } finally {
+    await postApi(request, '/api/books/delete', { name: importedBookName })
+  }
 })
 
 test('创作台目录和章节切换可以操作', async ({ page }, testInfo) => {
