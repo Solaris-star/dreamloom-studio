@@ -44,6 +44,7 @@ import {
 import { handleWorkbenchDatabaseRoute } from './src/main/webApi/workbenchDatabaseRoutes.js'
 import { handleAnalyticsGoalRoute } from './src/main/webApi/analyticsGoalRoutes.js'
 import { handleAssetRoute } from './src/main/webApi/assetRoutes.js'
+import { handleKnowledgeRoute } from './src/main/webApi/knowledgeRoutes.js'
 
 export function createWebServerPlugins() {
   const configuredBooksDir = String(process.env.NOVEL_BOOKS_DIR || '').trim()
@@ -685,6 +686,16 @@ export function createWebServerPlugins() {
             })
           ) {
             return
+          } else if (
+            handleKnowledgeRoute({
+              path,
+              body,
+              res,
+              booksDir: getActiveBooksDir(),
+              sendJson
+            })
+          ) {
+            return
           } else if (path === '/api/books/cover' || path === '/api/books/image') {
               const url = new URL(req.url, 'http://localhost')
               const bookName = sanitizeText(url.searchParams.get('book'))
@@ -1218,68 +1229,6 @@ export function createWebServerPlugins() {
               sendJson(
                 res,
                 await webBooksApi.exportOrganizationToNote(body || {}, getActiveBooksDir())
-              )
-            } else if (path === '/api/knowledge/list') {
-              sendJson(res, {
-                success: true,
-                items: knowledgeBaseService.listKnowledgeItems(getActiveBooksDir(), body || {})
-              })
-            } else if (path === '/api/knowledge/get') {
-              const item = knowledgeBaseService.getKnowledgeItem(getActiveBooksDir(), body.id)
-              sendJson(
-                res,
-                item ? { success: true, item } : { success: false, message: '素材不存在' },
-                item ? 200 : 404
-              )
-            } else if (path === '/api/knowledge/create') {
-              sendJson(
-                res,
-                knowledgeBaseService.createKnowledgeItem(getActiveBooksDir(), body || {})
-              )
-            } else if (path === '/api/knowledge/update') {
-              sendJson(
-                res,
-                knowledgeBaseService.updateKnowledgeItem(
-                  getActiveBooksDir(),
-                  body.id,
-                  body.patch || {}
-                )
-              )
-            } else if (path === '/api/knowledge/delete') {
-              sendJson(res, knowledgeBaseService.deleteKnowledgeItem(getActiveBooksDir(), body.id))
-            } else if (path === '/api/knowledge/search') {
-              sendJson(res, {
-                success: true,
-                items: knowledgeBaseService.searchKnowledgeItems(
-                  getActiveBooksDir(),
-                  body.keyword,
-                  body.filter || {}
-                )
-              })
-            } else if (path === '/api/knowledge/favorite') {
-              sendJson(
-                res,
-                knowledgeBaseService.favoriteKnowledgeItem(
-                  getActiveBooksDir(),
-                  body.id,
-                  body.favorite
-                )
-              )
-            } else if (path === '/api/knowledge/archive') {
-              sendJson(res, knowledgeBaseService.archiveKnowledgeItem(getActiveBooksDir(), body.id))
-            } else if (path === '/api/knowledge/link') {
-              sendJson(
-                res,
-                knowledgeBaseService.linkKnowledgeItems(
-                  getActiveBooksDir(),
-                  body.sourceId,
-                  body.targetIds || []
-                )
-              )
-            } else if (path === '/api/knowledge/convert-topic-to-book') {
-              sendJson(
-                res,
-                knowledgeBaseService.convertTopicCardToBook(getActiveBooksDir(), body.topicCardId)
               )
             } else if (path === '/api/market/hotspots') {
               sendJson(res, {
