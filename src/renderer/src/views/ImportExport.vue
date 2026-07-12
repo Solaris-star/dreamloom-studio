@@ -302,6 +302,8 @@ const restoreForm = reactive({
   suggestedTargetDir: ''
 })
 
+const MAX_IMPORT_FILE_SIZE = 50 * 1024 * 1024
+
 const activeSection = computed(() => {
   if (props.embedded) return 'all'
   const tab = String(route.query.tab || '')
@@ -402,6 +404,12 @@ async function handleImportFileChange(event) {
   importForm.fileName = file.name
   importForm.base64 = ''
   try {
+    if (file.size === 0) {
+      throw new Error('导入文件不能为空')
+    }
+    if (file.size > MAX_IMPORT_FILE_SIZE) {
+      throw new Error('导入文件不能超过 50 MB')
+    }
     importForm.base64 = await readFileAsBase64(file)
     await handlePreviewImport()
   } catch (error) {

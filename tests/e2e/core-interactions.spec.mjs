@@ -1,5 +1,6 @@
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { rm, truncate, writeFile } from 'node:fs/promises'
 import { expect, test } from '@playwright/test'
 import JSZip from 'jszip'
 
@@ -312,6 +313,69 @@ test('DOCX 可以预览导入且损坏文件不会加入书架', async ({ page, 
     await expect(brokenRow.getByRole('button', { name: '加入书架' })).toBeDisabled()
   } finally {
     await postApi(request, '/api/books/delete', { name: importedBookName })
+  }
+})
+
+test('TXT 和 Markdown 可以生成完整章节预览', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '文件导入预览仅在桌面项目执行')
+  const cases = [
+    {
+      name: '雨夜来信.txt',
+      mimeType: 'text/plain',
+      content: '第1章 雨夜\n林舟推开旧书铺的门。\n第2章 来信\n柜台上放着一封信。'
+    },
+    {
+      name: '旧城手记.md',
+      mimeType: 'text/markdown',
+      content: '# 旧城手记\n## 第1章 旧城\n钟声越过屋脊。\n## 第2章 归人\n长街尽头亮起一盏灯。',
+      previewLines: ['钟声越过屋脊。', '长街尽头亮起一盏灯。']
+    }
+  ]
+
+  await page.goto('/#/import-export/import')
+  const fileInput = page.locator('input[type="file"]').first()
+  for (const item of cases) {
+    await fileInput.setInputFiles({
+      name: item.name,
+      mimeType: item.mimeType,
+      buffer: Buffer.from(item.content, 'utf8')
+    })
+    const preview = page.locator('.preview-box')
+    await expect(preview).toContainText(item.name)
+    await expect(preview).toContainText('2 章')
+    const previewLines = item.previewLines || [item.content.split('\n')[1], item.content.split('\n')[3]]
+    await expect(preview).toContainText(previewLines[0])
+    await expect(preview).toContainText(previewLines[1])
+  }
+})
+
+test('空文件和超限文件会在页面直接提示且不请求预览', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '文件导入校验仅在桌面项目执行')
+  let previewRequests = 0
+  await page.route('**/api/import/preview', async (route) => {
+    previewRequests += 1
+    await route.continue()
+  })
+
+  await page.goto('/#/import-export/import')
+  const fileInput = page.locator('input[type="file"]').first()
+  await fileInput.setInputFiles({
+    name: '空书.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.alloc(0)
+  })
+  await expect(page.getByText('导入文件不能为空')).toBeVisible()
+
+  const oversizedPath = testInfo.outputPath('超限书稿.txt')
+  await writeFile(oversizedPath, '')
+  await truncate(oversizedPath, 50 * 1024 * 1024 + 1)
+  try {
+    await fileInput.setInputFiles(oversizedPath)
+    await expect(page.getByText('导入文件不能超过 50 MB')).toBeVisible()
+    expect(previewRequests).toBe(0)
+    await expect(page.locator('.preview-box')).toHaveCount(0)
+  } finally {
+    await rm(oversizedPath, { force: true })
   }
 })
 
@@ -1064,6 +1128,38 @@ test('AI 工坊运行期间不会重复提交或切换任务', async ({ page }) 
   await expect(page.locator('.generation-status-card').getByText('生成完成')).toBeVisible()
   await expect.poll(() => taskRequests).toBe(1)
   await expect(input).toBeEnabled()
+})
+
+test('AI 工坊请求失败后保留输入并恢复操作', async ({ page }) => {
+  let taskRequests = 0
+  await page.route('**/api/ai/text-task', async (route) => {
+    taskRequests += 1
+    await route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: false,
+        message: 'AI 服务暂时不可用'
+      })
+    })
+  })
+
+  await page.goto('/#/ai/text-tools')
+  const input = page.locator('.main-input-block textarea')
+  const originalText = '林舟推开旧书铺的门。'
+  await input.fill(originalText)
+  await page.getByRole('button', { name: '续写' }).click()
+
+  const status = page.locator('.generation-status-card')
+  await expect(status.getByText('生成失败，输入内容已保留')).toBeVisible()
+  await expect(status).toContainText('AI 服务暂时不可用')
+  await expect(input).toHaveValue(originalText)
+  await expect(input).toBeEnabled()
+  await expect(page.getByText('生成完成')).toHaveCount(0)
+  await expect.poll(() => taskRequests).toBe(1)
+
+  await input.fill(`${originalText}他听见楼上传来脚步声。`)
+  await expect(input).toHaveValue(`${originalText}他听见楼上传来脚步声。`)
 })
 
 test('系统设置分类和主题按钮可以连续操作', async ({ page }) => {
