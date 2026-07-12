@@ -103,7 +103,7 @@ test('首页继续写作可以进入创作台', async ({ page }, testInfo) => {
   await expect(page).toHaveTitle(new RegExp(bookName))
 })
 
-test('主导航和子导航可以连续切换且不会产生运行时异常', async ({ page }) => {
+test('主导航和子导航可以连续切换且不会产生运行时异常', async ({ page }, testInfo) => {
   const runtimeErrors = []
   page.on('pageerror', (error) => runtimeErrors.push(error.message))
 
@@ -137,10 +137,12 @@ test('主导航和子导航可以连续切换且不会产生运行时异常', as
     await page.waitForTimeout(250)
   }
 
-  await page.getByRole('button', { name: '收起侧栏' }).click()
-  await expect(page.getByRole('button', { name: '展开侧栏' })).toBeVisible()
-  await page.getByRole('button', { name: '展开侧栏' }).click()
-  await expect(page.getByRole('button', { name: '收起侧栏' })).toBeVisible()
+  if (testInfo.project.name !== 'mobile') {
+    await page.getByRole('button', { name: '收起侧栏' }).click()
+    await expect(page.getByRole('button', { name: '展开侧栏' })).toBeVisible()
+    await page.getByRole('button', { name: '展开侧栏' }).click()
+    await expect(page.getByRole('button', { name: '收起侧栏' })).toBeVisible()
+  }
   expect(runtimeErrors).toEqual([])
 })
 

@@ -1,6 +1,7 @@
 <template>
   <div
     class="app-shell"
+    :class="{ 'studio-shell': isStudioRoute }"
     :style="{
       '--sidebar-width': sidebarWidth + 'px',
       gridTemplateColumns: 'var(--sidebar-width) minmax(0, 1fr)'
@@ -57,7 +58,7 @@
         </nav>
 
         <!-- 折叠/展开快捷按钮 -->
-        <div style="margin-top: auto;">
+        <div class="sidebar-collapse-control">
           <button
             v-motion-feedback
             class="app-menu-item"
@@ -673,14 +674,108 @@ function isEditorRouteElement(el) {
   }
 
   .app-sidebar {
+    position: fixed;
+    z-index: 100;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: block;
+    width: 100%;
+    height: 64px;
+    border-top: 1px solid var(--wabi-line);
+    border-right: 0;
+    background: rgba(251, 250, 246, 0.98);
+    box-shadow: 0 -8px 24px rgba(58, 55, 49, 0.08);
+  }
+
+  .sidebar-content-wrapper {
+    height: 64px;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .app-logo,
+  .sidebar-collapse-control,
+  .app-sidebar-footer,
+  .sidebar-resizer {
     display: none;
+  }
+
+  .app-menu {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    overflow-x: auto;
+    overflow-y: visible;
+    scrollbar-width: none;
+  }
+
+  .app-menu::-webkit-scrollbar {
+    display: none;
+  }
+
+  .app-menu-group {
+    position: static;
+    display: flex;
+    flex: 0 0 72px;
+  }
+
+  .app-menu-item {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    min-width: 72px;
+    min-height: 64px;
+    margin: 0;
+    padding: 7px 4px 6px;
+    border: 0;
+    border-radius: 0;
+    font-size: 11px;
+    text-align: center;
+  }
+
+  .app-menu-item.active {
+    box-shadow: inset 0 -3px 0 rgba(111, 122, 104, 0.68);
+  }
+
+  .app-menu-label {
+    display: block;
+    max-width: 68px;
+  }
+
+  .app-submenu {
+    position: fixed;
+    right: 0;
+    bottom: 64px;
+    left: 0;
+    display: flex;
+    gap: 4px;
+    margin: 0;
+    padding: 8px 10px;
+    overflow-x: auto;
+    border-top: 1px solid var(--wabi-line);
+    border-left: 0;
+    background: rgba(251, 250, 246, 0.98);
+    box-shadow: 0 -6px 18px rgba(58, 55, 49, 0.06);
+    scrollbar-width: none;
+  }
+
+  .app-submenu::-webkit-scrollbar {
+    display: none;
+  }
+
+  .app-submenu-item {
+    flex: 0 0 auto;
+    min-height: 34px;
+    white-space: nowrap;
   }
 
   .app-main {
     height: auto;
     min-width: 0;
     overflow: visible;
-    padding: 16px;
+    padding: 16px 16px 80px;
   }
 
   .app-main.studio-main {
@@ -688,6 +783,20 @@ function isEditorRouteElement(el) {
     min-height: 0;
     padding: 0;
     overflow: hidden;
+  }
+
+  .app-shell.studio-shell .app-sidebar {
+    display: none;
+  }
+
+  :global(.el-overlay) {
+    z-index: 2000 !important;
+  }
+
+  :global(.el-overlay-message-box),
+  :global(.el-overlay-dialog) {
+    box-sizing: border-box;
+    padding-bottom: 64px;
   }
 
   .app-main.map-design-main {
