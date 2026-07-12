@@ -61,7 +61,7 @@ function createRequestAbortController(timeoutMs = 180000, externalSignal = null)
 
 function abortMessageFor(meta, timeoutMs = 180000, label = '模型请求') {
   if (meta?.externallyAborted) return CUSTOM_TEXT_REQUEST_STOPPED
-  const seconds = Math.round((Number(timeoutMs) || 180000) / 1000)
+  const seconds = Math.max(1, Math.round((Number(timeoutMs) || 180000) / 1000))
   return `${label}超时（${seconds} 秒），请更换模型或缩小提取范围`
 }
 
@@ -150,9 +150,9 @@ export class CustomTextApiService {
 
   initConfig(config) {
     if (config.apiKeys && Array.isArray(config.apiKeys)) {
-      this.apiKeys = config.apiKeys.filter((k) => k && String(k).trim())
+      this.apiKeys = config.apiKeys.map((key) => String(key || '').trim()).filter(Boolean)
     } else if (config.apiKey) {
-      this.apiKeys = [config.apiKey]
+      this.apiKeys = [String(config.apiKey).trim()].filter(Boolean)
     } else {
       this.apiKeys = []
     }
@@ -209,41 +209,72 @@ export class CustomTextApiService {
     throw lastError || new Error('所有 Key 均不可用')
   }
 
-  async listModels() {
-    const key = this._getCurrentKey()
-    if (!key || !this.baseUrl) {
+  async listModels(timeoutMs = 30000) {
+    if (!this.apiKeys.length || !this.baseUrl) {
       return { success: false, models: [], message: '配置不完整' }
     }
-    try {
-      const url = `${this.baseUrl.replace(/\/$/, '')}/v1/models`
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${key}` }
-      })
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          if (this._advanceKey()) return this.listModels()
-          return { success: false, models: [], message: '所有 Key 均无效或无权限' }
+
+    let tried = 0
+    while (tried < this.apiKeys.length) {
+      const key = this._getCurrentKey()
+      const abortMeta = createRequestAbortController(timeoutMs)
+      tried += 1
+      let response
+      try {
+        response = await fetch(`${this.baseUrl.replace(/\/$/, '')}/v1/models`, {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${key}` },
+          signal: abortMeta.signal
+        })
+      } catch (error) {
+        if (error?.name === 'AbortError') {
+          return {
+            success: false,
+            models: [],
+            message: abortMessageFor(abortMeta, timeoutMs, '模型列表请求')
+          }
         }
+        return {
+          success: false,
+          models: [],
+          message: error?.message || '获取模型列表失败'
+        }
+      } finally {
+        abortMeta.cleanup()
+      }
+
+      if (response.status === 401 || response.status === 403) {
+        if (tried < this.apiKeys.length) this._advanceKey()
+        continue
+      }
+      if (!response.ok) {
         if (response.status === 404) {
           return { success: false, models: [], message: '模型列表端点不存在' }
         }
         return { success: false, models: [], message: `请求失败: ${response.status}` }
       }
-      const data = await response.json()
-      let models = []
-      if (data.data && Array.isArray(data.data)) {
-        models = data.data.map((m) => m.id).filter(Boolean)
-      } else if (Array.isArray(data)) {
-        models = data.map((m) => (typeof m === 'string' ? m : m.id)).filter(Boolean)
-      } else if (data.models && Array.isArray(data.models)) {
-        models = data.models.map((m) => (typeof m === 'string' ? m : m.id)).filter(Boolean)
+
+      try {
+        const data = await response.json()
+        let models = []
+        if (data.data && Array.isArray(data.data)) {
+          models = data.data.map((m) => m.id).filter(Boolean)
+        } else if (Array.isArray(data)) {
+          models = data.map((m) => (typeof m === 'string' ? m : m.id)).filter(Boolean)
+        } else if (data.models && Array.isArray(data.models)) {
+          models = data.models.map((m) => (typeof m === 'string' ? m : m.id)).filter(Boolean)
+        }
+        return { success: true, models }
+      } catch (error) {
+        return {
+          success: false,
+          models: [],
+          message: error?.message || '获取模型列表失败'
+        }
       }
-      return { success: true, models }
-    } catch (error) {
-      const errorMsg = error.message || '获取模型列表失败'
-      return { success: false, models: [], message: errorMsg }
     }
+
+    return { success: false, models: [], message: '所有 Key 均无效或无权限' }
   }
 
   async chat(options = {}) {
