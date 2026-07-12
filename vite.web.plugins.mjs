@@ -19,7 +19,6 @@ import {
 } from './src/main/services/consistencyCheckService.js'
 import * as promptPresetService from './src/main/services/promptPresetService.js'
 import * as workbenchDatabaseService from './src/main/services/workbenchDatabaseService.js'
-import vectorService from './src/main/services/vectorService.js'
 import plotEvolutionAiService from './src/main/services/plotEvolutionAi.js'
 import settingTreeAiService from './src/main/services/settingTreeAi.js'
 import { sendChatMessage } from './src/main/services/aiChatService.js'
@@ -46,6 +45,7 @@ import { handleVersionSnapshotRoute } from './src/main/webApi/versionSnapshotRou
 import { handleBookChapterRoute } from './src/main/webApi/bookChapterRoutes.js'
 import { handleStudioContentRoute } from './src/main/webApi/studioContentRoutes.js'
 import { handleMarketRoute } from './src/main/webApi/marketRoutes.js'
+import { handleVectorRoute } from './src/main/webApi/vectorRoutes.js'
 
 export function createWebServerPlugins() {
   const configuredBooksDir = String(process.env.NOVEL_BOOKS_DIR || '').trim()
@@ -721,6 +721,18 @@ export function createWebServerPlugins() {
             })
           ) {
             return
+          } else if (
+            await handleVectorRoute({
+              path,
+              body,
+              res,
+              booksDir: getActiveBooksDir(),
+              sendJson,
+              sanitizeText,
+              resolveBookPath: resolveBookPathForWebPayload
+            })
+          ) {
+            return
           } else if (path === '/api/books/cover' || path === '/api/books/image') {
               const url = new URL(req.url, 'http://localhost')
               const bookName = sanitizeText(url.searchParams.get('book'))
@@ -1051,44 +1063,6 @@ export function createWebServerPlugins() {
                 count += 1
               }
               sendJson(res, { success: true, count })
-            } else if (path === '/api/vector/search') {
-              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
-                ensure: true
-              })
-              const query = sanitizeText(body.query || body.queryText)
-              if (!query) {
-                throw Object.assign(new Error('搜索内容不能为空'), { statusCode: 400 })
-              }
-              if (!body.embeddingConfig || typeof body.embeddingConfig !== 'object') {
-                throw Object.assign(new Error('缺少 Embedding 配置'), { statusCode: 400 })
-              }
-              sendJson(res, {
-                success: true,
-                items: await vectorService.search(bookPath, query, body.embeddingConfig, {
-                  limit: Number(body.limit) || 5,
-                  filter: body.filter
-                })
-              })
-            } else if (path === '/api/vector/stats') {
-              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
-                ensure: true
-              })
-              sendJson(res, {
-                success: true,
-                ...(await vectorService.getStats(bookPath))
-              })
-            } else if (path === '/api/vector/delete-source') {
-              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
-                ensure: true
-              })
-              const sourceExtractionId = sanitizeText(body.sourceExtractionId)
-              if (!sourceExtractionId) {
-                throw Object.assign(new Error('缺少来源 ID'), { statusCode: 400 })
-              }
-              sendJson(res, {
-                success: true,
-                ...(await vectorService.deleteBySource(bookPath, sourceExtractionId))
-              })
             } else if (path === '/api/plot-evolution/evolve') {
               const selections = Array.isArray(body.providerIds)
                 ? body.providerIds
