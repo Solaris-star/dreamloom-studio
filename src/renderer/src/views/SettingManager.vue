@@ -289,6 +289,8 @@ import { Delete, Edit, Plus } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { genId } from '@renderer/utils/utils'
 import Sortable from 'sortablejs'
+import { readSettingsDocument, writeSettingsDocument } from '@renderer/service/editor'
+import { refineSettingWithAI } from '@renderer/service/settingAi'
 
 const DEFAULT_CATEGORY_ID = 'default'
 
@@ -522,7 +524,7 @@ function getCategorySettingCount(category) {
 
 async function loadSettings() {
   try {
-    const data = await window.electron.readSettings(bookName)
+    const data = await readSettingsDocument(bookName)
     const normalized = normalizeSettingsData(data)
     categories.value = normalized.categories
     activeCategoryId.value = categories.value[0]?.id || DEFAULT_CATEGORY_ID
@@ -539,10 +541,7 @@ async function saveSettings() {
     const payload = {
       categories: clonePlainData(toRaw(categories.value))
     }
-    const result = await window.electron.writeSettings(bookName, payload)
-    if (!result.success) {
-      throw new Error(result.message || t('settingManager.saveFailed'))
-    }
+    await writeSettingsDocument(bookName, payload)
   } catch (error) {
     console.error('保存设定管理数据失败:', error)
     ElMessage.error(t('settingManager.saveFailed'))
@@ -813,22 +812,16 @@ async function handleRunAiRefine() {
     return
   }
 
-  if (!window.electron?.refineSettingWithAI) {
-    ElMessage.error(t('settingManager.aiUnsupported'))
-    return
-  }
-
   aiRefining.value = true
   try {
-    const result = await window.electron.refineSettingWithAI({
-      settingName: String(target.item.name || '').trim(),
-      sourceContent: String(target.item.introduction || '').trim(),
-      userInstruction: String(aiRefineRequirement.value || '').trim()
-    })
-
-    if (!result?.success) {
-      throw new Error(result?.message || t('settingManager.aiRefineFailed'))
-    }
+    const result = await refineSettingWithAI(
+      {
+        settingName: String(target.item.name || '').trim(),
+        sourceContent: String(target.item.introduction || '').trim(),
+        userInstruction: String(aiRefineRequirement.value || '').trim()
+      },
+      t('settingManager.aiRefineFailed')
+    )
 
     const content = String(result.content || '').trim()
     if (!content) {

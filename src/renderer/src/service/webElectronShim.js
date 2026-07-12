@@ -778,9 +778,6 @@ function buildElectronShim() {
     readNote: (bookName, notebookName, noteName) =>
       postJson('/api/notes/read', { bookName, notebookName, noteName }),
     editNote: (noteInfo) => postJson('/api/notes/edit', noteInfo),
-    exportOrganizationToNote: (payload) =>
-      postJson('/api/organizations/export-note', payload || {}),
-
     // ----- 统计 / 字数 -----
     getBookWordCount: async (bookName) => {
       const result = await postJson('/api/analytics/overview', { bookId: bookName, bookName })
@@ -815,50 +812,6 @@ function buildElectronShim() {
       postJson('/api/studio/outline-ai-sessions/read', { bookName }),
     writeOutlineAiSessions: (bookName, data) =>
       postJson('/api/studio/outline-ai-sessions/write', { bookName, data }),
-    readMaps: async (bookName) => {
-      const result = await postJson('/api/studio/maps/list', { bookName })
-      const maps = unwrapResultData(result, '读取地图列表失败')
-      if (Array.isArray(maps)) return maps
-      throw new Error('读取地图列表失败：接口返回格式不正确')
-    },
-    createMap: async (payload) =>
-      requireSuccessResult(await postJson('/api/studio/maps/create', payload), '创建地图失败'),
-    updateMap: async (payload) =>
-      requireSuccessResult(await postJson('/api/studio/maps/update', payload), '保存地图失败'),
-    readMapImage: async (payload) =>
-      unwrapResultData(await postJson('/api/studio/maps/image', payload), '读取地图图片失败'),
-    deleteMap: async (payload) =>
-      requireSuccessResult(await postJson('/api/studio/maps/delete', payload), '删除地图失败'),
-    saveMapData: async (payload) =>
-      requireSuccessResult(
-        await postJson('/api/studio/maps/data/save', payload),
-        '保存地图数据失败'
-      ),
-    loadMapData: async (payload) =>
-      unwrapResultData(await postJson('/api/studio/maps/data/load', payload), '读取地图数据失败'),
-    readSettings: (bookName) => postJson('/api/studio/settings/read', { bookName }),
-    writeSettings: (bookName, data) => postJson('/api/studio/settings/write', { bookName, data }),
-    readRelationships: (bookName) => postJson('/api/studio/relationships/list', { bookName }),
-    readRelationshipData: (bookName, relationshipName) =>
-      postJson('/api/studio/relationships/read', { bookName, relationshipName }),
-    createRelationship: (payload) => postJson('/api/studio/relationships/create', payload),
-    saveRelationshipData: (bookName, relationshipName, relationshipData) =>
-      postJson('/api/studio/relationships/write', { bookName, relationshipName, relationshipData }),
-    updateRelationshipThumbnail: (payload) =>
-      postJson('/api/studio/relationships/thumbnail', payload),
-    deleteRelationship: (payload) => postJson('/api/studio/relationships/delete', payload),
-    readRelationshipImage: (payload) => postJson('/api/studio/relationships/image', payload),
-    readOrganizations: (bookName) => postJson('/api/studio/organizations/list', { bookName }),
-    readOrganization: (bookName, organizationName) =>
-      postJson('/api/studio/organizations/read', { bookName, organizationName }),
-    createOrganization: (payload) => postJson('/api/studio/organizations/create', payload),
-    writeOrganization: (bookName, organizationName, organizationData) =>
-      postJson('/api/studio/organizations/write', { bookName, organizationName, organizationData }),
-    updateOrganizationThumbnail: (payload) =>
-      postJson('/api/studio/organizations/thumbnail', payload),
-    readOrganizationImage: (payload) => postJson('/api/studio/organizations/image', payload),
-    deleteOrganization: (payload) => postJson('/api/studio/organizations/delete', payload),
-
     // ----- 禁词 -----
     getBannedWords: getWebBannedWords,
     addBannedWord: addWebBannedWord,

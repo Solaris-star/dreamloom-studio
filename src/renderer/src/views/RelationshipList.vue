@@ -114,6 +114,12 @@ import { Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { genId } from '@renderer/utils/utils'
 import { useI18n } from 'vue-i18n'
+import {
+  createRelationshipGraph,
+  deleteRelationshipGraph,
+  readRelationshipGraphImage,
+  readRelationshipGraphs
+} from '@renderer/service/editor'
 
 const router = useRouter()
 const route = useRoute()
@@ -144,18 +150,16 @@ const rules = {
 // 加载关系图列表
 const loadRelationships = async () => {
   try {
-    const result = await window.electron.readRelationships(bookName)
-    relationships.value = result || []
+    relationships.value = await readRelationshipGraphs(bookName)
 
     // 加载每个关系图的图片
     for (const relationship of relationships.value) {
       if (relationship.thumbnail) {
         try {
-          const imageData = await window.electron.readRelationshipImage({
+          relationshipImages.value[relationship.id] = await readRelationshipGraphImage(
             bookName,
-            imageName: relationship.thumbnail
-          })
-          relationshipImages.value[relationship.id] = imageData
+            relationship.thumbnail
+          )
         } catch (error) {
           console.error('读取关系图缩略图失败:', error)
           relationshipImages.value[relationship.id] = getDefaultImage()
@@ -201,11 +205,7 @@ const handleCreateRelationship = async () => {
       updatedAt: new Date().toISOString()
     }
 
-    await window.electron.createRelationship({
-      bookName,
-      relationshipName: createForm.value.name,
-      relationshipData
-    })
+    await createRelationshipGraph(bookName, createForm.value.name, relationshipData)
 
     ElMessage.success('创建成功')
     showCreateDialog.value = false
@@ -255,10 +255,7 @@ const confirmDelete = async () => {
   if (!selectedRelationship.value) return
 
   try {
-    await window.electron.deleteRelationship({
-      bookName,
-      relationshipName: selectedRelationship.value.name
-    })
+    await deleteRelationshipGraph(bookName, selectedRelationship.value.name)
     ElMessage.success('删除成功')
     deleteDialogVisible.value = false
     selectedRelationship.value = null

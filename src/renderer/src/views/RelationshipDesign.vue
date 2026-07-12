@@ -162,7 +162,12 @@ import { genId } from '@renderer/utils/utils'
 import { bookImageUrl } from '@renderer/utils/webImageUrl'
 import { selectBrowserImage } from '@renderer/service/browserImagePicker'
 import { useI18n } from 'vue-i18n'
-import { readCharactersDocument } from '@renderer/service/editor'
+import {
+  readCharactersDocument,
+  readRelationshipGraphData,
+  writeRelationshipGraphData,
+  writeRelationshipGraphThumbnail
+} from '@renderer/service/editor'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -237,7 +242,7 @@ const loadCharacters = async () => {
 // 加载关系图数据
 const loadRelationshipData = async () => {
   try {
-    const data = await window.electron.readRelationshipData(bookName, relationshipName)
+    const data = await readRelationshipGraphData(bookName, relationshipName)
     if (data) {
       // 数据格式迁移：将旧格式的属性迁移到 data 对象中
       const migratedNodes = Array.isArray(data.nodes)
@@ -328,7 +333,7 @@ const handleSave = async () => {
     relationshipData.updatedAt = new Date().toISOString()
 
     // 保存关系图数据
-    await window.electron.saveRelationshipData(
+    await writeRelationshipGraphData(
       bookName,
       relationshipName,
       clonePlainData(relationshipData)
@@ -338,11 +343,7 @@ const handleSave = async () => {
     if (relationshipData.nodes.length > 0) {
       // 获取图表实例, 获取图片base64
       const imageBase64 = await graphRef.value.getInstance().getImageBase64()
-      await window.electron.updateRelationshipThumbnail({
-        bookName,
-        relationshipName,
-        thumbnailData: imageBase64
-      })
+      await writeRelationshipGraphThumbnail(bookName, relationshipName, imageBase64)
     }
 
     ElMessage.success(t('relationshipDesign.saveSuccess'))

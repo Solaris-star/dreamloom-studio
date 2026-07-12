@@ -146,6 +146,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeftBold } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
+import { readMapDataDocument, updateMapDocument } from '@renderer/service/editor'
 
 // 导入 composables
 import { useCanvasState } from '@renderer/composables/map/useCanvasState'
@@ -1041,7 +1042,7 @@ async function handleSaveMap() {
     const mapData = elements.serialize(backgroundColor.value)
 
     // 保存图片和数据到文件系统
-    await window.electron.updateMap({
+    await updateMapDocument({
       bookName,
       mapName: mapName.value,
       imageData,
@@ -1144,10 +1145,7 @@ async function loadMapData() {
   if (!mapName.value || !bookName) return
 
   try {
-    const mapData = await window.electron.loadMapData({
-      bookName,
-      mapName: mapName.value
-    })
+    const mapData = await readMapDataDocument(bookName, mapName.value)
 
     if (mapData) {
       // 使用elements的deserialize方法恢复数据，并获取背景色

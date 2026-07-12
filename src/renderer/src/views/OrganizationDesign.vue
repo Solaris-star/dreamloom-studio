@@ -153,6 +153,12 @@ import { Check, Download, Warning } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { genId } from '@renderer/utils/utils'
 import { useI18n } from 'vue-i18n'
+import {
+  exportOrganizationGraphToNote,
+  readOrganizationGraphData,
+  writeOrganizationGraphData,
+  writeOrganizationGraphThumbnail
+} from '@renderer/service/editor'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -761,15 +767,11 @@ const handleExportToNote = async () => {
     exporting.value = true
     syncGraphNodePositions()
 
-    const result = await window.electron.exportOrganizationToNote({
+    await exportOrganizationGraphToNote({
       bookName,
       organizationName: organizationName.value || organizationId,
       content: buildOrganizationNoteContent()
     })
-
-    if (!result?.success) {
-      throw new Error(result?.message || t('organizationDesign.exportToNoteFailed'))
-    }
 
     ElMessage.success(
       t('organizationDesign.exportToNoteSuccess', {
@@ -788,15 +790,9 @@ const handleExportToNote = async () => {
 // 加载组织架构数据
 const loadOrganizationData = async () => {
   try {
-    const result = await window.electron.readOrganization(bookName, organizationId)
-
-    if (result.success && result.data) {
-      organizationData.value = result.data
-      organizationName.value = result.data.name || organizationId
-    } else {
-      console.error('组织架构数据加载失败:', result)
-      ElMessage.error(t('organizationDesign.loadFailed'))
-    }
+    const data = await readOrganizationGraphData(bookName, organizationId)
+    organizationData.value = data
+    organizationName.value = data.name || organizationId
   } catch (error) {
     console.error('加载组织架构数据失败:', error)
     ElMessage.error(t('organizationDesign.loadFailed'))
@@ -814,7 +810,7 @@ const handleSave = async () => {
     organizationData.value.updatedAt = new Date().toISOString()
 
     // 保存组织架构数据 - 使用深拷贝确保数据可序列化
-    await window.electron.writeOrganization(
+    await writeOrganizationGraphData(
       bookName,
       organizationId,
       clonePlainData(organizationData.value)
@@ -824,11 +820,7 @@ const handleSave = async () => {
     if (organizationData.value.nodes.length > 0) {
       // 获取图表实例, 获取图片base64
       const imageBase64 = await graphRef.value.getInstance().getImageBase64()
-      await window.electron.updateOrganizationThumbnail({
-        bookName,
-        organizationId,
-        thumbnailData: imageBase64
-      })
+      await writeOrganizationGraphThumbnail(bookName, organizationId, imageBase64)
     }
 
     ElMessage.success(t('organizationDesign.saveSuccess'))

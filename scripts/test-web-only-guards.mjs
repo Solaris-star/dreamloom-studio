@@ -95,6 +95,8 @@ for (const [file, label] of [
   )
 }
 const editorPanelSource = read('src/renderer/src/components/Editor/EditorPanel.vue')
+const editorServiceSource = read('src/renderer/src/service/editor.js')
+const webShimSource = read('src/renderer/src/service/webElectronShim.js')
 assert.doesNotMatch(
   editorPanelSource,
   /window\.electron(?:Store)?\b/,
@@ -112,6 +114,56 @@ for (const method of [
     editorPanelSource,
     new RegExp(`window\\.electron(?:\\?\\.)?\\.${method}\\b`),
     `正文编辑面板不应再通过 Electron 调用 ${method}`
+  )
+}
+for (const method of [
+  'readSettings',
+  'writeSettings',
+  'readMaps',
+  'createMap',
+  'updateMap',
+  'loadMapData',
+  'deleteMap',
+  'readRelationships',
+  'readRelationshipData',
+  'createRelationship',
+  'saveRelationshipData',
+  'updateRelationshipThumbnail',
+  'readRelationshipImage',
+  'deleteRelationship',
+  'readOrganizations',
+  'readOrganization',
+  'createOrganization',
+  'writeOrganization',
+  'updateOrganizationThumbnail',
+  'readOrganizationImage',
+  'deleteOrganization',
+  'exportOrganizationToNote'
+]) {
+  assert.doesNotMatch(
+    editorServiceSource,
+    new RegExp(`requireElectronApi\\(['"]${method}['"]`),
+    `创作资料服务不应再通过 Electron 调用 ${method}`
+  )
+  assert.doesNotMatch(
+    webShimSource,
+    new RegExp(`\\b${method}:`),
+    `Web shim 不应保留已迁移的创作资料方法：${method}`
+  )
+}
+for (const file of [
+  'src/renderer/src/views/MapList.vue',
+  'src/renderer/src/views/MapDesign.vue',
+  'src/renderer/src/views/OrganizationList.vue',
+  'src/renderer/src/views/OrganizationDesign.vue',
+  'src/renderer/src/views/RelationshipList.vue',
+  'src/renderer/src/views/RelationshipDesign.vue',
+  'src/renderer/src/views/SettingManager.vue'
+]) {
+  assert.doesNotMatch(
+    read(file),
+    /window\.electron(?:Store)?\b/,
+    `${file} 必须直接使用 Web 创作资料服务`
   )
 }
 assert.doesNotMatch(
@@ -142,8 +194,6 @@ for (const [file, label] of [
     `${label}必须直接使用 Web 服务`
   )
 }
-const editorServiceSource = read('src/renderer/src/service/editor.js')
-const webShimSource = read('src/renderer/src/service/webElectronShim.js')
 for (const method of [
   'getChapterSettings',
   'getSortOrder',

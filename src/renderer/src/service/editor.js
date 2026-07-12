@@ -529,6 +529,14 @@ function requireMapDataResult(response) {
   if (response.success === false) {
     throw new Error(response.message || response.error || '读取地图画板数据失败')
   }
+  if (response.success === true) {
+    const data = response.data
+    if (data == null) return null
+    if (typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('读取地图画板数据失败：接口返回格式不正确')
+    }
+    return data
+  }
   return response
 }
 
@@ -1678,7 +1686,7 @@ export async function readSettingsDocument(bookName) {
   if (!targetBookName) {
     throw new Error('读取设定失败：缺少作品名')
   }
-  const response = await requireElectronApi('readSettings', '设定读取接口')(targetBookName)
+  const response = await postJson('/api/studio/settings/read', { bookName: targetBookName })
   return requireSettingsReadResult(response)
 }
 
@@ -1693,10 +1701,10 @@ export async function writeSettingsDocument(bookName, payload = {}) {
   if (!Array.isArray(payload.categories)) {
     throw new Error('保存设定失败：设定分类格式不正确')
   }
-  const response = await requireElectronApi('writeSettings', '设定写入接口')(
-    targetBookName,
-    payload
-  )
+  const response = await postJson('/api/studio/settings/write', {
+    bookName: targetBookName,
+    data: payload
+  })
   return requireSettingsDocumentWriteResult(response, payload.categories)
 }
 
@@ -1791,7 +1799,7 @@ export async function readMapDocuments(bookName) {
   if (!targetBookName) {
     throw new Error('读取地图失败：缺少作品名')
   }
-  const response = await requireElectronApi('readMaps', '地图读取接口')(targetBookName)
+  const response = await postJson('/api/studio/maps/list', { bookName: targetBookName })
   return requireMapRowsResult(response)
 }
 
@@ -1808,10 +1816,7 @@ export async function createMapDocument(payload = {}) {
   if (!imageData) {
     throw new Error('创建地图失败：缺少图片数据')
   }
-  const response = await requireElectronApi(
-    'createMap',
-    '地图创建接口'
-  )({
+  const response = await postJson('/api/studio/maps/create', {
     bookName: targetBookName,
     mapName: targetMapName,
     description: String(payload.description || ''),
@@ -1836,10 +1841,7 @@ export async function updateMapDocument(payload = {}) {
   if (!imageData) {
     throw new Error('保存地图失败：缺少图片数据')
   }
-  const response = await requireElectronApi(
-    'updateMap',
-    '地图写入接口'
-  )({
+  const response = await postJson('/api/studio/maps/update', {
     bookName: targetBookName,
     mapName: targetMapName,
     imageData,
@@ -1861,10 +1863,7 @@ export async function readMapDataDocument(bookName, mapName) {
   if (!targetMapName) {
     throw new Error('读取地图画板数据失败：缺少地图名')
   }
-  const response = await requireElectronApi(
-    'loadMapData',
-    '地图画板读取接口'
-  )({
+  const response = await postJson('/api/studio/maps/data/load', {
     bookName: targetBookName,
     mapName: targetMapName
   })
@@ -1880,10 +1879,7 @@ export async function deleteMapDocument(bookName, mapName) {
   if (!targetMapName) {
     throw new Error('删除地图失败：缺少地图名')
   }
-  const response = await requireElectronApi(
-    'deleteMap',
-    '地图删除接口'
-  )({
+  const response = await postJson('/api/studio/maps/delete', {
     bookName: targetBookName,
     mapName: targetMapName
   })
@@ -1897,7 +1893,9 @@ export async function readRelationshipGraphs(bookName) {
   if (!targetBookName) {
     throw new Error('读取关系图失败：缺少作品名')
   }
-  const response = await requireElectronApi('readRelationships', '关系图读取接口')(targetBookName)
+  const response = await postJson('/api/studio/relationships/list', {
+    bookName: targetBookName
+  })
   return requireStudioGraphRowsResult(response, '读取关系图')
 }
 
@@ -1910,10 +1908,10 @@ export async function readRelationshipGraphData(bookName, graphName) {
   if (!targetGraphName) {
     throw new Error('读取关系图失败：缺少图谱名')
   }
-  const response = await requireElectronApi('readRelationshipData', '关系图读取接口')(
-    targetBookName,
-    targetGraphName
-  )
+  const response = await postJson('/api/studio/relationships/read', {
+    bookName: targetBookName,
+    relationshipName: targetGraphName
+  })
   return requireStudioGraphDataResult(response, '读取关系图')
 }
 
@@ -1929,10 +1927,7 @@ export async function createRelationshipGraph(bookName, graphName, graphData = {
   if (!graphData || typeof graphData !== 'object' || Array.isArray(graphData)) {
     throw new Error('创建关系图失败：图谱内容格式不正确')
   }
-  const response = await requireElectronApi(
-    'createRelationship',
-    '关系图创建接口'
-  )({
+  const response = await postJson('/api/studio/relationships/create', {
     bookName: targetBookName,
     relationshipName: targetGraphName,
     relationshipData: graphData
@@ -1959,11 +1954,11 @@ export async function writeRelationshipGraphData(bookName, graphName, graphData 
   if (!graphData || typeof graphData !== 'object' || Array.isArray(graphData)) {
     throw new Error('保存关系图失败：图谱内容格式不正确')
   }
-  const response = await requireElectronApi('saveRelationshipData', '关系图写入接口')(
-    targetBookName,
-    targetGraphName,
-    graphData
-  )
+  const response = await postJson('/api/studio/relationships/write', {
+    bookName: targetBookName,
+    relationshipName: targetGraphName,
+    relationshipData: graphData
+  })
   return requireStudioGraphWriteResult(response, {
     graphName: safeDocumentName(targetGraphName),
     assetType: 'relationship',
@@ -1986,10 +1981,7 @@ export async function writeRelationshipGraphThumbnail(bookName, graphName, thumb
   if (typeof thumbnailData !== 'string' || !thumbnailData.trim()) {
     throw new Error('保存关系图缩略图失败：缺少图片数据')
   }
-  const response = await requireElectronApi(
-    'updateRelationshipThumbnail',
-    '关系图缩略图写入接口'
-  )({
+  const response = await postJson('/api/studio/relationships/thumbnail', {
     bookName: targetBookName,
     relationshipName: targetGraphName,
     thumbnailData
@@ -2011,10 +2003,7 @@ export async function readRelationshipGraphImage(bookName, imageName) {
   if (!targetImageName) {
     throw new Error('读取关系图缩略图失败：缺少图片名')
   }
-  const response = await requireElectronApi(
-    'readRelationshipImage',
-    '关系图缩略图读取接口'
-  )({
+  const response = await postJson('/api/studio/relationships/image', {
     bookName: targetBookName,
     imageName: targetImageName
   })
@@ -2030,10 +2019,7 @@ export async function deleteRelationshipGraph(bookName, graphName) {
   if (!targetGraphName) {
     throw new Error('删除关系图失败：缺少图谱名')
   }
-  const response = await requireElectronApi(
-    'deleteRelationship',
-    '关系图删除接口'
-  )({
+  const response = await postJson('/api/studio/relationships/delete', {
     bookName: targetBookName,
     relationshipName: targetGraphName
   })
@@ -2050,7 +2036,9 @@ export async function readOrganizationGraphs(bookName) {
   if (!targetBookName) {
     throw new Error('读取势力图失败：缺少作品名')
   }
-  const response = await requireElectronApi('readOrganizations', '势力图读取接口')(targetBookName)
+  const response = await postJson('/api/studio/organizations/list', {
+    bookName: targetBookName
+  })
   return requireStudioGraphRowsResult(response, '读取势力图')
 }
 
@@ -2063,10 +2051,10 @@ export async function readOrganizationGraphData(bookName, graphName) {
   if (!targetGraphName) {
     throw new Error('读取势力图失败：缺少图谱名')
   }
-  const response = await requireElectronApi('readOrganization', '势力图读取接口')(
-    targetBookName,
-    targetGraphName
-  )
+  const response = await postJson('/api/studio/organizations/read', {
+    bookName: targetBookName,
+    organizationName: targetGraphName
+  })
   return requireStudioGraphDataResult(response, '读取势力图')
 }
 
@@ -2082,10 +2070,7 @@ export async function createOrganizationGraph(bookName, graphName, graphData = {
   if (!graphData || typeof graphData !== 'object' || Array.isArray(graphData)) {
     throw new Error('创建势力图失败：图谱内容格式不正确')
   }
-  const response = await requireElectronApi(
-    'createOrganization',
-    '势力图创建接口'
-  )({
+  const response = await postJson('/api/studio/organizations/create', {
     bookName: targetBookName,
     organizationName: targetGraphName,
     organizationData: graphData
@@ -2112,11 +2097,11 @@ export async function writeOrganizationGraphData(bookName, graphName, graphData 
   if (!graphData || typeof graphData !== 'object' || Array.isArray(graphData)) {
     throw new Error('保存势力图失败：图谱内容格式不正确')
   }
-  const response = await requireElectronApi('writeOrganization', '势力图写入接口')(
-    targetBookName,
-    targetGraphName,
-    graphData
-  )
+  const response = await postJson('/api/studio/organizations/write', {
+    bookName: targetBookName,
+    organizationName: targetGraphName,
+    organizationData: graphData
+  })
   return requireStudioGraphWriteResult(response, {
     graphName: safeDocumentName(targetGraphName),
     assetType: 'organization',
@@ -2139,10 +2124,7 @@ export async function writeOrganizationGraphThumbnail(bookName, graphName, thumb
   if (typeof thumbnailData !== 'string' || !thumbnailData.trim()) {
     throw new Error('保存势力图缩略图失败：缺少图片数据')
   }
-  const response = await requireElectronApi(
-    'updateOrganizationThumbnail',
-    '势力图缩略图写入接口'
-  )({
+  const response = await postJson('/api/studio/organizations/thumbnail', {
     bookName: targetBookName,
     organizationId: targetGraphName,
     thumbnailData
@@ -2164,10 +2146,7 @@ export async function readOrganizationGraphImage(bookName, imageName) {
   if (!targetImageName) {
     throw new Error('读取势力图缩略图失败：缺少图片名')
   }
-  const response = await requireElectronApi(
-    'readOrganizationImage',
-    '势力图缩略图读取接口'
-  )({
+  const response = await postJson('/api/studio/organizations/image', {
     bookName: targetBookName,
     imageName: targetImageName
   })
@@ -2183,10 +2162,7 @@ export async function deleteOrganizationGraph(bookName, graphName) {
   if (!targetGraphName) {
     throw new Error('删除势力图失败：缺少图谱名')
   }
-  const response = await requireElectronApi(
-    'deleteOrganization',
-    '势力图删除接口'
-  )({
+  const response = await postJson('/api/studio/organizations/delete', {
     bookName: targetBookName,
     organizationName: targetGraphName
   })
@@ -2208,10 +2184,7 @@ export async function exportOrganizationGraphToNote(payload = {}) {
   if (!targetGraphName) {
     throw new Error('导出势力图到笔记失败：缺少图谱名')
   }
-  const response = await requireElectronApi(
-    'exportOrganizationToNote',
-    '势力图导出笔记接口'
-  )({
+  const response = await postJson('/api/organizations/export-note', {
     bookName: targetBookName,
     organizationName: targetGraphName,
     content

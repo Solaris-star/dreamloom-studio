@@ -114,6 +114,12 @@ import { Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { genId } from '@renderer/utils/utils'
 import { useI18n } from 'vue-i18n'
+import {
+  createOrganizationGraph,
+  deleteOrganizationGraph,
+  readOrganizationGraphImage,
+  readOrganizationGraphs
+} from '@renderer/service/editor'
 
 const router = useRouter()
 const route = useRoute()
@@ -149,30 +155,23 @@ const getDefaultImage = () => {
 // 加载组织架构列表
 const loadOrganizations = async () => {
   try {
-    const result = await window.electron.readOrganizations(bookName)
-    if (result.success) {
-      organizations.value = result.data || []
+    organizations.value = await readOrganizationGraphs(bookName)
 
-      // 加载每个组织架构的图片
-      for (const organization of organizations.value) {
-        if (organization.thumbnail) {
-          try {
-            const imageData = await window.electron.readOrganizationImage({
-              bookName,
-              imageName: organization.thumbnail
-            })
-            organizationImages.value[organization.id] = imageData
-          } catch (error) {
-            console.error('读取组织架构缩略图失败:', error)
-            organizationImages.value[organization.id] = getDefaultImage()
-          }
-        } else {
+    // 加载每个组织架构的图片
+    for (const organization of organizations.value) {
+      if (organization.thumbnail) {
+        try {
+          organizationImages.value[organization.id] = await readOrganizationGraphImage(
+            bookName,
+            organization.thumbnail
+          )
+        } catch (error) {
+          console.error('读取组织架构缩略图失败:', error)
           organizationImages.value[organization.id] = getDefaultImage()
         }
+      } else {
+        organizationImages.value[organization.id] = getDefaultImage()
       }
-    } else {
-      console.error('加载组织架构失败:', result.error)
-      ElMessage.error(t('organizationList.loadFailed'))
     }
   } catch (error) {
     console.error('加载组织架构失败:', error)
@@ -214,11 +213,7 @@ const handleCreateOrganization = async () => {
       updatedAt: new Date().toISOString()
     }
 
-    await window.electron.createOrganization({
-      bookName,
-      organizationName: createForm.value.name,
-      organizationData
-    })
+    await createOrganizationGraph(bookName, createForm.value.name, organizationData)
 
     // 保存组织名称用于跳转
     const organizationName = createForm.value.name
@@ -275,10 +270,7 @@ const confirmDelete = async () => {
   if (!selectedOrganization.value) return
 
   try {
-    await window.electron.deleteOrganization({
-      bookName,
-      organizationName: selectedOrganization.value.name
-    })
+    await deleteOrganizationGraph(bookName, selectedOrganization.value.name)
 
     ElMessage.success(t('organizationList.deleteSuccess'))
     deleteDialogVisible.value = false

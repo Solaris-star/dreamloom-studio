@@ -103,6 +103,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import { createMapDocument, deleteMapDocument, readMapDocuments } from '@renderer/service/editor'
 
 const router = useRouter()
 const route = useRoute()
@@ -132,7 +133,7 @@ const rules = {
 // 加载地图列表
 const loadMaps = async () => {
   try {
-    const result = await window.electron.readMaps(bookName)
+    const result = await readMapDocuments(bookName)
     maps.value = result
   } catch (error) {
     console.error('加载地图列表失败:', error)
@@ -169,7 +170,7 @@ const handleCreateMap = async () => {
     // 保存地图名称用于跳转
     const createdMapName = createForm.value.name
 
-    await window.electron.createMap({
+    await createMapDocument({
       bookName,
       mapName: createdMapName,
       description: createForm.value.description || '',
@@ -227,10 +228,7 @@ const confirmDelete = async () => {
   if (!selectedMap.value) return
 
   try {
-    await window.electron.deleteMap({
-      bookName,
-      mapName: selectedMap.value.name
-    })
+    await deleteMapDocument(bookName, selectedMap.value.name)
     ElMessage.success('删除成功')
     deleteDialogVisible.value = false
     selectedMap.value = null

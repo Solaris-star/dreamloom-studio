@@ -133,4 +133,68 @@ assert.equal(request.url, '/api/studio/entity-profiles/read')
 response = { success: true, data: null }
 await assert.rejects(() => service.readDictionaryDocument('作品'), /接口返回格式不正确/)
 
+response = { success: true, data: [{ name: '王都' }] }
+assert.equal((await service.readMapDocuments('作品')).length, 1)
+assert.deepEqual(request, {
+  url: '/api/studio/maps/list',
+  payload: { bookName: '作品' }
+})
+
+response = { success: true, data: { backgroundColor: '#ffffff', elements: [] } }
+assert.deepEqual(await service.readMapDataDocument('作品', '王都'), {
+  backgroundColor: '#ffffff',
+  elements: []
+})
+assert.deepEqual(request, {
+  url: '/api/studio/maps/data/load',
+  payload: { bookName: '作品', mapName: '王都' }
+})
+
+response = { success: true, data: [{ id: '关系一', name: '关系一' }] }
+assert.equal((await service.readRelationshipGraphs('作品')).length, 1)
+assert.equal(request.url, '/api/studio/relationships/list')
+
+response = { success: true, data: { name: '关系一', nodes: [], lines: [] } }
+assert.equal((await service.readRelationshipGraphData('作品', '关系一')).name, '关系一')
+assert.deepEqual(request, {
+  url: '/api/studio/relationships/read',
+  payload: { bookName: '作品', relationshipName: '关系一' }
+})
+
+response = { success: true, data: [{ id: '宗门', name: '宗门' }] }
+assert.equal((await service.readOrganizationGraphs('作品')).length, 1)
+assert.equal(request.url, '/api/studio/organizations/list')
+
+response = { success: true, data: { name: '宗门', nodes: [], lines: [] } }
+assert.equal((await service.readOrganizationGraphData('作品', '宗门')).name, '宗门')
+assert.deepEqual(request, {
+  url: '/api/studio/organizations/read',
+  payload: { bookName: '作品', organizationName: '宗门' }
+})
+
+response = { success: true, data: { categories: [] } }
+assert.deepEqual(await service.readSettingsDocument('作品'), { categories: [] })
+assert.deepEqual(request, {
+  url: '/api/studio/settings/read',
+  payload: { bookName: '作品' }
+})
+
+response = {
+  success: true,
+  fileName: 'settings.json',
+  documentType: 'settings',
+  path: 'D:/books/作品/settings.json',
+  documentPath: 'D:/books/作品/settings.json',
+  itemCount: 0,
+  databaseSync: { success: true }
+}
+await service.writeSettingsDocument('作品', { categories: [] })
+assert.deepEqual(request, {
+  url: '/api/studio/settings/write',
+  payload: { bookName: '作品', data: { categories: [] } }
+})
+
+response = { success: false, message: '关系图损坏' }
+await assert.rejects(() => service.readRelationshipGraphData('作品', '关系一'), /关系图损坏/)
+
 console.log('Web 编辑器章节树与笔记服务测试通过')

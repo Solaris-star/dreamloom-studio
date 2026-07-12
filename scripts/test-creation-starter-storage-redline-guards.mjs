@@ -118,7 +118,7 @@ for (const forbidden of [
 
 for (const expected of [
   'export async function writeSettingsDocument(bookName, payload = {})',
-  "requireElectronApi('writeSettings', '设定写入接口')",
+  "postJson('/api/studio/settings/write'",
   'return requireSettingsDocumentWriteResult(response, payload.categories)',
   'export async function writeOutlineDocument(bookName, payload = {})',
   "requireElectronApi('writeOutlines', '大纲写入接口')",
