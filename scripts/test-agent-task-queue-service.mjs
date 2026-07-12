@@ -15,6 +15,7 @@ import {
   getAgentTaskQueueStatus,
   listAgentTaskQueueJobs,
   normalizeAgentTaskQueueProgress,
+  retryAgentTaskQueueJob,
   startAgentTaskWorker
 } from '../src/main/services/agentTaskQueueService.js'
 import {
@@ -308,6 +309,8 @@ try {
 
   await assert.rejects(() => cancelAgentTaskQueueJob({ jobId: 'write:test' }), /真实任务队列未启用/)
   await assert.rejects(() => cancelAgentTaskQueueJob('write:test'), /真实任务队列未启用/)
+  await assert.rejects(() => retryAgentTaskQueueJob({ jobId: 'write:test' }), /真实任务队列未启用/)
+  await assert.rejects(() => retryAgentTaskQueueJob('write:test'), /真实任务队列未启用/)
 
   const previousQueueEnabled = process.env.AGENT_TASK_QUEUE_ENABLED
   try {

@@ -104,6 +104,42 @@ async function openFirstChapter(page) {
   await expect(page.locator('.ProseMirror')).toContainText('夜雨落在青石长街上')
 }
 
+async function mockAgentQueuePage(page, options = {}) {
+  const getJob = options.getJob || (() => options.job)
+  await page.route('**/api/editor-agent/queue-status', async (route) => {
+    const job = getJob()
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        queueName: 'novel-agent-writing',
+        counts: {
+          waiting: job?.state === 'waiting' ? 1 : 0,
+          active: job?.state === 'active' ? 1 : 0,
+          completed: job?.state === 'completed' ? 1 : 0,
+          failed: job?.state === 'failed' ? 1 : 0,
+          delayed: 0,
+          paused: 0
+        },
+        workerCount: 1
+      })
+    })
+  })
+  await page.route('**/api/editor-agent/queue-jobs', async (route) => {
+    const job = getJob()
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, jobs: job ? [job] : [] })
+    })
+  })
+  await page.route('**/api/editor-agent/queue-job', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, job: getJob() || null })
+    })
+  })
+}
+
 test.beforeEach(async ({ page, request }, testInfo) => {
   await page.route('**/api/bookshelf-auth/status', async (route) => {
     await route.fulfill({
@@ -1198,6 +1234,84 @@ test('提示词保存不会重复提交且失败后保留输入', async ({ page 
   await expect(saveButton).toBeEnabled()
   await expect(page.getByText('提示词已保存')).toHaveCount(0)
   await expect.poll(() => createRequests).toBe(2)
+})
+
+test('任务队列停止失败时不会重复请求或误报成功', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '任务队列写操作巡检仅在桌面项目执行')
+  let cancelRequests = 0
+  await mockAgentQueuePage(page, {
+    job: {
+      id: 'write:e2e-active',
+      name: 'write',
+      state: 'active',
+      data: { bookName: testBookName(testInfo.project.name), chapterName: '第1章' }
+    }
+  })
+  await page.route('**/api/editor-agent/queue-cancel', async (route) => {
+    cancelRequests += 1
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 300))
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ success: false, message: '停止任务测试失败' })
+    })
+  })
+
+  await page.goto('/#/ai/queue')
+  await page.locator('.job-row').click()
+  const stopButton = page.locator('#app-main').getByRole('button', { name: '停止', exact: true })
+  await stopButton.click()
+  const confirm = page.getByRole('dialog', { name: '停止队列任务' })
+  await confirm.getByRole('button', { name: '停止', exact: true }).click()
+  await stopButton.click({ force: true })
+
+  await expect(page.getByText('停止任务测试失败')).toBeVisible()
+  await expect(page.getByText(/任务已停止|已请求停止任务/)).toHaveCount(0)
+  await expect(stopButton).toBeEnabled()
+  await expect.poll(() => cancelRequests).toBe(1)
+})
+
+test('失败任务重试不会重复提交并会刷新状态', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', '任务队列写操作巡检仅在桌面项目执行')
+  let retryRequests = 0
+  let state = 'failed'
+  await mockAgentQueuePage(page, {
+    getJob: () => ({
+      id: 'write:e2e-failed',
+      name: 'write',
+      state,
+      failedReason: state === 'failed' ? '模型服务暂时不可用' : '',
+      data: { bookName: testBookName(testInfo.project.name), chapterName: '第2章' }
+    })
+  })
+  await page.route('**/api/editor-agent/queue-retry', async (route) => {
+    retryRequests += 1
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 300))
+    state = 'waiting'
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        retried: true,
+        jobId: 'write:e2e-failed',
+        previousState: 'failed'
+      })
+    })
+  })
+
+  await page.goto('/#/ai/queue')
+  await page.locator('.job-row').click()
+  const retryButton = page.locator('#app-main').getByRole('button', { name: '重试', exact: true })
+  await retryButton.click()
+  const confirm = page.getByRole('dialog', { name: '重试队列任务' })
+  await confirm.getByRole('button', { name: '重试', exact: true }).click()
+  await retryButton.click({ force: true })
+
+  await expect(page.getByText('任务已重新加入队列')).toBeVisible()
+  await expect.poll(() => retryRequests).toBe(1)
+  await expect(page.locator('.job-row')).toContainText('等待中')
+  await expect(
+    page.locator('#app-main').getByRole('button', { name: '重试', exact: true })
+  ).toHaveCount(0)
 })
 
 test('AI 工坊运行期间不会重复提交或切换任务', async ({ page }) => {

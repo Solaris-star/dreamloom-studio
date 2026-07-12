@@ -92,6 +92,16 @@
           >
             停止
           </el-button>
+          <el-button
+            v-if="canRetrySelectedJob"
+            type="primary"
+            plain
+            :icon="RotateCcw"
+            :loading="retrying"
+            @click="retrySelectedJob"
+          >
+            重试
+          </el-button>
         </div>
 
         <p v-if="detailError" class="queue-error compact" role="alert">{{ detailError }}</p>
@@ -152,17 +162,19 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { RefreshCw, Square } from 'lucide-vue-next'
+import { RefreshCw, RotateCcw, Square } from 'lucide-vue-next'
 import {
   cancelAgentQueueJob,
   getAgentQueueJob,
   getAgentQueueStatus,
-  listAgentQueueJobs
+  listAgentQueueJobs,
+  retryAgentQueueJob
 } from '@renderer/service/editor'
 
 const loading = ref(false)
 const detailLoading = ref(false)
 const cancelling = ref(false)
+const retrying = ref(false)
 const queueStatus = ref(null)
 const jobs = ref([])
 const selectedJob = ref(null)
@@ -180,6 +192,7 @@ const workerText = computed(() => {
 const canCancelSelectedJob = computed(
   () => selectedJob.value && !['completed', 'failed'].includes(selectedJob.value.state)
 )
+const canRetrySelectedJob = computed(() => selectedJob.value?.state === 'failed')
 const jobsSummaryText = computed(() => {
   if (loading.value) return '正在读取 Redis 任务'
   if (errorText.value) return '队列读取失败'
@@ -244,7 +257,8 @@ async function loadJob(jobId, options = {}) {
 }
 
 async function cancelSelectedJob() {
-  if (!selectedJobId.value || !selectedJob.value) return
+  if (!selectedJobId.value || !selectedJob.value || cancelling.value) return
+  cancelling.value = true
   try {
     await ElMessageBox.confirm(
       '停止会移除等待中的任务，运行中的任务会向 worker 发出停止请求。',
@@ -256,9 +270,9 @@ async function cancelSelectedJob() {
       }
     )
   } catch {
+    cancelling.value = false
     return
   }
-  cancelling.value = true
   try {
     const result = await cancelAgentQueueJob({
       jobId: selectedJobId.value,
@@ -271,6 +285,33 @@ async function cancelSelectedJob() {
     ElMessage.error(error?.message || '停止任务失败')
   } finally {
     cancelling.value = false
+  }
+}
+
+async function retrySelectedJob() {
+  if (!selectedJobId.value || selectedJob.value?.state !== 'failed' || retrying.value) return
+  retrying.value = true
+  try {
+    await ElMessageBox.confirm('任务会回到等待队列，并从头重新执行。', '重试队列任务', {
+      type: 'warning',
+      confirmButtonText: '重试',
+      cancelButtonText: '取消'
+    })
+  } catch {
+    retrying.value = false
+    return
+  }
+  try {
+    await retryAgentQueueJob({
+      jobId: selectedJobId.value,
+      bookName: selectedJob.value.data?.bookName || ''
+    })
+    ElMessage.success('任务已重新加入队列')
+    await refreshQueue()
+  } catch (error) {
+    ElMessage.error(error?.message || '重试任务失败')
+  } finally {
+    retrying.value = false
   }
 }
 

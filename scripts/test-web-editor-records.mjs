@@ -51,6 +51,7 @@ const {
   openEditorSession,
   repairAgentResult,
   saveEditorMaterial,
+  retryAgentQueueJob,
   updateEditorSessionContext,
   updateModelDefaults
 } = await import('../src/renderer/src/service/editor.js')
@@ -177,6 +178,31 @@ apiResponses.set('/api/editor-agent/queue-cancel', {
 })
 await assert.rejects(
   () => cancelAgentQueueJob({ jobId: 'write:task-1' }),
+  /接口返回格式不正确/
+)
+
+apiResponses.set('/api/editor-agent/queue-retry', {
+  success: true,
+  jobId: 'write:task-1',
+  retried: true
+})
+assert.equal((await retryAgentQueueJob({ jobId: 'write:task-1' })).retried, true)
+apiResponses.set('/api/editor-agent/queue-retry', {
+  success: true,
+  jobId: 'write:another-task',
+  retried: true
+})
+await assert.rejects(
+  () => retryAgentQueueJob({ jobId: 'write:task-1' }),
+  /接口返回的任务不匹配/
+)
+apiResponses.set('/api/editor-agent/queue-retry', {
+  success: true,
+  jobId: 'write:task-1',
+  retried: false
+})
+await assert.rejects(
+  () => retryAgentQueueJob({ jobId: 'write:task-1' }),
   /接口返回格式不正确/
 )
 

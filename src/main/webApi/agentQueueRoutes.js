@@ -5,6 +5,7 @@ const ROUTES = new Set([
   '/api/editor-agent/queue-jobs',
   '/api/editor-agent/queue-job',
   '/api/editor-agent/queue-cancel',
+  '/api/editor-agent/queue-retry',
   '/api/editor-agent/queue-write',
   '/api/editor-agent/queue-repair'
 ])
@@ -70,6 +71,8 @@ export async function handleAgentQueueRoute({
       result = await queue.getAgentTaskQueueJob(payload.jobId, payload)
     } else if (path === '/api/editor-agent/queue-cancel') {
       result = await queue.cancelAgentTaskQueueJob(payload, payload)
+    } else if (path === '/api/editor-agent/queue-retry') {
+      result = await queue.retryAgentTaskQueueJob(payload, payload)
     } else if (path === '/api/editor-agent/queue-write') {
       result = await queue.enqueueAgentWriteTask(payload, payload)
     } else {

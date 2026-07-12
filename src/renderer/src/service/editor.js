@@ -2449,6 +2449,20 @@ export async function cancelAgentQueueJob(payload = {}) {
   throw new Error(response.message || '停止写作队列任务失败')
 }
 
+export async function retryAgentQueueJob(payload = {}) {
+  const response = await postJson('/api/editor-agent/queue-retry', payload)
+  if (response?.success === true) {
+    if (!response?.jobId || response.retried !== true) {
+      throw new Error('重试写作队列任务失败：接口返回格式不正确')
+    }
+    if (String(response.jobId) !== String(payload.jobId || '')) {
+      throw new Error('重试写作队列任务失败：接口返回的任务不匹配')
+    }
+    return response
+  }
+  throw new Error(response.message || '重试写作队列任务失败')
+}
+
 export async function runConsistencyCheck(payload = {}) {
   const response = await postJson('/api/consistency/check', payload)
   return requireConsistencyCheckResult(response)

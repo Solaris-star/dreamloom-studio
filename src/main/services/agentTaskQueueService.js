@@ -1249,6 +1249,41 @@ export async function cancelAgentTaskQueueJob(input = {}, options = {}) {
   return result
 }
 
+export async function retryAgentTaskQueueJob(input = {}, options = {}) {
+  requireQueueEnabled(options)
+  const jobId = cleanText(typeof input === 'string' ? input : input.jobId)
+  if (!jobId) throw new Error('缺少队列任务 ID')
+  const queue = createQueue(options)
+  const job = await queue.getJob(jobId)
+  if (!job) throw new Error('未找到队列任务')
+  const state = await job.getState()
+  if (state !== 'failed') throw new Error(`只有失败任务可以重试，当前状态：${state}`)
+
+  const data = job.data || {}
+  const booksDir = cleanText(data.booksDir || input.booksDir)
+  const bookName = cleanText(data.bookName || input.bookName)
+  const expectedBooksDir = cleanText(input.expectedBooksDir || options.expectedBooksDir)
+  const expectedBookName = cleanText(input.expectedBookName || options.expectedBookName)
+  if (expectedBooksDir) {
+    if (!booksDir) throw new Error('队列任务缺少书库目录，无法确认归属')
+    if (resolve(booksDir) !== resolve(expectedBooksDir)) throw new Error('队列任务不属于当前书库')
+  }
+  if (expectedBookName) {
+    if (!bookName) throw new Error('队列任务缺少作品名称，无法确认归属')
+    if (bookName !== expectedBookName) throw new Error('队列任务不属于当前作品')
+  }
+
+  await job.retry('failed')
+  return {
+    success: true,
+    retried: true,
+    queueName: queue.name,
+    jobId,
+    taskId: cleanText(data.taskId || input.taskId),
+    previousState: state
+  }
+}
+
 export async function closeAgentTaskQueue(options = {}) {
   const redisUrl = redisUrlFromInput(options)
   const queueName = queueNameFromInput(options)
@@ -1293,5 +1328,6 @@ export default {
   getAgentTaskQueueJob,
   listAgentTaskQueueJobs,
   cancelAgentTaskQueueJob,
+  retryAgentTaskQueueJob,
   closeAgentTaskQueue
 }

@@ -20,6 +20,10 @@ const queue = {
     calls.push(['cancel', ...args]),
     { success: true }
   ),
+  retryAgentTaskQueueJob: (...args) => (
+    calls.push(['retry', ...args]),
+    { success: true }
+  ),
   enqueueAgentWriteTask: (...args) => (
     calls.push(['write', ...args]),
     { success: true, jobId: 'j1' }
@@ -39,6 +43,7 @@ const cases = [
   ['/api/editor-agent/queue-jobs', { types: ['waiting'], limit: 5 }],
   ['/api/editor-agent/queue-job', { jobId: 'j1' }],
   ['/api/editor-agent/queue-cancel', { jobId: 'j1' }],
+  ['/api/editor-agent/queue-retry', { jobId: 'j1' }],
   ['/api/editor-agent/queue-write', { taskId: 't1' }],
   ['/api/editor-agent/queue-repair', { taskId: 't2' }]
 ]
@@ -57,6 +62,7 @@ assert.deepEqual(calls, [
   ['jobs', { types: ['waiting'], limit: 5 }],
   ['job', 'j1', { jobId: 'j1' }],
   ['cancel', { jobId: 'j1' }, { jobId: 'j1' }],
+  ['retry', { jobId: 'j1' }, { jobId: 'j1' }],
   ['write', { taskId: 't1' }, { taskId: 't1' }],
   ['repair', { taskId: 't2' }, { taskId: 't2' }]
 ])
@@ -69,6 +75,7 @@ const failed = {
   listAgentTaskQueueJobs: reject,
   getAgentTaskQueueJob: reject,
   cancelAgentTaskQueueJob: reject,
+  retryAgentTaskQueueJob: reject,
   enqueueAgentWriteTask: reject,
   enqueueAgentRepairTask: reject
 }
