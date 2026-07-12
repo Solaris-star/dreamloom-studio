@@ -980,6 +980,16 @@ export async function editBook(bookInfo = {}, booksDir) {
       return { success: false, message: '书籍元数据不存在' }
     }
 
+    const nextFolderName = safeAssetName(bookInfo.name || originalName)
+    let newBookPath = bookPath
+    if (nextFolderName !== safeAssetName(originalName)) {
+      newBookPath = resolveBookDirPath(booksDir, nextFolderName)
+      if (!newBookPath) return { success: false, message: '书籍名称无效' }
+      if (fs.existsSync(newBookPath)) {
+        return { success: false, message: '已存在同名书籍' }
+      }
+    }
+
     let coverUrl = bookInfo.coverUrl || existingMeta.coverUrl || null
     if (bookInfo.coverImagePath) {
       const savedCoverUrl = saveCoverImageSource(
@@ -1000,13 +1010,7 @@ export async function editBook(bookInfo = {}, booksDir) {
       removeBookCover(bookPath, existingMeta.coverUrl)
     }
 
-    const nextFolderName = safeAssetName(bookInfo.name || originalName)
     if (nextFolderName !== safeAssetName(originalName)) {
-      const newBookPath = resolveBookDirPath(booksDir, nextFolderName)
-      if (!newBookPath) return { success: false, message: '书籍名称无效' }
-      if (fs.existsSync(newBookPath)) {
-        return { success: false, message: '已存在同名书籍' }
-      }
       fs.renameSync(bookPath, newBookPath)
       bookPath = newBookPath
     }
