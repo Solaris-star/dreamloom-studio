@@ -124,6 +124,28 @@ assert.doesNotMatch(
   /window\.electron|ensureElectronApi/,
   '素材服务必须直接使用 Web API'
 )
+const mainAssetServiceSource = read('src/main/services/assetService.js')
+assert.match(
+  mainAssetServiceSource,
+  /if \(input\.sourcePath\) \{\s*throw new Error\('Web 服务必须通过网页上传素材内容，不能读取服务器本地路径'\)/,
+  '素材导入接口必须拒绝客户端传入服务器文件路径'
+)
+const mainImportExportServiceSource = read('src/main/services/importExportService.js')
+assert.match(
+  mainImportExportServiceSource,
+  /if \(input\.sourcePath\) \{\s*throw new Error\('Web 服务必须通过网页上传文件内容，不能读取服务器本地路径'\)/,
+  '书籍导入和备份接口必须拒绝客户端传入服务器文件路径'
+)
+assert.match(
+  read('scripts/test-asset-reference-guards.mjs'),
+  /importAsset\([\s\S]*sourcePath:[\s\S]*不能读取服务器本地路径/,
+  '素材测试必须覆盖服务器路径越权输入'
+)
+assert.match(
+  read('scripts/test-import-export-lifecycle.mjs'),
+  /previewImport\([\s\S]*sourcePath:[\s\S]*inspectBackup\([\s\S]*sourcePath:[\s\S]*不能读取服务器本地路径/,
+  '导入和备份测试必须覆盖服务器路径越权输入'
+)
 for (const [file, label] of [
   ['src/renderer/src/stores/theme.js', '主题设置'],
   ['src/renderer/src/stores/editor.js', '编辑器状态'],
