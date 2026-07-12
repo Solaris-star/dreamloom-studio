@@ -435,12 +435,13 @@ function getTrashAsset(booksDir, id) {
 }
 
 export function getAssetFile(booksDir, { id, trash = false } = {}) {
-  const filePath = trash ? getTrashAsset(booksDir, id).filePath : getActiveAssetPath(booksDir, id)
+  const trashAsset = trash ? getTrashAsset(booksDir, id) : null
+  const filePath = trashAsset?.filePath || getActiveAssetPath(booksDir, id)
   return {
     success: true,
     filePath,
     contentType: getContentType(filePath),
-    name: basename(filePath)
+    name: trashAsset?.row.name || basename(filePath)
   }
 }
 

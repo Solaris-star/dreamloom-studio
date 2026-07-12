@@ -3,10 +3,13 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {
+  attachToBook,
   deleteAsset,
   findAssetReferences,
+  getAssetFile,
   importAsset,
-  listAssets
+  listAssets,
+  restoreAsset
 } from '../src/main/services/assetService.js'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dreamloom-assets-'))
@@ -146,6 +149,91 @@ try {
   assert.equal(result.success, true)
   assert.equal(fs.existsSync(imagePath), false)
   assert.equal(fs.existsSync(path.join(root, result.item.trashRelativePath)), true)
+
+  const trashFile = getAssetFile(root, { id: result.item.id, trash: true })
+  assert.equal(trashFile.name, '林溪.png')
+  assert.equal(trashFile.contentType, 'image/png')
+  assert.equal(listAssets(root, { type: 'trash' }).items.length, 1)
+  assert.equal(
+    listAssets(root, { includeTrash: true }).items.some((item) => item.status === 'trash'),
+    true
+  )
+
+  fs.mkdirSync(path.dirname(imagePath), { recursive: true })
+  fs.writeFileSync(imagePath, Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+  assert.throws(() => restoreAsset(root, result.item.id), /原位置已有同名文件/)
+  fs.rmSync(imagePath)
+  const restored = restoreAsset(root, result.item.id)
+  assert.equal(restored.success, true)
+  assert.equal(restored.item.name, '林溪.png')
+  assert.equal(fs.existsSync(imagePath), true)
+  assert.equal(listAssets(root, { type: 'trash' }).items.length, 0)
+
+  const secondBookDir = path.join(root, 'second-book')
+  fs.mkdirSync(secondBookDir, { recursive: true })
+  fs.writeFileSync(
+    path.join(secondBookDir, 'mazi.json'),
+    JSON.stringify({ id: 'book-2', name: '第二本书' })
+  )
+  const restoredAsset = listAssets(root).items.find((item) => item.name === '林溪.png')
+  const attached = attachToBook(root, {
+    id: restoredAsset.id,
+    bookName: '第二本书',
+    type: 'character'
+  })
+  assert.equal(attached.success, true)
+  assert.equal(attached.item.bookName, '第二本书')
+  assert.equal(fs.existsSync(path.join(secondBookDir, 'character_images', '林溪.png')), true)
+  const attachedAgain = attachToBook(root, {
+    id: restoredAsset.id,
+    bookName: '第二本书',
+    type: 'character'
+  })
+  assert.equal(attachedAgain.item.name, '林溪_1.png')
+
+  const gif = importAsset(root, {
+    bookName: '第二本书',
+    type: 'scene',
+    fileName: '动图.gif',
+    base64: Buffer.from('GIF89a', 'ascii').toString('base64')
+  })
+  assert.equal(gif.item.mimeType, 'image/gif')
+  const webpBytes = Buffer.alloc(12)
+  webpBytes.write('RIFF', 0, 'ascii')
+  webpBytes.write('WEBP', 8, 'ascii')
+  assert.equal(
+    importAsset(root, {
+      bookName: '第二本书',
+      type: 'map',
+      fileName: '地图.webp',
+      base64: webpBytes.toString('base64')
+    }).success,
+    true
+  )
+  const avifBytes = Buffer.alloc(12)
+  avifBytes.write('ftyp', 4, 'ascii')
+  assert.equal(
+    importAsset(root, {
+      bookName: '第二本书',
+      type: 'cover',
+      fileName: '封面.avif',
+      base64: avifBytes.toString('base64')
+    }).success,
+    true
+  )
+  const filtered = listAssets(root, { bookName: '第二本书', keyword: '地图', type: 'map' })
+  assert.equal(filtered.items.length, 1)
+  assert.equal(filtered.summary.byType.map, 1)
+  assert.equal(listAssets(root, { bookName: '不存在' }).items.length, 0)
+  assert.throws(() => getAssetFile(root, { id: 'invalid' }), /资产文件不存在|资产 ID 无效/)
+  assert.throws(
+    () => importAsset(root, { bookName: '不存在', fileName: '附件.txt', base64: 'dGVzdA==' }),
+    /未找到目标书籍/
+  )
+
+  fs.mkdirSync(path.join(root, 'assets-trash'), { recursive: true })
+  fs.writeFileSync(path.join(root, 'assets-trash', 'manifest.json'), '{broken', 'utf-8')
+  assert.throws(() => listAssets(root, { type: 'trash' }), /回收站记录读取失败/)
 } finally {
   fs.rmSync(root, { recursive: true, force: true })
 }
