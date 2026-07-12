@@ -2,18 +2,20 @@
   <div class="system-settings">
     <div class="settings-body">
       <!-- 左侧二级导航 (侧边栏风格) -->
-      <div class="settings-nav">
-        <div
+      <nav class="settings-nav" aria-label="设置分类" tabindex="0">
+        <button
           v-for="item in menuItems"
           :key="item.index"
           class="nav-item"
           :class="{ active: activeTab === item.index }"
+          :aria-current="activeTab === item.index ? 'page' : undefined"
+          type="button"
           @click="openSettingsTab(item)"
         >
           <component :is="item.icon" :size="18" />
           <span>{{ item.label }}</span>
-        </div>
-      </div>
+        </button>
+      </nav>
 
       <!-- 右侧主要内容区域 -->
       <div class="settings-main">
@@ -33,7 +35,12 @@
               </div>
               <div class="setting-item">
                 <label>{{ t('common.language') }}</label>
-                <el-select v-model="selectedLocale" class="full-width" @change="handleLocaleChange">
+                <el-select
+                  v-model="selectedLocale"
+                  class="full-width"
+                  aria-label="界面语言"
+                  @change="handleLocaleChange"
+                >
                   <el-option label="简体中文" value="zh-CN" />
                   <el-option label="English" value="en-US" />
                 </el-select>
@@ -125,7 +132,11 @@
                 <div class="setting-grid">
                   <div class="setting-item">
                     <label>字体</label>
-                    <el-select v-model="editorForm.fontFamily" class="full-width">
+                    <el-select
+                      v-model="editorForm.fontFamily"
+                      class="full-width"
+                      aria-label="编辑器字体"
+                    >
                       <el-option label="默认" value="" />
                       <el-option label="宋体" value="SimSun" />
                       <el-option label="黑体" value="SimHei" />
@@ -721,6 +732,9 @@ async function handleThemeChange(theme) {
     padding: 0 16px;
     border: 1px solid transparent;
     border-radius: 6px;
+    background: transparent;
+    font: inherit;
+    text-align: left;
     cursor: pointer;
     transition:
       background-color 0.22s ease,

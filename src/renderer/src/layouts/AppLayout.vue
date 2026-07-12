@@ -6,6 +6,7 @@
       gridTemplateColumns: 'var(--sidebar-width) minmax(0, 1fr)'
     }"
   >
+    <a class="skip-link" href="#app-main">跳到主要内容</a>
     <aside class="app-sidebar" :class="{ collapsed: sidebarWidth < 100 }">
       <div class="sidebar-content-wrapper">
         <button
@@ -79,7 +80,9 @@
     </aside>
 
     <main
+      id="app-main"
       class="app-main"
+      tabindex="-1"
       :class="{
         'knowledge-library-main': isKnowledgeLibraryRoute,
         'studio-main': isStudioRoute,
@@ -456,6 +459,29 @@ function isEditorRouteElement(el) {
     32px 32px,
     auto;
   color: var(--wabi-ink);
+}
+
+.skip-link {
+  position: fixed;
+  z-index: 3000;
+  top: 12px;
+  left: 12px;
+  padding: 8px 14px;
+  border: 2px solid var(--el-color-primary);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--el-color-primary-dark-2);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(calc(-100% - 16px));
+  transition: transform 0.16s ease;
+}
+
+.skip-link:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--el-color-primary) 38%, transparent);
+  outline-offset: 2px;
+  transform: translateY(0);
 }
 
 .app-sidebar {

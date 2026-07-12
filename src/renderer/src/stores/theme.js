@@ -231,6 +231,16 @@ const applyTheme = (theme) => {
   root.style.setProperty('--danger-color', config.dangerColor)
   root.style.setProperty('--info-color', config.infoColor)
 
+  // Element Plus 的默认蓝色配白字对比度不足，控件主色保持为 WCAG AA 可读色。
+  root.style.setProperty('--el-color-primary', '#52634b')
+  root.style.setProperty('--el-color-primary-rgb', '82, 99, 75')
+  root.style.setProperty('--el-color-primary-light-3', '#84917f')
+  root.style.setProperty('--el-color-primary-light-5', '#a9b1a5')
+  root.style.setProperty('--el-color-primary-light-7', '#cdd2ca')
+  root.style.setProperty('--el-color-primary-light-8', '#dee1dc')
+  root.style.setProperty('--el-color-primary-light-9', '#eef0ed')
+  root.style.setProperty('--el-color-primary-dark-2', '#424f3c')
+
   applyNeumorphicVars(root, config.bgSoft)
 }
 

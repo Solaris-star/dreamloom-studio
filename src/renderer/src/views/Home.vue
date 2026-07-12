@@ -104,6 +104,8 @@
               :key="tab.key"
               :class="{ active: marketRange === tab.key }"
               type="button"
+              role="tab"
+              :aria-selected="marketRange === tab.key"
               @click="marketRange = tab.key"
             >
               {{ tab.label }}

@@ -1,1 +1,11 @@
 @import './base.css';
+
+:root {
+  --el-color-primary: #52634b;
+  --el-color-primary-light-3: #84917f;
+  --el-color-primary-light-5: #a9b1a5;
+  --el-color-primary-light-7: #cdd2ca;
+  --el-color-primary-light-8: #dee1dc;
+  --el-color-primary-light-9: #eef0ed;
+  --el-color-primary-dark-2: #424f3c;
+}
