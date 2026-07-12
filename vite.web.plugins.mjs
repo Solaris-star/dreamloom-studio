@@ -51,6 +51,7 @@ import { handleAuthRoute } from './src/main/webApi/authRoutes.js'
 import { handleWebUtilityRoute } from './src/main/webApi/webUtilityRoutes.js'
 import { handleAiTextRoute } from './src/main/webApi/aiTextRoutes.js'
 import { handleAiImageRoute } from './src/main/webApi/aiImageRoutes.js'
+import { handleExtractionRoute } from './src/main/webApi/extractionRoutes.js'
 import { setWebBooksDirectory } from './src/main/services/webBooksDirectoryService.js'
 
 export function createWebServerPlugins() {
@@ -736,6 +737,23 @@ export function createWebServerPlugins() {
             })
           ) {
             return
+          } else if (
+            await handleExtractionRoute({
+              path,
+              body,
+              res,
+              booksDir: getActiveBooksDir(),
+              sendJson,
+              sanitizeText,
+              store: webStoreAdapter(),
+              dimensions: EXTRACTION_DIMENSIONS,
+              dimensionLabels: EXTRACTION_DIMENSION_LABELS,
+              tasks: webExtractionTasks,
+              service: extractionAiService,
+              resolveBookPath: resolveBookPathForWebPayload
+            })
+          ) {
+            return
           } else if (path === '/api/books/cover' || path === '/api/books/image') {
               const url = new URL(req.url, 'http://localhost')
               const bookName = sanitizeText(url.searchParams.get('book'))
@@ -757,74 +775,6 @@ export function createWebServerPlugins() {
               } else {
                 sendTransparentImage(res)
               }
-            } else if (path === '/api/extraction/dimensions') {
-              sendJson(
-                res,
-                EXTRACTION_DIMENSIONS.map((key) => ({
-                  key,
-                  label: EXTRACTION_DIMENSION_LABELS[key] || key
-                }))
-              )
-            } else if (path === '/api/extraction/create') {
-              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir())
-              const result = webExtractionTasks.create(webStoreAdapter(), { ...body, bookPath })
-              sendJson(res, result, result.success ? 202 : 409)
-            } else if (path === '/api/extraction/progress') {
-              sendJson(res, webExtractionTasks.progress(body.jobId))
-            } else if (path === '/api/extraction/list') {
-              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
-                ensure: true
-              })
-              sendJson(res, extractionAiService.listExtractions(bookPath))
-            } else if (path === '/api/extraction/get') {
-              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
-                ensure: true
-              })
-              sendJson(
-                res,
-                extractionAiService.getExtraction(bookPath, body.extractionId || body.id, body)
-              )
-            } else if (path === '/api/extraction/result-page') {
-              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
-                ensure: true
-              })
-              sendJson(
-                res,
-                extractionAiService.getExtractionResultPage(
-                  bookPath,
-                  body.extractionId || body.id,
-                  body
-                )
-              )
-            } else if (path === '/api/extraction/delete') {
-              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
-                ensure: true
-              })
-              sendJson(
-                res,
-                await extractionAiService.deleteExtraction(
-                  bookPath,
-                  body.extractionId || body.id
-                )
-              )
-            } else if (path === '/api/extraction/search') {
-              const bookPath = resolveBookPathForWebPayload(body, getActiveBooksDir(), {
-                ensure: true
-              })
-              const query = sanitizeText(body.query || body.keyword)
-              if (!query) {
-                throw Object.assign(new Error('搜索内容不能为空'), { statusCode: 400 })
-              }
-              const items = await extractionAiService.searchKnowledge(
-                bookPath,
-                {
-                  query,
-                  dimensions: body.dimensions,
-                  topK: body.topK
-                },
-                body.embeddingConfig || null
-              )
-              sendJson(res, { success: true, items })
             } else if (path === '/api/knowledge/ai-task') {
               const provider = createTextProvider(webStoreAdapter(), body || {})
               sendJson(res, await knowledgeTopicAiService.runTask(body || {}, provider.service))
