@@ -57,6 +57,7 @@ import { handleConsistencyRoute } from './src/main/webApi/consistencyRoutes.js'
 import { handleWritingSkillRoute } from './src/main/webApi/writingSkillRoutes.js'
 import { handleBookImageRoute } from './src/main/webApi/bookImageRoutes.js'
 import { handleCreativePlanningRoute } from './src/main/webApi/creativePlanningRoutes.js'
+import { handleAiChatRoute } from './src/main/webApi/aiChatRoutes.js'
 import { createSnapshot as createSettingSnapshot } from './src/main/services/settingSnapshotService.js'
 import { setWebBooksDirectory } from './src/main/services/webBooksDirectoryService.js'
 
@@ -787,21 +788,21 @@ export function createWebServerPlugins() {
             })
           ) {
             return
-          } else if (path === '/api/ai/chat') {
-              const provider = createTextProvider(webStoreAdapter(), body || {})
-              const bookPath =
-                body.bookPath || body.bookName
-                  ? resolveBookPathForWebPayload(body, getActiveBooksDir(), { ensure: true })
-                  : ''
-              sendJson(
-                res,
-                await sendChatMessage({
-                  ...body,
-                  bookPath,
-                  textProvider: provider.service
-                })
-              )
-            } else {
+          } else if (
+            await handleAiChatRoute({
+              path,
+              body,
+              res,
+              booksDir: getActiveBooksDir(),
+              sendJson,
+              store: webStoreAdapter(),
+              createProvider: createTextProvider,
+              resolveBookPath: resolveBookPathForWebPayload,
+              sendChat: sendChatMessage
+            })
+          ) {
+            return
+          } else {
               // Default to 404
               sendJson(res, { success: false, message: 'Not Found' }, 404)
             }
