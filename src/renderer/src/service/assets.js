@@ -105,19 +105,18 @@ export function imageSelectionToImportInput(selection = {}) {
     throw new Error(message || '选择图片失败')
   }
   if (typeof selection === 'string') {
-    return selection.startsWith('data:image/') ? { dataUrl: selection } : { sourcePath: selection }
+    if (selection.startsWith('data:image/')) return { dataUrl: selection }
+    throw new Error('Web 服务不能读取本地文件路径，请通过网页重新选择图片')
   }
 
   const filePath = String(selection.filePath || '')
   const dataUrl = selection.dataUrl || (filePath.startsWith('data:image/') ? filePath : '')
-  const sourcePath =
-    selection.path ||
-    selection.sourcePath ||
-    (filePath && !filePath.startsWith('data:image/') ? filePath : '')
   const fileName = selection.fileName || selection.name || ''
 
   if (dataUrl) return { dataUrl, fileName }
-  if (sourcePath) return { sourcePath, fileName }
+  if (selection.path || selection.sourcePath || filePath) {
+    throw new Error('Web 服务不能读取本地文件路径，请通过网页重新选择图片')
+  }
   return null
 }
 

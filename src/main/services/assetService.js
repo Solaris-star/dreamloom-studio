@@ -451,18 +451,15 @@ function updateBookCoverMeta(book, targetPath) {
 }
 
 export function importAsset(booksDir, input = {}) {
+  if (input.sourcePath) {
+    throw new Error('Web 服务必须通过网页上传素材内容，不能读取服务器本地路径')
+  }
   const book = getBookByName(booksDir, input.bookName)
   const type = String(input.type || 'attachment')
-  const fileName = safeName(
-    input.fileName || basename(input.sourcePath || '') || `asset_${Date.now()}`
-  )
+  const fileName = safeName(input.fileName || `asset_${Date.now()}`)
   const targetPath = destinationForType(book.path, type, fileName)
 
-  if (input.sourcePath) {
-    const sourcePath = resolve(String(input.sourcePath))
-    if (!fs.existsSync(sourcePath)) throw new Error('源文件不存在')
-    fs.copyFileSync(sourcePath, targetPath)
-  } else if (input.dataUrl || input.base64) {
+  if (input.dataUrl || input.base64) {
     const raw = String(input.dataUrl || input.base64)
     const base64 = raw.includes(',') ? raw.split(',').pop() : raw
     fs.writeFileSync(targetPath, Buffer.from(base64, 'base64'))

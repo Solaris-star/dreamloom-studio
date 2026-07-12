@@ -2,7 +2,12 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { deleteAsset, findAssetReferences, listAssets } from '../src/main/services/assetService.js'
+import {
+  deleteAsset,
+  findAssetReferences,
+  importAsset,
+  listAssets
+} from '../src/main/services/assetService.js'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dreamloom-assets-'))
 
@@ -80,6 +85,19 @@ try {
   assert.equal(fs.existsSync(imagePath), true, '有引用的素材必须保留在原位置')
   assert.equal(fs.existsSync(scenePath), true, '场景引用存在时必须保留素材')
   assert.equal(fs.existsSync(coverPath), true, '封面引用存在时必须保留素材')
+  const serverFile = path.join(root, 'server-only.png')
+  fs.writeFileSync(serverFile, Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+  assert.throws(
+    () =>
+      importAsset(root, {
+        bookName: '测试书',
+        type: 'character',
+        sourcePath: serverFile,
+        fileName: '越权.png'
+      }),
+    /不能读取服务器本地路径/
+  )
+  assert.equal(fs.existsSync(path.join(imageDir, '越权.png')), false)
 
   fs.writeFileSync(path.join(bookDir, 'characters.json'), JSON.stringify([{ name: '林溪' }]))
   const result = deleteAsset(root, characterAsset.id)

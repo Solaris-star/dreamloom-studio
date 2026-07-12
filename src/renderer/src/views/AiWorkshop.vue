@@ -2264,12 +2264,7 @@ function aiImageResultToImportInput() {
   if (!imageValue) return null
   const fileName = aiImageFileName(activeTool.value, imageValue)
   if (imageValue.startsWith('data:image/')) return { dataUrl: imageValue, fileName }
-  if (isLocalImagePath(imageValue)) return { sourcePath: imageValue, fileName }
   return null
-}
-
-function isLocalImagePath(value) {
-  return /^[a-zA-Z]:[\\/]/.test(value) || value.startsWith('/') || value.startsWith('\\\\')
 }
 
 function aiImageFileName(tool = {}, source = '') {

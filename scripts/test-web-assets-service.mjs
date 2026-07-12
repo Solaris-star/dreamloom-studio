@@ -44,9 +44,10 @@ assert.equal(
 )
 assert.equal((await assets.importAsset({ dataUrl: 'data:image/png;base64,AA==', bookName: '作品甲' })).item.id, 'asset-2')
 
-assert.deepEqual(assets.imageSelectionToImportInput('D:/image.png'), {
-  sourcePath: 'D:/image.png'
-})
+assert.throws(
+  () => assets.imageSelectionToImportInput('D:/image.png'),
+  /不能读取本地文件路径/
+)
 assert.deepEqual(assets.imageSelectionToImportInput('data:image/png;base64,AA=='), {
   dataUrl: 'data:image/png;base64,AA=='
 })
@@ -55,6 +56,10 @@ assert.deepEqual(
   { dataUrl: 'data:image/png;base64,AA==', fileName: 'a.png' }
 )
 assert.equal(assets.imageSelectionToImportInput({ success: false, message: '用户取消选择' }), null)
+assert.throws(
+  () => assets.imageSelectionToImportInput({ sourcePath: 'D:/image.png', name: 'a.png' }),
+  /不能读取本地文件路径/
+)
 assert.throws(
   () => assets.imageSelectionToImportInput({ success: false, message: '读取失败' }),
   /读取失败/
