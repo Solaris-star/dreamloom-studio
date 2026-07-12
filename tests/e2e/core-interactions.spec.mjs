@@ -998,3 +998,35 @@ test('编辑器设置保存不会重复提交或误报成功', async ({ page }) 
   await expect.poll(() => saveRequests).toBe(1)
   await expect(saveButton).toBeEnabled()
 })
+
+test('书籍导出失败时不会重复提交或误报完成', async ({ page }) => {
+  const runtimeErrors = []
+  let exportRequests = 0
+  page.on('pageerror', (error) => runtimeErrors.push(error.message))
+  await page.route('**/api/export/book', async (route) => {
+    exportRequests += 1
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 300))
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: false,
+        message: '测试导出失败'
+      })
+    })
+  })
+
+  await page.goto('/#/import-export/export')
+  await page.getByRole('combobox').click()
+  await page.getByRole('option').first().click()
+
+  const exportButton = page.locator('.form-grid').getByRole('button', { name: '导出', exact: true })
+  await expect(exportButton).toBeEnabled()
+  await exportButton.click()
+  await exportButton.click({ force: true })
+
+  await expect(page.getByText('测试导出失败')).toBeVisible()
+  await expect(page.getByText('导出完成')).toHaveCount(0)
+  await expect.poll(() => exportRequests).toBe(1)
+  await expect(exportButton).toBeEnabled()
+  expect(runtimeErrors).toEqual([])
+})
