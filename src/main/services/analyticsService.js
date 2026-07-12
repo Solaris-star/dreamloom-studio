@@ -218,7 +218,12 @@ function readBooks(booksDir) {
     .filter((entry) => entry.isDirectory())
     .map((entry) => {
       const bookPath = join(booksDir, entry.name)
-      const meta = readJson(join(bookPath, 'mazi.json'), null)
+      let meta
+      try {
+        meta = readJson(join(bookPath, 'mazi.json'), null)
+      } catch {
+        return null
+      }
       if (!meta || typeof meta !== 'object') return null
       return {
         id: String(meta.id || entry.name),
