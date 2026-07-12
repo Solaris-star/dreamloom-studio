@@ -204,15 +204,30 @@
           <Redo :size="12" />
         </el-button>
       </el-tooltip>
-      <el-tooltip
-        :content="t('editorMenubar.copy')"
-        placement="bottom"
-        :show-after="TOOLTIP_SHOW_AFTER"
+      <el-dropdown
+        split-button
+        size="small"
+        class="copy-menu"
+        @click="handleCopyContent"
       >
-        <el-button size="small" class="toolbar-item" @click="handleCopyContent">
+        <el-tooltip
+          :content="t('editorMenubar.copyPlainText')"
+          placement="bottom"
+          :show-after="TOOLTIP_SHOW_AFTER"
+        >
           <el-icon><DocumentCopy /></el-icon>
-        </el-button>
-      </el-tooltip>
+        </el-tooltip>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item @click="handleCopyContent">
+              {{ t('editorMenubar.copyPlainText') }}
+            </el-dropdown-item>
+            <el-dropdown-item @click="handleCopyRichContent">
+              {{ t('editorMenubar.copyRichText') }}
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
       <el-tooltip
         :content="t('editorMenubar.search')"
         placement="bottom"
@@ -257,6 +272,12 @@ import dayjs from 'dayjs'
 import { useEditorStore } from '@renderer/stores/editor'
 import SvgIcon from '@renderer/components/SvgIcon.vue'
 import { buildBookTextExport, downloadBookTextExport } from '@renderer/service/editorExport'
+import {
+  getEditorCopyHtml,
+  getEditorCopyText,
+  writePlainTextToClipboard,
+  writeRichTextToClipboard
+} from '@renderer/service/editorClipboard'
 
 const TOOLTIP_SHOW_AFTER = 2000
 const { t } = useI18n()
@@ -714,11 +735,27 @@ function plainTextToHtml(text) {
   return htmlLines.join('')
 }
 
-function handleCopyContent() {
+async function handleCopyContent() {
   if (!props.editor) return
-  const html = props.editor.getHTML()
-  navigator.clipboard.writeText(html)
-  ElMessage.success(t('editorMenubar.copiedContent'))
+  try {
+    await writePlainTextToClipboard(getEditorCopyText(props.editor.state))
+    ElMessage.success(t('editorMenubar.copiedContent'))
+  } catch (error) {
+    ElMessage.error(error?.message || t('editorMenubar.copyFailed'))
+  }
+}
+
+async function handleCopyRichContent() {
+  if (!props.editor) return
+  try {
+    await writeRichTextToClipboard({
+      text: getEditorCopyText(props.editor.state),
+      html: getEditorCopyHtml(props.editor)
+    })
+    ElMessage.success(t('editorMenubar.copiedRichContent'))
+  } catch (error) {
+    ElMessage.error(error?.message || t('editorMenubar.copyFailed'))
+  }
 }
 
 function handleToggleSearchPanel() {
