@@ -1162,6 +1162,39 @@ test('AI 工坊请求失败后保留输入并恢复操作', async ({ page }) => 
   await expect(input).toHaveValue(`${originalText}他听见楼上传来脚步声。`)
 })
 
+test('AI 图像生成失败后保留提示词且不会重复请求', async ({ page }) => {
+  let imageRequests = 0
+  await page.route('**/api/ai/image-task', async (route) => {
+    imageRequests += 1
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 300))
+    await route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: false,
+        message: '图像服务暂时不可用'
+      })
+    })
+  })
+
+  await page.goto('/#/ai/image')
+  const input = page.locator('.main-input-block textarea')
+  const prompt = '雨夜中的旧书铺，门前挂着一盏暖黄色纸灯。'
+  const submitButton = page.getByRole('button', { name: '生成图像' })
+  await input.fill(prompt)
+  await submitButton.click()
+  await submitButton.click({ force: true })
+
+  const status = page.locator('.generation-status-card')
+  await expect(status.getByText('生成失败，输入内容已保留')).toBeVisible()
+  await expect(status).toContainText('图像服务暂时不可用')
+  await expect(input).toHaveValue(prompt)
+  await expect(input).toBeEnabled()
+  await expect(page.getByText('图片已生成')).toHaveCount(0)
+  await expect(page.locator('.result-drawer')).toHaveCount(0)
+  await expect.poll(() => imageRequests).toBe(1)
+})
+
 test('系统设置分类和主题按钮可以连续操作', async ({ page }) => {
   const runtimeErrors = []
   page.on('pageerror', (error) => runtimeErrors.push(error.message))
