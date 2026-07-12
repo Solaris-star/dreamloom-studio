@@ -1,3 +1,9 @@
+import { plainTextToEditorParagraphs } from './editorTextFormat.js'
+
+export function createChapterVersionContent(text) {
+  return plainTextToEditorParagraphs(String(text ?? '')) || '<p></p>'
+}
+
 export async function restoreChapterVersion({
   expectedChapterId,
   getCurrentChapterId,

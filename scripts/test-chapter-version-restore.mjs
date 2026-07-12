@@ -1,5 +1,14 @@
 import assert from 'node:assert/strict'
-import { restoreChapterVersion } from '../src/renderer/src/service/chapterVersionRestore.js'
+import {
+  createChapterVersionContent,
+  restoreChapterVersion
+} from '../src/renderer/src/service/chapterVersionRestore.js'
+
+assert.equal(createChapterVersionContent(''), '<p></p>')
+assert.equal(
+  createChapterVersionContent('第一段\n第二段 <保留>\n甲  乙'),
+  '<p>第一段</p><p>第二段 &lt;保留&gt;</p><p>甲&nbsp;&nbsp;乙</p>'
+)
 
 const events = []
 let chapterId = 'chapter-a'

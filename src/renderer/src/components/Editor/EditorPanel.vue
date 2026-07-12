@@ -286,7 +286,10 @@ import {
   cleanEditorText,
   createTextRevisionToken
 } from '../../service/editorTextCleanup'
-import { restoreChapterVersion } from '../../service/chapterVersionRestore'
+import {
+  createChapterVersionContent,
+  restoreChapterVersion
+} from '../../service/chapterVersionRestore'
 import { continueWriteWithAI, polishTextWithAI } from '../../service/editorText'
 import { getStoreValue, setStoreValue } from '../../service/webStore'
 import { useI18n } from 'vue-i18n'
@@ -1045,7 +1048,7 @@ async function persistSaveSnapshot(snapshot) {
         bookId: snapshot.bookName,
         chapterId: snapshot.filePath,
         chapterName: snapshot.file.name,
-        contentBefore: snapshot.content,
+        contentBefore: createChapterVersionContent(snapshot.content),
         reason: 'auto_save'
       })
       lastAutoSnapshotContentByChapter.set(snapshotKey, snapshot.content)
