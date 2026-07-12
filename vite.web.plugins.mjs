@@ -19,7 +19,6 @@ import {
 } from './src/main/services/consistencyCheckService.js'
 import marketService from './src/main/services/marketService.js'
 import * as promptPresetService from './src/main/services/promptPresetService.js'
-import * as assetService from './src/main/services/assetService.js'
 import * as importExportService from './src/main/services/importExportService.js'
 import * as agentTaskQueueService from './src/main/services/agentTaskQueueService.js'
 import * as workbenchDatabaseService from './src/main/services/workbenchDatabaseService.js'
@@ -44,6 +43,7 @@ import {
 } from './src/main/services/webAiImageAssetService.js'
 import { handleWorkbenchDatabaseRoute } from './src/main/webApi/workbenchDatabaseRoutes.js'
 import { handleAnalyticsGoalRoute } from './src/main/webApi/analyticsGoalRoutes.js'
+import { handleAssetRoute } from './src/main/webApi/assetRoutes.js'
 
 export function createWebServerPlugins() {
   const configuredBooksDir = String(process.env.NOVEL_BOOKS_DIR || '').trim()
@@ -673,6 +673,18 @@ export function createWebServerPlugins() {
             })
           ) {
             return
+          } else if (
+            handleAssetRoute({
+              path,
+              req,
+              body,
+              res,
+              booksDir: getActiveBooksDir(),
+              sendJson,
+              sendTransparentImage
+            })
+          ) {
+            return
           } else if (path === '/api/books/cover' || path === '/api/books/image') {
               const url = new URL(req.url, 'http://localhost')
               const bookName = sanitizeText(url.searchParams.get('book'))
@@ -692,19 +704,6 @@ export function createWebServerPlugins() {
                 res.setHeader('Content-Type', contentTypeFromFileName(fileName))
                 res.end(fs.readFileSync(target))
               } else {
-                sendTransparentImage(res)
-              }
-            } else if (path === '/api/assets/get') {
-              const url = new URL(req.url, 'http://localhost')
-              try {
-                const asset = assetService.getAssetFile(getActiveBooksDir(), {
-                  id: url.searchParams.get('id'),
-                  trash: url.searchParams.get('trash') === 'true'
-                })
-                res.statusCode = 200
-                res.setHeader('Content-Type', asset.contentType || 'application/octet-stream')
-                res.end(fs.readFileSync(asset.filePath))
-              } catch {
                 sendTransparentImage(res)
               }
             } else if (path === '/api/fs/list') {
@@ -1220,21 +1219,6 @@ export function createWebServerPlugins() {
                 res,
                 await webBooksApi.exportOrganizationToNote(body || {}, getActiveBooksDir())
               )
-            } else if (path === '/api/assets/list') {
-              sendJson(res, assetService.listAssets(getActiveBooksDir(), body || {}))
-            } else if (path === '/api/assets/import') {
-              sendJson(res, assetService.importAsset(getActiveBooksDir(), body || {}))
-            } else if (path === '/api/assets/references') {
-              sendJson(res, {
-                success: true,
-                references: assetService.findAssetReferences(getActiveBooksDir(), body.id)
-              })
-            } else if (path === '/api/assets/delete') {
-              sendJson(res, assetService.deleteAsset(getActiveBooksDir(), body.id))
-            } else if (path === '/api/assets/restore') {
-              sendJson(res, assetService.restoreAsset(getActiveBooksDir(), body.id))
-            } else if (path === '/api/assets/attach-to-book') {
-              sendJson(res, assetService.attachToBook(getActiveBooksDir(), body || {}))
             } else if (path === '/api/knowledge/list') {
               sendJson(res, {
                 success: true,
