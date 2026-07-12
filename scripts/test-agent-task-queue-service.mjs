@@ -7,6 +7,7 @@ import {
   buildQueueRetryEvent,
   cancelAgentTaskQueueJob,
   closeAgentTaskQueue,
+  ensureQueueJobIdAvailable,
   enqueueAgentCheckTask,
   enqueueAgentRepairTask,
   enqueueAgentWriteTask,
@@ -66,6 +67,60 @@ assert.equal(
 assert.equal(
   buildQueueRetryEvent({ attemptsMade: 2, opts: { attempts: 2 } }, new Error('最终失败')),
   null
+)
+
+let duplicateLookupCount = 0
+await ensureQueueJobIdAvailable(
+  {
+    async getJob(id) {
+      duplicateLookupCount += 1
+      assert.equal(id, 'write:unique')
+      return null
+    }
+  },
+  '  write:unique  '
+)
+assert.equal(duplicateLookupCount, 1)
+await ensureQueueJobIdAvailable(
+  {
+    async getJob() {
+      throw new Error('空 ID 不应查询队列')
+    }
+  },
+  ' '
+)
+await assert.rejects(
+  () =>
+    ensureQueueJobIdAvailable(
+      {
+        async getJob(id) {
+          assert.equal(id, 'write:duplicate')
+          return {
+            async getState() {
+              return 'active'
+            }
+          }
+        }
+      },
+      'write:duplicate'
+    ),
+  /队列任务 ID 已存在，当前状态：active/
+)
+await assert.rejects(
+  () =>
+    ensureQueueJobIdAvailable(
+      {
+        async getJob() {
+          return {
+            async getState() {
+              throw new Error('Redis 状态读取失败')
+            }
+          }
+        }
+      },
+      'write:unknown'
+    ),
+  /队列任务 ID 已存在，当前状态：unknown/
 )
 
 try {

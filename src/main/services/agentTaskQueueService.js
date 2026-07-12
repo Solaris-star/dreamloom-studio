@@ -258,6 +258,16 @@ function createQueue(options = {}) {
   return queue
 }
 
+export async function ensureQueueJobIdAvailable(queue, jobId) {
+  const id = cleanText(jobId)
+  if (!id) return
+  const existing = await queue.getJob(id)
+  if (existing) {
+    const state = await existing.getState().catch(() => 'unknown')
+    throw new Error(`队列任务 ID 已存在，当前状态：${state}`)
+  }
+}
+
 function cleanQueueInput(input = {}) {
   const booksDir = cleanText(input.booksDir || process.env.NOVEL_BOOKS_DIR)
   const bookName = cleanText(input.bookName || input.book)
@@ -882,6 +892,8 @@ export async function enqueueAgentWriteTask(input = {}, options = {}) {
   requireQueueEnabled(options)
   const queueInput = cleanQueueInput(input)
   const queue = createQueue(options)
+  const requestedJobId = cleanText(input.jobId)
+  await ensureQueueJobIdAvailable(queue, requestedJobId)
   const bookPath = resolve(queueInput.booksDir, queueInput.bookName)
   const task = createAgentTask(bookPath, {
     bookName: queueInput.bookName || basename(bookPath),
@@ -899,7 +911,7 @@ export async function enqueueAgentWriteTask(input = {}, options = {}) {
     executionMode: 'replace_chapter',
     instruction: queueInput.prompt
   })
-  const jobId = cleanText(input.jobId) || `write:${task.id}`
+  const jobId = requestedJobId || `write:${task.id}`
   const job = await queue.add(
     'write-chapter',
     {
@@ -932,6 +944,8 @@ export async function enqueueAgentCheckTask(input = {}, options = {}) {
   requireQueueEnabled(options)
   const queueInput = cleanCheckQueueInput(input)
   const queue = createQueue(options)
+  const requestedJobId = cleanText(input.jobId)
+  await ensureQueueJobIdAvailable(queue, requestedJobId)
   const bookPath = resolve(queueInput.booksDir, queueInput.bookName)
   const task = createAgentTask(bookPath, {
     bookName: queueInput.bookName || basename(bookPath),
@@ -950,7 +964,7 @@ export async function enqueueAgentCheckTask(input = {}, options = {}) {
     executionMode: 'consistency_check',
     instruction: queueInput.text || `${queueInput.volumeName} ${queueInput.chapterName}`
   })
-  const jobId = cleanText(input.jobId) || `check:${task.id}`
+  const jobId = requestedJobId || `check:${task.id}`
   const job = await queue.add(
     'check-chapter',
     {
@@ -983,6 +997,8 @@ export async function enqueueAgentRepairTask(input = {}, options = {}) {
   requireQueueEnabled(options)
   const queueInput = cleanRepairQueueInput(input)
   const queue = createQueue(options)
+  const requestedJobId = cleanText(input.jobId)
+  await ensureQueueJobIdAvailable(queue, requestedJobId)
   const bookPath = resolve(queueInput.booksDir, queueInput.bookName)
   const task = createAgentTask(bookPath, {
     bookName: queueInput.bookName || basename(bookPath),
@@ -1002,7 +1018,7 @@ export async function enqueueAgentRepairTask(input = {}, options = {}) {
     executionMode: 'preview',
     instruction: queueInput.prompt
   })
-  const jobId = cleanText(input.jobId) || `repair:${task.id}`
+  const jobId = requestedJobId || `repair:${task.id}`
   const job = await queue.add(
     'repair-chapter',
     {
