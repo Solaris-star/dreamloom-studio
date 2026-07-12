@@ -708,8 +708,30 @@ export async function createBook(bookInfo, booksDir) {
   } catch (error) {
     return { success: false, message: error.message || '书籍名称无效' }
   }
-  if (!fs.existsSync(bookPath)) {
+  if (fs.existsSync(bookPath)) {
+    return {
+      success: false,
+      message: '已存在同名书籍',
+      bookName: safeName,
+      folderName: safeName,
+      bookPath,
+      existed: true
+    }
+  }
+  try {
     fs.mkdirSync(bookPath)
+  } catch (error) {
+    if (error?.code === 'EEXIST') {
+      return {
+        success: false,
+        message: '已存在同名书籍',
+        bookName: safeName,
+        folderName: safeName,
+        bookPath,
+        existed: true
+      }
+    }
+    throw error
   }
 
   let coverUrl = bookInfo.coverUrl || null
