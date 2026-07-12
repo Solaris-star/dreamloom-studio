@@ -171,6 +171,20 @@ export function countWords(text = '') {
   return String(text || '').replace(/[\s\n\r\t]/g, '').length
 }
 
+export function summarizeLocalBookImportResults(results = []) {
+  return results.reduce(
+    (summary, result) => {
+      if (result?.success) {
+        summary.success += 1
+      } else {
+        summary.failed += 1
+      }
+      return summary
+    },
+    { success: 0, failed: 0 }
+  )
+}
+
 async function readDocxText(file) {
   const arrayBuffer = await file.arrayBuffer()
   const bytes = new Uint8Array(arrayBuffer, 0, Math.min(arrayBuffer.byteLength, 4))

@@ -6,6 +6,7 @@ import {
   parseLocalBookFile,
   parseLocalBookText,
   sanitizeChapterTitle,
+  summarizeLocalBookImportResults,
   uniqueLocalBookName
 } from '../src/renderer/src/service/localBookImport.js'
 
@@ -59,6 +60,16 @@ assert.equal(uniqueLocalBookName('A/B', [{ name: 'A_B' }]), 'A_B_2')
 const usedChapterTitles = new Set()
 assert.equal(makeUniqueChapterTitle('正文', usedChapterTitles, '第1章'), '正文')
 assert.equal(makeUniqueChapterTitle('正文', usedChapterTitles, '第2章'), '正文_2')
+assert.deepEqual(
+  summarizeLocalBookImportResults([
+    { success: true },
+    { success: false },
+    { success: true },
+    null
+  ]),
+  { success: 2, failed: 2 }
+)
+assert.deepEqual(summarizeLocalBookImportResults(), { success: 0, failed: 0 })
 
 await assert.rejects(
   () =>

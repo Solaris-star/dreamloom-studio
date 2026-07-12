@@ -73,10 +73,10 @@
           size="small"
           type="primary"
           :loading="row.status === 'importing'"
-          :disabled="row.status !== 'ready'"
+          :disabled="!canImportRow(row)"
           @click="importRow(row)"
         >
-          加入书架
+          {{ row.status === 'error' && row.parsed ? '重试' : '加入书架' }}
         </el-button>
         <span v-else class="done-label">已加入</span>
       </article>
@@ -99,6 +99,7 @@ import {
   getLocalBookFileExtension,
   isSupportedLocalBookFile,
   parseLocalBookFile,
+  summarizeLocalBookImportResults,
   uniqueLocalBookName
 } from '@renderer/service/localBookImport'
 
@@ -158,10 +159,11 @@ async function parseFiles(files) {
 }
 
 async function importReadyRows() {
-  if (!readyRows.value.length) return
+  const targets = [...readyRows.value]
+  if (!targets.length) return
   try {
     await ElMessageBox.confirm(
-      `确定将 ${readyRows.value.length} 本本地书籍加入书架吗？`,
+      `确定将 ${targets.length} 本本地书籍加入书架吗？`,
       '确认导入',
       {
         confirmButtonText: '导入',
@@ -175,12 +177,25 @@ async function importReadyRows() {
 
   batchImporting.value = true
   let lastImported = null
+  const results = []
   try {
-    for (const row of [...readyRows.value]) {
-      lastImported = (await importRow(row, { silentConfirm: true, skipEmit: true })) || lastImported
+    for (const row of targets) {
+      const imported = await importRow(row, {
+        silentConfirm: true,
+        skipEmit: true,
+        silentMessage: true
+      })
+      results.push({ success: Boolean(imported), row })
+      lastImported = imported || lastImported
     }
     if (lastImported) {
       emit('imported', lastImported)
+    }
+    const summary = summarizeLocalBookImportResults(results)
+    if (summary.failed) {
+      ElMessage.warning(`导入完成：成功 ${summary.success} 本，失败 ${summary.failed} 本`)
+    } else {
+      ElMessage.success(`已将 ${summary.success} 本书加入书架`)
     }
   } finally {
     batchImporting.value = false
@@ -188,7 +203,7 @@ async function importReadyRows() {
 }
 
 async function importRow(row, options = {}) {
-  if (!row || row.status !== 'ready') return
+  if (!canImportRow(row)) return
   if (!options.silentConfirm) {
     try {
       await ElMessageBox.confirm(`确定将《${row.parsed.title}》加入书架吗？`, '确认导入', {
@@ -207,7 +222,9 @@ async function importRow(row, options = {}) {
     const imported = await createImportedBook(row)
     row.status = 'done'
     row.importedBookName = imported.name
-    ElMessage.success(`《${imported.name}》已加入书架`)
+    if (!options.silentMessage) {
+      ElMessage.success(`《${imported.name}》已加入书架`)
+    }
     if (!options.skipEmit) {
       emit('imported', imported)
     }
@@ -218,6 +235,10 @@ async function importRow(row, options = {}) {
     errorMsg.value = row.error
     return null
   }
+}
+
+function canImportRow(row) {
+  return Boolean(row?.parsed) && ['ready', 'error'].includes(row.status)
 }
 
 async function createImportedBook(row) {
