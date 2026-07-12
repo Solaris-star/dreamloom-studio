@@ -5,11 +5,22 @@ import { join } from 'node:path'
 import {
   createBook,
   createChapter,
+  createNote,
+  createNotebook,
   deleteBook,
+  deleteNode,
+  deleteNote,
+  deleteNotebook,
   editBook,
+  editNode,
+  editNote,
   loadChapters,
+  loadNotes,
   readBooksDir,
   readChapter,
+  readNote,
+  renameNote,
+  renameNotebook,
   saveChapter,
   upsertChapter
 } from '../src/main/services/webBooksApi.js'
@@ -163,6 +174,198 @@ try {
   )
   assert.equal(chapter.success, true)
   assert.equal(chapter.content, '允许覆盖')
+
+  const renamedChapter = await editNode(
+    {
+      bookName: '生命周期作品',
+      type: 'chapter',
+      volume: '正文',
+      chapter: '第2章',
+      newName: '第2章 新标题'
+    },
+    booksDir
+  )
+  assert.equal(renamedChapter.success, true)
+  assert.equal(
+    (
+      await readChapter(
+        {
+          bookName: '生命周期作品',
+          volumeName: '正文',
+          chapterName: '第2章 新标题'
+        },
+        booksDir
+      )
+    ).content,
+    '允许覆盖'
+  )
+  assert.equal(
+    (
+      await editNode(
+        {
+          bookName: '生命周期作品',
+          type: 'chapter',
+          volume: '正文',
+          chapter: '第2章 新标题',
+          newName: '第1章'
+        },
+        booksDir
+      )
+    ).success,
+    false
+  )
+  assert.equal(
+    (
+      await editNode(
+        {
+          bookName: '生命周期作品',
+          type: 'chapter',
+          volume: '正文',
+          chapter: '第2章 新标题',
+          newName: '../越界'
+        },
+        booksDir
+      )
+    ).success,
+    false
+  )
+  assert.equal(
+    (
+      await deleteNode(
+        {
+          bookName: '生命周期作品',
+          type: 'chapter',
+          volume: '正文',
+          chapter: '第2章 新标题'
+        },
+        booksDir
+      )
+    ).success,
+    true
+  )
+  assert.equal(
+    (
+      await deleteNode(
+        {
+          bookName: '生命周期作品',
+          type: 'chapter',
+          volume: '正文',
+          chapter: '第2章 新标题'
+        },
+        booksDir
+      )
+    ).success,
+    false
+  )
+
+  assert.deepEqual(await loadNotes('', booksDir), {
+    success: false,
+    message: '书籍名称不能为空',
+    notes: []
+  })
+  const notebook = await createNotebook({ bookName: '生命周期作品' }, booksDir)
+  assert.equal(notebook.success, true)
+  const duplicateNotebook = await createNotebook({ bookName: '生命周期作品' }, booksDir)
+  assert.equal(duplicateNotebook.notebookName, '新建笔记本1')
+  const note = await createNote(
+    {
+      bookName: '生命周期作品',
+      notebookName: notebook.notebookName,
+      noteName: '人物线索'
+    },
+    booksDir
+  )
+  assert.equal(note.noteName, '人物线索')
+  const duplicateNote = await createNote(
+    {
+      bookName: '生命周期作品',
+      notebookName: notebook.notebookName,
+      noteName: '人物线索'
+    },
+    booksDir
+  )
+  assert.equal(duplicateNote.noteName, '人物线索1')
+  assert.equal(
+    (
+      await editNote(
+        {
+          bookName: '生命周期作品',
+          notebookName: notebook.notebookName,
+          noteName: '人物线索',
+          newName: '伏笔记录',
+          content: '主角在雨夜拾到旧钥匙。'
+        },
+        booksDir
+      )
+    ).success,
+    true
+  )
+  assert.equal(
+    (
+      await readNote(
+        {
+          bookName: '生命周期作品',
+          notebookName: notebook.notebookName,
+          noteName: '伏笔记录'
+        },
+        booksDir
+      )
+    ).content,
+    '主角在雨夜拾到旧钥匙。'
+  )
+  assert.equal(
+    (
+      await renameNote(
+        {
+          bookName: '生命周期作品',
+          notebookName: notebook.notebookName,
+          oldName: '伏笔记录',
+          newName: '人物线索1'
+        },
+        booksDir
+      )
+    ).success,
+    false
+  )
+  assert.equal(
+    (
+      await renameNotebook(
+        {
+          bookName: '生命周期作品',
+          oldName: notebook.notebookName,
+          newName: duplicateNotebook.notebookName
+        },
+        booksDir
+      )
+    ).success,
+    false
+  )
+  const notes = await loadNotes('生命周期作品', booksDir)
+  assert.equal(notes.success, true)
+  assert.equal(notes.notes.some((item) => item.name === notebook.notebookName), true)
+  assert.equal(notes.notes.some((item) => item.name === duplicateNotebook.notebookName), true)
+  assert.equal(
+    (
+      await deleteNote(
+        {
+          bookName: '生命周期作品',
+          notebookName: notebook.notebookName,
+          noteName: '伏笔记录'
+        },
+        booksDir
+      )
+    ).success,
+    true
+  )
+  assert.equal(
+    (
+      await deleteNotebook(
+        { bookName: '生命周期作品', notebookName: notebook.notebookName },
+        booksDir
+      )
+    ).success,
+    true
+  )
 
   assert.equal((await deleteBook('', booksDir)).success, false)
   const missingDelete = await deleteBook('不存在作品', booksDir)
