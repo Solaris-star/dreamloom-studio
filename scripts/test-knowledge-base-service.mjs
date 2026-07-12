@@ -30,6 +30,20 @@ try {
     ),
     'ending_soon'
   )
+  assert.equal(
+    calculateWriterActivityStatus(
+      { startDate: '2026-07-20', endDate: '2026-07-30' },
+      new Date('2026-07-12')
+    ),
+    'upcoming'
+  )
+  assert.equal(
+    calculateWriterActivityStatus(
+      { startDate: '2026-06-01', endDate: '2026-06-30' },
+      new Date('2026-07-12')
+    ),
+    'ended'
+  )
   assert.equal(calculateWriterActivityStatus({}, new Date('2026-07-12')), 'unknown')
 
   const normalized = normalizeKnowledgeItem({
@@ -45,6 +59,39 @@ try {
   assert.deepEqual(normalized.tags, ['悬疑'])
   assert.equal(normalized.sourceType, 'manual')
   assert.equal(normalized.status, 'active')
+  const normalizedMetadata = normalizeKnowledgeItem({
+    id: 'metadata',
+    type: 'writer_activity',
+    name: '活动素材',
+    metadata: {
+      writerActivity: {
+        startDate: '2026-07-01',
+        endDate: '2026-07-30',
+        categories: ['悬疑', null],
+        targetAudience: ['新作者']
+      },
+      marketHotspot: {
+        platforms: ['起点'],
+        categories: ['悬疑'],
+        relatedKeywords: ['雪夜'],
+        sampleTitles: ['旧案'],
+        sampleIntros: ['雪落时，灯灭了。']
+      },
+      bookAnalysis: {
+        hooks: ['倒计时'],
+        sellingPoints: ['推理'],
+        conflictPatterns: ['追逃'],
+        chapterPatterns: ['短章'],
+        reusableTechniques: ['线索递进'],
+        riskNotes: ['避免照搬']
+      }
+    }
+  })
+  assert.equal(normalizedMetadata.title, '活动素材')
+  assert.equal(normalizedMetadata.metadata.writerActivity.status, 'active')
+  assert.deepEqual(normalizedMetadata.metadata.writerActivity.categories, ['悬疑'])
+  assert.deepEqual(normalizedMetadata.metadata.marketHotspot.platforms, ['起点'])
+  assert.deepEqual(normalizedMetadata.metadata.bookAnalysis.hooks, ['倒计时'])
 
   const created = knowledgeBaseService.createKnowledgeItem(booksDir, {
     id: 'topic-one',
@@ -94,6 +141,33 @@ try {
     knowledgeBaseService.listKnowledgeItems(booksDir, { tags: ['悬疑'], favorite: true }).length,
     1
   )
+  assert.equal(
+    knowledgeBaseService.listKnowledgeItems(booksDir, {
+      types: ['topic_card'],
+      sourceType: 'manual',
+      status: 'active',
+      genreTags: ['悬疑'],
+      keyword: '旧案',
+      createdAtRange: { from: '2020-01-01', to: '2030-01-01' }
+    }).length,
+    1
+  )
+  assert.equal(
+    knowledgeBaseService.listKnowledgeItems(booksDir, {
+      relatedBookId: 'missing',
+      platformTags: ['不存在']
+    }).length,
+    0
+  )
+  assert.equal(
+    knowledgeBaseService.listKnowledgeItems(booksDir, {
+      updatedAtRange: { from: '2999-01-01' }
+    }).length,
+    0
+  )
+  for (const sortBy of ['createdAt', 'title', 'heat', 'commercial', 'lastUsedAt']) {
+    assert.equal(knowledgeBaseService.listKnowledgeItems(booksDir, { sortBy }).length, 2)
+  }
   assert.equal(knowledgeBaseService.getKnowledgeItem(booksDir, 'missing'), null)
 
   const linked = knowledgeBaseService.linkKnowledgeItems(booksDir, 'topic-one', [
@@ -105,6 +179,8 @@ try {
   assert.equal(knowledgeBaseService.archiveKnowledgeItem(booksDir, 'note-two').item.status, 'archived')
   assert.equal(knowledgeBaseService.updateKnowledgeItem(booksDir, 'missing', {}).success, false)
   assert.equal(knowledgeBaseService.deleteKnowledgeItem(booksDir, 'missing').success, false)
+  assert.equal(knowledgeBaseService.linkKnowledgeItems(booksDir, 'missing', []).success, false)
+  assert.equal(knowledgeBaseService.discardExtractionKnowledgeItems(booksDir, '').success, false)
 
   const converted = knowledgeBaseService.convertTopicCardToBook(booksDir, 'topic-one')
   assert.equal(converted.success, true)
@@ -115,6 +191,83 @@ try {
     'converted_to_book'
   )
   assert.equal(knowledgeBaseService.convertTopicCardToBook(booksDir, 'note-two').success, false)
+
+  const aiTopic = knowledgeBaseService.createTopicCardFromAiResult(
+    booksDir,
+    {
+      id: 'analysis-source',
+      type: 'book_analysis',
+      title: '样本分析',
+      sourceUrl: 'https://example.com/analysis'
+    },
+    {
+      title: '星海回声',
+      oneLineHook: '失忆舰长收到未来自己的求救信号。',
+      protagonist: '失忆舰长',
+      genreTags: ['科幻'],
+      platformSuggestions: ['起点'],
+      sellingPoints: ['时间谜题'],
+      riskNotes: ['规则需一致'],
+      targetLength: 'long',
+      marketHeatScore: 80,
+      commercialPotentialScore: 70,
+      borrowedTechniques: ['倒计时'],
+      differentiation: ['双时间线']
+    },
+    '原始 AI 输出'
+  )
+  assert.equal(aiTopic.success, true)
+  assert.equal(aiTopic.item.sourceType, 'book_analysis')
+  assert.equal(aiTopic.item.metadata.topicCard.targetLength, 'long')
+
+  const generatedTopic = knowledgeBaseService.createKnowledgeItem(booksDir, {
+    id: 'generated-topic',
+    type: 'topic_card',
+    title: '群星迷航',
+    genreTags: ['科幻'],
+    metadata: {
+      topicCard: { protagonist: '导航员', targetLength: 'long' },
+      aiOutputs: {
+        outline: {
+          parsed: {
+            title: '群星迷航大纲',
+            volumeOutlines: [
+              {
+                title: '启航卷',
+                summary: '离开故乡。',
+                chapters: [{ title: '信号', summary: '收到信号。', hook: '坐标来自未来。' }]
+              }
+            ]
+          }
+        },
+        characters: {
+          parsed: {
+            characters: [
+              {
+                name: '林舟',
+                identity: '导航员',
+                personality: '谨慎',
+                goal: '找到归途',
+                relationshipToProtagonist: '本人'
+              }
+            ]
+          }
+        }
+      }
+    }
+  })
+  assert.equal(generatedTopic.success, true)
+  const generatedBook = knowledgeBaseService.convertTopicCardToBook(booksDir, 'generated-topic')
+  assert.equal(generatedBook.success, true)
+  assert.equal(generatedBook.book.targetCount, 1000000)
+  const generatedOutlines = JSON.parse(
+    fs.readFileSync(join(booksDir, generatedBook.book.folderName, 'outlines.json'), 'utf-8')
+  )
+  const generatedCharacters = JSON.parse(
+    fs.readFileSync(join(booksDir, generatedBook.book.folderName, 'characters.json'), 'utf-8')
+  )
+  assert.equal(generatedOutlines.children[0].children[0].title, '信号')
+  assert.equal(generatedCharacters[0].name, '林舟')
 
   const sourceBook = join(booksDir, '拆书样本')
   writeJson(join(sourceBook, 'mazi.json'), { name: '拆书样本' })
@@ -151,6 +304,15 @@ try {
 
   assert.equal(knowledgeBaseService.deleteKnowledgeItem(booksDir, 'note-two').success, true)
   assert.equal(knowledgeBaseService.getKnowledgeItem(booksDir, 'note-two'), null)
+
+  const brokenExtractionBook = join(booksDir, '损坏拆书')
+  writeJson(join(brokenExtractionBook, 'mazi.json'), { name: '损坏拆书' })
+  writeJson(join(brokenExtractionBook, 'knowledge', 'extractions.json'), { extractions: 'invalid' })
+  assert.throws(
+    () => knowledgeBaseService.listKnowledgeItems(booksDir),
+    /拆书记录格式异常/
+  )
+  fs.rmSync(brokenExtractionBook, { recursive: true, force: true })
 
   writeJson(join(booksDir, 'knowledge-base', 'items.json'), { items: 'invalid' })
   assert.throws(
