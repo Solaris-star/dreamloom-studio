@@ -28,9 +28,11 @@ const first = queue.enqueue({ filePath: 'a', content: 'first' })
 const stale = queue.enqueue({ filePath: 'a', content: 'stale' })
 const latest = queue.enqueue({ filePath: 'a', content: 'latest' })
 assert.equal((await stale).superseded, true)
+const latestFlush = queue.flush('a')
 releaseFirst()
 assert.equal((await first).success, true)
 assert.equal((await latest).success, true)
+assert.equal((await latestFlush).success, true)
 assert.deepEqual(calls.map((item) => item.content), ['first', 'latest'])
 assert.ok(calls[0].requestId < calls[1].requestId)
 assert.deepEqual(statuses, ['saving', 'saving', 'saving', 'saved'])
@@ -43,6 +45,7 @@ const failedQueue = createEditorSaveQueue({
 const failed = await failedQueue.enqueue({ filePath: 'b', content: 'text' })
 assert.equal(failed.success, false)
 assert.equal(failed.message, '磁盘不可写')
+assert.equal((await failedQueue.flush('b')).success, false)
 
 const multiFileCalls = []
 let releaseMultiFile
@@ -70,6 +73,29 @@ releaseMultiFile()
 await Promise.all([chapterA, chapterB, flushChapterB])
 assert.deepEqual(multiFileCalls, ['chapter-a', 'chapter-b'])
 assert.equal(multiFileQueue.hasPending(), false)
+
+let releaseSupersededFailure
+const supersededFailureGate = new Promise((resolve) => {
+  releaseSupersededFailure = resolve
+})
+const supersededFailureQueue = createEditorSaveQueue({
+  async persist(snapshot) {
+    if (snapshot.content === 'active') {
+      await supersededFailureGate
+      return { success: true }
+    }
+    return { success: false, message: '更新内容保存失败' }
+  }
+})
+const activeSave = supersededFailureQueue.enqueue({ filePath: 'switch', content: 'active' })
+const replacedSave = supersededFailureQueue.enqueue({ filePath: 'switch', content: 'replaced' })
+const finalSave = supersededFailureQueue.enqueue({ filePath: 'switch', content: 'final' })
+assert.equal((await replacedSave).superseded, true)
+const switchFlush = supersededFailureQueue.flush('switch')
+releaseSupersededFailure()
+assert.equal((await activeSave).success, true)
+assert.equal((await finalSave).success, false)
+assert.equal((await switchFlush).message, '更新内容保存失败')
 
 const callbackErrors = []
 const originalConsoleError = console.error

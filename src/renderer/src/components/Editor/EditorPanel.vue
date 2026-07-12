@@ -1229,8 +1229,10 @@ async function saveFile(showMessage = false) {
     console.error('保存浏览器恢复副本失败:', error)
   }
 
-  const result = await saveQueue.enqueue(snapshot)
-  if (result?.superseded) return true
+  let result = await saveQueue.enqueue(snapshot)
+  if (result?.superseded) {
+    result = await saveQueue.flush(snapshot.filePath)
+  }
 
   if (result?.success) {
     removeEditorRecoveryDraft(

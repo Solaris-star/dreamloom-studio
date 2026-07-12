@@ -25,6 +25,7 @@ export function createEditorSaveQueue({
   const pendingByKey = new Map()
   const pendingOrder = []
   const flushWaiters = new Set()
+  const lastResultByKey = new Map()
 
   function report(status, details = {}) {
     try {
@@ -45,13 +46,15 @@ export function createEditorSaveQueue({
     for (const waiter of flushWaiters) {
       if (!hasPending(waiter.filePath)) {
         flushWaiters.delete(waiter)
-        waiter.resolve()
+        waiter.resolve(waiter.filePath ? lastResultByKey.get(waiter.filePath) : undefined)
       }
     }
   }
 
   function flush(filePath) {
-    if (!hasPending(filePath)) return Promise.resolve()
+    if (!hasPending(filePath)) {
+      return Promise.resolve(filePath ? lastResultByKey.get(filePath) : undefined)
+    }
     return new Promise((resolve) => {
       flushWaiters.add({ filePath, resolve })
     })
@@ -95,14 +98,17 @@ export function createEditorSaveQueue({
             hasPending: hasNewerPending,
             savedAt: Date.now()
           })
+          lastResultByKey.set(key, result)
           entry.resolve(result)
         } catch (error) {
+          const failure = { success: false, message: error?.message || '保存失败', error }
           report(isOfflineError(error) ? 'offline' : 'error', {
             requestId: entry.snapshot.requestId,
             filePath: key,
             error
           })
-          entry.resolve({ success: false, message: error?.message || '保存失败', error })
+          lastResultByKey.set(key, failure)
+          entry.resolve(failure)
         } finally {
           activeEntry = null
           settleFlushWaiters()
