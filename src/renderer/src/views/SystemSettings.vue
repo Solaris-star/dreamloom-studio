@@ -311,7 +311,7 @@
 import { computed, ref, onMounted, markRaw, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Settings,
   Sparkles,
@@ -627,10 +627,20 @@ async function handleClearTrash() {
   if (clearingTrash.value) return
   clearingTrash.value = true
   try {
+    await ElMessageBox.confirm(
+      '将永久删除回收站中的全部内容，且无法恢复。是否继续？',
+      '清理回收站',
+      {
+        type: 'warning',
+        confirmButtonText: '确认清理',
+        cancelButtonText: '取消'
+      }
+    )
     await clearAssetTrash()
     ElMessage.success('回收站已清理')
     await loadStorageStats()
   } catch (error) {
+    if (error === 'cancel' || error === 'close') return
     showSettingsError(error, '清理回收站失败')
   } finally {
     clearingTrash.value = false

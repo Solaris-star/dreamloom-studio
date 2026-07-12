@@ -155,3 +155,73 @@ test('手机创作工具使用全屏抽屉', async ({ page }, testInfo) => {
   await expect(drawer).toBeVisible()
   await expect(drawer).toHaveCSS('width', `${page.viewportSize().width}px`)
 })
+
+test('清理回收站需要确认且不会重复提交', async ({ page }) => {
+  let clearRequests = 0
+  await page.route('**/api/settings/storage-stats', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        booksDir: 'D:\\books',
+        booksSize: 1024,
+        storeSize: 128,
+        trashSize: 64
+      })
+    })
+  })
+  await page.route('**/api/settings/clear-trash', async (route) => {
+    clearRequests += 1
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 250))
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, bytesBefore: 64, bytesAfter: 0 })
+    })
+  })
+
+  await page.goto('/#/settings/storage')
+  const clearButton = page.getByRole('button', { name: '清理回收站' })
+  await clearButton.click()
+  const confirmDialog = page.getByRole('dialog', { name: '清理回收站' })
+  await expect(confirmDialog).toBeVisible()
+  await confirmDialog.getByRole('button', { name: '取消' }).click()
+  await expect.poll(() => clearRequests).toBe(0)
+
+  await clearButton.click()
+  await confirmDialog.getByRole('button', { name: '确认清理' }).click()
+  await expect(clearButton).toBeDisabled()
+  await expect(page.getByText('回收站已清理')).toBeVisible()
+  await expect.poll(() => clearRequests).toBe(1)
+})
+
+test('清理回收站失败时保留页面并显示原因', async ({ page }) => {
+  await page.route('**/api/settings/storage-stats', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        booksDir: 'D:\\books',
+        booksSize: 0,
+        storeSize: 0,
+        trashSize: 64
+      })
+    })
+  })
+  await page.route('**/api/settings/clear-trash', async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: false, message: '清理服务暂时不可用' })
+    })
+  })
+
+  await page.goto('/#/settings/storage')
+  await page.getByRole('button', { name: '清理回收站' }).click()
+  await page.getByRole('dialog', { name: '清理回收站' }).getByRole('button', {
+    name: '确认清理'
+  }).click()
+
+  await expect(page.getByText('清理服务暂时不可用')).toBeVisible()
+  await expect(page).toHaveURL(/#\/settings\/storage/)
+  await expect(page.getByRole('button', { name: '清理回收站' })).toBeEnabled()
+})
