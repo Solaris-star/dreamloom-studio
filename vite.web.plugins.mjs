@@ -19,7 +19,6 @@ import {
 } from './src/main/services/consistencyCheckService.js'
 import marketService from './src/main/services/marketService.js'
 import * as promptPresetService from './src/main/services/promptPresetService.js'
-import * as agentTaskQueueService from './src/main/services/agentTaskQueueService.js'
 import * as workbenchDatabaseService from './src/main/services/workbenchDatabaseService.js'
 import * as settingSnapshotService from './src/main/services/settingSnapshotService.js'
 import * as chapterVersionService from './src/main/services/chapterVersionService.js'
@@ -45,6 +44,7 @@ import { handleAnalyticsGoalRoute } from './src/main/webApi/analyticsGoalRoutes.
 import { handleAssetRoute } from './src/main/webApi/assetRoutes.js'
 import { handleKnowledgeRoute } from './src/main/webApi/knowledgeRoutes.js'
 import { handleImportExportRoute } from './src/main/webApi/importExportRoutes.js'
+import { handleAgentQueueRoute } from './src/main/webApi/agentQueueRoutes.js'
 
 export function createWebServerPlugins() {
   const configuredBooksDir = String(process.env.NOVEL_BOOKS_DIR || '').trim()
@@ -352,43 +352,6 @@ export function createWebServerPlugins() {
       return parsed
     }
     return payload
-  }
-
-  function queueUnavailableMessage(error) {
-    return error?.message || '任务队列未启用，请配置 Redis 后再使用'
-  }
-
-  function emptyAgentQueueStatus(error = null) {
-    return {
-      success: true,
-      queueName: 'novel-agent-writing',
-      redisUrl: '',
-      counts: {
-        waiting: 0,
-        active: 0,
-        completed: 0,
-        failed: 0,
-        delayed: 0,
-        paused: 0
-      },
-      workerRunning: false,
-      localWorkerRunning: false,
-      workerCount: 0,
-      workers: [],
-      workerStatusError: queueUnavailableMessage(error)
-    }
-  }
-
-  function emptyAgentQueueJobs(payload = {}, error = null) {
-    return {
-      success: true,
-      queueName: 'novel-agent-writing',
-      redisUrl: '',
-      types: payload.types ? [payload.types].flat().filter(Boolean) : [],
-      limit: Number(payload.limit || 20),
-      jobs: [],
-      message: queueUnavailableMessage(error)
-    }
   }
 
   // --- Embedding Provider normalization ---
@@ -706,6 +669,15 @@ export function createWebServerPlugins() {
             })
           ) {
             return
+          } else if (
+            await handleAgentQueueRoute({
+              path,
+              body,
+              res,
+              sendJson
+            })
+          ) {
+            return
           } else if (path === '/api/books/cover' || path === '/api/books/image') {
               const url = new URL(req.url, 'http://localhost')
               const bookName = sanitizeText(url.searchParams.get('book'))
@@ -988,54 +960,6 @@ export function createWebServerPlugins() {
                 ensure: true
               })
               sendJson(res, listConsistencyChecks({ ...body, bookPath }))
-            } else if (path === '/api/editor-agent/queue-status') {
-              try {
-                sendJson(res, await agentTaskQueueService.getAgentTaskQueueStatus(body || {}))
-              } catch (error) {
-                sendJson(res, emptyAgentQueueStatus(error))
-              }
-            } else if (path === '/api/editor-agent/queue-jobs') {
-              try {
-                sendJson(res, await agentTaskQueueService.listAgentTaskQueueJobs(body || {}))
-              } catch (error) {
-                sendJson(res, emptyAgentQueueJobs(body || {}, error))
-              }
-            } else if (path === '/api/editor-agent/queue-job') {
-              try {
-                sendJson(
-                  res,
-                  await agentTaskQueueService.getAgentTaskQueueJob(body.jobId, body || {})
-                )
-              } catch (error) {
-                sendJson(res, { success: true, job: null, message: queueUnavailableMessage(error) })
-              }
-            } else if (path === '/api/editor-agent/queue-cancel') {
-              try {
-                sendJson(
-                  res,
-                  await agentTaskQueueService.cancelAgentTaskQueueJob(body || {}, body || {})
-                )
-              } catch (error) {
-                sendJson(res, { success: false, message: queueUnavailableMessage(error) })
-              }
-            } else if (path === '/api/editor-agent/queue-write') {
-              try {
-                sendJson(
-                  res,
-                  await agentTaskQueueService.enqueueAgentWriteTask(body || {}, body || {})
-                )
-              } catch (error) {
-                sendJson(res, { success: false, message: queueUnavailableMessage(error) })
-              }
-            } else if (path === '/api/editor-agent/queue-repair') {
-              try {
-                sendJson(
-                  res,
-                  await agentTaskQueueService.enqueueAgentRepairTask(body || {}, body || {})
-                )
-              } catch (error) {
-                sendJson(res, { success: false, message: queueUnavailableMessage(error) })
-              }
             } else if (path === '/api/editor-agent/writing-skills') {
               sendJson(res, listInstalledWritingSkills())
             } else if (path === '/api/editor-agent/run-writing-skill') {
