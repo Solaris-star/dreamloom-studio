@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { Schema } from '@tiptap/pm/model'
 import { TextSelection } from '@tiptap/pm/state'
 import {
+  getEditorCopyHtml,
   getEditorCopyText,
   resolveEditorCopyRange,
   writePlainTextToClipboard,
@@ -30,6 +31,20 @@ assert.equal(getEditorCopyText(fullState), '第一段\n\n第二段')
 const selectedState = { doc, selection: TextSelection.create(doc, 1, 4) }
 assert.deepEqual(resolveEditorCopyRange(selectedState), { from: 1, to: 4, hasSelection: true })
 assert.equal(getEditorCopyText(selectedState), '第一段')
+assert.equal(getEditorCopyText({ doc, selection: TextSelection.create(doc, 2, 7) }), '一段\n\n第')
+assert.equal(getEditorCopyText(null), '')
+
+assert.equal(
+  getEditorCopyHtml({
+    state: fullState,
+    getHTML: () => '<p>第一段</p><p>第二段</p>'
+  }),
+  '<p>第一段</p><p>第二段</p>'
+)
+assert.throws(
+  () => getEditorCopyHtml({ state: selectedState, view: {} }),
+  /无法生成富文本内容/
+)
 
 const plainWrites = []
 await writePlainTextToClipboard('正文', {

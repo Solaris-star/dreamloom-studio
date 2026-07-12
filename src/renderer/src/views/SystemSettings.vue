@@ -163,8 +163,6 @@
                   </div>
                 </div>
                 <div class="switch-list">
-                  <el-checkbox v-model="editorForm.globalBoldMode">默认加粗</el-checkbox>
-                  <el-checkbox v-model="editorForm.globalItalicMode">默认斜体</el-checkbox>
                   <el-checkbox v-model="editorForm.autoSave">自动保存</el-checkbox>
                 </div>
                 <el-button

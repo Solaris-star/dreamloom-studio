@@ -675,41 +675,18 @@ watch(
         })
       }
 
-      // 如果全局格式模式开启，应用到新内容
       nextTick(() => {
         if (!editor.value) return
-        const docSize = editor.value.state.doc.content.size
-        if (docSize === 0) return
-
-        if (menubarState.value.isBold || menubarState.value.isItalic) {
-          setTimeout(() => {
-            if (!editor.value) return
-            const currentDocSize = editor.value.state.doc.content.size
-            if (currentDocSize === 0) return
-
-            let chain = editor.value.chain().focus().selectAll()
-            if (menubarState.value.isBold) {
-              chain = chain.setBold()
-            }
-            if (menubarState.value.isItalic) {
-              chain = chain.setItalic()
-            }
-            chain.run()
-
-            // 恢复光标到最开始并回到顶部
-            editor.value.chain().focus().setTextSelection(0).run()
-            const scrollContainers = document.querySelectorAll('.editor-content, .editor-content .tiptap, .tiptap, .editor-content-wrap')
-            scrollContainers.forEach(el => { if (el) el.scrollTop = 0 })
-          }, 100)
-        } else {
-          // 没有全局样式格式化时，也需要回到顶部
-          setTimeout(() => {
-            if (!editor.value) return
-            editor.value.chain().focus().setTextSelection(0).run()
-            const scrollContainers = document.querySelectorAll('.editor-content, .editor-content .tiptap, .tiptap, .editor-content-wrap')
-            scrollContainers.forEach(el => { if (el) el.scrollTop = 0 })
-          }, 100)
-        }
+        setTimeout(() => {
+          if (!editor.value) return
+          editor.value.chain().focus().setTextSelection(0).run()
+          const scrollContainers = document.querySelectorAll(
+            '.editor-content, .editor-content .tiptap, .tiptap, .editor-content-wrap'
+          )
+          scrollContainers.forEach((element) => {
+            if (element) element.scrollTop = 0
+          })
+        }, 100)
       })
     }
   }
@@ -848,8 +825,8 @@ async function initEditor() {
         settings.pageWidth !== undefined && settings.pageWidth !== null
           ? settings.pageWidth
           : '80%',
-      isBold: settings.globalBoldMode !== undefined ? settings.globalBoldMode : false,
-      isItalic: settings.globalItalicMode !== undefined ? settings.globalItalicMode : false
+      isBold: false,
+      isItalic: false
     }
   }
 
@@ -886,46 +863,6 @@ async function initEditor() {
   // 等待DOM渲染完成后应用样式
   await nextTick()
   updateEditorStyle()
-
-  // 如果加载了加粗或倾斜状态，应用到所有内容
-  if (menubarState.value.isBold || menubarState.value.isItalic) {
-    if (initialContent) {
-      // 等待编辑器完全初始化后再应用格式
-      await nextTick()
-
-      // 给编辑器更多时间来渲染内容
-      setTimeout(() => {
-        if (!editor.value) return
-
-        // 确保有内容再应用格式
-        const docSize = editor.value.state.doc.content.size
-        if (docSize === 0) return
-
-        // 保存当前选择位置
-        const currentFrom = editor.value.state.selection.from
-        const currentTo = editor.value.state.selection.to
-
-        // 在同一个命令链中选择所有内容并应用格式
-        let chain = editor.value.chain().focus().selectAll()
-
-        if (menubarState.value.isBold) {
-          chain = chain.setBold()
-        }
-        if (menubarState.value.isItalic) {
-          chain = chain.setItalic()
-        }
-
-        chain.run()
-
-        // 恢复之前的选择位置（如果有的话）
-        if (docSize > 0) {
-          const newFrom = Math.min(currentFrom, docSize - 1)
-          const newTo = Math.min(currentTo, docSize - 1)
-          editor.value.chain().focus().setTextSelection({ from: newFrom, to: newTo }).run()
-        }
-      }, 100)
-    }
-  }
 
   // 注意：startEditingSession 已经在上面调用过了，这里不需要重复调用
 
