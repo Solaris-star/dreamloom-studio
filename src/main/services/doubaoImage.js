@@ -4,6 +4,7 @@
  */
 
 export const DEFAULT_DOUBAO_BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3'
+export const DEFAULT_DOUBAO_TIMEOUT_MS = 60000
 
 /**
  * 通义「宽*高」转为方舟常见「宽x高」
@@ -28,6 +29,7 @@ export function mapTongyiSizeToDoubaoSize(sizeStr) {
  * @param {string} opts.prompt
  * @param {string} [opts.size] 通义格式 宽*高
  * @param {string} [opts.negativePrompt]
+ * @param {number} [opts.timeoutMs]
  * @returns {Promise<Buffer>}
  */
 export async function generateImageBuffer({
@@ -36,7 +38,8 @@ export async function generateImageBuffer({
   baseUrl,
   prompt,
   size,
-  negativePrompt
+  negativePrompt,
+  timeoutMs = DEFAULT_DOUBAO_TIMEOUT_MS
 }) {
   if (!apiKey?.trim()) {
     throw new Error('豆包 API Key 未设置，请在设置中配置')
@@ -63,15 +66,28 @@ export async function generateImageBuffer({
     size: mapTongyiSizeToDoubaoSize(size),
     response_format: 'b64_json'
   }
+  const effectiveTimeout = Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0
+    ? Number(timeoutMs)
+    : DEFAULT_DOUBAO_TIMEOUT_MS
+  const signal = AbortSignal.timeout(effectiveTimeout)
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey.trim()}`
-    },
-    body: JSON.stringify(body)
-  })
+  let response
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey.trim()}`
+      },
+      body: JSON.stringify(body),
+      signal
+    })
+  } catch (error) {
+    if (error?.name === 'AbortError' || error?.name === 'TimeoutError') {
+      throw new Error(`豆包图像 API 请求超时（${effectiveTimeout} ms）`)
+    }
+    throw error
+  }
 
   const data = await response.json().catch(() => ({}))
 
@@ -85,16 +101,37 @@ export async function generateImageBuffer({
 
   const b64 = data.data?.[0]?.b64_json
   if (b64) {
-    return Buffer.from(b64, 'base64')
+    const imageBuffer = Buffer.from(b64, 'base64')
+    if (!imageBuffer.length) throw new Error('豆包图像 API 返回了空图片数据')
+    return imageBuffer
   }
 
   const imageUrl = data.data?.[0]?.url
   if (imageUrl && typeof imageUrl === 'string') {
-    const imgRes = await fetch(imageUrl)
+    let parsedImageUrl
+    try {
+      parsedImageUrl = new URL(imageUrl)
+    } catch {
+      throw new Error('豆包图像 API 返回了无效图片地址')
+    }
+    if (!['http:', 'https:'].includes(parsedImageUrl.protocol)) {
+      throw new Error('豆包图像 API 返回了不安全的图片地址')
+    }
+    let imgRes
+    try {
+      imgRes = await fetch(parsedImageUrl, { signal })
+    } catch (error) {
+      if (error?.name === 'AbortError' || error?.name === 'TimeoutError') {
+        throw new Error(`下载豆包返回的图片超时（${effectiveTimeout} ms）`)
+      }
+      throw error
+    }
     if (!imgRes.ok) {
       throw new Error(`下载豆包返回的图片失败: ${imgRes.status}`)
     }
-    return Buffer.from(await imgRes.arrayBuffer())
+    const imageBuffer = Buffer.from(await imgRes.arrayBuffer())
+    if (!imageBuffer.length) throw new Error('豆包图像 API 下载到了空图片')
+    return imageBuffer
   }
 
   throw new Error('豆包图像 API 未返回有效图片数据')
