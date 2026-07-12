@@ -11,9 +11,11 @@ import {
   enqueueAgentCheckTask,
   enqueueAgentRepairTask,
   enqueueAgentWriteTask,
+  getAgentTaskQueueJob,
   getAgentTaskQueueStatus,
   listAgentTaskQueueJobs,
-  normalizeAgentTaskQueueProgress
+  normalizeAgentTaskQueueProgress,
+  startAgentTaskWorker
 } from '../src/main/services/agentTaskQueueService.js'
 import {
   listConsistencyChecks,
@@ -51,6 +53,28 @@ assert.equal(queueProgress.taskId, 'task-queue-001')
 assert.equal(queueProgress.bookName, bookName)
 assert.equal(queueProgress.event.type, 'queue_active')
 assert.equal(normalizeAgentTaskQueueProgress({ task: { id: '' }, event: {} }), null)
+assert.equal(normalizeAgentTaskQueueProgress(null), null)
+const fallbackQueueProgress = normalizeAgentTaskQueueProgress({
+  bookId: 'book-id',
+  generationId: 'generation-id',
+  sourceGenerationId: 'source-id',
+  repairGenerationId: 'repair-id',
+  writeTaskId: 'write-id',
+  task: {
+    id: 'task-fallback',
+    bookName: '备用作品',
+    chapterId: '第二章',
+    updatedAt: '2026-06-07T03:00:00.000Z'
+  },
+  event: { type: 'queue_waiting' }
+})
+assert.equal(fallbackQueueProgress.bookName, '备用作品')
+assert.equal(fallbackQueueProgress.bookId, 'book-id')
+assert.equal(fallbackQueueProgress.chapterId, '第二章')
+assert.equal(fallbackQueueProgress.generationId, 'generation-id')
+assert.equal(fallbackQueueProgress.sourceGenerationId, 'source-id')
+assert.equal(fallbackQueueProgress.repairGenerationId, 'repair-id')
+assert.equal(fallbackQueueProgress.writeTaskId, 'write-id')
 
 const firstAttemptRetryEvent = buildQueueRetryEvent(
   { attemptsMade: 1, opts: { attempts: 2 } },
@@ -67,6 +91,10 @@ assert.equal(
 assert.equal(
   buildQueueRetryEvent({ attemptsMade: 2, opts: { attempts: 2 } }, new Error('最终失败')),
   null
+)
+assert.match(
+  buildQueueRetryEvent({ attemptsMade: 'invalid', opts: { attempts: 3 } }, '临时错误').content,
+  /第 1 次执行失败/
 )
 
 let duplicateLookupCount = 0
@@ -143,9 +171,21 @@ try {
     /真实任务队列未启用/
   )
 
+  await assert.rejects(() => enqueueAgentWriteTask({}, { enabled: true }), /缺少书库目录/)
+  await assert.rejects(
+    () => enqueueAgentWriteTask({ booksDir }, { enabled: true }),
+    /缺少书籍名称/
+  )
+  await assert.rejects(
+    () => enqueueAgentWriteTask({ booksDir, bookName }, { enabled: true }),
+    /缺少写作要求/
+  )
+
   await assert.rejects(() => getAgentTaskQueueStatus(), /真实任务队列未启用/)
+  await assert.rejects(() => getAgentTaskQueueJob('', { enabled: true }), /缺少队列任务 ID/)
 
   await assert.rejects(() => listAgentTaskQueueJobs(), /真实任务队列未启用/)
+  await assert.rejects(() => startAgentTaskWorker(), /真实任务队列未启用/)
 
   await assert.rejects(
     () =>
@@ -156,6 +196,16 @@ try {
         chapterName: '第一章'
       }),
     /真实任务队列未启用/
+  )
+
+  await assert.rejects(() => enqueueAgentCheckTask({}, { enabled: true }), /缺少书库目录/)
+  await assert.rejects(
+    () => enqueueAgentCheckTask({ booksDir }, { enabled: true }),
+    /缺少书籍名称/
+  )
+  await assert.rejects(
+    () => enqueueAgentCheckTask({ booksDir, bookName }, { enabled: true }),
+    /缺少待检查正文或章节位置/
   )
 
   await assert.rejects(
@@ -172,6 +222,15 @@ try {
     /真实任务队列未启用/
   )
 
+  await assert.rejects(() => enqueueAgentRepairTask({}, { enabled: true }), /缺少书库目录/)
+  await assert.rejects(
+    () => enqueueAgentRepairTask({ booksDir }, { enabled: true }),
+    /缺少书籍名称/
+  )
+  await assert.rejects(
+    () => enqueueAgentRepairTask({ booksDir, bookName }, { enabled: true }),
+    /缺少章节名称/
+  )
   await assert.rejects(
     () =>
       enqueueAgentRepairTask(
