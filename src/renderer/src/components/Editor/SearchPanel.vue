@@ -358,24 +358,7 @@ function highlightAllMatches() {
 function addVisualHighlights() {
   if (!props.editor || matches.value.length === 0) return
 
-  // 清除之前的高亮
-  clearVisualHighlights()
-
-  // 为每个匹配项添加高亮标记
-  matches.value.forEach((match, index) => {
-    const isCurrent = index === currentMatchIndex.value
-
-    // 使用Tiptap的setMark命令添加高亮（不改变焦点）
-    props.editor.commands.setTextSelection({
-      from: match.from,
-      to: match.to
-    })
-
-    // 添加高亮标记，使用highlight扩展
-    props.editor.commands.setHighlight({
-      color: isCurrent ? '#409eff' : '#ffeb3b'
-    })
-  })
+  props.editor.commands.setSearchMatches(matches.value, currentMatchIndex.value)
 
   // 恢复当前匹配项的选择（保持搜索框焦点）
   if (currentMatchIndex.value >= 0 && currentMatchIndex.value < matches.value.length) {
@@ -386,15 +369,7 @@ function addVisualHighlights() {
 // 清除视觉高亮
 function clearVisualHighlights() {
   if (!props.editor) return
-
-  // 选择整个文档
-  props.editor.commands.selectAll()
-
-  // 移除所有高亮标记
-  props.editor.commands.unsetHighlight()
-
-  // 清除选择
-  props.editor.commands.setTextSelection(0)
+  props.editor.commands.setSearchMatches([], -1)
 }
 
 // 查找下一个

@@ -9,6 +9,7 @@ import { Extension } from '@tiptap/core'
 import { NoteOutlineParagraph } from '@renderer/extensions/NoteOutline'
 import { Plugin, PluginKey, NodeSelection } from 'prosemirror-state'
 import { Decoration, DecorationSet } from 'prosemirror-view'
+import { SearchMatchDecorations } from '@renderer/extensions/SearchMatchDecorations'
 import { Fragment } from 'prosemirror-model'
 import { Extension as PMExtension } from '@tiptap/core'
 import { useI18n } from 'vue-i18n'
@@ -93,7 +94,8 @@ function getNoteExtensions() {
       HTMLAttributes: {
         class: 'search-highlight'
       }
-    })
+    }),
+    SearchMatchDecorations
   ]
 }
 

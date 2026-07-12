@@ -7,6 +7,7 @@ import Highlight from '@tiptap/extension-highlight'
 import { createDocument, Extension } from '@tiptap/core'
 import { Collapsible } from '@renderer/extensions/Collapsible'
 import { TextHintDecorations } from '@renderer/extensions/TextHintDecorations'
+import { SearchMatchDecorations } from '@renderer/extensions/SearchMatchDecorations'
 import { plainTextToEditorParagraphs } from '@renderer/service/editorTextFormat'
 
 const props = defineProps({
@@ -72,6 +73,7 @@ function getChapterExtensions() {
     }),
     TabInsert,
     TextHintDecorations,
+    SearchMatchDecorations,
     Collapsible // Collapsible 扩展只在章节模式下使用
   ]
 }

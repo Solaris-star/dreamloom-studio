@@ -2468,7 +2468,7 @@ defineExpose({
     font-style: italic;
   }
 
-  // 删除线样式 - 用于禁词提示
+  // 正文删除线样式
   s,
   strike,
   del,
@@ -2483,33 +2483,16 @@ defineExpose({
     color: white;
   }
 
-  // // 搜索匹配文本的高亮样式（仅用于搜索功能，不使用 data-color）
-  // .search-highlight:not([data-color]) {
-  //   background-color: #ffeb3b !important;
-  //   color: #000 !important;
-  //   padding: 1px 2px;
-  //   border-radius: 2px;
-  //   border: 1px solid #f4d03f;
-  // }
+  .search-match {
+    background-color: #fff1a8;
+    box-shadow: inset 0 -1px 0 #c99716;
+  }
 
-  // .search-highlight-current {
-  //   background-color: #409eff !important;
-  //   color: white !important;
-  //   padding: 1px 2px;
-  //   border-radius: 2px;
-  //   box-shadow: 0 0 4px rgba(64, 158, 255, 0.5);
-  // }
-
-  // Tiptap highlight扩展的样式（支持多颜色）
-  // 确保有 data-color 属性的 mark 元素使用 TipTap 扩展设置的颜色
-  // TipTap 扩展会通过内联 style 设置 background-color，优先级高于类选择器
-  // mark.search-highlight[data-color] {
-  //   // padding: 1px 2px;
-  //   // border-radius: 2px;
-  //   // 移除强制背景色，让内联样式生效
-  //   // background-color: unset !important;
-  //   // 颜色由 TipTap 扩展通过 style 属性设置
-  // }
+  .search-match-current {
+    color: #ffffff;
+    background-color: #2563a6;
+    box-shadow: inset 0 -1px 0 #163f70;
+  }
 
   // 笔记大纲样式（段落间距与正文一致，使用 --paragraph-spacing）
   p[data-note-outline] {
