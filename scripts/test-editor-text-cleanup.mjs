@@ -2,8 +2,13 @@ import assert from 'node:assert/strict'
 import {
   buildParagraphDiff,
   cleanEditorText,
+  createTextRevisionToken,
   requestEditorTextCleanup
 } from '../src/renderer/src/service/editorTextCleanup.js'
+
+assert.equal(createTextRevisionToken('相同正文'), createTextRevisionToken('相同正文'))
+assert.notEqual(createTextRevisionToken('正文 A'), createTextRevisionToken('正文 B'))
+assert.match(createTextRevisionToken('正文'), /^text-2-[0-9a-f]{8}$/)
 
 assert.deepEqual(buildParagraphDiff('第一段\n\n第二段', '第一段\n\n修正段'), [
   { type: 'unchanged', before: '第一段', after: '第一段' },

@@ -264,7 +264,7 @@ import {
   saveChapterDocument,
   writeNoteDocument
 } from '../../service/editor'
-import { cleanEditorText } from '../../service/editorTextCleanup'
+import { cleanEditorText, createTextRevisionToken } from '../../service/editorTextCleanup'
 import { restoreChapterVersion } from '../../service/chapterVersionRestore'
 import { continueWriteWithAI, polishTextWithAI } from '../../service/editorText'
 import { getStoreValue, setStoreValue } from '../../service/webStore'
@@ -1430,7 +1430,7 @@ async function getPreviousChapterContextInfo() {
         bookId: props.bookName,
         chapterId: sourceFilePath,
         selection: { from, to },
-        editVersion: sourceDocument
+        editVersion: createTextRevisionToken(sourceDocument)
       })
       if (
         requestId !== cleanupRequestSequence ||
@@ -1475,7 +1475,7 @@ async function getPreviousChapterContextInfo() {
       const res = await cleanEditorText(fullText, {
         bookId: props.bookName,
         chapterId: sourceFilePath,
-        editVersion: fullText
+        editVersion: createTextRevisionToken(fullText)
       })
       if (
         requestId !== cleanupRequestSequence ||
@@ -1750,10 +1750,11 @@ async function copyPolishedText() {
 async function confirmPolishReplace() {
   const ed = editor.value
   if (!ed || !polishResultText.value) return
+  const sourceFilePath = polishSourceFilePath.value
+  const sourceDocument = polishSourceDocument.value
   if (
-    polishSourceFilePath.value &&
-    (editorStore.file?.path !== polishSourceFilePath.value ||
-      ed.getText() !== polishSourceDocument.value)
+    sourceFilePath &&
+    (editorStore.file?.path !== sourceFilePath || ed.getText() !== sourceDocument)
   ) {
     ElMessage.warning('正文在 AI 处理期间已经变化，请重新发起操作')
     return
@@ -1789,6 +1790,13 @@ async function confirmPolishReplace() {
       ElMessage.error(error?.message || '创建 AI 清理前备份失败')
       return
     }
+  }
+  if (
+    sourceFilePath &&
+    (editorStore.file?.path !== sourceFilePath || ed.getText() !== sourceDocument)
+  ) {
+    ElMessage.warning('创建备份期间正文已经变化，本次结果未应用')
+    return
   }
   if (polishMode.value === 'selection') {
     ed.chain()
