@@ -1,7 +1,11 @@
 <template>
   <LayoutTool :title="t('settingManager.title')">
     <template #headrAction>
-      <el-button type="primary" :disabled="!canCreateItem" @click="handleCreateItem">
+      <el-button
+        type="primary"
+        :disabled="!canCreateItem"
+        @click="handleCreateItem"
+      >
         <el-icon><Plus /></el-icon>
         <span>{{ t('settingManager.createSetting') }}</span>
       </el-button>
@@ -11,8 +15,15 @@
       <div class="setting-manager">
         <aside class="category-panel">
           <div class="panel-header">
-            <h3 class="panel-title">{{ t('settingManager.categoryTitle') }}</h3>
-            <el-button size="small" type="primary" plain @click="handleCreateCategory">
+            <h3 class="panel-title">
+              {{ t('settingManager.categoryTitle') }}
+            </h3>
+            <el-button
+              size="small"
+              type="primary"
+              plain
+              @click="handleCreateCategory"
+            >
               <el-icon><Plus /></el-icon>
               <span>{{ t('settingManager.createRootCategory') }}</span>
             </el-button>
@@ -39,27 +50,44 @@
             @node-drop="handleCategoryDrop"
           >
             <template #default="{ data }">
-              <div class="category-tree-node" :class="{ active: data.id === activeCategoryId }">
+              <div
+                class="category-tree-node"
+                :class="{ active: data.id === activeCategoryId }"
+              >
                 <div class="category-info">
                   <span class="category-name">{{ data.name }}</span>
                 </div>
-                <div class="category-actions" @click.stop>
+                <div
+                  class="category-actions"
+                  @click.stop
+                >
                   <el-tooltip
                     :content="t('settingManager.createChildCategory')"
                     placement="top"
                     :show-after="800"
                   >
-                    <el-icon @click="handleCreateChildCategory(data)"><Plus /></el-icon>
+                    <el-icon @click="handleCreateChildCategory(data)">
+                      <Plus />
+                    </el-icon>
                   </el-tooltip>
                   <el-tooltip
                     :content="t('settingManager.editCategory')"
                     placement="top"
                     :show-after="800"
                   >
-                    <el-icon @click="handleEditCategory(data)"><Edit /></el-icon>
+                    <el-icon @click="handleEditCategory(data)">
+                      <Edit />
+                    </el-icon>
                   </el-tooltip>
-                  <el-tooltip :content="t('common.delete')" placement="top" :show-after="800">
-                    <el-icon class="danger-action" @click="handleDeleteCategory(data)">
+                  <el-tooltip
+                    :content="t('common.delete')"
+                    placement="top"
+                    :show-after="800"
+                  >
+                    <el-icon
+                      class="danger-action"
+                      @click="handleDeleteCategory(data)"
+                    >
                       <Delete />
                     </el-icon>
                   </el-tooltip>
@@ -76,19 +104,28 @@
                 {{ currentCategory?.name || t('settingManager.noCategory') }}
               </h3>
             </div>
-            <el-tag v-if="currentCategory" :type="isLeafCategory ? 'success' : 'info'">
+            <el-tag
+              v-if="currentCategory"
+              :type="isLeafCategory ? 'success' : 'info'"
+            >
               {{
                 isLeafCategory
                   ? t('settingManager.leafCategory')
                   : t('settingManager.branchCategory')
               }}
             </el-tag>
-            <el-tag v-if="currentCategory" type="info">
+            <el-tag
+              v-if="currentCategory"
+              type="info"
+            >
               {{ t('settingManager.settingCount', { count: currentCategorySettingCount }) }}
             </el-tag>
           </div>
 
-          <div v-if="currentCategory?.introduction" class="category-introduction">
+          <div
+            v-if="currentCategory?.introduction"
+            class="category-introduction"
+          >
             {{ currentCategory.introduction }}
           </div>
           <el-alert
@@ -108,7 +145,11 @@
               style="width: 100%"
               :empty-text="settingEmptyText"
             >
-              <el-table-column prop="name" :label="t('settingManager.settingName')" min-width="90">
+              <el-table-column
+                prop="name"
+                :label="t('settingManager.settingName')"
+                min-width="90"
+              >
                 <template #default="{ row }">
                   <span class="setting-name">{{ row.name }}</span>
                 </template>
@@ -119,13 +160,22 @@
                 min-width="300"
               >
                 <template #default="{ row }">
-                  <div class="setting-introduction">{{ row.introduction }}</div>
+                  <div class="setting-introduction">
+                    {{ row.introduction }}
+                  </div>
                 </template>
               </el-table-column>
-              <el-table-column :label="t('settingManager.actions')" width="110" fixed="right">
+              <el-table-column
+                :label="t('settingManager.actions')"
+                width="110"
+                fixed="right"
+              >
                 <template #default="{ row }">
                   <div class="setting-action-column">
-                    <el-button size="small" @click="handleEditItem(row)">
+                    <el-button
+                      size="small"
+                      @click="handleEditItem(row)"
+                    >
                       {{ t('common.edit') }}
                     </el-button>
                     <el-button
@@ -136,7 +186,11 @@
                     >
                       {{ t('settingManager.aiRefine') }}
                     </el-button>
-                    <el-button size="small" type="danger" @click="handleDeleteItem(row)">
+                    <el-button
+                      size="small"
+                      type="danger"
+                      @click="handleDeleteItem(row)"
+                    >
                       {{ t('common.delete') }}
                     </el-button>
                   </div>
@@ -164,14 +218,20 @@
       label-width="90px"
       @submit.prevent="confirmSaveCategory"
     >
-      <el-form-item :label="t('settingManager.categoryName')" prop="name">
+      <el-form-item
+        :label="t('settingManager.categoryName')"
+        prop="name"
+      >
         <el-input
           v-model="categoryForm.name"
           :placeholder="t('settingManager.categoryNamePlaceholder')"
           clearable
         />
       </el-form-item>
-      <el-form-item :label="t('settingManager.categoryIntroduction')" prop="introduction">
+      <el-form-item
+        :label="t('settingManager.categoryIntroduction')"
+        prop="introduction"
+      >
         <el-input
           v-model="categoryForm.introduction"
           :placeholder="t('settingManager.categoryIntroductionPlaceholder')"
@@ -182,8 +242,15 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="categoryDialogVisible = false">{{ t('common.cancel') }}</el-button>
-      <el-button type="primary" @click="confirmSaveCategory">{{ t('common.confirm') }}</el-button>
+      <el-button @click="categoryDialogVisible = false">
+        {{ t('common.cancel') }}
+      </el-button>
+      <el-button
+        type="primary"
+        @click="confirmSaveCategory"
+      >
+        {{ t('common.confirm') }}
+      </el-button>
     </template>
   </el-dialog>
 
@@ -200,14 +267,20 @@
       label-width="90px"
       @submit.prevent="confirmSaveItem"
     >
-      <el-form-item :label="t('settingManager.settingName')" prop="name">
+      <el-form-item
+        :label="t('settingManager.settingName')"
+        prop="name"
+      >
         <el-input
           v-model="settingForm.name"
           :placeholder="t('settingManager.settingNamePlaceholder')"
           clearable
         />
       </el-form-item>
-      <el-form-item :label="t('settingManager.settingIntroduction')" prop="introduction">
+      <el-form-item
+        :label="t('settingManager.settingIntroduction')"
+        prop="introduction"
+      >
         <el-input
           v-model="settingForm.introduction"
           :placeholder="t('settingManager.settingIntroductionPlaceholder')"
@@ -218,8 +291,15 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="settingDialogVisible = false">{{ t('common.cancel') }}</el-button>
-      <el-button type="primary" @click="confirmSaveItem">{{ t('common.confirm') }}</el-button>
+      <el-button @click="settingDialogVisible = false">
+        {{ t('common.cancel') }}
+      </el-button>
+      <el-button
+        type="primary"
+        @click="confirmSaveItem"
+      >
+        {{ t('common.confirm') }}
+      </el-button>
     </template>
   </el-dialog>
 
@@ -231,7 +311,10 @@
     :close-on-press-escape="!aiRefining"
     :show-close="!aiRefining"
   >
-    <el-form label-position="top" @submit.prevent="handleRunAiRefine">
+    <el-form
+      label-position="top"
+      @submit.prevent="handleRunAiRefine"
+    >
       <el-form-item :label="t('settingManager.aiRefineRequirement')">
         <el-input
           v-model="aiRefineRequirement"
@@ -243,10 +326,17 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button :disabled="aiRefining" @click="aiRequirementDialogVisible = false">
+      <el-button
+        :disabled="aiRefining"
+        @click="aiRequirementDialogVisible = false"
+      >
         {{ t('common.cancel') }}
       </el-button>
-      <el-button type="primary" :loading="aiRefining" @click="handleRunAiRefine">
+      <el-button
+        type="primary"
+        :loading="aiRefining"
+        @click="handleRunAiRefine"
+      >
         {{ t('common.confirm') }}
       </el-button>
     </template>
@@ -268,13 +358,23 @@
       :placeholder="t('settingManager.aiRefineResultPlaceholder')"
     />
     <template #footer>
-      <el-button :disabled="aiApplying" @click="copyAiRefineResult">
+      <el-button
+        :disabled="aiApplying"
+        @click="copyAiRefineResult"
+      >
         {{ t('common.copy') }}
       </el-button>
-      <el-button :disabled="aiApplying" @click="aiResultDialogVisible = false">
+      <el-button
+        :disabled="aiApplying"
+        @click="aiResultDialogVisible = false"
+      >
         {{ t('common.cancel') }}
       </el-button>
-      <el-button type="primary" :loading="aiApplying" @click="confirmApplyAiRefineResult">
+      <el-button
+        type="primary"
+        :loading="aiApplying"
+        @click="confirmApplyAiRefineResult"
+      >
         {{ t('common.confirm') }}
       </el-button>
     </template>
