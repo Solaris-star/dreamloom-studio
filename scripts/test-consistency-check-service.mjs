@@ -47,9 +47,16 @@ try {
     '林青今年二十五岁，却被众人称作少年。',
     '今年陆遥二十一岁，他在山门外守了一夜。',
     '林青是男儿身的传闻传遍集市。',
+    '林青身高 180 cm，陆遥被误认成一位姑娘。',
     '正午日光刺眼，月影术被林青强行施展。'
   ].join('\n')
   fs.writeFileSync(join(chapterDir, '第一章.txt'), chapterText, 'utf-8')
+
+  await assert.rejects(() => runConsistencyCheck({}), /作品目录不存在/)
+  await assert.rejects(
+    () => runConsistencyCheck({ bookPath, volumeName: '第一卷', chapterName: '不存在' }),
+    /待检查正文为空/
+  )
 
   const ruleResult = await runConsistencyCheck({
     bookPath,
@@ -78,6 +85,12 @@ try {
   )
   assert.equal(
     ruleResult.issues.some((item) => item.type === 'character_gender'),
+    true
+  )
+  assert.equal(
+    ruleResult.issues.some(
+      (item) => item.type === 'character_height' && item.expected === 168 && item.actual === 180
+    ),
     true
   )
   assert.equal(
@@ -133,6 +146,33 @@ try {
   const storeAfterDraft = listConsistencyChecks({ bookPath })
   assert.equal(storeAfterDraft.checks.length, 2)
 
+  const contentAliasResult = await runConsistencyCheck({
+    bookPath,
+    content: '林青二十五岁。',
+    volume: '别名卷',
+    chapter: '别名章',
+    save: false
+  })
+  assert.equal(contentAliasResult.check.volumeName, '别名卷')
+  assert.equal(contentAliasResult.check.chapterName, '别名章')
+  assert.equal(contentAliasResult.check.persisted, false)
+
+  const chapterTextAliasResult = await runConsistencyCheck(
+    {
+      bookPath,
+      chapterText: '陆遥是一位姑娘。',
+      aiCheck: true,
+      save: true
+    },
+    { persist: false }
+  )
+  assert.equal(chapterTextAliasResult.check.persisted, false)
+  assert.equal(chapterTextAliasResult.check.llmChecked, false)
+  assert.match(
+    chapterTextAliasResult.check.llmMessage,
+    /未配置文本 AI 服务/
+  )
+
   const offlineTextProvider = {
     async chat(options) {
       assert.equal(options.temperature, 0.1)
@@ -180,8 +220,93 @@ try {
     true
   )
 
+  const fencedLlmResult = await runConsistencyCheck(
+    {
+      bookPath,
+      text: '林青回到内门。',
+      enableLlm: true,
+      modelName: 'fallback-model',
+      maxTokens: 800,
+      persist: false
+    },
+    { textProvider: {} }
+  )
+  assert.equal(fencedLlmResult.check.llmChecked, false)
+
+  const markdownLlmResult = await runConsistencyCheck(
+    {
+      bookPath,
+      text: '林青回到内门。',
+      enableLlm: true,
+      modelName: 'fallback-model',
+      maxTokens: 800,
+      persist: false
+    },
+    {
+      textProvider: {
+        async chat(options) {
+          assert.equal(options.model, 'fallback-model')
+          assert.equal(options.max_tokens, 800)
+          return {
+            content:
+              '```json\n{"summary":"格式正常","issues":[{"issue":"地点需要确认","quote":"回到内门","fact":"人物资料","fix":"补充说明"}]}\n```'
+          }
+        }
+      }
+    }
+  )
+  assert.equal(markdownLlmResult.check.llmMessage, '格式正常')
+  assert.equal(markdownLlmResult.issues[0].type, 'semantic_consistency')
+  assert.equal(markdownLlmResult.issues[0].severity, 'medium')
+
+  const embeddedLlmResult = await runConsistencyCheck(
+    {
+      bookPath,
+      text: '林青回到内门。',
+      useLlm: true,
+      persist: false
+    },
+    {
+      textProvider: {
+        async chat() {
+          return {
+            content:
+              '前置文字 {"summary":"已提取","issues":[{"reason":"时间需要确认","type":"timeline","severity":"low"}]} 后置文字'
+          }
+        }
+      }
+    }
+  )
+  assert.equal(embeddedLlmResult.check.llmMessage, '已提取')
+  assert.equal(embeddedLlmResult.issues[0].type, 'timeline')
+
+  const malformedLlmResult = await runConsistencyCheck(
+    {
+      bookPath,
+      text: '林青回到内门。',
+      useLlm: true,
+      persist: false
+    },
+    {
+      textProvider: {
+        async chat() {
+          return { content: '不是 JSON' }
+        }
+      }
+    }
+  )
+  assert.equal(malformedLlmResult.check.llmChecked, true)
+  assert.equal(malformedLlmResult.check.llmMessage, '')
+  assert.deepEqual(malformedLlmResult.issues, [])
+
   const finalStore = listConsistencyChecks({ bookPath })
   assert.equal(finalStore.checks.length, 3)
+
+  const legacyStorePath = join(bookPath, 'consistency-checks.json')
+  const currentChecks = finalStore.checks
+  fs.writeFileSync(legacyStorePath, JSON.stringify(currentChecks), 'utf8')
+  assert.equal(listConsistencyChecks({ bookPath }).checks.length, 3)
+  fs.writeFileSync(legacyStorePath, JSON.stringify({ checks: currentChecks }), 'utf8')
 
   const originalCharacters = fs.readFileSync(join(bookPath, 'characters.json'), 'utf-8')
   fs.writeFileSync(join(bookPath, 'characters.json'), '{ bad json', 'utf-8')
@@ -208,6 +333,19 @@ try {
   )
   fs.writeFileSync(join(bookPath, 'characters.json'), originalCharacters, 'utf-8')
 
+  const originalSettings = fs.readFileSync(join(bookPath, 'settings.json'), 'utf8')
+  fs.writeFileSync(join(bookPath, 'settings.json'), '[]', 'utf8')
+  await assert.rejects(
+    () => runConsistencyCheck({ bookPath, text: '测试正文。' }),
+    /settings\.json 格式错误/
+  )
+  fs.writeFileSync(join(bookPath, 'settings.json'), JSON.stringify({ categories: {} }), 'utf8')
+  await assert.rejects(
+    () => runConsistencyCheck({ bookPath, text: '测试正文。' }),
+    /settings\.json 格式错误/
+  )
+  fs.writeFileSync(join(bookPath, 'settings.json'), originalSettings, 'utf8')
+
   const checkStorePath = join(bookPath, 'consistency-checks.json')
   fs.writeFileSync(checkStorePath, '{ bad json', 'utf-8')
   assert.throws(() => listConsistencyChecks({ bookPath }), /读取 JSON 文件失败/)
@@ -232,6 +370,11 @@ try {
     /一致性检查记录格式错误/
   )
   assert.deepEqual(JSON.parse(fs.readFileSync(checkStorePath, 'utf-8')), { checks: {} })
+
+  assert.throws(
+    () => listConsistencyChecks({ bookPath: join(rootDir, '不存在作品') }),
+    /作品目录不存在/
+  )
 } finally {
   fs.rmSync(rootDir, { recursive: true, force: true })
 }
