@@ -27,6 +27,44 @@ await assert.rejects(
   /内网/
 )
 await assert.rejects(() => validatePublicAiTarget('http://127.0.0.1/v1'), /内网/)
+for (const address of [
+  '0.0.0.0',
+  '10.0.0.1',
+  '100.64.0.1',
+  '169.254.1.1',
+  '172.16.0.1',
+  '172.31.255.255',
+  '192.168.1.1',
+  '224.0.0.1',
+  '::',
+  'fc00::1',
+  'fd00::1',
+  'fe80::1',
+  'fe90::1',
+  'fea0::1',
+  'feb0::1',
+  '::ffff:127.0.0.1',
+  '::ffff:10.0.0.1',
+  '::ffff:192.168.1.1'
+]) {
+  await assert.rejects(
+    () => validatePublicAiTarget('https://provider.example/v1', async () => [{ address }]),
+    /内网/
+  )
+}
+await assert.rejects(
+  () =>
+    validatePublicAiTarget('https://provider.example/v1', async () => [
+      { address: '203.0.113.10' },
+      { address: '10.0.0.1' }
+    ]),
+  /内网/
+)
+await assert.rejects(
+  () => validatePublicAiTarget('https://provider.example/v1', async () => [{ address: 'invalid' }]),
+  /内网/
+)
+assert.equal((await validatePublicAiTarget('https://[2001:db8::1]/v1')).hostname, '[2001:db8::1]')
 assert.equal(
   (await validatePublicAiTarget('https://provider.example/v1', publicLookup)).hostname,
   'provider.example'
@@ -55,6 +93,25 @@ assert.equal(result.success, true)
 assert.equal(result.data.data[0].id, 'model-a')
 assert.equal(receivedOptions.headers.Authorization, 'Bearer secret-key')
 assert.equal(receivedOptions.body, undefined)
+
+const defaultRequest = await requestWebAiProxy(
+  {
+    targetUrl: 'https://provider.example/v1/models',
+    apiKey: '   ',
+    headers: null
+  },
+  {
+    lookup: publicLookup,
+    timeoutMs: 0,
+    fetch: async (_url, options) => {
+      assert.equal(options.method, 'POST')
+      assert.equal(options.headers.Authorization, undefined)
+      assert.equal(options.body, '{}')
+      return new Response('{}', { status: 200 })
+    }
+  }
+)
+assert.equal(defaultRequest.success, true)
 
 const postResult = await requestWebAiProxy(
   {

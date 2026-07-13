@@ -64,7 +64,8 @@ export async function validatePublicAiTarget(targetUrl, lookup = dns.lookup) {
 
 function proxyHeaders(payload = {}) {
   const headers = { Accept: 'application/json' }
-  if (payload.apiKey) headers.Authorization = `Bearer ${String(payload.apiKey).trim()}`
+  const apiKey = String(payload.apiKey || '').trim()
+  if (apiKey) headers.Authorization = `Bearer ${apiKey}`
   for (const [name, value] of Object.entries(payload.headers || {})) {
     const normalized = name.toLowerCase()
     if (['accept', 'content-type', 'anthropic-version', 'x-api-key'].includes(normalized)) {
