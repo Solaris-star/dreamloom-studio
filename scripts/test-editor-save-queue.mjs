@@ -178,6 +178,39 @@ assert.equal(offline.success, false)
 assert.equal(offline.offline, true)
 assert.deepEqual(offlineStatuses, ['saving', 'offline'])
 
+const flaggedOfflineQueue = createEditorSaveQueue({
+  async persist() {
+    throw Object.assign(new Error('连接已断开'), { offline: true })
+  }
+})
+const flaggedOffline = await flaggedOfflineQueue.enqueue({
+  filePath: 'flagged-offline',
+  content: 'text'
+})
+assert.equal(flaggedOffline.success, false)
+assert.equal(flaggedOffline.offline, true)
+
+const codedOfflineQueue = createEditorSaveQueue({
+  async persist() {
+    throw Object.assign(new Error('网络不可达'), { code: 'ENETUNREACH' })
+  }
+})
+const codedOffline = await codedOfflineQueue.enqueue({
+  filePath: 'coded-offline',
+  content: 'text'
+})
+assert.equal(codedOffline.success, false)
+assert.equal(codedOffline.offline, true)
+
+const noTimeoutQueue = createEditorSaveQueue({
+  persist: async (snapshot) => ({ success: true, content: snapshot.content }),
+  timeoutMs: 0
+})
+assert.equal(
+  (await noTimeoutQueue.enqueue({ filePath: 'no-timeout', content: 'text' })).success,
+  true
+)
+
 const invalid = await queue.enqueue({ filePath: '', content: 'text' })
 assert.equal(invalid.success, false)
 assert.match(invalid.message, /文件路径/)
