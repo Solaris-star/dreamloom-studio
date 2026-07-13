@@ -1,7 +1,10 @@
 <template>
   <LayoutTool :title="t('eventsSequence.pageTitle', { bookName })">
     <template #headrAction>
-      <el-button type="primary" @click="showCreateDialog = true">
+      <el-button
+        type="primary"
+        @click="showCreateDialog = true"
+      >
         <el-icon><Plus /></el-icon>
         <span>{{ t('eventsSequence.createChart') }}</span>
       </el-button>
@@ -9,26 +12,51 @@
     <template #default>
       <div class="events-sequence-content">
         <!-- 事序图列表 -->
-        <div v-if="sequenceCharts.length > 0" class="sequence-charts">
-          <div v-for="chart in sequenceCharts" :key="chart.id" class="sequence-chart">
+        <div
+          v-if="sequenceCharts.length > 0"
+          class="sequence-charts"
+        >
+          <div
+            v-for="chart in sequenceCharts"
+            :key="chart.id"
+            class="sequence-chart"
+          >
             <!-- 甘特图表格 -->
             <div class="gantt-table">
               <!-- 表格头部 -->
               <div class="table-header">
                 <div class="header-left">
-                  <h3 class="chart-title">{{ chart.title }}</h3>
+                  <h3 class="chart-title">
+                    {{ chart.title }}
+                  </h3>
                 </div>
                 <div class="header-right">
-                  <el-button type="primary" size="small" @click="addEvent(chart.id)">
+                  <el-button
+                    type="primary"
+                    size="small"
+                    @click="addEvent(chart.id)"
+                  >
                     {{ t('eventsSequence.addEvent') }}
                   </el-button>
-                  <el-button type="warning" size="small" @click="openExpandDialog(chart.id)">
+                  <el-button
+                    type="warning"
+                    size="small"
+                    @click="openExpandDialog(chart.id)"
+                  >
                     {{ t('eventsSequence.expandCells') }}
                   </el-button>
-                  <el-button type="success" size="small" @click="saveSequenceChart(chart.id)">
+                  <el-button
+                    type="success"
+                    size="small"
+                    @click="saveSequenceChart(chart.id)"
+                  >
                     {{ t('eventsSequence.saveChart') }}
                   </el-button>
-                  <el-button type="danger" size="small" @click="deleteSequenceChart(chart.id)">
+                  <el-button
+                    type="danger"
+                    size="small"
+                    @click="deleteSequenceChart(chart.id)"
+                  >
                     {{ t('eventsSequence.deleteChart') }}
                   </el-button>
                 </div>
@@ -36,27 +64,54 @@
 
               <!-- 表格主体 -->
               <div class="table-body">
-                <div class="table-left" :class="{ collapsed: isChartCollapsed(chart.id) }">
+                <div
+                  class="table-left"
+                  :class="{ collapsed: isChartCollapsed(chart.id) }"
+                >
                   <div class="left-header">
-                    <div class="col-index">{{ t('eventsSequence.index') }}</div>
-                    <div class="col-intro">{{ t('eventsSequence.introduction') }}</div>
-                    <div class="col-progress">{{ t('eventsSequence.progress') }}</div>
+                    <div class="col-index">
+                      {{ t('eventsSequence.index') }}
+                    </div>
+                    <div class="col-intro">
+                      {{ t('eventsSequence.introduction') }}
+                    </div>
+                    <div class="col-progress">
+                      {{ t('eventsSequence.progress') }}
+                    </div>
                   </div>
                   <div class="left-content">
-                    <div v-for="event in chart.events" :key="event.id" class="event-row">
-                      <div class="col-index">{{ event.index }}</div>
-                      <div class="col-intro" :title="event.introduction">
-                        <el-tooltip :content="event.introduction" placement="top" :show-after="500">
+                    <div
+                      v-for="event in chart.events"
+                      :key="event.id"
+                      class="event-row"
+                    >
+                      <div class="col-index">
+                        {{ event.index }}
+                      </div>
+                      <div
+                        class="col-intro"
+                        :title="event.introduction"
+                      >
+                        <el-tooltip
+                          :content="event.introduction"
+                          placement="top"
+                          :show-after="500"
+                        >
                           <span class="intro-text">{{ event.introduction }}</span>
                         </el-tooltip>
                       </div>
-                      <div class="col-progress">{{ (event.progress ?? 0) + '%' }}</div>
+                      <div class="col-progress">
+                        {{ (event.progress ?? 0) + '%' }}
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 <!-- 切换按钮 -->
-                <div class="toggle-button" @click="toggleLeftPanel(chart.id)">
+                <div
+                  class="toggle-button"
+                  @click="toggleLeftPanel(chart.id)"
+                >
                   <el-icon>
                     <DArrowLeft v-if="!isChartCollapsed(chart.id)" />
                     <DArrowRight v-else />
@@ -65,7 +120,11 @@
 
                 <div class="table-right">
                   <div class="right-header">
-                    <div v-for="i in chart.cellCount || 100" :key="i" class="time-cell">
+                    <div
+                      v-for="i in chart.cellCount || 100"
+                      :key="i"
+                      class="time-cell"
+                    >
                       {{ i }}
                     </div>
                   </div>
@@ -81,7 +140,7 @@
                           v-for="colIndex in chart.cellCount || 100"
                           :key="`cell-${rowIndex}-${colIndex}`"
                           class="grid-cell"
-                        ></div>
+                        />
                       </div>
                     </div>
 
@@ -112,7 +171,7 @@
                               <div
                                 class="event-progress"
                                 :style="{ width: getEventProgressWidth(event) }"
-                              ></div>
+                              />
                               <div class="event-label start-label">
                                 {{ event.detail || event.introduction }}
                               </div>
@@ -129,8 +188,15 @@
         </div>
 
         <!-- 空状态 -->
-        <div v-else class="content-placeholder">
-          <el-empty :image-size="200" :description="t('eventsSequence.empty')" class="empty-state">
+        <div
+          v-else
+          class="content-placeholder"
+        >
+          <el-empty
+            :image-size="200"
+            :description="t('eventsSequence.empty')"
+            class="empty-state"
+          >
             <template #description>
               <p>{{ t('eventsSequence.emptyHint') }}</p>
             </template>
@@ -154,7 +220,10 @@
       label-width="100px"
       @submit.prevent="createSequenceChart"
     >
-      <el-form-item :label="t('eventsSequence.themeName')" prop="title">
+      <el-form-item
+        :label="t('eventsSequence.themeName')"
+        prop="title"
+      >
         <el-input
           v-model="chartForm.title"
           :placeholder="t('eventsSequence.themeNamePlaceholder')"
@@ -166,7 +235,10 @@
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="showCreateDialog = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="createSequenceChart">{{ t('common.confirm') }}</el-button>
+        <el-button
+          type="primary"
+          @click="createSequenceChart"
+        >{{ t('common.confirm') }}</el-button>
       </span>
     </template>
   </el-dialog>
@@ -185,7 +257,10 @@
       label-width="120px"
       @submit.prevent="expandCells"
     >
-      <el-form-item :label="t('eventsSequence.expandCount')" prop="cellCount">
+      <el-form-item
+        :label="t('eventsSequence.expandCount')"
+        prop="cellCount"
+      >
         <el-input-number
           v-model="expandForm.cellCount"
           :min="100"
@@ -206,7 +281,10 @@
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="showExpandDialog = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="expandCells">{{ t('common.confirm') }}</el-button>
+        <el-button
+          type="primary"
+          @click="expandCells"
+        >{{ t('common.confirm') }}</el-button>
       </span>
     </template>
   </el-dialog>
@@ -229,7 +307,10 @@
       label-width="100px"
       @submit.prevent="submitEventForm"
     >
-      <el-form-item :label="t('eventsSequence.introduction')" prop="introduction">
+      <el-form-item
+        :label="t('eventsSequence.introduction')"
+        prop="introduction"
+      >
         <el-input
           v-model="eventForm.introduction"
           maxlength="30"
@@ -237,7 +318,10 @@
           :placeholder="t('eventsSequence.introductionPlaceholder')"
         />
       </el-form-item>
-      <el-form-item :label="t('eventsSequence.detail')" prop="detail">
+      <el-form-item
+        :label="t('eventsSequence.detail')"
+        prop="detail"
+      >
         <el-input
           v-model="eventForm.detail"
           type="textarea"
@@ -247,25 +331,56 @@
           :placeholder="t('eventsSequence.detailPlaceholder')"
         />
       </el-form-item>
-      <el-form-item :label="t('eventsSequence.progress')" prop="progress">
-        <el-slider v-model="eventForm.progress" :min="0" :max="100" :step="1" />
+      <el-form-item
+        :label="t('eventsSequence.progress')"
+        prop="progress"
+      >
+        <el-slider
+          v-model="eventForm.progress"
+          :min="0"
+          :max="100"
+          :step="1"
+        />
       </el-form-item>
-      <el-form-item :label="t('eventsSequence.startTime')" prop="startTime">
-        <el-input-number v-model="eventForm.startTime" :min="1" :max="eventCellMax" :step="1" />
+      <el-form-item
+        :label="t('eventsSequence.startTime')"
+        prop="startTime"
+      >
+        <el-input-number
+          v-model="eventForm.startTime"
+          :min="1"
+          :max="eventCellMax"
+          :step="1"
+        />
         <span class="form-tip"> {{ t('eventsSequence.rangeTip', { max: eventCellMax }) }} </span>
       </el-form-item>
-      <el-form-item :label="t('eventsSequence.endTime')" prop="endTime">
-        <el-input-number v-model="eventForm.endTime" :min="1" :max="eventCellMax" :step="1" />
+      <el-form-item
+        :label="t('eventsSequence.endTime')"
+        prop="endTime"
+      >
+        <el-input-number
+          v-model="eventForm.endTime"
+          :min="1"
+          :max="eventCellMax"
+          :step="1"
+        />
         <span class="form-tip"> {{ t('eventsSequence.endRangeTip', { max: eventCellMax }) }} </span>
       </el-form-item>
     </el-form>
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="showEventDialog = false">{{ t('common.cancel') }}</el-button>
-        <el-button v-if="eventDialogMode === 'edit'" type="danger" @click="confirmDeleteEvent">
+        <el-button
+          v-if="eventDialogMode === 'edit'"
+          type="danger"
+          @click="confirmDeleteEvent"
+        >
           {{ t('common.delete') }}
         </el-button>
-        <el-button type="primary" @click="submitEventForm">
+        <el-button
+          type="primary"
+          @click="submitEventForm"
+        >
           {{ eventDialogMode === 'create' ? t('eventsSequence.add') : t('common.save') }}
         </el-button>
       </span>
