@@ -45,6 +45,13 @@ try {
     'ended'
   )
   assert.equal(calculateWriterActivityStatus({}, new Date('2026-07-12')), 'unknown')
+  assert.equal(
+    calculateWriterActivityStatus(
+      { startDate: 'invalid', endDate: '2026-07-20' },
+      new Date('2026-07-12')
+    ),
+    'unknown'
+  )
 
   const normalized = normalizeKnowledgeItem({
     id: 'normalized',
@@ -59,6 +66,32 @@ try {
   assert.deepEqual(normalized.tags, ['悬疑'])
   assert.equal(normalized.sourceType, 'manual')
   assert.equal(normalized.status, 'active')
+  const sparseNormalized = normalizeKnowledgeItem({
+    title: ' ',
+    metadata: 'invalid',
+    tags: 'invalid',
+    lastUsedAt: null
+  })
+  assert.match(sparseNormalized.id, /^kb_/)
+  assert.equal(sparseNormalized.title, '未命名资产')
+  assert.deepEqual(sparseNormalized.metadata, {})
+  assert.deepEqual(sparseNormalized.tags, [])
+  assert.equal(sparseNormalized.lastUsedAt, '')
+  const emptyMetadata = normalizeKnowledgeItem({
+    type: 'writer_activity',
+    createdAt: '2026-07-01T00:00:00.000Z',
+    metadata: {
+      topicCard: {},
+      marketHotspot: {},
+      writerActivity: {},
+      bookAnalysis: {}
+    }
+  })
+  assert.equal(emptyMetadata.metadata.topicCard.targetLength, 'unknown')
+  assert.equal(emptyMetadata.metadata.marketHotspot.keyword, '')
+  assert.equal(emptyMetadata.metadata.marketHotspot.capturedAt, '2026-07-01T00:00:00.000Z')
+  assert.equal(emptyMetadata.metadata.writerActivity.status, 'unknown')
+  assert.deepEqual(emptyMetadata.metadata.bookAnalysis.hooks, [])
   const normalizedMetadata = normalizeKnowledgeItem({
     id: 'metadata',
     type: 'writer_activity',
@@ -126,6 +159,42 @@ try {
   assert.equal(duplicate.item.type, 'topic_card')
   assert.equal(duplicate.item.status, 'active')
   assert.deepEqual(duplicate.item.tags, ['悬疑', '强开局'])
+  const duplicateBySourceId = knowledgeBaseService.createKnowledgeItem(booksDir, {
+    id: 'source-id-original',
+    title: '来源编号条目',
+    sourceIds: ['shared-source'],
+    sourceName: '来源甲',
+    metadata: { marketHotspot: { keyword: '旧关键词' } }
+  })
+  assert.equal(duplicateBySourceId.duplicate, false)
+  const mergedBySourceId = knowledgeBaseService.createKnowledgeItem(booksDir, {
+    title: '新的标题',
+    sourceIds: ['shared-source'],
+    summary: '',
+    content: '',
+    favorite: true,
+    metadata: {
+      marketHotspot: { heatScore: 90 },
+      writerActivity: { platform: '测试平台' }
+    }
+  })
+  assert.equal(mergedBySourceId.duplicate, true)
+  assert.equal(mergedBySourceId.item.title, '来源编号条目')
+  assert.equal(mergedBySourceId.item.favorite, true)
+  assert.equal(mergedBySourceId.item.metadata.marketHotspot.keyword, '旧关键词')
+  assert.equal(mergedBySourceId.item.metadata.marketHotspot.heatScore, 90)
+  const duplicateByTitle = knowledgeBaseService.createKnowledgeItem(booksDir, {
+    title: '来源标题',
+    sourceName: '同一来源'
+  })
+  assert.equal(duplicateByTitle.duplicate, false)
+  assert.equal(
+    knowledgeBaseService.createKnowledgeItem(booksDir, {
+      title: '来源标题',
+      sourceName: '同一来源'
+    }).duplicate,
+    true
+  )
 
   knowledgeBaseService.createKnowledgeItem(booksDir, {
     id: 'note-two',
@@ -135,7 +204,7 @@ try {
     favorite: false,
     createdAt: '2026-01-01T00:00:00.000Z'
   })
-  assert.equal(knowledgeBaseService.listKnowledgeItems(booksDir).length, 2)
+  assert.equal(knowledgeBaseService.listKnowledgeItems(booksDir).length, 4)
   assert.equal(knowledgeBaseService.searchKnowledgeItems(booksDir, '雪夜').length, 1)
   assert.equal(
     knowledgeBaseService.listKnowledgeItems(booksDir, { tags: ['悬疑'], favorite: true }).length,
@@ -166,8 +235,20 @@ try {
     0
   )
   for (const sortBy of ['createdAt', 'title', 'heat', 'commercial', 'lastUsedAt']) {
-    assert.equal(knowledgeBaseService.listKnowledgeItems(booksDir, { sortBy }).length, 2)
+    assert.equal(knowledgeBaseService.listKnowledgeItems(booksDir, { sortBy }).length, 4)
   }
+  assert.equal(
+    knowledgeBaseService.listKnowledgeItems(booksDir, {
+      createdAtRange: { from: 'invalid' }
+    }).length,
+    4
+  )
+  assert.equal(
+    knowledgeBaseService.listKnowledgeItems(booksDir, {
+      createdAtRange: { to: '2000-01-01' }
+    }).length,
+    0
+  )
   assert.equal(knowledgeBaseService.getKnowledgeItem(booksDir, 'missing'), null)
 
   const linked = knowledgeBaseService.linkKnowledgeItems(booksDir, 'topic-one', [
@@ -219,6 +300,11 @@ try {
   assert.equal(aiTopic.success, true)
   assert.equal(aiTopic.item.sourceType, 'book_analysis')
   assert.equal(aiTopic.item.metadata.topicCard.targetLength, 'long')
+  const sparseAiTopic = knowledgeBaseService.createTopicCardFromAiResult(booksDir, null)
+  assert.equal(sparseAiTopic.success, true)
+  assert.equal(sparseAiTopic.item.title, '未命名选题卡')
+  assert.equal(sparseAiTopic.item.sourceType, 'ai_generated')
+  assert.deepEqual(sparseAiTopic.item.metadata.topicCard.generatedFrom.ids, [])
 
   const generatedTopic = knowledgeBaseService.createKnowledgeItem(booksDir, {
     id: 'generated-topic',
@@ -269,6 +355,50 @@ try {
   assert.equal(generatedOutlines.children[0].children[0].title, '信号')
   assert.equal(generatedCharacters[0].name, '林舟')
 
+  const goldenTopic = knowledgeBaseService.createKnowledgeItem(booksDir, {
+    id: 'golden-topic',
+    type: 'topic_card',
+    title: '黄金三章',
+    genreTags: ['都市'],
+    metadata: {
+      topicCard: {
+        oneLineHook: '从失业开始反击。',
+        coreConflict: '主角要在三十天内挽救公司。'
+      },
+      aiOutputs: {
+        goldenChapters: {
+          parsed: {
+            chapter1: {
+              summary: '主角失业。',
+              openingHook: '裁员名单出现。',
+              conflict: '资源被夺。',
+              endingHook: '神秘电话打来。'
+            },
+            chapter3: { title: '第一次反击' }
+          }
+        },
+        characters: {
+          parsed: {
+            characters: [{ role: '合伙人' }, {}]
+          }
+        }
+      }
+    }
+  })
+  assert.equal(goldenTopic.success, true)
+  const goldenBook = knowledgeBaseService.convertTopicCardToBook(booksDir, 'golden-topic')
+  const goldenOutlines = JSON.parse(
+    fs.readFileSync(join(booksDir, goldenBook.book.folderName, 'outlines.json'), 'utf-8')
+  )
+  const goldenCharacters = JSON.parse(
+    fs.readFileSync(join(booksDir, goldenBook.book.folderName, 'characters.json'), 'utf-8')
+  )
+  assert.equal(goldenBook.book.type, 'dushi')
+  assert.equal(goldenOutlines.children.length, 2)
+  assert.equal(goldenOutlines.children[0].title, '第1章')
+  assert.equal(goldenCharacters[0].name, '合伙人')
+  assert.equal(goldenCharacters[1].name, '未命名角色')
+
   const sourceBook = join(booksDir, '拆书样本')
   writeJson(join(sourceBook, 'mazi.json'), { name: '拆书样本' })
   writeJson(join(sourceBook, 'knowledge', 'extractions.json'), {
@@ -301,6 +431,66 @@ try {
       .every((item) => item.status === 'discarded'),
     true
   )
+
+  const variantBook = join(booksDir, '兼容拆书')
+  writeJson(join(variantBook, 'mazi.json'), { name: '兼容拆书' })
+  writeJson(join(variantBook, 'knowledge', 'extractions.json'), [
+    null,
+    { id: 'unfinished', status: 'running' },
+    {
+      id: 'failed-extraction',
+      status: 'failed',
+      sourceType: 'online',
+      dimensions: { relationship: true, worldbuilding: true },
+      results: {
+        relationship: [
+          {
+            source: '甲',
+            target: '乙',
+            relation: true,
+            _chapterRange: '1-3'
+          }
+        ],
+        worldbuilding: {
+          label: '世界规则',
+          count: 2,
+          groups: [
+            {
+              groupTitle: '规则组',
+              chapterRange: '4-5',
+              items: [{ rule: '能力需要付出代价' }, { ignored: null }]
+            }
+          ]
+        },
+        plot: {
+          items: [{ point: '伏笔线索会在结尾回收' }]
+        }
+      }
+    },
+    {
+      id: 'partial-extraction',
+      status: 'partial',
+      dimensions: ['timeline'],
+      results: {
+        timeline: {
+          items: [{ event: '十年前发生事故', year: 2016 }]
+        }
+      }
+    }
+  ])
+  const variantItems = knowledgeBaseService.listKnowledgeItems(booksDir)
+  assert.equal(
+    variantItems.find((item) => item.id === 'kb_ext_failed-extraction').status,
+    'draft'
+  )
+  assert.equal(
+    variantItems.some(
+      (item) => item.type === 'foreshadowing' && item.title === '伏笔线索会在结尾回收'
+    ),
+    true
+  )
+  assert.equal(variantItems.some((item) => item.type === 'setting'), true)
+  assert.equal(variantItems.some((item) => item.type === 'world_setting'), true)
 
   assert.equal(knowledgeBaseService.deleteKnowledgeItem(booksDir, 'note-two').success, true)
   assert.equal(knowledgeBaseService.getKnowledgeItem(booksDir, 'note-two'), null)

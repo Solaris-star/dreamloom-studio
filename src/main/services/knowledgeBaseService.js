@@ -32,11 +32,11 @@ export const KNOWLEDGE_SOURCE_TYPES = [
 export const KNOWLEDGE_STATUSES = ['draft', 'active', 'archived', 'converted_to_book', 'discarded']
 
 function isSupersededExtraction(record = {}) {
-  return record.lifecycleStatus === 'superseded' || record.superseded === true
+  return record?.lifecycleStatus === 'superseded' || record?.superseded === true
 }
 
 function isFinishedExtraction(record = {}) {
-  return ['completed', 'partial', 'failed'].includes(record.status)
+  return ['completed', 'partial', 'failed'].includes(record?.status)
 }
 
 function extractionKnowledgeIds(extraction = {}) {
