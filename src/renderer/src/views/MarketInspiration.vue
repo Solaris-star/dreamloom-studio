@@ -7,9 +7,13 @@
       </div>
 
       <div class="source-bar">
-        <div v-for="item in statusCards" :key="item.key" class="source-chip">
+        <div
+          v-for="item in statusCards"
+          :key="item.key"
+          class="source-chip"
+        >
           <span class="source-name">{{ item.label }}</span>
-          <i :class="item.state"></i>
+          <i :class="item.state" />
           <b>{{ item.text }}</b>
         </div>
         <div class="source-chip time">
@@ -24,7 +28,11 @@
             @change="rememberSelectedBook"
           >
             <option value="">{{ books.length ? '请选择作品' : '暂无作品' }}</option>
-            <option v-for="book in books" :key="bookIdentity(book)" :value="bookIdentity(book)">
+            <option
+              v-for="book in books"
+              :key="bookIdentity(book)"
+              :value="bookIdentity(book)"
+            >
               {{ book.name || book.folderName || book.id }}
             </option>
           </select>
@@ -36,27 +44,43 @@
           :disabled="refreshing"
           @click="handleRefresh"
         >
-          <RefreshCw :size="16" :class="{ spin: refreshing }" />
+          <RefreshCw
+            :size="16"
+            :class="{ spin: refreshing }"
+          />
           {{ refreshing ? '刷新中' : '刷新灵感' }}
         </button>
       </div>
     </header>
 
-    <section v-if="pageError" class="error-banner">
+    <section
+      v-if="pageError"
+      class="error-banner"
+    >
       {{ pageError }}
     </section>
 
-    <section v-if="lastActionResult" class="result-banner" aria-live="polite">
+    <section
+      v-if="lastActionResult"
+      class="result-banner"
+      aria-live="polite"
+    >
       <div>
         <strong>{{ lastActionResult.title }}</strong>
         <p>{{ lastActionResult.description }}</p>
       </div>
-      <button type="button" @click="openActionResult">
+      <button
+        type="button"
+        @click="openActionResult"
+      >
         {{ lastActionResult.actionText }}
       </button>
     </section>
 
-    <section class="channel-toggle" aria-label="频道筛选">
+    <section
+      class="channel-toggle"
+      aria-label="频道筛选"
+    >
       <button
         v-for="item in channelOptions"
         :key="item.value"
@@ -68,7 +92,10 @@
       </button>
     </section>
 
-    <nav class="market-tabs" aria-label="市场灵感分区">
+    <nav
+      class="market-tabs"
+      aria-label="市场灵感分区"
+    >
       <button
         v-for="tab in tabs"
         :key="tab.key"
@@ -82,7 +109,10 @@
 
     <MarketLoadingSkeleton v-if="loading && !hasAnyData" />
 
-    <section v-else-if="activeTab === 'overview'" class="overview-grid">
+    <section
+      v-else-if="activeTab === 'overview'"
+      class="overview-grid"
+    >
       <aside
         v-motion-list="{
           selector: '.direction-card',
@@ -121,7 +151,10 @@
             </div>
             <div class="tag-line">
               <span>{{ channelLabel(item.channel) }}</span>
-              <span v-for="tag in item.tags.slice(0, 4)" :key="tag">{{ tag }}</span>
+              <span
+                v-for="tag in item.tags.slice(0, 4)"
+                :key="tag"
+              >{{ tag }}</span>
             </div>
             <p><b>适合写法：</b>{{ item.suitableWriting }}</p>
             <p><b>开篇钩子：</b>{{ item.hook }}</p>
@@ -148,8 +181,15 @@
             <strong>{{ overview.opportunityIndex.grade || 'C' }}</strong>
             <p>{{ overview.opportunityIndex.summary }}</p>
           </div>
-          <div class="sparkline" aria-hidden="true">
-            <i v-for="n in 18" :key="n" :style="{ height: `${28 + ((n * 17) % 48)}px` }"></i>
+          <div
+            class="sparkline"
+            aria-hidden="true"
+          >
+            <i
+              v-for="n in 18"
+              :key="n"
+              :style="{ height: `${28 + ((n * 17) % 48)}px` }"
+            />
           </div>
         </section>
 
@@ -178,7 +218,12 @@
         <section class="paper-panel genre-panel">
           <div class="panel-title">
             <h2>热门题材分布</h2>
-            <button type="button" @click="goTab('keywords')">更多分析</button>
+            <button
+              type="button"
+              @click="goTab('keywords')"
+            >
+              更多分析
+            </button>
           </div>
           <div class="genre-dials">
             <button
@@ -227,7 +272,10 @@
       />
     </section>
 
-    <section v-else-if="activeTab === 'rankings'" class="rank-grid">
+    <section
+      v-else-if="activeTab === 'rankings'"
+      class="rank-grid"
+    >
       <aside
         v-motion-list="{
           selector: '.source-row',
@@ -264,10 +312,8 @@
         <div class="source-summary">
           <strong>今日可转化热点</strong>
           <b>{{ hotRank.items.length }}</b>
-          <span
-            >男频 {{ countByChannel('male') }} · 女频 {{ countByChannel('female') }} · 通用
-            {{ countByChannel('all') }}</span
-          >
+          <span>男频 {{ countByChannel('male') }} · 女频 {{ countByChannel('female') }} · 通用
+            {{ countByChannel('all') }}</span>
         </div>
       </aside>
 
@@ -315,13 +361,21 @@
               <strong>{{ item.title }}</strong>
             </div>
             <div class="tag-line">
-              <span v-for="type in item.writableTypes.slice(0, 5)" :key="type">{{ type }}</span>
+              <span
+                v-for="type in item.writableTypes.slice(0, 5)"
+                :key="type"
+              >{{ type }}</span>
               <span>{{ channelLabel(item.channel) }}</span>
             </div>
             <p><b>可转化剧情：</b>{{ item.transferablePlot }}</p>
             <p><b>读者情绪：</b>{{ item.readerPleasure }}</p>
             <div class="card-actions">
-              <button type="button" @click.stop="selectedHotRank = item">转成题材</button>
+              <button
+                type="button"
+                @click.stop="selectedHotRank = item"
+              >
+                转成题材
+              </button>
               <button
                 type="button"
                 :disabled="Boolean(actionLoading)"
@@ -352,7 +406,10 @@
       />
     </section>
 
-    <section v-else-if="activeTab === 'keywords'" class="keyword-grid">
+    <section
+      v-else-if="activeTab === 'keywords'"
+      class="keyword-grid"
+    >
       <main class="paper-panel keyword-map-panel">
         <div class="panel-title">
           <div>
@@ -360,7 +417,10 @@
             <p>点击 1 到 3 个词，右侧会组合成题材。</p>
           </div>
           <label class="trend-switch">
-            <input v-model="showKeywordTrend" type="checkbox" />
+            <input
+              v-model="showKeywordTrend"
+              type="checkbox"
+            >
             显示趋势
           </label>
         </div>
@@ -387,7 +447,12 @@
         >
           <div class="panel-title slim">
             <h2>热门组合</h2>
-            <button type="button" @click="selectedKeywords = []">换一组</button>
+            <button
+              type="button"
+              @click="selectedKeywords = []"
+            >
+              换一组
+            </button>
           </div>
           <button
             v-for="combo in keywordCloud.popularCombinations"
@@ -404,7 +469,7 @@
                 v-for="(point, index) in combo.trend"
                 :key="index"
                 :style="{ height: `${point}%` }"
-              ></em>
+              />
             </i>
           </button>
         </div>
@@ -419,11 +484,26 @@
           </b>
         </div>
         <h3>{{ combinationDetail.title }}</h3>
-        <InfoRow label="相关热词" :items="combinationDetail.relatedKeywords" />
-        <InfoRow label="可组合题材" :items="combinationDetail.writableDirections" />
-        <InfoRow label="推荐人设" :items="combinationDetail.recommendedCharacters" />
-        <InfoRow label="推荐冲突" :items="combinationDetail.recommendedConflicts" />
-        <InfoRow label="可写爽点" :items="combinationDetail.readerPleasure" />
+        <InfoRow
+          label="相关热词"
+          :items="combinationDetail.relatedKeywords"
+        />
+        <InfoRow
+          label="可组合题材"
+          :items="combinationDetail.writableDirections"
+        />
+        <InfoRow
+          label="推荐人设"
+          :items="combinationDetail.recommendedCharacters"
+        />
+        <InfoRow
+          label="推荐冲突"
+          :items="combinationDetail.recommendedConflicts"
+        />
+        <InfoRow
+          label="可写爽点"
+          :items="combinationDetail.readerPleasure"
+        />
         <section class="translation-result">
           <h4>小说化转写结果</h4>
           <p><b>题材方向：</b>{{ combinationDetail.novelizedResult?.direction }}</p>
@@ -440,7 +520,10 @@
       </aside>
     </section>
 
-    <section v-else class="activity-grid">
+    <section
+      v-else
+      class="activity-grid"
+    >
       <main
         v-motion-list="{
           selector: '.activity-card',
@@ -465,22 +548,20 @@
           class="activity-card"
           :class="{ active: selectedActivity?.id === activity.id }"
         >
-          <button type="button" class="activity-select-button" @click="selectedActivity = activity">
+          <button
+            type="button"
+            class="activity-select-button"
+            @click="selectedActivity = activity"
+          >
             <div class="activity-main">
               <div class="activity-head">
                 <h3>{{ activity.title }}</h3>
                 <span :class="activity.status">{{ activityStatusLabel(activity.status) }}</span>
               </div>
               <div class="activity-columns">
-                <span
-                  >适合频道：{{ activity.platform }} / {{ channelLabel(activity.channel) }}</span
-                >
-                <span
-                  >投稿截止：{{ formatDate(activity.deadline || activity.endDate) || '未知' }}</span
-                >
-                <span
-                  >推荐题材：{{ (activity.genres || activity.categories || []).join(' / ') }}</span
-                >
+                <span>适合频道：{{ activity.platform }} / {{ channelLabel(activity.channel) }}</span>
+                <span>投稿截止：{{ formatDate(activity.deadline || activity.endDate) || '未知' }}</span>
+                <span>推荐题材：{{ (activity.genres || activity.categories || []).join(' / ') }}</span>
                 <span>字数：{{ activity.wordCountRequirement || '按官方要求' }}</span>
               </div>
               <p>{{ activity.summary }}</p>
@@ -505,7 +586,12 @@
             >
               生成投稿方向
             </button>
-            <button type="button" @click.stop="selectedActivity = activity">匹配我的作品</button>
+            <button
+              type="button"
+              @click.stop="selectedActivity = activity"
+            >
+              匹配我的作品
+            </button>
           </div>
         </article>
       </main>
@@ -527,7 +613,10 @@
             label="适合频道"
             :items="[selectedActivity.platform, channelLabel(selectedActivity.channel)]"
           />
-          <InfoRow label="活动规则摘要" :items="[selectedActivity.summary]" />
+          <InfoRow
+            label="活动规则摘要"
+            :items="[selectedActivity.summary]"
+          />
           <InfoRow
             label="推荐题材方向"
             :items="selectedActivity.genres || selectedActivity.categories"
@@ -544,7 +633,9 @@
           </section>
           <section class="matched-books">
             <h4>选择目标作品</h4>
-            <p v-if="books.length === 0">当前还没有可匹配作品。</p>
+            <p v-if="books.length === 0">
+              当前还没有可匹配作品。
+            </p>
             <button
               v-for="book in books.slice(0, 3)"
               :key="bookIdentity(book)"
