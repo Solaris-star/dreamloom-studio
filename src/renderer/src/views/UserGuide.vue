@@ -2,7 +2,11 @@
   <div class="user-guide">
     <!-- 顶部导航栏 -->
     <div class="top-navigation">
-      <el-button class="back-button" type="primary" @click="goBack">
+      <el-button
+        class="back-button"
+        type="primary"
+        @click="goBack"
+      >
         <el-icon><ArrowLeft /></el-icon>
         {{ t('userGuide.backHome') }}
       </el-button>
@@ -10,7 +14,9 @@
 
     <div class="guide-header">
       <h1>{{ t('userGuide.title') }}</h1>
-      <p class="subtitle">{{ t('userGuide.subtitle') }}</p>
+      <p class="subtitle">
+        {{ t('userGuide.subtitle') }}
+      </p>
     </div>
 
     <div class="guide-content">
@@ -18,7 +24,9 @@
         <!-- 目录（大屏侧边栏 / 小屏顶部） -->
         <aside class="guide-toc">
           <div class="toc-card">
-            <div class="toc-title">{{ t('userGuide.tocTitle') }}</div>
+            <div class="toc-title">
+              {{ t('userGuide.tocTitle') }}
+            </div>
             <div class="toc-list">
               <button
                 v-for="item in tocItems"
@@ -44,26 +52,58 @@
           >
             <h2>{{ section.icon }} {{ section.title }}</h2>
 
-            <div v-for="card in section.cards" :key="card.title" class="guide-card">
+            <div
+              v-for="card in section.cards"
+              :key="card.title"
+              class="guide-card"
+            >
               <h3>{{ card.title }}</h3>
-              <p v-for="paragraph in card.paragraphs || []" :key="paragraph">{{ paragraph }}</p>
+              <p
+                v-for="paragraph in card.paragraphs || []"
+                :key="paragraph"
+              >
+                {{ paragraph }}
+              </p>
 
               <ul v-if="card.listType === 'ul'">
-                <li v-for="item in card.items || []" :key="item">{{ item }}</li>
+                <li
+                  v-for="item in card.items || []"
+                  :key="item"
+                >
+                  {{ item }}
+                </li>
               </ul>
               <ol v-else-if="card.listType === 'ol'">
-                <li v-for="item in card.items || []" :key="item">{{ item }}</li>
+                <li
+                  v-for="item in card.items || []"
+                  :key="item"
+                >
+                  {{ item }}
+                </li>
               </ol>
 
-              <div v-if="card.entry" class="entry">
+              <div
+                v-if="card.entry"
+                class="entry"
+              >
                 <strong>{{ labels.entry }}：</strong>{{ card.entry }}
               </div>
-              <div v-if="card.tip" class="tip">
+              <div
+                v-if="card.tip"
+                class="tip"
+              >
                 <strong>{{ labels.tip }}：</strong>{{ card.tip }}
               </div>
 
-              <div v-if="card.shortcuts?.length" class="shortcut-grid">
-                <div v-for="shortcut in card.shortcuts" :key="shortcut.key" class="shortcut-item">
+              <div
+                v-if="card.shortcuts?.length"
+                class="shortcut-grid"
+              >
+                <div
+                  v-for="shortcut in card.shortcuts"
+                  :key="shortcut.key"
+                  class="shortcut-item"
+                >
                   <kbd>{{ shortcut.key }}</kbd>
                   <span>{{ shortcut.action }}</span>
                 </div>
@@ -71,10 +111,18 @@
             </div>
           </section>
 
-          <section id="support" class="guide-section">
+          <section
+            id="support"
+            class="guide-section"
+          >
             <h2>{{ supportContent.title }}</h2>
             <div class="guide-card">
-              <p v-for="paragraph in supportContent.paragraphs" :key="paragraph">{{ paragraph }}</p>
+              <p
+                v-for="paragraph in supportContent.paragraphs"
+                :key="paragraph"
+              >
+                {{ paragraph }}
+              </p>
             </div>
           </section>
         </div>
@@ -82,7 +130,12 @@
     </div>
 
     <div class="guide-footer">
-      <el-button type="primary" @click="goBack">{{ t('userGuide.backHome') }}</el-button>
+      <el-button
+        type="primary"
+        @click="goBack"
+      >
+        {{ t('userGuide.backHome') }}
+      </el-button>
     </div>
   </div>
 </template>
