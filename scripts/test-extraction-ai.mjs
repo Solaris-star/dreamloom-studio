@@ -145,6 +145,218 @@ try {
   assert.match(chapterRequests[0].messages[1].content, /第二章/)
   assert.doesNotMatch(chapterRequests[0].messages[1].content, /第十章/)
 
+  const pagingBookPath = createBook('paging-and-search')
+  const pagingItems = Array.from({ length: 12 }, (_, index) => ({
+    title: index === 0 ? '雪夜开篇' : `条目 ${index + 1}`,
+    name: index === 1 ? '林舟' : '',
+    point: index === 2 ? '秘密线索' : '',
+    character: index === 3 ? '沈月' : '',
+    events: index === 4 ? ['相遇', '追踪'] : [],
+    detail: index % 2 === 0 ? '北城 风雪' : '南岸 晴空'
+  }))
+  const pagingResult = await service.createExtraction({
+    bookPath: pagingBookPath,
+    sourceBookName: '分页作品',
+    sourceType: 'online',
+    sourceUrl: 'https://example.test/book',
+    onlineText: '第一章 开始\n分页测试正文',
+    dimensions: ['narrative'],
+    textProvider: {
+      async chat() {
+        return {
+          content: `模型说明：${JSON.stringify({ knowledge: pagingItems })}，以上为结果。`
+        }
+      }
+    }
+  })
+  assert.equal(pagingResult.success, true)
+  assert.equal(pagingResult.sourceType, 'online')
+  assert.equal(pagingResult.sourceUrl, 'https://example.test/book')
+  const pagingId = pagingResult.id
+  assert.equal(
+    service.getExtraction(pagingBookPath, pagingId, { previewLimit: 0 }).extraction.results
+      .narrative.items.length,
+    5
+  )
+  assert.equal(
+    service.getExtraction(pagingBookPath, pagingId, { previewLimit: 100 }).extraction.results
+      .narrative.items.length,
+    12
+  )
+  assert.equal(
+    service.getExtraction(pagingBookPath, pagingId, { previewLimit: 2 }).extraction.results
+      .narrative.items.length,
+    2
+  )
+  const secondPage = service.getExtractionResultPage(pagingBookPath, pagingId, {
+    dimension: 'missing',
+    page: 2,
+    pageSize: 5
+  })
+  assert.equal(secondPage.dimension, 'narrative')
+  assert.equal(secondPage.page, 2)
+  assert.equal(secondPage.items.length, 5)
+  assert.equal(
+    service.getExtractionResultPage(pagingBookPath, pagingId, {
+      page: 0,
+      pageSize: 100
+    }).pageSize,
+    50
+  )
+  assert.equal(
+    service.getExtractionResultPage(pagingBookPath, pagingId, {
+      page: 'invalid',
+      pageSize: 'invalid',
+      keyword: '林舟'
+    }).total,
+    1
+  )
+  for (const keyword of ['雪夜开篇', '秘密线索', '沈月', '追踪']) {
+    assert.equal(
+      service.getExtractionResultPage(pagingBookPath, pagingId, { keyword }).total,
+      1
+    )
+  }
+  assert.equal(
+    service.getExtractionResultPage(pagingBookPath, pagingId, {
+      keyword: '不存在'
+    }).total,
+    0
+  )
+  assert.equal(
+    service.searchStoredKnowledge(pagingBookPath, {
+      query: '',
+      dimensions: ['narrative'],
+      topK: 'invalid'
+    }).length,
+    5
+  )
+  assert.equal(
+    service.searchStoredKnowledge(pagingBookPath, {
+      query: '北城 风雪',
+      dimensions: ['narrative'],
+      topK: 2
+    }).length,
+    2
+  )
+  assert.equal(
+    service.searchStoredKnowledge(pagingBookPath, {
+      query: '北城',
+      dimensions: ['missing'],
+      topK: 2
+    }).length,
+    0
+  )
+  assert.ok(
+    (
+      await service.searchKnowledge(pagingBookPath, {
+        query: '北城',
+        topK: 1
+      })
+    ).length >= 1
+  )
+
+  const replaceBookPath = createBook('replace-and-fill')
+  const firstExtraction = await service.createExtraction({
+    bookPath: replaceBookPath,
+    sourceBookName: '替换作品',
+    sourceText: '第一章 旧稿\n旧正文',
+    dimensions: ['narrative'],
+    textProvider: {
+      async chat() {
+        return { content: '[{"point":"旧结果"}]' }
+      }
+    }
+  })
+  assert.equal(firstExtraction.success, true)
+  await assert.rejects(
+    () =>
+      service.createExtraction({
+        bookPath: replaceBookPath,
+        sourceText: '第一章 补拆\n正文',
+        dimensions: ['narrative'],
+        runMode: 'fillMissing',
+        textProvider: {
+          async chat() {
+            throw new Error('不应调用')
+          }
+        }
+      }),
+    /无需补拆/
+  )
+  const fillMissing = await service.createExtraction({
+    bookPath: replaceBookPath,
+    sourceText: '第一章 补拆\n正文',
+    dimensions: ['narrative', 'plot'],
+    runMode: 'fillMissing',
+    textProvider: {
+      async chat() {
+        return { content: '[{"point":"新情节"}]' }
+      }
+    }
+  })
+  assert.equal(fillMissing.success, true)
+  assert.deepEqual(fillMissing.skippedDimensions, ['narrative'])
+  assert.deepEqual(Object.keys(fillMissing.dimensions), ['plot'])
+
+  const replacement = await service.createExtraction({
+    bookPath: replaceBookPath,
+    sourceText: '第一章 新稿\n新正文',
+    dimensions: ['narrative'],
+    runMode: 'replace',
+    textProvider: {
+      async chat() {
+        return { content: '[{"point":"替换结果"}]' }
+      }
+    }
+  })
+  assert.equal(replacement.success, true)
+  assert.equal(replacement.replacedExtractionIds.length, 2)
+  const replacedRecords = [
+    service.getExtractionRecord(replaceBookPath, firstExtraction.id),
+    service.getExtractionRecord(replaceBookPath, fillMissing.id)
+  ]
+  for (const record of replacedRecords) {
+    assert.equal(record.lifecycleStatus, 'superseded')
+    assert.equal(record.superseded, true)
+    assert.equal(record.supersededBy, replacement.id)
+  }
+  assert.equal(
+    service.searchStoredKnowledge(replaceBookPath, {
+      query: '旧结果',
+      dimensions: ['narrative']
+    }).length,
+    0
+  )
+
+  const partialBookPath = createBook('partial-groups')
+  const partialChapters = Array.from(
+    { length: 5 },
+    (_, index) => `第${index + 1}章 标题\n第 ${index + 1} 章正文`
+  ).join('\n')
+  let partialRequestCount = 0
+  const partialResult = await service.createExtraction({
+    bookPath: partialBookPath,
+    sourceText: partialChapters,
+    dimensions: ['narrative'],
+    chapterStart: -10,
+    chapterEnd: 100,
+    chapterLimit: 'invalid',
+    requestTimeoutMs: 'invalid',
+    textProvider: {
+      async chat() {
+        partialRequestCount += 1
+        if (partialRequestCount === 2) throw new Error('第二组失败')
+        return { content: '[{"point":"第一组成功"}]' }
+      }
+    }
+  })
+  assert.equal(partialRequestCount, 2)
+  assert.equal(partialResult.success, true)
+  assert.equal(partialResult.status, 'partial')
+  assert.equal(partialResult.stats.failedGroups, 1)
+  assert.equal(partialResult.chapterScope.selectedChapterCount, 5)
+
   const legacyBookPath = createBook('legacy-records')
   const legacyKnowledgePath = path.join(legacyBookPath, 'knowledge')
   fs.mkdirSync(legacyKnowledgePath, { recursive: true })
