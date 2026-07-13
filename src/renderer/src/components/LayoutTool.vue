@@ -20,7 +20,6 @@
 import { ArrowLeftBold, Refresh } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { watchEffect } from 'vue'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -38,10 +37,6 @@ const props = defineProps({
     type: Boolean,
     default: false
   }
-})
-
-watchEffect(() => {
-  document.title = props.title ? `${props.title} | 织梦工坊` : '织梦工坊 | Dreamloom Studio'
 })
 
 // 返回上一页
