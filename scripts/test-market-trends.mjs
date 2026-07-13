@@ -914,6 +914,86 @@ assert.equal(missingProviderOpportunities.success, false)
 assert.equal(missingProviderOpportunities.fromLLM, false)
 assert.match(missingProviderOpportunities.message, /文本 AI 服务/)
 
+const environmentDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-market-environment-'))
+const originalEnvironment = {
+  qidianUrls: process.env.MARKET_QIDIAN_URLS,
+  qidianInterval: process.env.MARKET_TREND_QIDIAN_REQUEST_INTERVAL_MS,
+  qidianRetryCount: process.env.MARKET_TREND_QIDIAN_RETRY_COUNT,
+  qidianRetryInterval: process.env.MARKET_TREND_QIDIAN_RETRY_INTERVAL_MS,
+  dailyHotBase: process.env.MARKET_DAILYHOT_API_BASE_URL,
+  rssHubBase: process.env.MARKET_RSSHUB_BASE_URL
+}
+try {
+  process.env.MARKET_QIDIAN_URLS =
+    ' https://m.qidian.com/custom-first , , https://m.qidian.com/custom-second '
+  process.env.MARKET_TREND_QIDIAN_REQUEST_INTERVAL_MS = '0'
+  process.env.MARKET_TREND_QIDIAN_RETRY_COUNT = '9'
+  process.env.MARKET_TREND_QIDIAN_RETRY_INTERVAL_MS = '50000'
+  const environmentQidian = await marketTrendService.refreshHotTopics(environmentDir, {
+    sources: ['qidian'],
+    force: true,
+    persistentCache: false,
+    waitImpl: async (ms) => {
+      waits.push(ms)
+    },
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'text/html; charset=utf-8' },
+      async arrayBuffer() {
+        return Buffer.from(qidianHtml, 'utf8')
+      }
+    })
+  })
+  assert.equal(environmentQidian.success, true)
+  assert.deepEqual(environmentQidian.results[0].sourceUrls, [
+    'https://m.qidian.com/custom-first',
+    'https://m.qidian.com/custom-second'
+  ])
+  assert.equal(environmentQidian.results[0].requestIntervalMs, 0)
+  assert.equal(environmentQidian.results[0].retryCount, 3)
+  assert.equal(environmentQidian.results[0].retryIntervalMs, 30_000)
+
+  process.env.MARKET_DAILYHOT_API_BASE_URL = ' https://example.com/dailyhot/// '
+  process.env.MARKET_RSSHUB_BASE_URL = 'https://example.com/rsshub/'
+  const configuredOptionalSources = await marketTrendService.refreshHotTopics(environmentDir, {
+    sources: ['dailyhot', 'rsshub'],
+    force: true,
+    persistentCache: false,
+    requestIntervalMs: 0,
+    fetchImpl: async (url) =>
+      response({
+        data: [{ title: url.includes('rsshub') ? '小说平台讨论上涨' : '短剧创作热度上涨' }]
+      })
+  })
+  assert.equal(configuredOptionalSources.success, true)
+  assert.equal(
+    configuredOptionalSources.results
+      .find((item) => item.source === 'dailyhot')
+      .sourceUrls.every((url) => url.startsWith('https://example.com/dailyhot/')),
+    true
+  )
+  assert.equal(
+    configuredOptionalSources.results
+      .find((item) => item.source === 'rsshub')
+      .sourceUrls.every((url) => url.startsWith('https://example.com/rsshub/')),
+    true
+  )
+} finally {
+  for (const [key, value] of Object.entries({
+    MARKET_QIDIAN_URLS: originalEnvironment.qidianUrls,
+    MARKET_TREND_QIDIAN_REQUEST_INTERVAL_MS: originalEnvironment.qidianInterval,
+    MARKET_TREND_QIDIAN_RETRY_COUNT: originalEnvironment.qidianRetryCount,
+    MARKET_TREND_QIDIAN_RETRY_INTERVAL_MS: originalEnvironment.qidianRetryInterval,
+    MARKET_DAILYHOT_API_BASE_URL: originalEnvironment.dailyHotBase,
+    MARKET_RSSHUB_BASE_URL: originalEnvironment.rssHubBase
+  })) {
+    if (value === undefined) delete process.env[key]
+    else process.env[key] = value
+  }
+  fs.rmSync(environmentDir, { recursive: true, force: true })
+}
+
 const legacyRowsDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-market-legacy-'))
 writeMarketFile(legacyRowsDir, 'hot-topics.json', [
   null,
@@ -980,6 +1060,60 @@ writeMarketFile(legacyRowsDir, 'hot-topics.json', '{broken')
 assert.throws(() => marketService.listHotTopics(legacyRowsDir), /市场趋势数据读取失败/)
 assert.throws(() => marketService.listHotTopics(''), /请先设置书籍目录/)
 fs.rmSync(legacyRowsDir, { recursive: true, force: true })
+
+const schedulerDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-market-scheduler-'))
+writeMarketFile(schedulerDir, 'source-cache.json', '{broken')
+const originalTimers = {
+  setInterval: globalThis.setInterval,
+  clearInterval: globalThis.clearInterval,
+  setTimeout: globalThis.setTimeout
+}
+const scheduledTicks = []
+const clearedTimers = []
+const schedulerWarnings = []
+const originalConsoleWarn = console.warn
+try {
+  globalThis.setInterval = (callback, delay) => {
+    scheduledTicks.push({ type: 'interval', callback, delay })
+    return { kind: 'market-interval' }
+  }
+  globalThis.clearInterval = (timer) => {
+    clearedTimers.push(timer)
+  }
+  globalThis.setTimeout = (callback, delay) => {
+    scheduledTicks.push({ type: 'timeout', callback, delay })
+    return { kind: 'market-timeout' }
+  }
+  console.warn = (...args) => {
+    schedulerWarnings.push(args.join(' '))
+  }
+
+  const emptyDirectoryTimer = marketTrendService.startScheduler(null, { intervalMs: 1 })
+  assert.deepEqual(emptyDirectoryTimer, { kind: 'market-interval' })
+  assert.equal(scheduledTicks[0].delay, 60_000)
+  assert.equal(scheduledTicks[1].delay, 5000)
+  await scheduledTicks[1].callback()
+  marketTrendService.stopScheduler()
+
+  scheduledTicks.length = 0
+  marketTrendService.startScheduler(() => schedulerDir, { intervalMs: 90_000 })
+  const schedulerTick = scheduledTicks.find((item) => item.type === 'timeout')
+  assert.equal(schedulerTick.delay, 5000)
+  await schedulerTick.callback()
+  assert.match(schedulerWarnings[0], /市场热点自动采集失败/)
+  await schedulerTick.callback()
+  assert.equal(schedulerWarnings.length, 1)
+  marketTrendService.stopScheduler()
+  marketTrendService.stopScheduler()
+  assert.equal(clearedTimers.length, 2)
+} finally {
+  marketTrendService.stopScheduler()
+  globalThis.setInterval = originalTimers.setInterval
+  globalThis.clearInterval = originalTimers.clearInterval
+  globalThis.setTimeout = originalTimers.setTimeout
+  console.warn = originalConsoleWarn
+  fs.rmSync(schedulerDir, { recursive: true, force: true })
+}
 
 marketTrendService.stopScheduler()
 fs.rmSync(booksDir, { recursive: true, force: true })
