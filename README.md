@@ -35,9 +35,3 @@ npm run dev
 npm run build
 npm run start
 ```
-
-## 说明
-
-本仓库地址：<https://github.com/Solaris-star/dreamloom-studio>
-
-问题反馈：<https://github.com/Solaris-star/dreamloom-studio/issues>

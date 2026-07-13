@@ -67,7 +67,7 @@ const userFacingFiles = [
   'src/renderer/src/views/UserGuide.vue'
 ].filter((relativePath) => fs.existsSync(path.join(root, relativePath)))
 const legacyUserFacingPattern =
-  /织梦书房|51\s*码字|51mazi|QQQRCode|AliPayQRCode|WeChatPayQRCode|桌面客户端|Electron\s*(?:客户端|版本|安装包)/i
+  /织梦书房|51\s*码字|51mazi|Solaris-star\/dreamloom-studio|QQQRCode|AliPayQRCode|WeChatPayQRCode|桌面客户端|Electron\s*(?:客户端|版本|安装包)/i
 for (const relativePath of userFacingFiles) {
   assert.doesNotMatch(
     read(relativePath),

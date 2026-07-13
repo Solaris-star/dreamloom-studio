@@ -3,7 +3,6 @@
   "version": "0.8.1",
   "description": "Dreamloom Studio (DLS), a local web writing studio for novel writers",
   "author": "Dreamloom Studio",
-  "homepage": "https://github.com/Solaris-star/dreamloom-studio",
   "type": "module",
   "scripts": {
     "format": "prettier --write .",

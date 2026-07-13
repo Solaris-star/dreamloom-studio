@@ -35,9 +35,3 @@ npm run dev
 npm run build
 npm run start
 ```
-
-## Links
-
-Repository: <https://github.com/Solaris-star/dreamloom-studio>
-
-Issues: <https://github.com/Solaris-star/dreamloom-studio/issues>

@@ -72,33 +72,9 @@
           </section>
 
           <section id="support" class="guide-section">
-            <h2>📞 {{ supportContent.title }}</h2>
+            <h2>{{ supportContent.title }}</h2>
             <div class="guide-card">
               <p v-for="paragraph in supportContent.paragraphs" :key="paragraph">{{ paragraph }}</p>
-              <div class="support-grid">
-                <div class="support-item">
-                  <div class="support-title">{{ supportContent.issueTitle }}</div>
-                  <a
-                    class="support-link"
-                    :href="issueTrackerUrl"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {{ supportContent.issueLinkLabel }}
-                  </a>
-                </div>
-                <div class="support-item">
-                  <div class="support-title">{{ supportContent.siteTitle }}</div>
-                  <a
-                    class="support-link"
-                    :href="officialWebsite"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {{ officialWebsite }}
-                  </a>
-                </div>
-              </div>
             </div>
           </section>
         </div>
@@ -123,9 +99,6 @@ const { t, locale } = useI18n()
 const goBack = () => {
   router.push('/')
 }
-
-const issueTrackerUrl = 'https://github.com/Solaris-star/dreamloom-studio/issues'
-const officialWebsite = 'https://github.com/Solaris-star/dreamloom-studio'
 
 const labels = computed(() =>
   locale.value === 'en-US' ? { entry: 'Entry', tip: 'Tip' } : { entry: '入口', tip: '提示' }
@@ -269,14 +242,11 @@ const guideData = {
       { title: 'Q: 如何备份作品？', paragraphs: ['A: 备份整个书籍目录即可，建议定期备份。'] }
     ],
     support: {
-      title: '联系支持',
+      title: '故障处理',
       paragraphs: [
-        '如遇问题或有功能建议，欢迎反馈。',
-        '我们会持续完善织梦工坊，让本地写作和 AI 辅助更稳定。'
-      ],
-      issueTitle: '问题反馈',
-      issueLinkLabel: 'GitHub Issues',
-      siteTitle: '官网（宣传网站）',
+        '如果页面操作失败，请先保留当前正文，再检查页面提示、浏览器控制台和服务端日志。',
+        '反馈问题时请说明操作步骤和错误信息，不要提供 API Key、完整正文或服务器绝对路径。'
+      ]
     }
   },
   'en-US': {
@@ -434,14 +404,11 @@ const guideData = {
       }
     ],
     support: {
-      title: 'Support',
+      title: 'Troubleshooting',
       paragraphs: [
-        'If you run into issues or have feature suggestions, feel free to contact us.',
-        'We continuously improve Dreamloom Studio for local writing and AI assistance.'
-      ],
-      issueTitle: 'Issue Tracker',
-      issueLinkLabel: 'GitHub Issues',
-      siteTitle: 'Official Website',
+        'If an action fails, preserve the current manuscript before checking the page message, browser console, and server logs.',
+        'When reporting a problem, include the steps and error message, but never include API keys, full manuscripts, or absolute server paths.'
+      ]
     }
   }
 }
