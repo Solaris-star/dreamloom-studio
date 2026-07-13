@@ -42,7 +42,7 @@
                 class="model-status-dot"
                 :class="{ error: lastError, empty: !selectedModel }"
                 aria-hidden="true"
-              ></span>
+              />
               <strong>{{ selectedModelDisplayName || '选择模型' }}</strong>
               <em>{{ selectedProviderLabel || '未绑定' }}</em>
             </button>
@@ -50,12 +50,10 @@
           <section class="model-panel">
             <header>
               <strong>选择模型</strong>
-              <span
-                >用途：{{ defaultModelTaskText }} · 当前：{{
-                  selectedProviderLabel || '无供应商'
-                }}
-                / {{ selectedModelDisplayName || '无模型' }}</span
-              >
+              <span>用途：{{ defaultModelTaskText }} · 当前：{{
+                selectedProviderLabel || '无供应商'
+              }}
+                / {{ selectedModelDisplayName || '无模型' }}</span>
             </header>
             <label>供应商</label>
             <el-select
@@ -89,28 +87,60 @@
                 :value="model.id"
               />
             </el-select>
-            <p v-if="modelPreferenceReadError" class="model-read-error">
+            <p
+              v-if="modelPreferenceReadError"
+              class="model-read-error"
+            >
               {{ modelPreferenceReadError }}
             </p>
-            <p v-if="modelPreferenceWriteError" class="model-read-error">
+            <p
+              v-if="modelPreferenceWriteError"
+              class="model-read-error"
+            >
               {{ modelPreferenceWriteError }}
             </p>
-            <p v-if="lastError">模型调用失败，可更换模型或重试。</p>
-            <div v-if="lastError" class="model-error-actions">
-              <button type="button" @click="retryLastTask">重试</button>
-              <button type="button" @click="copyErrorDetail">复制错误</button>
+            <p v-if="lastError">
+              模型调用失败，可更换模型或重试。
+            </p>
+            <div
+              v-if="lastError"
+              class="model-error-actions"
+            >
+              <button
+                type="button"
+                @click="retryLastTask"
+              >
+                重试
+              </button>
+              <button
+                type="button"
+                @click="copyErrorDetail"
+              >
+                复制错误
+              </button>
             </div>
           </section>
         </el-popover>
-        <button type="button" title="Agent 设置" @click="openAgentSettings">
+        <button
+          type="button"
+          title="Agent 设置"
+          @click="openAgentSettings"
+        >
           <Settings :size="16" />
         </button>
       </div>
     </header>
 
-    <section v-if="!selectedModel" class="bind-model-card">
+    <section
+      v-if="!selectedModel"
+      class="bind-model-card"
+    >
       <span>{{ modelHintText }}</span>
-      <el-button size="small" type="primary" @click="openModelBinding">
+      <el-button
+        size="small"
+        type="primary"
+        @click="openModelBinding"
+      >
         {{ availableModels.length ? '选择模型' : '去绑定模型' }}
       </el-button>
     </section>
@@ -118,19 +148,40 @@
     <section class="context-summary">
       <div>
         <span class="current-line">
-          <i class="book-kind-dot" :class="bookKind" :title="bookTypeText()">
-            <Download v-if="isDownloadedBook" :size="13" />
-            <Archive v-else-if="isReferenceBook" :size="13" />
-            <BookOpen v-else :size="13" />
+          <i
+            class="book-kind-dot"
+            :class="bookKind"
+            :title="bookTypeText()"
+          >
+            <Download
+              v-if="isDownloadedBook"
+              :size="13"
+            />
+            <Archive
+              v-else-if="isReferenceBook"
+              :size="13"
+            />
+            <BookOpen
+              v-else
+              :size="13"
+            />
           </i>
           <span>{{ chapterName }} · {{ currentModeText }}</span>
         </span>
         <strong>上下文：{{ contextSummaryText }}</strong>
       </div>
-      <button type="button" @click="contextDrawerVisible = true">调整</button>
+      <button
+        type="button"
+        @click="contextDrawerVisible = true"
+      >
+        调整
+      </button>
     </section>
 
-    <section class="consistency-card" aria-live="polite">
+    <section
+      class="consistency-card"
+      aria-live="polite"
+    >
       <header>
         <div>
           <span>一致性检查</span>
@@ -151,8 +202,15 @@
           :disabled="isConsistencyChecking"
           @click="runChapterConsistencyCheck"
         >
-          <Loader2 v-if="isConsistencyChecking" class="spinning" :size="15" />
-          <ShieldCheck v-else :size="15" />
+          <Loader2
+            v-if="isConsistencyChecking"
+            class="spinning"
+            :size="15"
+          />
+          <ShieldCheck
+            v-else
+            :size="15"
+          />
           {{ isConsistencyChecking ? '检查中' : '检查当前章' }}
         </button>
         <button
@@ -169,16 +227,26 @@
           v-model="autoCheckGeneratedChapter"
           type="checkbox"
           @change="persistAutoCheckGeneratedChapter"
-        />
+        >
         <span>正文生成后自动规则检查</span>
       </label>
-      <p :class="{ error: consistencyReadError }">{{ consistencyHintText }}</p>
+      <p :class="{ error: consistencyReadError }">
+        {{ consistencyHintText }}
+      </p>
     </section>
 
-    <section class="joined-context" v-if="joinedContextItems.length">
+    <section
+      v-if="joinedContextItems.length"
+      class="joined-context"
+    >
       <header>
         <span>已加入上下文</span>
-        <button type="button" @click="clearJoinedContext">清空</button>
+        <button
+          type="button"
+          @click="clearJoinedContext"
+        >
+          清空
+        </button>
       </header>
       <div>
         <button
@@ -192,7 +260,10 @@
       </div>
     </section>
 
-    <section class="suggestions" :class="{ starter: isStarterChapter }">
+    <section
+      class="suggestions"
+      :class="{ starter: isStarterChapter }"
+    >
       <header>
         <span>推荐下一步</span>
         <button
@@ -217,7 +288,10 @@
       </div>
     </section>
 
-    <section ref="timelineRef" class="timeline">
+    <section
+      ref="timelineRef"
+      class="timeline"
+    >
       <article
         v-for="message in timelineMessages"
         :key="message.id"
@@ -225,47 +299,102 @@
       >
         <span class="avatar">{{ messageAvatar(message) }}</span>
         <div class="message-body">
-          <header v-if="message.kind !== 'result_card'" class="message-head">
-            <p v-if="message.title" class="message-title">{{ message.title }}</p>
+          <header
+            v-if="message.kind !== 'result_card'"
+            class="message-head"
+          >
+            <p
+              v-if="message.title"
+              class="message-title"
+            >
+              {{ message.title }}
+            </p>
             <span>{{ blockTypeText(message.kind) }}</span>
           </header>
 
-          <div v-if="message.kind === 'error_card'" class="error-card">
+          <div
+            v-if="message.kind === 'error_card'"
+            class="error-card"
+          >
             <strong>生成失败</strong>
             <p>原因：{{ message.content }}</p>
-            <p v-if="message.showDetail && message.detail" class="error-detail">
+            <p
+              v-if="message.showDetail && message.detail"
+              class="error-detail"
+            >
               {{ message.detail }}
             </p>
             <div>
-              <button type="button" @click="retryLastTask">重试</button>
-              <button type="button" @click="modelPanelVisible = true">更换模型</button>
-              <button v-if="message.detail" type="button" @click="toggleErrorDetail(message)">
+              <button
+                type="button"
+                @click="retryLastTask"
+              >
+                重试
+              </button>
+              <button
+                type="button"
+                @click="modelPanelVisible = true"
+              >
+                更换模型
+              </button>
+              <button
+                v-if="message.detail"
+                type="button"
+                @click="toggleErrorDetail(message)"
+              >
                 {{ message.showDetail ? '收起详情' : '查看详情' }}
               </button>
-              <button type="button" @click="copyErrorDetail">复制错误</button>
+              <button
+                type="button"
+                @click="copyErrorDetail"
+              >
+                复制错误
+              </button>
             </div>
           </div>
 
-          <div v-else-if="message.kind === 'tool_call'" class="tool-card">
+          <div
+            v-else-if="message.kind === 'tool_call'"
+            class="tool-card"
+          >
             <strong>{{ message.title || '执行步骤' }}</strong>
             <p>{{ message.content }}</p>
-            <footer v-if="message.streaming" class="stream-meta">
+            <footer
+              v-if="message.streaming"
+              class="stream-meta"
+            >
               <span>片段 {{ message.chunkCount || 0 }}</span>
               <span>约 {{ message.wordCount || 0 }} 字</span>
               <span>{{ message.streamStatus === 'done' ? '已完成' : '写作中' }}</span>
             </footer>
           </div>
 
-          <div v-else-if="message.kind === 'approval_card'" class="approval-card">
+          <div
+            v-else-if="message.kind === 'approval_card'"
+            class="approval-card"
+          >
             <strong>{{ message.title || '等待确认' }}</strong>
             <p>{{ message.content }}</p>
             <div>
-              <button type="button" @click="confirmApproval(message)">确认</button>
-              <button type="button" @click="cancelApproval(message)">取消</button>
+              <button
+                type="button"
+                @click="confirmApproval(message)"
+              >
+                确认
+              </button>
+              <button
+                type="button"
+                @click="cancelApproval(message)"
+              >
+                取消
+              </button>
             </div>
           </div>
 
-          <div v-else-if="message.kind === 'consistency_card'" class="consistency-result-card">
+          <div
+            v-else-if="message.kind === 'consistency_card'"
+            class="consistency-result-card"
+          >
             <header>
               <div>
                 <span>{{ message.llmChecked ? '规则检查 + AI 复核' : '规则检查' }}</span>
@@ -295,7 +424,10 @@
                 <dd>{{ consistencyModelText(message) }}</dd>
               </div>
             </dl>
-            <ol v-if="consistencyIssuesOf(message).length" class="consistency-issues">
+            <ol
+              v-if="consistencyIssuesOf(message).length"
+              class="consistency-issues"
+            >
               <li
                 v-for="issue in consistencyIssuesOf(message)"
                 :key="issue.id || `${issue.type}-${issue.evidence}`"
@@ -305,31 +437,44 @@
                 }}</span>
                 <div>
                   <strong>{{ issue.message || issue.type || '发现可能矛盾' }}</strong>
-                  <p v-if="issue.evidence">证据：{{ issue.evidence }}</p>
-                  <p v-if="issue.reference">依据：{{ issue.reference }}</p>
-                  <p v-if="issue.suggestion">建议：{{ issue.suggestion }}</p>
+                  <p v-if="issue.evidence">
+                    证据：{{ issue.evidence }}
+                  </p>
+                  <p v-if="issue.reference">
+                    依据：{{ issue.reference }}
+                  </p>
+                  <p v-if="issue.suggestion">
+                    建议：{{ issue.suggestion }}
+                  </p>
                 </div>
               </li>
             </ol>
-            <p v-else class="consistency-clean">未发现明确矛盾。</p>
+            <p
+              v-else
+              class="consistency-clean"
+            >
+              未发现明确矛盾。
+            </p>
             <footer v-if="message.llmChecked || usageSummaryText(message.usage)">
-              <span v-if="message.llmChecked"
-                >AI 复核：{{ message.providerId || '已调用' }} /
-                {{ message.model || '默认模型' }}</span
-              >
-              <span v-if="usageSummaryText(message.usage)"
-                >用量：{{ usageSummaryText(message.usage) }}</span
-              >
+              <span v-if="message.llmChecked">AI 复核：{{ message.providerId || '已调用' }} /
+                {{ message.model || '默认模型' }}</span>
+              <span v-if="usageSummaryText(message.usage)">用量：{{ usageSummaryText(message.usage) }}</span>
             </footer>
           </div>
 
-          <div v-else-if="message.kind === 'save_record'" class="save-card">
+          <div
+            v-else-if="message.kind === 'save_record'"
+            class="save-card"
+          >
             {{ message.content }}
           </div>
 
           <pre v-else-if="message.kind !== 'result_card'">{{ message.content }}</pre>
 
-          <div v-else class="result-card">
+          <div
+            v-else
+            class="result-card"
+          >
             <header>
               <div>
                 <span>任务：{{ message.title || 'AI 结果' }}</span>
@@ -354,13 +499,23 @@
             <pre>{{ message.content }}</pre>
             <footer class="result-actions">
               <div class="result-actions-primary">
-                <button class="primary" type="button" @click="applyPrimaryResultAction(message)">
+                <button
+                  class="primary"
+                  type="button"
+                  @click="applyPrimaryResultAction(message)"
+                >
                   {{ primaryResultActionLabel(message) }}
                 </button>
-                <button type="button" @click="applyResult(message, 'save_material')">
+                <button
+                  type="button"
+                  @click="applyResult(message, 'save_material')"
+                >
                   保存到素材箱
                 </button>
-                <button type="button" @click="applyResult(message, 'save_snippet')">
+                <button
+                  type="button"
+                  @click="applyResult(message, 'save_snippet')"
+                >
                   存为片段
                 </button>
                 <button
@@ -386,17 +541,41 @@
                 >
                   替换选中
                 </button>
-                <button type="button" @click="joinTargetBook(message)">加入当前作品</button>
-                <button type="button" @click="convertToTemplate(message)">转成桥段模板</button>
-                <button type="button" @click="regenerateResult(message)">重新生成</button>
-                <button class="danger" type="button" @click="discardResult(message)">丢弃</button>
+                <button
+                  type="button"
+                  @click="joinTargetBook(message)"
+                >
+                  加入当前作品
+                </button>
+                <button
+                  type="button"
+                  @click="convertToTemplate(message)"
+                >
+                  转成桥段模板
+                </button>
+                <button
+                  type="button"
+                  @click="regenerateResult(message)"
+                >
+                  重新生成
+                </button>
+                <button
+                  class="danger"
+                  type="button"
+                  @click="discardResult(message)"
+                >
+                  丢弃
+                </button>
               </div>
             </footer>
           </div>
         </div>
       </article>
 
-      <article v-if="!timelineMessages.length" class="timeline-empty">
+      <article
+        v-if="!timelineMessages.length"
+        class="timeline-empty"
+      >
         <Bot :size="24" />
         <p>{{ emptyTimelineText }}</p>
       </article>
@@ -414,7 +593,10 @@
         @input="handleCommandInput"
       />
 
-      <div v-if="slashPanelVisible" class="slash-panel">
+      <div
+        v-if="slashPanelVisible"
+        class="slash-panel"
+      >
         <button
           v-for="capability in filteredSlashCapabilities"
           :key="capability.key"
@@ -427,17 +609,47 @@
       </div>
 
       <div class="command-controls">
-        <el-select v-model="commandScope" size="small">
-          <el-option label="选中文本" value="selected_text" />
-          <el-option label="当前段落" value="current_paragraph" />
-          <el-option label="当前章节" value="current_chapter" />
-          <el-option label="当前作品" value="current_book" />
+        <el-select
+          v-model="commandScope"
+          size="small"
+        >
+          <el-option
+            label="选中文本"
+            value="selected_text"
+          />
+          <el-option
+            label="当前段落"
+            value="current_paragraph"
+          />
+          <el-option
+            label="当前章节"
+            value="current_chapter"
+          />
+          <el-option
+            label="当前作品"
+            value="current_book"
+          />
         </el-select>
-        <el-select v-model="executionMode" size="small">
-          <el-option label="生成预览" value="preview" />
-          <el-option label="插入正文" value="insert" />
-          <el-option label="保存素材" value="save_material" />
-          <el-option label="提交队列" value="queue_write" />
+        <el-select
+          v-model="executionMode"
+          size="small"
+        >
+          <el-option
+            label="生成预览"
+            value="preview"
+          />
+          <el-option
+            label="插入正文"
+            value="insert"
+          />
+          <el-option
+            label="保存素材"
+            value="save_material"
+          />
+          <el-option
+            label="提交队列"
+            value="queue_write"
+          />
         </el-select>
         <div
           v-if="executionMode === 'queue_write'"
@@ -474,7 +686,10 @@
           popper-class="agent-capability-popover"
         >
           <template #reference>
-            <button class="capability-button" type="button">
+            <button
+              class="capability-button"
+              type="button"
+            >
               <Wand2 :size="15" />
               能力
             </button>
@@ -485,8 +700,16 @@
               size="small"
               placeholder="搜索能力，例如：黄金三章、角色绘图、时间线、润色"
             />
-            <p v-if="writingSkillLoadError" class="skill-load-error">{{ writingSkillLoadError }}</p>
-            <div v-if="!capabilityKeyword" class="capability-recommended">
+            <p
+              v-if="writingSkillLoadError"
+              class="skill-load-error"
+            >
+              {{ writingSkillLoadError }}
+            </p>
+            <div
+              v-if="!capabilityKeyword"
+              class="capability-recommended"
+            >
               <strong>当前推荐</strong>
               <div>
                 <button
@@ -524,8 +747,15 @@
           aria-label="发送指令"
           @click="runCommand"
         >
-          <Loader2 v-if="isQueueSubmitting" class="spinning" :size="15" />
-          <Send v-else :size="15" />
+          <Loader2
+            v-if="isQueueSubmitting"
+            class="spinning"
+            :size="15"
+          />
+          <Send
+            v-else
+            :size="15"
+          />
         </button>
         <button
           v-if="isGenerating"
@@ -534,13 +764,22 @@
           :disabled="isCancellingGeneration"
           @click="cancelActiveGeneration"
         >
-          <Loader2 v-if="isCancellingGeneration" class="spinning" :size="15" />
+          <Loader2
+            v-if="isCancellingGeneration"
+            class="spinning"
+            :size="15"
+          />
           <span v-else>停止</span>
         </button>
       </div>
     </section>
 
-    <el-drawer v-model="contextDrawerVisible" title="上下文设置" direction="rtl" size="360px">
+    <el-drawer
+      v-model="contextDrawerVisible"
+      title="上下文设置"
+      direction="rtl"
+      size="360px"
+    >
       <section class="context-drawer">
         <div class="preset-list">
           <button
@@ -556,16 +795,23 @@
           </button>
         </div>
         <div class="context-options">
-          <p v-if="contextPreferenceWriteError" class="context-write-error">
+          <p
+            v-if="contextPreferenceWriteError"
+            class="context-write-error"
+          >
             {{ contextPreferenceWriteError }}
           </p>
-          <label v-for="item in contextItems" :key="item.key" :class="{ disabled: item.disabled }">
+          <label
+            v-for="item in contextItems"
+            :key="item.key"
+            :class="{ disabled: item.disabled }"
+          >
             <input
               v-model="contextOptions[item.key]"
               type="checkbox"
               :disabled="item.disabled"
               @change="handleContextOptionChange"
-            />
+            >
             <span>{{ item.label }}</span>
             <small v-if="item.disabled">{{ item.reason }}</small>
           </label>
@@ -593,13 +839,27 @@
           >
             {{ agentTaskProgressText }}
           </p>
-          <button type="button" :disabled="isLoadingRecords" @click="loadHistory">
-            <Loader2 v-if="isLoadingRecords" class="spinning" :size="14" />
-            <History v-else :size="14" />
+          <button
+            type="button"
+            :disabled="isLoadingRecords"
+            @click="loadHistory"
+          >
+            <Loader2
+              v-if="isLoadingRecords"
+              class="spinning"
+              :size="14"
+            />
+            <History
+              v-else
+              :size="14"
+            />
             刷新
           </button>
         </header>
-        <section class="task-progress-card" aria-live="polite">
+        <section
+          class="task-progress-card"
+          aria-live="polite"
+        >
           <dl>
             <div>
               <dt>连接</dt>
@@ -618,35 +878,71 @@
               <dd>{{ agentTaskReconnectText }}</dd>
             </div>
           </dl>
-          <p v-if="agentTaskProgressNotice" class="task-progress-notice">
+          <p
+            v-if="agentTaskProgressNotice"
+            class="task-progress-notice"
+          >
             {{ agentTaskProgressNotice }}
           </p>
         </section>
-        <section class="queue-status-card" aria-live="polite">
+        <section
+          class="queue-status-card"
+          aria-live="polite"
+        >
           <header>
             <div>
               <strong>写作队列</strong>
               <span>{{ queueStatusText }}</span>
             </div>
-            <button type="button" :disabled="isLoadingQueueStatus" @click="loadQueueStatus">
-              <Loader2 v-if="isLoadingQueueStatus" class="spinning" :size="14" />
-              <RefreshCw v-else :size="14" />
+            <button
+              type="button"
+              :disabled="isLoadingQueueStatus"
+              @click="loadQueueStatus"
+            >
+              <Loader2
+                v-if="isLoadingQueueStatus"
+                class="spinning"
+                :size="14"
+              />
+              <RefreshCw
+                v-else
+                :size="14"
+              />
               刷新队列
             </button>
           </header>
-          <p v-if="queueStatusError" class="queue-status-error">{{ queueStatusError }}</p>
-          <dl v-else-if="queueStatus" class="queue-counts">
-            <div v-for="item in queueCountItems" :key="item.key">
+          <p
+            v-if="queueStatusError"
+            class="queue-status-error"
+          >
+            {{ queueStatusError }}
+          </p>
+          <dl
+            v-else-if="queueStatus"
+            class="queue-counts"
+          >
+            <div
+              v-for="item in queueCountItems"
+              :key="item.key"
+            >
               <dt>{{ item.label }}</dt>
               <dd>{{ item.value }}</dd>
             </div>
           </dl>
-          <p v-else class="queue-status-empty">尚未读取 Redis 队列状态。</p>
+          <p
+            v-else
+            class="queue-status-empty"
+          >
+            尚未读取 Redis 队列状态。
+          </p>
           <footer v-if="queueStatus">
             <span>队列：{{ queueStatus.queueName || '默认队列' }}</span>
             <span>{{ queueWorkerText }}</span>
           </footer>
-          <div v-if="queueJobs.length" class="queue-job-list">
+          <div
+            v-if="queueJobs.length"
+            class="queue-job-list"
+          >
             <button
               v-for="job in queueJobs"
               :key="job.id"
@@ -659,16 +955,32 @@
             </button>
           </div>
         </section>
-        <section v-if="selectedQueueJobId || queueJobError" class="queue-job-card">
+        <section
+          v-if="selectedQueueJobId || queueJobError"
+          class="queue-job-card"
+        >
           <header>
             <div>
               <strong>队列任务详情</strong>
               <span>{{ selectedQueueJobId || '未选择任务' }}</span>
             </div>
-            <button type="button" @click="clearSelectedQueueJob">关闭</button>
+            <button
+              type="button"
+              @click="clearSelectedQueueJob"
+            >
+              关闭
+            </button>
           </header>
-          <p v-if="queueJobError" class="queue-status-error">{{ queueJobError }}</p>
-          <dl v-if="selectedQueueJob" class="queue-job-meta">
+          <p
+            v-if="queueJobError"
+            class="queue-status-error"
+          >
+            {{ queueJobError }}
+          </p>
+          <dl
+            v-if="selectedQueueJob"
+            class="queue-job-meta"
+          >
             <div>
               <dt>状态</dt>
               <dd>{{ queueJobStateText(selectedQueueJob.state) }}</dd>
@@ -698,22 +1010,35 @@
               <dd>{{ formatQueueTime(selectedQueueJob.finishedOn) }}</dd>
             </div>
           </dl>
-          <p v-if="selectedQueueJob?.failedReason" class="queue-job-note">
+          <p
+            v-if="selectedQueueJob?.failedReason"
+            class="queue-job-note"
+          >
             失败原因：{{ selectedQueueJob.failedReason }}
           </p>
-          <p v-if="selectedQueueJob?.returnvalue" class="queue-job-note">
+          <p
+            v-if="selectedQueueJob?.returnvalue"
+            class="queue-job-note"
+          >
             返回：{{ queueJobValueText(selectedQueueJob.returnvalue) }}
           </p>
         </section>
-        <p v-if="recordsError" class="records-error">{{ recordsError }}</p>
-        <article v-for="task in agentTaskHistory" :key="task.id" class="task-record">
+        <p
+          v-if="recordsError"
+          class="records-error"
+        >
+          {{ recordsError }}
+        </p>
+        <article
+          v-for="task in agentTaskHistory"
+          :key="task.id"
+          class="task-record"
+        >
           <header>
             <div>
               <strong>{{ task.title || toolLabelFromType(task.type) || 'Agent 任务' }}</strong>
-              <span
-                >{{ agentTaskStatusText(task.status) }} ·
-                {{ formatTime(task.updatedAt || task.createdAt) }}</span
-              >
+              <span>{{ agentTaskStatusText(task.status) }} ·
+                {{ formatTime(task.updatedAt || task.createdAt) }}</span>
             </div>
             <em>{{ taskEventSummary(task) }}</em>
           </header>
@@ -749,8 +1074,15 @@
               :disabled="isLoadingQueueJobId === task.jobId"
               @click="inspectQueuedTask(task)"
             >
-              <Loader2 v-if="isLoadingQueueJobId === task.jobId" class="spinning" :size="14" />
-              <Search v-else :size="14" />
+              <Loader2
+                v-if="isLoadingQueueJobId === task.jobId"
+                class="spinning"
+                :size="14"
+              />
+              <Search
+                v-else
+                :size="14"
+              />
               <span>查看队列</span>
             </button>
             <button
@@ -769,7 +1101,11 @@
               :disabled="cancellingQueueJobId === task.jobId"
               @click="cancelQueuedTask(task)"
             >
-              <Loader2 v-if="cancellingQueueJobId === task.jobId" class="spinning" :size="14" />
+              <Loader2
+                v-if="cancellingQueueJobId === task.jobId"
+                class="spinning"
+                :size="14"
+              />
               <span v-else>停止队列任务</span>
             </button>
           </div>
@@ -782,12 +1118,20 @@
               <p>{{ agentTaskEventText(event) }}</p>
             </li>
           </ol>
-          <p v-else>{{ task.resultPreview || task.error || '暂无事件。' }}</p>
+          <p v-else>
+            {{ task.resultPreview || task.error || '暂无事件。' }}
+          </p>
         </article>
-        <div v-if="agentTaskHistory.length && toolHistory.length" class="records-divider">
+        <div
+          v-if="agentTaskHistory.length && toolHistory.length"
+          class="records-divider"
+        >
           生成记录
         </div>
-        <article v-for="item in toolHistory" :key="item.id || item.createdAt">
+        <article
+          v-for="item in toolHistory"
+          :key="item.id || item.createdAt"
+        >
           <strong>{{ item.title || toolLabelFromType(item.type) || 'AI 记录' }}</strong>
           <span>{{ item.status || 'generated' }} · {{ formatTime(item.createdAt) }}</span>
           <p>{{ item.result || item.content || '暂无内容' }}</p>
@@ -812,7 +1156,11 @@
     >
       <el-form label-width="82px">
         <el-form-item label="目标作品">
-          <el-select v-model="joinForm.targetBookId" filterable placeholder="选择目标作品">
+          <el-select
+            v-model="joinForm.targetBookId"
+            filterable
+            placeholder="选择目标作品"
+          >
             <el-option
               v-for="book in bookOptions"
               :key="book.id"
@@ -820,32 +1168,61 @@
               :value="book.id"
             />
           </el-select>
-          <p v-if="bookOptionsError" class="join-book-error">{{ bookOptionsError }}</p>
+          <p
+            v-if="bookOptionsError"
+            class="join-book-error"
+          >
+            {{ bookOptionsError }}
+          </p>
         </el-form-item>
         <el-form-item label="资料类型">
           <el-select v-model="joinForm.assetType">
-            <el-option label="桥段素材" value="plot_fragment" />
-            <el-option label="人物资料" value="character_setting" />
-            <el-option label="世界资料" value="world_setting" />
-            <el-option label="读书笔记" value="book_analysis" />
+            <el-option
+              label="桥段素材"
+              value="plot_fragment"
+            />
+            <el-option
+              label="人物资料"
+              value="character_setting"
+            />
+            <el-option
+              label="世界资料"
+              value="world_setting"
+            />
+            <el-option
+              label="读书笔记"
+              value="book_analysis"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="用途">
           <el-select v-model="joinForm.usage">
-            <el-option label="参考" value="reference" />
-            <el-option label="灵感" value="inspiration" />
-            <el-option label="草稿" value="draft" />
+            <el-option
+              label="参考"
+              value="reference"
+            />
+            <el-option
+              label="灵感"
+              value="inspiration"
+            />
+            <el-option
+              label="草稿"
+              value="draft"
+            />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="joinDialogVisible = false">取消</el-button>
+        <el-button @click="joinDialogVisible = false">
+          取消
+        </el-button>
         <el-button
           type="primary"
           :disabled="Boolean(bookOptionsError)"
           @click="confirmJoinTargetBook"
-          >确认加入</el-button
         >
+          确认加入
+        </el-button>
       </template>
     </el-dialog>
   </aside>
