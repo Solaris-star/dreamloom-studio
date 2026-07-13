@@ -357,6 +357,17 @@ try {
     /缺少一致性检查问题/
   )
   await assert.rejects(
+    () =>
+      repairNovelChapter({
+        booksDir,
+        bookName,
+        currentText: '待返修正文',
+        issues: ['前后设定冲突'],
+        targetWords: 'invalid'
+      }),
+    /目标字数无效/
+  )
+  await assert.rejects(
     () => runNovelLifecycle({ booksDir, idea: '创作一本书' }),
     /缺少书籍名称/
   )
@@ -366,6 +377,39 @@ try {
   )
   assert.throws(() => exportNovelBook({ booksDir }), /缺少书籍名称/)
   assert.throws(() => listNovelTasks({ booksDir }), /缺少书籍名称/)
+  assert.throws(
+    () => exportNovelBook({ booksDir, bookName: '不存在的作品' }),
+    /书籍不存在/
+  )
+  assert.throws(
+    () => listNovelTasks({ booksDir, bookName: '不存在的作品' }),
+    /书籍不存在/
+  )
+
+  const preAborted = new AbortController()
+  preAborted.abort('用户主动停止')
+  await assert.rejects(
+    () =>
+      writeNovelChapter({
+        booksDir,
+        bookName,
+        prompt: '不应开始写作。',
+        signal: preAborted.signal
+      }),
+    /用户主动停止/
+  )
+  const errorAborted = new AbortController()
+  errorAborted.abort(new Error('外部任务已取消'))
+  await assert.rejects(
+    () =>
+      runNovelLifecycle({
+        booksDir,
+        bookName,
+        idea: '不应开始创作。',
+        signal: errorAborted.signal
+      }),
+    /外部任务已取消/
+  )
 
   const initResult = await initNovelProject({
     booksDir,
@@ -446,6 +490,7 @@ try {
   assert.equal(researchResult.topics[0].title, '寒门剑修登榜')
 
   const originalRefreshMarketTrends = marketService.refreshMarketTrends
+  const originalGetMarketDashboard = marketService.getMarketDashboard
   try {
     marketService.refreshMarketTrends = async () => ({})
     await assert.rejects(
@@ -476,8 +521,46 @@ try {
         }),
       /没有真实来源结果/
     )
+    const validRefreshResult = {
+      success: true,
+      sources: ['qidian'],
+      results: [{ source: 'qidian', success: true }],
+      topics: [],
+      sourceStatus: [],
+      collectionLogs: [],
+      inserted: 0,
+      updated: 0
+    }
+    marketService.refreshMarketTrends = async () => ({
+      ...validRefreshResult,
+      sourceStatus: undefined
+    })
+    await assert.rejects(
+      () => researchNovelMarket({ booksDir, sources: 'qidian' }),
+      /缺少来源状态或采集记录/
+    )
+    marketService.refreshMarketTrends = async () => ({
+      ...validRefreshResult,
+      inserted: undefined
+    })
+    await assert.rejects(
+      () => researchNovelMarket({ booksDir, sources: 'qidian' }),
+      /缺少写入统计/
+    )
+    marketService.refreshMarketTrends = async () => validRefreshResult
+    marketService.getMarketDashboard = () => ({ success: false, message: '看板读取被拒绝' })
+    await assert.rejects(
+      () => researchNovelMarket({ booksDir, sources: 'qidian' }),
+      /看板读取被拒绝/
+    )
+    marketService.getMarketDashboard = () => ({ success: true })
+    await assert.rejects(
+      () => researchNovelMarket({ booksDir, sources: 'qidian' }),
+      /返回数据结构不完整/
+    )
   } finally {
     marketService.refreshMarketTrends = originalRefreshMarketTrends
+    marketService.getMarketDashboard = originalGetMarketDashboard
   }
 
   const outlineProvider = createOfflineProvider()
