@@ -8,11 +8,13 @@ import {
   createAgentTask,
   failAgentTask,
   listAgentTasks,
+  onAgentTaskProgress,
   recordAgentTaskApplication,
   recordAgentTaskConsistency,
   recordAgentTaskQueueEvent,
   recordAgentTaskRepair,
-  recordAgentTaskRepairFailure
+  recordAgentTaskRepairFailure,
+  recordAgentTaskStream
 } from '../src/main/services/editorAgentTaskService.js'
 
 const rootDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-agent-task-'))
@@ -20,6 +22,13 @@ const bookPath = join(rootDir, '风雪试剑')
 
 try {
   fs.mkdirSync(bookPath, { recursive: true })
+  assert.throws(() => listAgentTasks(join(rootDir, '不存在')), /作品目录不存在/)
+  assert.throws(() => createAgentTask('', {}), /作品目录不存在/)
+
+  const progressEvents = []
+  const stopListening = onAgentTaskProgress((event) => progressEvents.push(event))
+  const noopStop = onAgentTaskProgress(null)
+  noopStop()
 
   const task = createAgentTask(bookPath, {
     bookName: '风雪试剑',
@@ -37,6 +46,52 @@ try {
   assert.equal(task.status, 'running')
   assert.equal(task.bookName, '风雪试剑')
   assert.equal(task.events[0].type, 'task_started')
+  assert.equal(progressEvents.at(-1).event.type, 'task_started')
+
+  const defaultTask = createAgentTask(bookPath, {
+    id: 'default_task',
+    instruction: 123,
+    events: 'invalid'
+  })
+  assert.equal(defaultTask.bookName, '风雪试剑')
+  assert.equal(defaultTask.type, 'custom')
+  assert.equal(defaultTask.agentMode, 'writing')
+  assert.equal(defaultTask.outputMode, 'preview')
+  assert.equal(defaultTask.canWriteChapter, false)
+  assert.deepEqual(defaultTask.inputScopes, [])
+  assert.equal(defaultTask.events[0].content, '123')
+
+  const streamRunning = recordAgentTaskStream(bookPath, {
+    taskId: defaultTask.id,
+    generationId: 'stream_001',
+    skillId: 'skill_001',
+    skillKey: 'continue',
+    outputMode: 'chapter_write',
+    canWriteChapter: true,
+    inputScopes: [' chapter ', '', 1],
+    requiredContext: ['characters'],
+    references: ['outline'],
+    chunkCount: '2',
+    wordCount: 120,
+    content: '第一段'
+  })
+  assert.equal(streamRunning.status, 'running')
+  assert.equal(streamRunning.canWriteChapter, true)
+  assert.deepEqual(streamRunning.inputScopes, ['chapter'])
+  assert.equal(streamRunning.events.at(-1).type, 'writer_stream')
+  assert.equal(streamRunning.events.at(-1).chunkCount, 2)
+
+  const streamDone = recordAgentTaskStream(bookPath, {
+    taskId: defaultTask.id,
+    status: 'done',
+    type: 'custom_stream',
+    role: 'editor',
+    title: '完成流式写作'
+  })
+  assert.equal(streamDone.status, 'streamed')
+  assert.equal(streamDone.events.at(-1).type, 'custom_stream')
+  stopListening()
+  const progressCountAfterStop = progressEvents.length
 
   const completed = completeAgentTask(bookPath, task.id, {
     id: 'gen_001',
@@ -160,6 +215,13 @@ try {
   )
   assert.equal(completed.events.at(-1).type, 'generation_saved')
 
+  const reviewFailed = completeAgentTask(bookPath, defaultTask.id, {
+    review: { passed: false },
+    agentSteps: 'invalid'
+  })
+  assert.equal(reviewFailed.status, 'review_failed')
+  assert.equal(progressEvents.length, progressCountAfterStop)
+
   const applied = recordAgentTaskApplication(bookPath, {
     taskId: task.id,
     generationId: 'gen_001',
@@ -170,6 +232,13 @@ try {
   assert.equal(applied.status, 'applied')
   assert.equal(applied.applyAction, 'append')
   assert.equal(applied.events.at(-1).type, 'generation_applied')
+
+  const defaultApplied = recordAgentTaskApplication(bookPath, {
+    taskId: defaultTask.id,
+    content: '应用默认结果'
+  })
+  assert.equal(defaultApplied.status, 'applied')
+  assert.equal(defaultApplied.applyAction, '')
 
   const checked = recordAgentTaskConsistency(bookPath, {
     taskId: task.id,
@@ -184,6 +253,14 @@ try {
   assert.equal(checked.status, 'needs_review')
   assert.equal(checked.issueCount, 1)
   assert.equal(checked.events.at(-1).checkId, 'check_001')
+
+  const noIssues = recordAgentTaskConsistency(bookPath, {
+    taskId: defaultTask.id,
+    issueCount: 'invalid'
+  })
+  assert.equal(noIssues.status, 'checked')
+  assert.equal(noIssues.issueCount, 0)
+  assert.equal(noIssues.events.at(-1).status, 'done')
 
   const repaired = recordAgentTaskRepair(bookPath, {
     taskId: task.id,
@@ -250,6 +327,25 @@ try {
   assert.equal(repaired.events.at(-1).type, 'repair_saved')
   assert.equal(repaired.events.at(-1).repairGenerationId, 'gen_repair_001')
 
+  const reviewRepair = recordAgentTaskRepair(bookPath, {
+    taskId: defaultTask.id,
+    generationId: 'fallback_generation',
+    issueCount: 'invalid',
+    review: { passed: false },
+    steps: 'invalid'
+  })
+  assert.equal(reviewRepair.status, 'repair_review_failed')
+  assert.equal(reviewRepair.generationId, 'fallback_generation')
+  assert.equal(reviewRepair.issueCount, 0)
+
+  const explicitRepair = recordAgentTaskRepair(bookPath, {
+    taskId: defaultTask.id,
+    status: 'repair_pending',
+    review: 'invalid'
+  })
+  assert.equal(explicitRepair.status, 'repair_pending')
+  assert.equal(explicitRepair.review, null)
+
   const repairFailed = recordAgentTaskRepairFailure(
     bookPath,
     {
@@ -266,6 +362,11 @@ try {
   assert.equal(repairFailed.events.at(-1).type, 'repair_failed')
   assert.equal(repairFailed.events.at(-1).checkId, 'check_002')
 
+  const defaultRepairFailed = recordAgentTaskRepairFailure(bookPath, {
+    taskId: defaultTask.id
+  })
+  assert.equal(defaultRepairFailed.error, '返修失败')
+
   const cancelled = cancelAgentTask(bookPath, task.id, {
     generationId: 'gen_001',
     content: '用户点击停止生成。'
@@ -276,11 +377,21 @@ try {
   assert.equal(cancelled.events.at(-1).status, 'cancelled')
   assert.equal(cancelled.events.at(-1).content, '用户点击停止生成。')
 
+  const defaultCancelled = cancelAgentTask(bookPath, defaultTask.id)
+  assert.equal(defaultCancelled.events.at(-1).content, '用户停止生成。')
+
   const rows = listAgentTasks(bookPath, { generationId: 'gen_001' })
   assert.equal(rows.success, true)
   assert.equal(rows.tasks.length, 1)
   assert.equal(rows.tasks[0].id, task.id)
   assert.equal(fs.existsSync(join(bookPath, '.editor-agent', 'tasks.json')), true)
+  assert.equal(listAgentTasks(bookPath, { id: task.id }).tasks.length, 1)
+  assert.equal(listAgentTasks(bookPath, { taskId: task.id }).tasks.length, 1)
+  assert.equal(listAgentTasks(bookPath, { chapterId: '不存在' }).tasks.length, 0)
+  assert.equal(listAgentTasks(bookPath, { status: 'cancelled' }).tasks.length >= 1, true)
+  assert.equal(listAgentTasks(bookPath, { type: 'continue' }).tasks.length, 1)
+  assert.equal(listAgentTasks(bookPath, { agentMode: 'writing', limit: 1 }).tasks.length, 1)
+  assert.equal(listAgentTasks(bookPath, { limit: 0 }).tasks.length >= 2, true)
 
   const queued = recordAgentTaskQueueEvent(bookPath, {
     taskId: 'queue_task_001',
@@ -321,7 +432,21 @@ try {
   assert.equal(failed.error, '模型返回空内容')
   assert.equal(failed.events.at(-1).type, 'task_failed')
 
+  const defaultFailed = failAgentTask(bookPath, 'task_default_failed')
+  assert.equal(defaultFailed.error, '任务失败')
+
+  const stringFailed = failAgentTask(bookPath, 'task_string_failed', '字符串错误')
+  assert.equal(stringFailed.error, '字符串错误')
+
   const taskStorePath = join(bookPath, '.editor-agent', 'tasks.json')
+  const objectStore = fs.readFileSync(taskStorePath, 'utf8')
+  const objectRows = JSON.parse(objectStore).tasks
+  fs.writeFileSync(taskStorePath, JSON.stringify(objectRows), 'utf8')
+  assert.equal(listAgentTasks(bookPath).tasks.length, objectRows.length)
+  fs.writeFileSync(taskStorePath, 'null', 'utf8')
+  assert.equal(listAgentTasks(bookPath).tasks.length, 0)
+  fs.writeFileSync(taskStorePath, objectStore, 'utf8')
+
   fs.writeFileSync(taskStorePath, '{ broken json', 'utf8')
   assert.throws(() => listAgentTasks(bookPath), /读取 Agent 任务记录失败/)
   assert.throws(
