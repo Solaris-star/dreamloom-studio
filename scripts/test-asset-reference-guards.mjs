@@ -15,6 +15,12 @@ import {
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dreamloom-assets-'))
 
 try {
+  assert.deepEqual(listAssets(path.join(root, '不存在目录')).summary, {
+    total: 0,
+    byType: { cover: 0, character: 0, scene: 0, map: 0, attachment: 0, trash: 0 },
+    bookCount: 0
+  })
+
   const bookDir = path.join(root, 'test-book')
   const imageDir = path.join(bookDir, 'character_images')
   fs.mkdirSync(imageDir, { recursive: true })
@@ -82,6 +88,15 @@ try {
       usages: [{ type: 'cover', label: '作品封面' }]
     }
   ])
+  fs.writeFileSync(path.join(bookDir, 'broken-reference.json'), '{broken', 'utf8')
+  assert.deepEqual(findAssetReferences(root, coverAsset.id), [
+    {
+      file: 'mazi.json',
+      fields: ['$.coverUrl', '$.alternateCover'],
+      usages: [{ type: 'cover', label: '作品封面' }]
+    }
+  ])
+  assert.throws(() => findAssetReferences(root, ''), /资产 ID 无效/)
   assert.throws(() => deleteAsset(root, characterAsset.id), /characters\.json.*imagePath/)
   assert.throws(() => deleteAsset(root, sceneAsset.id), /scenes\.json.*image/)
   assert.throws(() => deleteAsset(root, coverAsset.id), /mazi\.json.*coverUrl/)
@@ -140,6 +155,26 @@ try {
         fileName: '超大附件.bin'
       }),
     /不能超过 10 MB/
+  )
+  assert.throws(
+    () =>
+      importAsset(root, {
+        bookName: '测试书',
+        type: 'attachment',
+        fileName: '空文件.bin',
+        base64: ''
+      }),
+    /缺少导入文件/
+  )
+  assert.throws(
+    () =>
+      importAsset(root, {
+        bookName: '测试书',
+        type: 'attachment',
+        fileName: '空内容.bin',
+        base64: '===='
+      }),
+    /Base64/
   )
   assert.equal(fs.existsSync(path.join(imageDir, '损坏.png')), false)
   assert.equal(fs.existsSync(path.join(bookDir, 'scene_images', '伪造.png')), false)
@@ -221,6 +256,21 @@ try {
     }).success,
     true
   )
+  const jpeg = importAsset(root, {
+    bookName: '第二本书',
+    type: 'character',
+    fileName: '人物.jpg',
+    base64: Buffer.from([0xff, 0xd8, 0xff, 0x01]).toString('base64')
+  })
+  assert.equal(jpeg.item.mimeType, 'image/jpeg')
+  const attachment = importAsset(root, {
+    bookName: '第二本书',
+    fileName: '',
+    base64: Buffer.from('attachment').toString('base64')
+  })
+  assert.equal(attachment.item.type, 'attachment')
+  assert.equal(attachment.item.mimeType, 'application/octet-stream')
+  assert.equal(listAssets(root, { type: 'all', keyword: '不存在关键词' }).items.length, 0)
   const filtered = listAssets(root, { bookName: '第二本书', keyword: '地图', type: 'map' })
   assert.equal(filtered.items.length, 1)
   assert.equal(filtered.summary.byType.map, 1)
@@ -234,6 +284,27 @@ try {
   fs.mkdirSync(path.join(root, 'assets-trash'), { recursive: true })
   fs.writeFileSync(path.join(root, 'assets-trash', 'manifest.json'), '{broken', 'utf-8')
   assert.throws(() => listAssets(root, { type: 'trash' }), /回收站记录读取失败/)
+  fs.writeFileSync(path.join(root, 'assets-trash', 'manifest.json'), '{}', 'utf-8')
+  assert.throws(() => listAssets(root, { type: 'trash' }), /回收站记录格式异常/)
+  fs.writeFileSync(path.join(root, 'assets-trash', 'manifest.json'), '[null]', 'utf-8')
+  assert.throws(() => listAssets(root, { type: 'trash' }), /回收站记录格式异常/)
+  fs.writeFileSync(path.join(root, 'assets-trash', 'manifest.json'), '[]', 'utf-8')
+  assert.throws(() => getAssetFile(root, { id: 'trash-missing', trash: true }), /回收站记录不存在/)
+  fs.writeFileSync(
+    path.join(root, 'assets-trash', 'manifest.json'),
+    JSON.stringify([
+      {
+        id: 'trash-file-missing',
+        name: '丢失.png',
+        trashRelativePath: 'assets-trash/丢失.png'
+      }
+    ]),
+    'utf-8'
+  )
+  assert.throws(
+    () => getAssetFile(root, { id: 'trash-file-missing', trash: true }),
+    /回收站文件不存在/
+  )
 } finally {
   fs.rmSync(root, { recursive: true, force: true })
 }
