@@ -16,6 +16,8 @@ import {
   readEntityProfilesForBook,
   readMapImage,
   readMaps,
+  readOutlineAiSessions,
+  readOutlines,
   readOrganization,
   readOrganizationImage,
   readOrganizations,
@@ -33,6 +35,8 @@ import {
   writeCharacters,
   writeDictionary,
   writeEntityProfileCategory,
+  writeOutlineAiSessions,
+  writeOutlines,
   writeSequenceCharts,
   writeSettings,
   writeTimeline,
@@ -55,12 +59,31 @@ try {
   assert.deepEqual(readSequenceCharts(bookName, booksDir).data, [])
   assert.equal(readSettings(bookName, booksDir).success, true)
   assert.equal(readEntityProfilesForBook(bookName, booksDir).success, true)
+  assert.deepEqual(readOutlines(bookName, booksDir), { success: true, data: null })
+  assert.deepEqual(readOutlineAiSessions(bookName, booksDir), {
+    success: true,
+    data: { version: 1, nodes: {} }
+  })
 
   assert.equal(writeTimeline({ bookName, data: null }, booksDir).success, false)
   assert.equal(writeCharacters({ bookName, data: {} }, booksDir).success, false)
   assert.equal(writeDictionary({ bookName, data: 'invalid' }, booksDir).success, false)
   assert.equal(writeSequenceCharts({ bookName, data: 1 }, booksDir).success, false)
   assert.equal(writeSettings({ bookName: '', data: {} }, booksDir).success, false)
+  assert.equal(writeOutlines({ bookName, data: null }, booksDir).success, false)
+  assert.equal(
+    writeOutlines({ bookName, data: { children: 'invalid' } }, booksDir).success,
+    false
+  )
+  assert.equal(
+    writeOutlines({ bookName, data: [{ id: 'root', children: [null] }] }, booksDir).success,
+    false
+  )
+  assert.equal(writeOutlineAiSessions({ bookName, data: [] }, booksDir).success, false)
+  assert.equal(
+    writeOutlineAiSessions({ bookName, data: { nodes: [] } }, booksDir).success,
+    false
+  )
   assert.equal(
     writeEntityProfileCategory({ bookName, category: 'invalid', data: [] }, booksDir).success,
     false
@@ -89,8 +112,52 @@ try {
     ).success,
     true
   )
+  assert.equal(
+    writeOutlines(
+      {
+        bookName,
+        data: [{ id: 'outline-root', children: [{ id: 'outline-child', children: [] }] }]
+      },
+      booksDir
+    ).success,
+    true
+  )
+  assert.equal(
+    writeOutlineAiSessions(
+      {
+        bookName,
+        data: { version: 0, nodes: { 'outline-root': { messages: [] } } }
+      },
+      booksDir
+    ).success,
+    true
+  )
+  assert.equal(readOutlines(bookName, booksDir).data[0].id, 'outline-root')
+  assert.equal(readOutlineAiSessions(bookName, booksDir).data.version, 1)
+  assert.deepEqual(
+    readOutlineAiSessions(bookName, booksDir).data.nodes['outline-root'].messages,
+    []
+  )
   assert.equal(readCharacters(bookName, booksDir).data[0].name, '林青')
   assert.equal(readEntityProfilesForBook(bookName, booksDir).data.artifact[0].name, '月影剑')
+
+  fs.writeFileSync(join(booksDir, bookName, 'outline-ai-sessions.json'), '[]', 'utf8')
+  assert.equal(readOutlineAiSessions(bookName, booksDir).success, false)
+  fs.writeFileSync(join(booksDir, bookName, 'outline-ai-sessions.json'), '{broken', 'utf8')
+  assert.equal(readOutlineAiSessions(bookName, booksDir).success, false)
+  fs.writeFileSync(join(booksDir, bookName, 'entity_profiles.json'), '{broken', 'utf8')
+  assert.equal(readEntityProfilesForBook(bookName, booksDir).success, false)
+  assert.equal(
+    writeEntityProfileCategory(
+      { bookName, category: 'artifact', data: [{ name: '不应覆盖' }] },
+      booksDir
+    ).success,
+    false
+  )
+  assert.equal(
+    fs.readFileSync(join(booksDir, bookName, 'entity_profiles.json'), 'utf8'),
+    '{broken'
+  )
 
   assert.deepEqual(readMaps(bookName, booksDir), { success: true, data: [] })
   assert.equal(
@@ -122,6 +189,24 @@ try {
   assert.equal(updatedMap.success, true)
   assert.equal(updatedMap.dataDatabaseSync.success, true)
   assert.equal(loadMapData({ bookName, mapName: '山门图' }, booksDir).nodes[0].id, 'gate')
+  const imageOnlyMap = updateMap(
+    { bookName, mapName: '山门图', imageData: pngDataUrl },
+    booksDir
+  )
+  assert.equal(imageOnlyMap.success, true)
+  assert.equal(imageOnlyMap.dataFileName, '')
+  assert.equal(Object.hasOwn(imageOnlyMap, 'dataDatabaseSync'), false)
+  const dataOnlyMap = updateMap(
+    {
+      bookName,
+      mapName: '山门图',
+      mapData: { nodes: [{ id: 'courtyard' }], lines: [] }
+    },
+    booksDir
+  )
+  assert.equal(dataOnlyMap.success, true)
+  assert.equal(dataOnlyMap.dataDatabaseSync.success, true)
+  assert.equal(loadMapData({ bookName, mapName: '山门图' }, booksDir).nodes[0].id, 'courtyard')
   const emptyMapData = saveMapData({ bookName, mapName: '山门图', mapData: null }, booksDir)
   assert.equal(emptyMapData.success, false)
   assert.match(emptyMapData.message, /数据库未记录快照/)
