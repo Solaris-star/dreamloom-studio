@@ -2,61 +2,107 @@
   <section class="ai-workshop-shell">
     <header class="ai-workshop-header">
       <div class="header-copy">
-        <p class="eyebrow">{{ activePage.label }}</p>
+        <p class="eyebrow">
+          {{ activePage.label }}
+        </p>
         <h1>{{ activePage.title }}</h1>
       </div>
       <div class="header-aside">
         <details class="quiet-note">
-          <summary :aria-label="`${activePage.title}说明`" title="说明">
+          <summary
+            :aria-label="`${activePage.title}说明`"
+            title="说明"
+          >
             <Info :size="16" />
           </summary>
           <p>{{ activePage.description }}</p>
         </details>
-        <div class="header-metrics" aria-label="当前 AI 状态">
+        <div
+          class="header-metrics"
+          aria-label="当前 AI 状态"
+        >
           <span>{{ currentModelText }}</span>
           <span>{{ estimatedTokens }} Token</span>
         </div>
       </div>
     </header>
 
-    <section v-if="activeTab === 'prompts'" class="manager-panel ai-card">
+    <section
+      v-if="activeTab === 'prompts'"
+      class="manager-panel ai-card"
+    >
       <div class="panel-title">
         <div>
           <h2>Prompt 模板</h2>
           <p>管理真实可用的提示词模板，写作时可以直接选用。</p>
         </div>
-        <el-button type="primary" class="primary-action" :icon="Plus" @click="handleCreatePreset"
-          >新建模板</el-button
+        <el-button
+          type="primary"
+          class="primary-action"
+          :icon="Plus"
+          @click="handleCreatePreset"
         >
+          新建模板
+        </el-button>
       </div>
-      <p v-if="promptLoadError" class="manager-error">{{ promptLoadError }}</p>
-      <el-empty v-else-if="!promptPresets.length" description="暂无 Prompt 模板" />
+      <p
+        v-if="promptLoadError"
+        class="manager-error"
+      >
+        {{ promptLoadError }}
+      </p>
+      <el-empty
+        v-else-if="!promptPresets.length"
+        description="暂无 Prompt 模板"
+      />
       <div
         v-else
         v-motion-list="{ selector: '.prompt-card', key: `prompts:${promptPresets.length}` }"
         class="prompt-grid"
       >
-        <article v-for="preset in promptPresets" :key="preset.id" class="prompt-card">
+        <article
+          v-for="preset in promptPresets"
+          :key="preset.id"
+          class="prompt-card"
+        >
           <div>
             <h3>{{ promptPresetDisplayName(preset) }}</h3>
             <el-tag>{{ preset.category || '通用' }}</el-tag>
-            <el-tag type="info">{{ promptScopeText(preset) }}</el-tag>
+            <el-tag type="info">
+              {{ promptScopeText(preset) }}
+            </el-tag>
           </div>
           <p>{{ preset.systemPrompt || '未填写系统提示词。' }}</p>
         </article>
       </div>
     </section>
 
-    <section v-else-if="activeTab === 'history'" class="manager-panel ai-card">
+    <section
+      v-else-if="activeTab === 'history'"
+      class="manager-panel ai-card"
+    >
       <div class="panel-title">
         <div>
           <h2>生成历史</h2>
           <p>查看本地保存的 AI 文本与图像生成记录。</p>
         </div>
-        <el-button :icon="Refresh" @click="loadHistory">刷新</el-button>
+        <el-button
+          :icon="Refresh"
+          @click="loadHistory"
+        >
+          刷新
+        </el-button>
       </div>
-      <p v-if="historyLoadError" class="manager-error">{{ historyLoadError }}</p>
-      <el-empty v-else-if="!historyItems.length" description="暂无生成历史" />
+      <p
+        v-if="historyLoadError"
+        class="manager-error"
+      >
+        {{ historyLoadError }}
+      </p>
+      <el-empty
+        v-else-if="!historyItems.length"
+        description="暂无生成历史"
+      />
       <div
         v-else
         v-motion-list="{ selector: '.history-card', key: `history:${historyItems.length}` }"
@@ -78,29 +124,56 @@
       </div>
     </section>
 
-    <section v-else class="ai-workshop-body">
-      <main ref="toolPanelRef" class="ai-workspace-panel ai-card">
+    <section
+      v-else
+      class="ai-workshop-body"
+    >
+      <main
+        ref="toolPanelRef"
+        class="ai-workspace-panel ai-card"
+      >
         <div class="tool-header">
           <div class="tool-title-stack">
-            <p class="tool-kind">{{ activeTabLabel }}</p>
+            <p class="tool-kind">
+              {{ activeTabLabel }}
+            </p>
             <h2>{{ activeTool.label }}</h2>
           </div>
           <div class="tool-header-actions">
-            <el-tag v-if="starterJob" :type="starterStatusType">{{ starterStatusText }}</el-tag>
+            <el-tag
+              v-if="starterJob"
+              :type="starterStatusType"
+            >
+              {{ starterStatusText }}
+            </el-tag>
             <details class="quiet-note tool-note">
-              <summary :aria-label="`${activeTool.label}说明`" title="说明">
+              <summary
+                :aria-label="`${activeTool.label}说明`"
+                title="说明"
+              >
                 <Info :size="16" />
               </summary>
               <div class="tool-note-card">
                 <p>{{ activeTool.hint }}</p>
-                <p v-if="activeTool.tip">{{ activeTool.tip }}</p>
+                <p v-if="activeTool.tip">
+                  {{ activeTool.tip }}
+                </p>
               </div>
             </details>
           </div>
         </div>
 
-        <p v-if="latestErrorText" class="tool-error">{{ latestErrorText }}</p>
-        <section v-if="generationStatusVisible" class="generation-status-card" aria-live="polite">
+        <p
+          v-if="latestErrorText"
+          class="tool-error"
+        >
+          {{ latestErrorText }}
+        </p>
+        <section
+          v-if="generationStatusVisible"
+          class="generation-status-card"
+          aria-live="polite"
+        >
           <div class="generation-status-head">
             <strong>{{ generationStatusText }}</strong>
             <span>已用时间：{{ generationElapsedText }}</span>
@@ -119,14 +192,27 @@
               <dd>{{ latestErrorText || '无' }}</dd>
             </div>
           </dl>
-          <div v-if="latestErrorText" class="generation-status-actions">
-            <el-button :loading="running" @click="handlePrimaryAction">重试</el-button>
-            <el-button @click="copyLatestError">复制错误信息</el-button>
+          <div
+            v-if="latestErrorText"
+            class="generation-status-actions"
+          >
+            <el-button
+              :loading="running"
+              @click="handlePrimaryAction"
+            >
+              重试
+            </el-button>
+            <el-button @click="copyLatestError">
+              复制错误信息
+            </el-button>
           </div>
         </section>
 
         <div class="setup-strip">
-          <label v-if="activeTools.length > 1" class="field-block strip-field">
+          <label
+            v-if="activeTools.length > 1"
+            class="field-block strip-field"
+          >
             <span>任务</span>
             <el-select
               v-model="activeToolKey"
@@ -160,7 +246,10 @@
                 :value="preset.id"
               />
             </el-select>
-            <span v-else class="plain-state">默认提示词</span>
+            <span
+              v-else
+              class="plain-state"
+            >默认提示词</span>
           </label>
         </div>
 
@@ -170,8 +259,16 @@
               <span>引用</span>
               <strong>{{ contextStatusText }}</strong>
             </div>
-            <el-dropdown trigger="click" @command="addContextByKey">
-              <el-button text :icon="Plus">添加</el-button>
+            <el-dropdown
+              trigger="click"
+              @command="addContextByKey"
+            >
+              <el-button
+                text
+                :icon="Plus"
+              >
+                添加
+              </el-button>
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item
@@ -181,18 +278,32 @@
                   >
                     {{ item.typeLabel }}：{{ item.title }}
                   </el-dropdown-item>
-                  <el-dropdown-item v-if="contextLoadError" disabled>
+                  <el-dropdown-item
+                    v-if="contextLoadError"
+                    disabled
+                  >
                     {{ contextLoadError }}
                   </el-dropdown-item>
-                  <el-dropdown-item v-else-if="!availableContextItems.length" disabled>
+                  <el-dropdown-item
+                    v-else-if="!availableContextItems.length"
+                    disabled
+                  >
                     暂无可引用素材
                   </el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
           </div>
-          <p v-if="contextLoadError" class="context-load-error">{{ contextLoadError }}</p>
-          <div v-if="selectedContexts.length" class="context-chip-list">
+          <p
+            v-if="contextLoadError"
+            class="context-load-error"
+          >
+            {{ contextLoadError }}
+          </p>
+          <div
+            v-if="selectedContexts.length"
+            class="context-chip-list"
+          >
             <el-tag
               v-for="item in selectedContexts"
               :key="item.key"
@@ -218,7 +329,10 @@
         </label>
 
         <el-collapse class="requirement-collapse">
-          <el-collapse-item title="补充要求，可选" name="extra">
+          <el-collapse-item
+            title="补充要求，可选"
+            name="extra"
+          >
             <el-input
               v-model="extraRequirement"
               class="ai-input"
@@ -231,18 +345,38 @@
           </el-collapse-item>
         </el-collapse>
 
-        <div v-if="activeTool.kind === 'image'" class="image-setting-row">
+        <div
+          v-if="activeTool.kind === 'image'"
+          class="image-setting-row"
+        >
           <label>
             <span>图片尺寸</span>
-            <el-select v-model="imageSize" :disabled="running" placeholder="尺寸">
-              <el-option label="方图 1024" value="1024x1024" />
-              <el-option label="横图 1280x720" value="1280x720" />
-              <el-option label="竖图 720x1280" value="720x1280" />
+            <el-select
+              v-model="imageSize"
+              :disabled="running"
+              placeholder="尺寸"
+            >
+              <el-option
+                label="方图 1024"
+                value="1024x1024"
+              />
+              <el-option
+                label="横图 1280x720"
+                value="1280x720"
+              />
+              <el-option
+                label="竖图 720x1280"
+                value="720x1280"
+              />
             </el-select>
           </label>
           <label>
             <span>不想出现的内容</span>
-            <el-input v-model="negativePrompt" :disabled="running" placeholder="可选" />
+            <el-input
+              v-model="negativePrompt"
+              :disabled="running"
+              placeholder="可选"
+            />
           </label>
         </div>
 
@@ -264,10 +398,16 @@
           >
             复制结果
           </el-button>
-          <el-button :disabled="!hasLatestResult" @click="resultDrawerVisible = true">
+          <el-button
+            :disabled="!hasLatestResult"
+            @click="resultDrawerVisible = true"
+          >
             查看完整结果
           </el-button>
-          <el-button :disabled="!hasLatestResult" @click="saveResultToKnowledge">
+          <el-button
+            :disabled="!hasLatestResult"
+            @click="saveResultToKnowledge"
+          >
             保存到素材库
           </el-button>
           <el-tooltip
@@ -276,34 +416,57 @@
             :content="saveResultToBookDisabledTip"
           >
             <span>
-              <el-button :disabled="!canSaveResultToBook" @click="saveResultToBook"
-                >应用到当前作品</el-button
-              >
+              <el-button
+                :disabled="!canSaveResultToBook"
+                @click="saveResultToBook"
+              >应用到当前作品</el-button>
             </span>
           </el-tooltip>
-          <el-dropdown trigger="click" @command="handleSecondaryAction">
-            <el-button :icon="MoreFilled" title="更多操作" aria-label="更多操作" />
+          <el-dropdown
+            trigger="click"
+            @command="handleSecondaryAction"
+          >
+            <el-button
+              :icon="MoreFilled"
+              title="更多操作"
+              aria-label="更多操作"
+            />
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="saveDraft" :icon="DocumentChecked"
-                  >保存输入</el-dropdown-item
+                <el-dropdown-item
+                  command="saveDraft"
+                  :icon="DocumentChecked"
                 >
-                <el-dropdown-item command="clear" :icon="Delete">清空</el-dropdown-item>
+                  保存输入
+                </el-dropdown-item>
+                <el-dropdown-item
+                  command="clear"
+                  :icon="Delete"
+                >
+                  清空
+                </el-dropdown-item>
                 <el-dropdown-item
                   command="copyResult"
                   :icon="DocumentCopy"
                   :disabled="!hasLatestResult"
-                  >复制结果</el-dropdown-item
                 >
-                <el-dropdown-item command="openResult" :disabled="!hasLatestResult"
-                  >查看完整结果</el-dropdown-item
+                  复制结果
+                </el-dropdown-item>
+                <el-dropdown-item
+                  command="openResult"
+                  :disabled="!hasLatestResult"
                 >
+                  查看完整结果
+                </el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
         </div>
 
-        <div class="workshop-status-row" aria-label="当前生成设置">
+        <div
+          class="workshop-status-row"
+          aria-label="当前生成设置"
+        >
           <span>{{ selectedPresetName || '默认提示词' }}</span>
           <span>{{ contextStatusText }}</span>
           <span>{{ currentModelText }}</span>
@@ -312,7 +475,11 @@
       </main>
     </section>
 
-    <el-drawer v-model="resultDrawerVisible" size="min(720px, 92vw)" class="ai-result-drawer">
+    <el-drawer
+      v-model="resultDrawerVisible"
+      size="min(720px, 92vw)"
+      class="ai-result-drawer"
+    >
       <template #header>
         <div class="drawer-title">
           <p>{{ activeTool.label }}</p>
@@ -323,38 +490,66 @@
         <el-tag>{{ latestImageUrl ? '图像结果' : '文本结果' }}</el-tag>
         <span>Token：{{ latestUsageText }}</span>
       </div>
-      <img v-if="latestImageUrl" class="drawer-image" :src="latestImageUrl" alt="AI 生成图片" />
+      <img
+        v-if="latestImageUrl"
+        class="drawer-image"
+        :src="latestImageUrl"
+        alt="AI 生成图片"
+      >
       <CreationStarterResultBlock
         v-else-if="activeTool.key === 'starter' && parsedStarterResult"
         :result="parsedStarterResult"
       />
-      <pre v-else class="drawer-output">{{ latestOutputText || '暂无结果。' }}</pre>
+      <pre
+        v-else
+        class="drawer-output"
+      >{{ latestOutputText || '暂无结果。' }}</pre>
       <div class="drawer-actions">
-        <el-button :disabled="!hasLatestResult" @click="copyText(latestOutputText)">复制</el-button>
-        <el-button :disabled="!hasLatestResult" @click="saveResultToKnowledge"
-          >保存到素材库</el-button
+        <el-button
+          :disabled="!hasLatestResult"
+          @click="copyText(latestOutputText)"
         >
+          复制
+        </el-button>
+        <el-button
+          :disabled="!hasLatestResult"
+          @click="saveResultToKnowledge"
+        >
+          保存到素材库
+        </el-button>
         <el-tooltip
           v-if="activeBookSaveName"
           :disabled="canSaveResultToBook"
           :content="saveResultToBookDisabledTip"
         >
           <span>
-            <el-button :disabled="!canSaveResultToBook" @click="saveResultToBook"
-              >应用到当前作品</el-button
-            >
+            <el-button
+              :disabled="!canSaveResultToBook"
+              @click="saveResultToBook"
+            >应用到当前作品</el-button>
           </span>
         </el-tooltip>
-        <el-button :disabled="!latestOutputText" @click="insertResultToInput">插入正文</el-button>
-        <el-button :disabled="!latestOutputText" @click="continueRefine">继续完善</el-button>
+        <el-button
+          :disabled="!latestOutputText"
+          @click="insertResultToInput"
+        >
+          插入正文
+        </el-button>
+        <el-button
+          :disabled="!latestOutputText"
+          @click="continueRefine"
+        >
+          继续完善
+        </el-button>
         <el-button
           v-motion-feedback
           type="primary"
           class="primary-action"
           :loading="running"
           @click="handlePrimaryAction"
-          >重新生成</el-button
         >
+          重新生成
+        </el-button>
       </div>
     </el-drawer>
   </section>
