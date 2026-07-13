@@ -2,17 +2,34 @@
   <section class="agent-queue-page">
     <header class="queue-header">
       <div>
-        <p class="queue-eyebrow">BullMQ / Redis</p>
+        <p class="queue-eyebrow">
+          BullMQ / Redis
+        </p>
         <h1>Agent 任务队列</h1>
       </div>
       <div class="queue-actions">
-        <el-button :icon="RefreshCw" :loading="loading" @click="refreshQueue">刷新</el-button>
+        <el-button
+          :icon="RefreshCw"
+          :loading="loading"
+          @click="refreshQueue"
+        >
+          刷新
+        </el-button>
       </div>
     </header>
 
-    <p v-if="errorText" class="queue-error" role="alert">{{ errorText }}</p>
+    <p
+      v-if="errorText"
+      class="queue-error"
+      role="alert"
+    >
+      {{ errorText }}
+    </p>
 
-    <section class="queue-summary" aria-live="polite">
+    <section
+      class="queue-summary"
+      aria-live="polite"
+    >
       <article class="summary-cell">
         <span>队列</span>
         <strong>{{ queueNameText }}</strong>
@@ -48,17 +65,41 @@
             :disabled="loading"
             @change="refreshQueue"
           >
-            <el-option label="全部状态" value="all" />
-            <el-option label="等待中" value="waiting" />
-            <el-option label="运行中" value="active" />
-            <el-option label="已完成" value="completed" />
-            <el-option label="失败" value="failed" />
-            <el-option label="延时" value="delayed" />
+            <el-option
+              label="全部状态"
+              value="all"
+            />
+            <el-option
+              label="等待中"
+              value="waiting"
+            />
+            <el-option
+              label="运行中"
+              value="active"
+            />
+            <el-option
+              label="已完成"
+              value="completed"
+            />
+            <el-option
+              label="失败"
+              value="failed"
+            />
+            <el-option
+              label="延时"
+              value="delayed"
+            />
           </el-select>
         </div>
 
-        <el-empty v-if="!loading && !jobs.length && !errorText" description="暂无队列任务" />
-        <div v-else class="job-list">
+        <el-empty
+          v-if="!loading && !jobs.length && !errorText"
+          description="暂无队列任务"
+        />
+        <div
+          v-else
+          class="job-list"
+        >
           <button
             v-for="job in jobs"
             :key="job.id"
@@ -67,7 +108,10 @@
             type="button"
             @click="loadJob(job.id)"
           >
-            <span class="job-status" :class="`state-${job.state || 'unknown'}`">
+            <span
+              class="job-status"
+              :class="`state-${job.state || 'unknown'}`"
+            >
               {{ stateText(job.state) }}
             </span>
             <span class="job-title">{{ jobTitle(job) }}</span>
@@ -104,10 +148,26 @@
           </el-button>
         </div>
 
-        <p v-if="detailError" class="queue-error compact" role="alert">{{ detailError }}</p>
-        <el-skeleton v-if="detailLoading" :rows="6" animated />
-        <el-empty v-else-if="!selectedJob" description="暂无任务详情" />
-        <div v-else class="detail-body">
+        <p
+          v-if="detailError"
+          class="queue-error compact"
+          role="alert"
+        >
+          {{ detailError }}
+        </p>
+        <el-skeleton
+          v-if="detailLoading"
+          :rows="6"
+          animated
+        />
+        <el-empty
+          v-else-if="!selectedJob"
+          description="暂无任务详情"
+        />
+        <div
+          v-else
+          class="detail-body"
+        >
           <dl class="detail-list">
             <div>
               <dt>状态</dt>
@@ -139,7 +199,10 @@
             </div>
           </dl>
 
-          <section v-if="selectedJob.failedReason" class="detail-note">
+          <section
+            v-if="selectedJob.failedReason"
+            class="detail-note"
+          >
             <h3>失败原因</h3>
             <p>{{ selectedJob.failedReason }}</p>
           </section>
@@ -149,7 +212,10 @@
             <pre>{{ prettyJson(selectedJob.data) }}</pre>
           </section>
 
-          <section v-if="selectedJob.returnvalue" class="detail-note">
+          <section
+            v-if="selectedJob.returnvalue"
+            class="detail-note"
+          >
             <h3>返回结果</h3>
             <pre>{{ prettyJson(selectedJob.returnvalue) }}</pre>
           </section>
