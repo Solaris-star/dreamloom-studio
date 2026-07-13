@@ -97,35 +97,35 @@ test.afterEach(async ({ request }, testInfo) => {
   expect(result.success || result.existed === false).toBeTruthy()
 })
 
-test('桌面核心页面视觉基准', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', '仅生成桌面视觉基准')
+test('宽屏核心页面视觉基准', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'wide', '仅生成宽屏视觉基准')
 
   await page.goto('/#/')
-  await expect(page.locator('.writing-row').filter({ hasText: testBookName('desktop') })).toBeVisible()
-  await expectPageScreenshot(page, 'desktop-home.png')
+  await expect(page.locator('.writing-row').filter({ hasText: testBookName('wide') })).toBeVisible()
+  await expectPageScreenshot(page, 'wide-home.png')
 
   await page.goto('/#/knowledge')
-  await expect(page.locator('.book-card').filter({ hasText: testBookName('desktop') })).toBeVisible()
-  await expectPageScreenshot(page, 'desktop-bookshelf.png')
+  await expect(page.locator('.book-card').filter({ hasText: testBookName('wide') })).toBeVisible()
+  await expectPageScreenshot(page, 'wide-bookshelf.png')
 
   await page.goto('/#/knowledge/images')
   await expect(page.getByRole('button', { name: '上传图片' })).toBeVisible()
-  await expectPageScreenshot(page, 'desktop-gallery.png')
+  await expectPageScreenshot(page, 'wide-gallery.png')
 })
 
-test('桌面创作台视觉基准', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', '仅生成桌面视觉基准')
-  await openEditor(page, testBookName('desktop'))
-  await expectPageScreenshot(page, 'desktop-editor.png')
+test('宽屏创作台视觉基准', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'wide', '仅生成宽屏视觉基准')
+  await openEditor(page, testBookName('wide'))
+  await expectPageScreenshot(page, 'wide-editor.png')
 
   await page.getByRole('button', { name: '章节目录' }).click()
   await expect(page.getByRole('dialog', { name: '章节目录' })).toBeVisible()
-  await expectPageScreenshot(page, 'desktop-editor-catalog.png')
+  await expectPageScreenshot(page, 'wide-editor-catalog.png')
 
   await page.keyboard.press('Escape')
   await page.getByLabel('进入专注模式').click()
   await expect(page.locator('.editor-container')).toHaveClass(/is-focus-mode/)
-  await expectPageScreenshot(page, 'desktop-editor-focus.png')
+  await expectPageScreenshot(page, 'wide-editor-focus.png')
 })
 
 test('手机创作台视觉基准', async ({ page }, testInfo) => {

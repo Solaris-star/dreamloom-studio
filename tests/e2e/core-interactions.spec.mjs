@@ -171,7 +171,7 @@ test('首页继续写作可以进入创作台', async ({ page }, testInfo) => {
 })
 
 test('创作台资料入口携带当前书籍并打开对应页面', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', '资料入口巡检仅在桌面项目执行')
+  test.skip(testInfo.project.name !== 'wide', '资料入口巡检仅在宽屏视口执行')
   test.setTimeout(60_000)
   const runtimeErrors = []
   const bookName = testBookName(testInfo.project.name)
@@ -302,7 +302,7 @@ test('在线拆书搜索结果可以通过选择按钮操作', async ({ page }) 
 })
 
 test('DOCX 可以预览导入且损坏文件不会加入书架', async ({ page, request }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', 'DOCX 浏览器解析仅在桌面项目执行')
+  test.skip(testInfo.project.name !== 'wide', 'DOCX 浏览器解析仅在宽屏视口执行')
   const importedBookName = 'DOCX 浏览器导入'
   const docxBuffer = await createDocxBuffer([
     '第1章 雨夜',
@@ -353,7 +353,7 @@ test('DOCX 可以预览导入且损坏文件不会加入书架', async ({ page, 
 })
 
 test('TXT 和 Markdown 可以生成完整章节预览', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', '文件导入预览仅在桌面项目执行')
+  test.skip(testInfo.project.name !== 'wide', '文件导入预览仅在宽屏视口执行')
   const cases = [
     {
       name: '雨夜来信.txt',
@@ -386,7 +386,7 @@ test('TXT 和 Markdown 可以生成完整章节预览', async ({ page }, testInf
 })
 
 test('空文件和超限文件会在页面直接提示且不请求预览', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', '文件导入校验仅在桌面项目执行')
+  test.skip(testInfo.project.name !== 'wide', '文件导入校验仅在宽屏视口执行')
   let previewRequests = 0
   await page.route('**/api/import/preview', async (route) => {
     previewRequests += 1
@@ -437,7 +437,7 @@ test('创作台目录和章节切换可以操作', async ({ page }, testInfo) =>
 })
 
 test('自动保存只写入连续输入后的最终正文', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', '自动保存时序仅在桌面项目执行')
+  test.skip(testInfo.project.name !== 'wide', '自动保存时序仅在宽屏视口执行')
   const savedContents = []
   await openEditor(page, testBookName(testInfo.project.name))
   await openFirstChapter(page)
@@ -470,7 +470,7 @@ test('自动保存只写入连续输入后的最终正文', async ({ page }, tes
 })
 
 test('章节切换会先保存尚未到期的正文', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', '自动保存时序仅在桌面项目执行')
+  test.skip(testInfo.project.name !== 'wide', '自动保存时序仅在宽屏视口执行')
   const savedContents = []
   await openEditor(page, testBookName(testInfo.project.name))
   await openFirstChapter(page)
@@ -488,7 +488,7 @@ test('章节切换会先保存尚未到期的正文', async ({ page }, testInfo)
 })
 
 test('保存失败会阻止章节切换并保留恢复副本', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', '自动保存故障仅在桌面项目执行')
+  test.skip(testInfo.project.name !== 'wide', '自动保存故障仅在宽屏视口执行')
   const bookName = testBookName(testInfo.project.name)
   await openEditor(page, bookName)
   await openFirstChapter(page)
@@ -514,7 +514,7 @@ test('保存失败会阻止章节切换并保留恢复副本', async ({ page }, 
 })
 
 test('离线保存会保留正文并在网络恢复后完成换章', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', '自动保存故障仅在桌面项目执行')
+  test.skip(testInfo.project.name !== 'wide', '自动保存故障仅在宽屏视口执行')
   const bookName = testBookName(testInfo.project.name)
   await openEditor(page, bookName)
   await openFirstChapter(page)
@@ -566,7 +566,7 @@ test('创作台阅读设置和专注模式可以恢复', async ({ page }, testIn
 })
 
 test('AI 整章清理返回期间正文变化时不会应用旧结果', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', 'AI 清理并发巡检仅在桌面项目执行')
+  test.skip(testInfo.project.name !== 'wide', 'AI 清理并发巡检仅在宽屏视口执行')
   let releaseResponse
   let markRequestStarted
   const responseGate = new Promise((resolve) => {
@@ -608,7 +608,7 @@ test('AI 整章清理返回期间正文变化时不会应用旧结果', async ({
 })
 
 test('AI 整章清理先显示逐段差异并在确认前创建快照', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', 'AI 清理预览巡检仅在桌面项目执行')
+  test.skip(testInfo.project.name !== 'wide', 'AI 清理预览巡检仅在宽屏视口执行')
   const snapshotPayloads = []
 
   await page.route('**/api/ai/text-task', async (route) => {
@@ -1137,7 +1137,7 @@ test('图库删除检查引用期间不会重复提交', async ({ page, request 
 })
 
 test('素材保存不会重复提交且失败后保留输入', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', '素材写操作巡检仅在桌面项目执行')
+  test.skip(testInfo.project.name !== 'wide', '素材写操作巡检仅在宽屏视口执行')
   let createRequests = 0
   await page.route('**/api/knowledge/create', async (route) => {
     createRequests += 1
@@ -1185,7 +1185,7 @@ test('素材保存不会重复提交且失败后保留输入', async ({ page }, 
 })
 
 test('提示词保存不会重复提交且失败后保留输入', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', '提示词写操作巡检仅在桌面项目执行')
+  test.skip(testInfo.project.name !== 'wide', '提示词写操作巡检仅在宽屏视口执行')
   let createRequests = 0
   await page.route('**/api/prompts/create', async (route) => {
     createRequests += 1
@@ -1237,7 +1237,7 @@ test('提示词保存不会重复提交且失败后保留输入', async ({ page 
 })
 
 test('任务队列停止失败时不会重复请求或误报成功', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', '任务队列写操作巡检仅在桌面项目执行')
+  test.skip(testInfo.project.name !== 'wide', '任务队列写操作巡检仅在宽屏视口执行')
   let cancelRequests = 0
   await mockAgentQueuePage(page, {
     job: {
@@ -1271,7 +1271,7 @@ test('任务队列停止失败时不会重复请求或误报成功', async ({ pa
 })
 
 test('失败任务重试不会重复提交并会刷新状态', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', '任务队列写操作巡检仅在桌面项目执行')
+  test.skip(testInfo.project.name !== 'wide', '任务队列写操作巡检仅在宽屏视口执行')
   let retryRequests = 0
   let state = 'failed'
   await mockAgentQueuePage(page, {
@@ -1315,7 +1315,7 @@ test('失败任务重试不会重复提交并会刷新状态', async ({ page }, 
 })
 
 test('任务重试失败时保留失败状态并恢复操作', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', '任务队列写操作巡检仅在桌面项目执行')
+  test.skip(testInfo.project.name !== 'wide', '任务队列写操作巡检仅在宽屏视口执行')
   let retryRequests = 0
   await mockAgentQueuePage(page, {
     job: {
