@@ -245,7 +245,133 @@ try {
     () => buildBookWritingContextBlock(bookPath, {}),
     /entity_profiles\.json 格式错误，artifact 应为数组/
   )
-  fs.rmSync(join(bookPath, 'entity_profiles.json'), { force: true })
+
+  writeJson('mazi.json', {
+    name: '风雪试剑',
+    type: '玄幻',
+    intro: '北境'.repeat(500)
+  })
+  writeJson('characters.json', [
+    {
+      name: '林青',
+      gender: 0,
+      age: 0,
+      height: 0,
+      tags: [' 剑修 ', '', ' ', '守信', '北境', '少年', '谨慎', '寻师', '玉印', '多余'],
+      appearance: '披着旧斗篷'.repeat(80),
+      introduction: '守着北境旧剑馆'.repeat(80)
+    },
+    {
+      name: '',
+      gender: '',
+      age: '',
+      height: '',
+      tags: '无效标签',
+      biography: ''
+    },
+    ...Array.from({ length: 9 }, (_, index) => ({
+      name: `路人${index}`,
+      biography: `第 ${index} 位路人`
+    }))
+  ])
+  writeJson('entity_profiles.json', {
+    mount: [
+      { name: '踏雪', biography: '林青的坐骑'.repeat(80) },
+      { name: '', introduction: '' },
+      { name: '青骢', introduction: '边城驿马' },
+      { name: '乌云', introduction: '沈岚的马' }
+    ],
+    monster: [{ name: '雪魇', introduction: '藏在雪地里的怪兽' }],
+    spirit_beast: [{ name: '灵狐', introduction: '' }],
+    artifact: [{ name: '玉印', introduction: '师父留下的信物' }]
+  })
+  writeJson('dictionary.json', [
+    {
+      name: '',
+      children: [
+        { name: ' 雪狐谷 ', introduction: '' },
+        { name: '玉印', introduction: '师父留下的信物'.repeat(40) }
+      ]
+    },
+    { name: '北境', introduction: '' }
+  ])
+  writeJson('settings.json', {
+    categories: [
+      {
+        name: '',
+        introduction: '没有名称的分类',
+        items: [{ name: '', introduction: '无效条目' }],
+        children: [
+          {
+            name: '地理',
+            introduction: '',
+            items: [
+              { name: '雪原', introduction: '' },
+              { name: '雪狐谷', introduction: '北境旧商道'.repeat(60) }
+            ],
+            children: '无效子分类'
+          }
+        ]
+      },
+      {
+        name: '空分类',
+        introduction: '',
+        items: null,
+        children: []
+      }
+    ]
+  })
+  writeJson('timelines.json', [
+    { title: '空时间线', nodes: [] },
+    {
+      title: '',
+      nodes: [
+        { title: '', desc: '' },
+        { title: '师父失踪'.repeat(20), desc: '林青发现暗室空了'.repeat(40) }
+      ]
+    }
+  ])
+
+  const matchedContext = await buildBookWritingContextBlock(bookPath, {
+    outlineTitle: '踏雪入谷',
+    outlineContent: '林青带着玉印进入雪狐谷，途中遇到雪魇。',
+    maxTotalChars: 20000
+  })
+  assert.ok(matchedContext.includes('性别：0'))
+  assert.ok(matchedContext.includes('年龄：0'))
+  assert.ok(matchedContext.includes('身高：0'))
+  assert.ok(matchedContext.includes('标签：剑修、守信、北境、少年、谨慎、寻师、玉印、多余'))
+  assert.ok(matchedContext.includes('坐骑：\n「踏雪」'))
+  assert.ok(matchedContext.includes('怪兽：\n「雪魇」'))
+  assert.ok(matchedContext.includes('妖兽：\n「灵狐」'))
+  assert.ok(matchedContext.includes('宝器：\n「玉印」'))
+  assert.ok(matchedContext.includes('未分类 / 地理｜「雪狐谷」'))
+  assert.ok(matchedContext.includes('时间线\n- '))
+
+  const unmatchedContext = await buildBookWritingContextBlock(bookPath, {
+    outlineTitle: '陌生章节',
+    outlineContent: '无人知晓的远方',
+    maxTotalChars: 20000
+  })
+  assert.ok(unmatchedContext.includes('姓名：（未命名）'))
+  assert.ok(unmatchedContext.includes('「（未命名）」'))
+  assert.ok(unmatchedContext.includes('「北境」'))
+  assert.ok(unmatchedContext.includes('未分类｜分类说明：没有名称的分类'))
+  assert.ok(unmatchedContext.includes('未分类 / 地理｜「雪原」'))
+
+  const truncatedContext = await buildBookWritingContextBlock(bookPath, {
+    maxTotalChars: 120
+  })
+  assert.ok(truncatedContext.includes('设定内容已截断'))
+
+  writeJson('mazi.json', [])
+  writeJson('characters.json', [])
+  writeJson('entity_profiles.json', {})
+  writeJson('dictionary.json', [])
+  writeJson('settings.json', { categories: [] })
+  writeJson('timelines.json', [])
+  assert.equal(await buildBookWritingContextBlock(bookPath), '')
+  assert.equal(await buildBookWritingContextBlock(''), '')
 
   const missing = await loadEditorAgentBookContext(join(rootDir, '不存在的作品'), {})
   assert.equal(missing.loaded, false)
