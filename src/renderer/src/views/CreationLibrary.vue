@@ -1,17 +1,35 @@
 <template>
   <section class="creation-library-page">
-    <header v-if="activeSection !== 'bookshelf'" class="library-header">
+    <header
+      v-if="activeSection !== 'bookshelf'"
+      class="library-header"
+    >
       <div>
-        <p class="eyebrow">创作库</p>
+        <p class="eyebrow">
+          创作库
+        </p>
         <h1>{{ pageMeta.title }}</h1>
         <p>{{ pageMeta.description }}</p>
       </div>
-      <div v-if="activeSection !== 'bookshelf'" class="header-actions">
-        <el-button v-motion-feedback :loading="loading" @click="loadLibrary">刷新</el-button>
+      <div
+        v-if="activeSection !== 'bookshelf'"
+        class="header-actions"
+      >
+        <el-button
+          v-motion-feedback
+          :loading="loading"
+          @click="loadLibrary"
+        >
+          刷新
+        </el-button>
       </div>
     </header>
 
-    <nav v-if="activeSection !== 'bookshelf'" class="library-section-nav" aria-label="创作库子页面">
+    <nav
+      v-if="activeSection !== 'bookshelf'"
+      class="library-section-nav"
+      aria-label="创作库子页面"
+    >
       <button
         v-for="item in librarySectionLinks"
         :key="item.key"
@@ -20,7 +38,10 @@
         :aria-current="activeSection === item.key ? 'page' : undefined"
         @click="openLibrarySection(item)"
       >
-        <component :is="item.icon" :size="16" />
+        <component
+          :is="item.icon"
+          :size="16"
+        />
         <span>{{ item.label }}</span>
       </button>
     </nav>
@@ -75,13 +96,19 @@
         </el-popover>
       </div>
 
-      <main class="bookshelf-layout" :class="{ 'has-preview': selectedBook }">
+      <main
+        class="bookshelf-layout"
+        :class="{ 'has-preview': selectedBook }"
+      >
         <section class="shelf-card">
           <div class="section-title">
             <div>
               <h2>小说书架</h2>
             </div>
-            <div v-if="selectedBookKeys.length" class="section-actions">
+            <div
+              v-if="selectedBookKeys.length"
+              class="section-actions"
+            >
               <span>已选 {{ selectedBookKeys.length }} 本</span>
               <el-button
                 v-motion-feedback
@@ -96,10 +123,19 @@
             </div>
           </div>
 
-          <div v-if="libraryLoadErrors.books" class="read-error-card">
+          <div
+            v-if="libraryLoadErrors.books"
+            class="read-error-card"
+          >
             <strong>书架读取失败</strong>
             <span>{{ libraryLoadErrors.books }}</span>
-            <button v-motion-feedback type="button" @click="loadLibrary">重试</button>
+            <button
+              v-motion-feedback
+              type="button"
+              @click="loadLibrary"
+            >
+              重试
+            </button>
           </div>
           <div
             v-else
@@ -107,7 +143,10 @@
             class="book-grid"
           >
             <!-- 添加书籍卡片 -->
-            <article class="book-card add-book-card" @click="openAddBookDialog">
+            <article
+              class="book-card add-book-card"
+              @click="openAddBookDialog"
+            >
               <div class="add-book-icon">
                 <Plus :size="28" />
               </div>
@@ -127,13 +166,16 @@
               @click="selectBook(book)"
               @dblclick="openAssetStudio(book)"
             >
-              <label class="book-select" @click.stop>
+              <label
+                class="book-select"
+                @click.stop
+              >
                 <input
                   type="checkbox"
                   :checked="isBookSelected(book)"
                   :aria-label="`选择书籍：${bookTitle(book)}`"
                   @change="toggleBookSelection(book, $event.target.checked)"
-                />
+                >
                 <span>选择</span>
               </label>
               <div
@@ -141,15 +183,30 @@
                 :class="{ placeholder: !hasBookCover(book) }"
                 :style="bookCoverStyle(book)"
               >
-                <span v-if="!hasBookCover(book)" class="book-mark"></span>
+                <span
+                  v-if="!hasBookCover(book)"
+                  class="book-mark"
+                />
               </div>
               <div class="book-info">
                 <div class="book-card-head">
                   <span :title="bookTypeLabel(book)">
-                    <Download v-if="isDownloadedBook(book)" :size="13" />
-                    <Archive v-else-if="isImportedBook(book)" :size="13" />
-                    <Bookmark v-else-if="isReferenceBook(book)" :size="13" />
-                    <BookOpen v-else :size="13" />
+                    <Download
+                      v-if="isDownloadedBook(book)"
+                      :size="13"
+                    />
+                    <Archive
+                      v-else-if="isImportedBook(book)"
+                      :size="13"
+                    />
+                    <Bookmark
+                      v-else-if="isReferenceBook(book)"
+                      :size="13"
+                    />
+                    <BookOpen
+                      v-else
+                      :size="13"
+                    />
                   </span>
                 </div>
                 <h3>{{ bookTitle(book) }}</h3>
@@ -160,16 +217,27 @@
                   <span>{{ formatDate(bookUpdatedAt(book)) }}</span>
                 </div>
                 <div class="asset-mini-row">
-                  <span v-for="item in assetSummaryForBook(book).slice(0, 2)" :key="item.label">
+                  <span
+                    v-for="item in assetSummaryForBook(book).slice(0, 2)"
+                    :key="item.label"
+                  >
                     {{ item.label }} {{ item.value }}
                   </span>
                 </div>
               </div>
               <div class="quick-actions">
-                <button v-motion-feedback type="button" @click.stop="openStudio(book)">
+                <button
+                  v-motion-feedback
+                  type="button"
+                  @click.stop="openStudio(book)"
+                >
                   打开创作台
                 </button>
-                <button v-motion-feedback type="button" @click.stop="openAssetStudio(book)">
+                <button
+                  v-motion-feedback
+                  type="button"
+                  @click.stop="openAssetStudio(book)"
+                >
                   进入资产台
                 </button>
               </div>
@@ -190,33 +258,61 @@
               @size-change="handleListPageSizeChange('books', $event)"
             />
           </div>
-          <div v-else-if="!filteredBooks.length" class="soft-empty">
+          <div
+            v-else-if="!filteredBooks.length"
+            class="soft-empty"
+          >
             <strong>{{ keyword ? '书架里没有找到这本书' : '书架暂无内容' }}</strong>
             <span>{{
               keyword
                 ? '可以直接去书源搜索并下载到书架。'
                 : '搜索书源并下载后，会在这里统一管理下载书籍。'
             }}</span>
-            <button v-motion-feedback type="button" @click="handleUnifiedSearch">
+            <button
+              v-motion-feedback
+              type="button"
+              @click="handleUnifiedSearch"
+            >
               {{ keyword ? '搜索书源' : '去下载小说' }}
             </button>
           </div>
         </section>
 
-        <aside v-if="selectedBook" class="preview-card">
+        <aside
+          v-if="selectedBook"
+          class="preview-card"
+        >
           <div
             class="preview-cover"
             :class="{ placeholder: !hasBookCover(selectedBook) }"
             :style="bookCoverStyle(selectedBook)"
           >
-            <span v-if="!hasBookCover(selectedBook)" class="book-mark"></span>
+            <span
+              v-if="!hasBookCover(selectedBook)"
+              class="book-mark"
+            />
           </div>
           <div class="preview-main">
-            <span class="type-pill book-type-icon" :title="bookTypeLabel(selectedBook)">
-              <Download v-if="isDownloadedBook(selectedBook)" :size="14" />
-              <Archive v-else-if="isImportedBook(selectedBook)" :size="14" />
-              <Bookmark v-else-if="isReferenceBook(selectedBook)" :size="14" />
-              <BookOpen v-else :size="14" />
+            <span
+              class="type-pill book-type-icon"
+              :title="bookTypeLabel(selectedBook)"
+            >
+              <Download
+                v-if="isDownloadedBook(selectedBook)"
+                :size="14"
+              />
+              <Archive
+                v-else-if="isImportedBook(selectedBook)"
+                :size="14"
+              />
+              <Bookmark
+                v-else-if="isReferenceBook(selectedBook)"
+                :size="14"
+              />
+              <BookOpen
+                v-else
+                :size="14"
+              />
             </span>
             <h2>{{ bookTitle(selectedBook) }}</h2>
             <p>{{ selectedBook.intro || '暂无简介' }}</p>
@@ -240,12 +336,18 @@
             </div>
           </dl>
           <div class="preview-tags">
-            <span v-for="tag in bookTags(selectedBook)" :key="tag">{{ tag }}</span>
+            <span
+              v-for="tag in bookTags(selectedBook)"
+              :key="tag"
+            >{{ tag }}</span>
           </div>
           <section class="asset-status-panel">
             <h3>资产状态</h3>
             <div>
-              <span v-for="item in assetSummaryForBook(selectedBook)" :key="item.label">
+              <span
+                v-for="item in assetSummaryForBook(selectedBook)"
+                :key="item.label"
+              >
                 <b>{{ item.label }}</b>
                 <strong>{{ item.value }}</strong>
               </span>
@@ -256,16 +358,26 @@
             <p>{{ recentActionText(selectedBook) }}</p>
           </section>
           <div class="preview-actions">
-            <el-button v-motion-feedback type="primary" @click="openAssetStudio(selectedBook)"
-              >进入资产台</el-button
+            <el-button
+              v-motion-feedback
+              type="primary"
+              @click="openAssetStudio(selectedBook)"
             >
-            <el-button v-motion-feedback @click="openStudio(selectedBook)">打开创作台</el-button>
+              进入资产台
+            </el-button>
+            <el-button
+              v-motion-feedback
+              @click="openStudio(selectedBook)"
+            >
+              打开创作台
+            </el-button>
             <el-button
               v-if="isDownloadedBook(selectedBook)"
               v-motion-feedback
               @click="openStudio(selectedBook, 'read')"
-              >阅读模式</el-button
             >
+              阅读模式
+            </el-button>
             <el-button
               v-if="shouldShowSplitAction(selectedBook)"
               v-motion-feedback
@@ -273,9 +385,12 @@
             >
               {{ splitActionLabel(selectedBook) }}
             </el-button>
-            <el-button v-motion-feedback @click="router.push('/knowledge/images')"
-              >管理图片</el-button
+            <el-button
+              v-motion-feedback
+              @click="router.push('/knowledge/images')"
             >
+              管理图片
+            </el-button>
             <el-button
               v-motion-feedback
               type="danger"
@@ -291,7 +406,10 @@
       </main>
     </section>
 
-    <section v-else-if="activeSection === 'materials'" class="manager-grid">
+    <section
+      v-else-if="activeSection === 'materials'"
+      class="manager-grid"
+    >
       <aside class="side-filter card-panel">
         <button
           v-for="item in materialFilters"
@@ -307,7 +425,11 @@
 
       <main class="list-panel card-panel">
         <div class="panel-toolbar">
-          <el-input v-model="keyword" clearable placeholder="搜索素材标题、内容、来源或标签">
+          <el-input
+            v-model="keyword"
+            clearable
+            placeholder="搜索素材标题、内容、来源或标签"
+          >
             <template #prefix>
               <el-icon><Search /></el-icon>
             </template>
@@ -329,14 +451,27 @@
           >
             本书：{{ materialBookFilterLabel }}
           </el-tag>
-          <el-button v-motion-feedback type="primary" @click="openMaterialDialog()"
-            >新增素材</el-button
+          <el-button
+            v-motion-feedback
+            type="primary"
+            @click="openMaterialDialog()"
           >
+            新增素材
+          </el-button>
         </div>
-        <div v-if="materialsLoadError" class="read-error-card">
+        <div
+          v-if="materialsLoadError"
+          class="read-error-card"
+        >
           <strong>素材读取失败</strong>
           <span>{{ materialsLoadError }}</span>
-          <button v-motion-feedback type="button" @click="loadLibrary">重试</button>
+          <button
+            v-motion-feedback
+            type="button"
+            @click="loadLibrary"
+          >
+            重试
+          </button>
         </div>
         <div
           v-else-if="filteredMaterials.length"
@@ -353,13 +488,16 @@
             }"
             @click="selectedMaterialId = item.id"
           >
-            <label class="material-select" @click.stop>
+            <label
+              class="material-select"
+              @click.stop
+            >
               <input
                 v-model="selectedMaterialIds"
                 type="checkbox"
                 :value="item.id"
                 :aria-label="`选择素材：${item.title || '未命名素材'}`"
-              />
+              >
               <span>选择</span>
             </label>
             <div>
@@ -389,10 +527,19 @@
             @size-change="handleListPageSizeChange('materials', $event)"
           />
         </div>
-        <div v-else-if="!filteredMaterials.length" class="soft-empty">
+        <div
+          v-else-if="!filteredMaterials.length"
+          class="soft-empty"
+        >
           <strong>暂无素材</strong>
           <span>这里收纳还没绑定到具体作品的灵感、摘录、拆书片段和待整理资料。</span>
-          <button v-motion-feedback type="button" @click="openMaterialDialog()">新增素材</button>
+          <button
+            v-motion-feedback
+            type="button"
+            @click="openMaterialDialog()"
+          >
+            新增素材
+          </button>
         </div>
       </main>
 
@@ -420,30 +567,58 @@
             </div>
           </dl>
           <div class="detail-actions">
-            <el-button v-motion-feedback type="primary" @click="openBindDialog(selectedMaterial)"
-              >绑定到作品</el-button
+            <el-button
+              v-motion-feedback
+              type="primary"
+              @click="openBindDialog(selectedMaterial)"
             >
-            <el-button v-motion-feedback @click="openMaterialDialog(selectedMaterial)"
-              >编辑</el-button
+              绑定到作品
+            </el-button>
+            <el-button
+              v-motion-feedback
+              @click="openMaterialDialog(selectedMaterial)"
             >
+              编辑
+            </el-button>
             <el-button
               v-motion-feedback
               @click="convertMaterial(selectedMaterial, 'character_setting')"
-              >转成角色设定</el-button
             >
-            <el-button v-motion-feedback @click="convertMaterial(selectedMaterial, 'world_setting')"
-              >转成世界观</el-button
+              转成角色设定
+            </el-button>
+            <el-button
+              v-motion-feedback
+              @click="convertMaterial(selectedMaterial, 'world_setting')"
             >
-            <el-button v-motion-feedback @click="archiveMaterial(selectedMaterial)">删除</el-button>
+              转成世界观
+            </el-button>
+            <el-button
+              v-motion-feedback
+              @click="archiveMaterial(selectedMaterial)"
+            >
+              删除
+            </el-button>
           </div>
         </template>
-        <el-empty v-else description="选择素材后在这里整理和绑定" />
+        <el-empty
+          v-else
+          description="选择素材后在这里整理和绑定"
+        />
       </aside>
     </section>
 
-    <section v-else-if="activeSection === 'images'" class="manager-grid images-grid" @dragover.prevent="handleImageDragOver" @dragleave.prevent="handleImageDragLeave" @drop.prevent="handleImageDrop">
+    <section
+      v-else-if="activeSection === 'images'"
+      class="manager-grid images-grid"
+      @dragover.prevent="handleImageDragOver"
+      @dragleave.prevent="handleImageDragLeave"
+      @drop.prevent="handleImageDrop"
+    >
       <!-- Drag upload overlay -->
-      <div v-if="isDraggingImage" class="image-drag-overlay">
+      <div
+        v-if="isDraggingImage"
+        class="image-drag-overlay"
+      >
         <div class="overlay-content">
           <UploadCloud :size="48" />
           <h3>释放以导入图片到图库</h3>
@@ -465,7 +640,11 @@
 
       <main class="list-panel card-panel">
         <div class="panel-toolbar">
-          <el-input v-model="keyword" clearable placeholder="搜索图片名称、所属作品、用途或路径">
+          <el-input
+            v-model="keyword"
+            clearable
+            placeholder="搜索图片名称、所属作品、用途或路径"
+          >
             <template #prefix>
               <el-icon><Search /></el-icon>
             </template>
@@ -475,13 +654,23 @@
             type="primary"
             :loading="uploadingImages"
             @click="handleUploadImage"
-            >上传图片</el-button
           >
+            上传图片
+          </el-button>
         </div>
-        <div v-if="imagesLoadError" class="read-error-card">
+        <div
+          v-if="imagesLoadError"
+          class="read-error-card"
+        >
           <strong>图片读取失败</strong>
           <span>{{ imagesLoadError }}</span>
-          <button v-motion-feedback type="button" @click="loadLibrary">重试</button>
+          <button
+            v-motion-feedback
+            type="button"
+            @click="loadLibrary"
+          >
+            重试
+          </button>
         </div>
         <div
           v-else-if="filteredImages.length"
@@ -497,14 +686,32 @@
             @dblclick="openImageLightbox(asset)"
           >
             <div class="image-preview">
-              <img v-if="asset.isImage" :src="assetUrl(asset)" :alt="asset.name" loading="lazy" />
-              <FileImage v-else :size="34" />
+              <img
+                v-if="asset.isImage"
+                :src="assetUrl(asset)"
+                :alt="asset.name"
+                loading="lazy"
+              >
+              <FileImage
+                v-else
+                :size="34"
+              />
               <!-- Quick actions overlay -->
               <div class="image-actions-overlay">
-                <button type="button" class="action-btn" title="查看大图" @click.stop="openImageLightbox(asset)">
+                <button
+                  type="button"
+                  class="action-btn"
+                  title="查看大图"
+                  @click.stop="openImageLightbox(asset)"
+                >
                   <Eye :size="16" />
                 </button>
-                <button type="button" class="action-btn" title="下载图片" @click.stop="downloadImage(asset)">
+                <button
+                  type="button"
+                  class="action-btn"
+                  title="下载图片"
+                  @click.stop="downloadImage(asset)"
+                >
                   <Download :size="16" />
                 </button>
                 <button
@@ -537,7 +744,10 @@
             @size-change="handleListPageSizeChange('images', $event)"
           />
         </div>
-        <div v-else-if="!filteredImages.length" class="soft-empty">
+        <div
+          v-else-if="!filteredImages.length"
+          class="soft-empty"
+        >
           <strong>暂无图片</strong>
           <span>封面、角色图、场景图、地图、参考图和 AI 生成图片会显示在这里。</span>
         </div>
@@ -550,8 +760,11 @@
               v-if="selectedImage.isImage"
               :src="assetUrl(selectedImage)"
               :alt="selectedImage.name"
+            >
+            <FileImage
+              v-else
+              :size="42"
             />
-            <FileImage v-else :size="42" />
           </div>
           <h2>{{ selectedImage.name }}</h2>
           <dl class="detail-list">
@@ -569,32 +782,53 @@
             </div>
             <div>
               <dt>路径</dt>
-              <dd :title="selectedImage.relativePath">{{ selectedImage.relativePath || '-' }}</dd>
+              <dd :title="selectedImage.relativePath">
+                {{ selectedImage.relativePath || '-' }}
+              </dd>
             </div>
           </dl>
           <div class="detail-actions">
-            <el-button v-motion-feedback type="primary" @click="openImageBindDialog(selectedImage)"
-              >绑定到作品</el-button
+            <el-button
+              v-motion-feedback
+              type="primary"
+              @click="openImageBindDialog(selectedImage)"
             >
-            <el-button v-motion-feedback @click="openImageBindDialog(selectedImage, 'cover')"
-              >设为封面</el-button
+              绑定到作品
+            </el-button>
+            <el-button
+              v-motion-feedback
+              @click="openImageBindDialog(selectedImage, 'cover')"
             >
-            <el-button v-motion-feedback @click="downloadImage(selectedImage)">下载</el-button>
+              设为封面
+            </el-button>
+            <el-button
+              v-motion-feedback
+              @click="downloadImage(selectedImage)"
+            >
+              下载
+            </el-button>
             <el-button
               v-motion-feedback
               type="danger"
               plain
               :loading="deletingImageId === selectedImage.id"
               @click="deleteImage(selectedImage)"
-              >删除</el-button
             >
+              删除
+            </el-button>
           </div>
         </template>
-        <el-empty v-else description="选择图片后在这里查看和绑定" />
+        <el-empty
+          v-else
+          description="选择图片后在这里查看和绑定"
+        />
       </aside>
     </section>
 
-    <section v-else-if="activeSection === 'prompts'" class="manager-grid prompt-grid-page">
+    <section
+      v-else-if="activeSection === 'prompts'"
+      class="manager-grid prompt-grid-page"
+    >
       <aside class="side-filter card-panel">
         <button
           v-for="item in promptFilters"
@@ -610,19 +844,36 @@
 
       <main class="list-panel card-panel">
         <div class="panel-toolbar">
-          <el-input v-model="keyword" clearable placeholder="搜索提示词标题、分类或内容">
+          <el-input
+            v-model="keyword"
+            clearable
+            placeholder="搜索提示词标题、分类或内容"
+          >
             <template #prefix>
               <el-icon><Search /></el-icon>
             </template>
           </el-input>
-          <el-button v-motion-feedback type="primary" @click="openPromptDialog()"
-            >新增提示词</el-button
+          <el-button
+            v-motion-feedback
+            type="primary"
+            @click="openPromptDialog()"
           >
+            新增提示词
+          </el-button>
         </div>
-        <div v-if="promptsLoadError" class="read-error-card">
+        <div
+          v-if="promptsLoadError"
+          class="read-error-card"
+        >
           <strong>提示词读取失败</strong>
           <span>{{ promptsLoadError }}</span>
-          <button v-motion-feedback type="button" @click="loadLibrary">重试</button>
+          <button
+            v-motion-feedback
+            type="button"
+            @click="loadLibrary"
+          >
+            重试
+          </button>
         </div>
         <div
           v-else-if="filteredPrompts.length"
@@ -661,10 +912,19 @@
             @size-change="handleListPageSizeChange('prompts', $event)"
           />
         </div>
-        <div v-else-if="!filteredPrompts.length" class="soft-empty">
+        <div
+          v-else-if="!filteredPrompts.length"
+          class="soft-empty"
+        >
           <strong>暂无提示词</strong>
           <span>写作、拆书、图片生成、续写、改写、大纲和世界观提示词会显示在这里。</span>
-          <button v-motion-feedback type="button" @click="openPromptDialog()">新增提示词</button>
+          <button
+            v-motion-feedback
+            type="button"
+            @click="openPromptDialog()"
+          >
+            新增提示词
+          </button>
         </div>
       </main>
 
@@ -674,11 +934,17 @@
           <h2>{{ selectedPrompt.name }}</h2>
           <label>
             <span>系统指令</span>
-            <textarea readonly :value="selectedPrompt.systemPrompt || ''"></textarea>
+            <textarea
+              readonly
+              :value="selectedPrompt.systemPrompt || ''"
+            />
           </label>
           <label>
             <span>Prompt 内容</span>
-            <textarea readonly :value="selectedPrompt.userPromptTemplate || ''"></textarea>
+            <textarea
+              readonly
+              :value="selectedPrompt.userPromptTemplate || ''"
+            />
           </label>
           <dl class="detail-list">
             <div>
@@ -695,29 +961,53 @@
             </div>
           </dl>
           <div class="detail-actions">
-            <el-button v-motion-feedback type="primary" @click="usePrompt(selectedPrompt)"
-              >使用</el-button
+            <el-button
+              v-motion-feedback
+              type="primary"
+              @click="usePrompt(selectedPrompt)"
             >
-            <el-button v-motion-feedback @click="openPromptDialog(selectedPrompt)">编辑</el-button>
-            <el-button v-motion-feedback @click="duplicatePrompt(selectedPrompt)">复制</el-button>
-            <el-button v-motion-feedback @click="openPromptBindDialog(selectedPrompt)"
-              >绑定到作品</el-button
+              使用
+            </el-button>
+            <el-button
+              v-motion-feedback
+              @click="openPromptDialog(selectedPrompt)"
             >
+              编辑
+            </el-button>
+            <el-button
+              v-motion-feedback
+              @click="duplicatePrompt(selectedPrompt)"
+            >
+              复制
+            </el-button>
+            <el-button
+              v-motion-feedback
+              @click="openPromptBindDialog(selectedPrompt)"
+            >
+              绑定到作品
+            </el-button>
             <el-button
               v-if="!selectedPrompt.isBuiltin"
               v-motion-feedback
               type="danger"
               plain
               @click="deletePrompt(selectedPrompt)"
-              >删除</el-button
             >
+              删除
+            </el-button>
           </div>
         </template>
-        <el-empty v-else description="选择提示词后在这里查看内容和使用记录" />
+        <el-empty
+          v-else
+          description="选择提示词后在这里查看内容和使用记录"
+        />
       </aside>
     </section>
 
-    <section v-else class="manager-grid trash-grid">
+    <section
+      v-else
+      class="manager-grid trash-grid"
+    >
       <aside class="side-filter card-panel">
         <button
           v-for="item in trashFilters"
@@ -733,16 +1023,29 @@
 
       <main class="list-panel card-panel">
         <div class="panel-toolbar">
-          <el-input v-model="keyword" clearable placeholder="搜索删除项名称、类型或所属作品">
+          <el-input
+            v-model="keyword"
+            clearable
+            placeholder="搜索删除项名称、类型或所属作品"
+          >
             <template #prefix>
               <el-icon><Search /></el-icon>
             </template>
           </el-input>
         </div>
-        <div v-if="trashLoadError" class="read-error-card">
+        <div
+          v-if="trashLoadError"
+          class="read-error-card"
+        >
           <strong>回收站读取失败</strong>
           <span>{{ trashLoadError }}</span>
-          <button v-motion-feedback type="button" @click="loadLibrary">重试</button>
+          <button
+            v-motion-feedback
+            type="button"
+            @click="loadLibrary"
+          >
+            重试
+          </button>
         </div>
         <div
           v-else-if="filteredTrash.length"
@@ -764,7 +1067,10 @@
             </p>
           </article>
         </div>
-        <div v-if="shouldShowPagination('trash', filteredTrash.length)" class="library-pagination">
+        <div
+          v-if="shouldShowPagination('trash', filteredTrash.length)"
+          class="library-pagination"
+        >
           <span>{{ paginationSummary('trash', filteredTrash.length) }}</span>
           <el-pagination
             layout="prev, pager, next, sizes, total"
@@ -776,7 +1082,10 @@
             @size-change="handleListPageSizeChange('trash', $event)"
           />
         </div>
-        <div v-else-if="!filteredTrash.length" class="soft-empty">
+        <div
+          v-else-if="!filteredTrash.length"
+          class="soft-empty"
+        >
           <strong>回收站是空的</strong>
           <span>被移除的作品、素材、图片、提示词和拆书资产会显示在这里。</span>
         </div>
@@ -811,14 +1120,23 @@
               type="success"
               :disabled="!selectedTrash.restorable"
               @click="restoreTrashItem(selectedTrash)"
-              >恢复</el-button
             >
-            <el-button v-motion-feedback type="danger" plain @click="deleteTrashItem(selectedTrash)"
-              >永久删除</el-button
+              恢复
+            </el-button>
+            <el-button
+              v-motion-feedback
+              type="danger"
+              plain
+              @click="deleteTrashItem(selectedTrash)"
             >
+              永久删除
+            </el-button>
           </div>
         </template>
-        <el-empty v-else description="选择删除项查看详情" />
+        <el-empty
+          v-else
+          description="选择删除项查看详情"
+        />
       </aside>
     </section>
 
@@ -832,34 +1150,79 @@
           <el-input v-model="materialForm.title" />
         </el-form-item>
         <el-form-item label="类型">
-          <el-select v-model="materialForm.type" style="width: 100%">
-            <el-option label="灵感卡" value="topic_card" />
-            <el-option label="摘录片段" value="note" />
-            <el-option label="拆书片段" value="book_analysis" />
-            <el-option label="待整理设定" value="world_setting" />
-            <el-option label="创作台提取" value="plot_fragment" />
+          <el-select
+            v-model="materialForm.type"
+            style="width: 100%"
+          >
+            <el-option
+              label="灵感卡"
+              value="topic_card"
+            />
+            <el-option
+              label="摘录片段"
+              value="note"
+            />
+            <el-option
+              label="拆书片段"
+              value="book_analysis"
+            />
+            <el-option
+              label="待整理设定"
+              value="world_setting"
+            />
+            <el-option
+              label="创作台提取"
+              value="plot_fragment"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="摘要">
-          <el-input v-model="materialForm.summary" type="textarea" :rows="3" />
+          <el-input
+            v-model="materialForm.summary"
+            type="textarea"
+            :rows="3"
+          />
         </el-form-item>
         <el-form-item label="内容">
-          <el-input v-model="materialForm.content" type="textarea" :rows="5" />
+          <el-input
+            v-model="materialForm.content"
+            type="textarea"
+            :rows="5"
+          />
         </el-form-item>
         <el-form-item label="标签">
-          <el-input v-model="materialForm.tagsText" placeholder="用逗号分隔" />
+          <el-input
+            v-model="materialForm.tagsText"
+            placeholder="用逗号分隔"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showMaterialDialog = false">取消</el-button>
-        <el-button type="primary" :loading="savingMaterial" @click="saveMaterial">保存</el-button>
+        <el-button @click="showMaterialDialog = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="savingMaterial"
+          @click="saveMaterial"
+        >
+          保存
+        </el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="showBindDialog" title="绑定素材到作品" width="460px">
+    <el-dialog
+      v-model="showBindDialog"
+      title="绑定素材到作品"
+      width="460px"
+    >
       <el-form label-position="top">
         <el-form-item label="选择作品">
-          <el-select v-model="bindForm.bookId" filterable style="width: 100%">
+          <el-select
+            v-model="bindForm.bookId"
+            filterable
+            style="width: 100%"
+          >
             <el-option
               v-for="book in books"
               :key="bookKey(book)"
@@ -869,30 +1232,72 @@
           </el-select>
         </el-form-item>
         <el-form-item label="资产类型">
-          <el-select v-model="bindForm.assetType" style="width: 100%">
-            <el-option label="章节灵感" value="chapter_inspiration" />
-            <el-option label="角色" value="character_setting" />
-            <el-option label="世界观" value="world_setting" />
-            <el-option label="设定集" value="setting" />
-            <el-option label="伏笔" value="foreshadowing" />
-            <el-option label="图片参考" value="image_reference" />
-            <el-option label="提示词" value="prompt_template" />
+          <el-select
+            v-model="bindForm.assetType"
+            style="width: 100%"
+          >
+            <el-option
+              label="章节灵感"
+              value="chapter_inspiration"
+            />
+            <el-option
+              label="角色"
+              value="character_setting"
+            />
+            <el-option
+              label="世界观"
+              value="world_setting"
+            />
+            <el-option
+              label="设定集"
+              value="setting"
+            />
+            <el-option
+              label="伏笔"
+              value="foreshadowing"
+            />
+            <el-option
+              label="图片参考"
+              value="image_reference"
+            />
+            <el-option
+              label="提示词"
+              value="prompt_template"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="添加标签">
-          <el-input v-model="bindForm.tagsText" placeholder="用逗号分隔" />
+          <el-input
+            v-model="bindForm.tagsText"
+            placeholder="用逗号分隔"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showBindDialog = false">取消</el-button>
-        <el-button type="primary" @click="saveMaterialBinding">保存</el-button>
+        <el-button @click="showBindDialog = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          @click="saveMaterialBinding"
+        >
+          保存
+        </el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="showImageBindDialog" title="绑定图片" width="460px">
+    <el-dialog
+      v-model="showImageBindDialog"
+      title="绑定图片"
+      width="460px"
+    >
       <el-form label-position="top">
         <el-form-item label="目标作品">
-          <el-select v-model="imageBindForm.bookName" filterable style="width: 100%">
+          <el-select
+            v-model="imageBindForm.bookName"
+            filterable
+            style="width: 100%"
+          >
             <el-option
               v-for="book in books"
               :key="bookKey(book)"
@@ -902,18 +1307,43 @@
           </el-select>
         </el-form-item>
         <el-form-item label="用途">
-          <el-select v-model="imageBindForm.type" style="width: 100%">
-            <el-option label="封面" value="cover" />
-            <el-option label="角色图" value="character" />
-            <el-option label="场景图" value="scene" />
-            <el-option label="地图" value="map" />
-            <el-option label="参考图" value="attachment" />
+          <el-select
+            v-model="imageBindForm.type"
+            style="width: 100%"
+          >
+            <el-option
+              label="封面"
+              value="cover"
+            />
+            <el-option
+              label="角色图"
+              value="character"
+            />
+            <el-option
+              label="场景图"
+              value="scene"
+            />
+            <el-option
+              label="地图"
+              value="map"
+            />
+            <el-option
+              label="参考图"
+              value="attachment"
+            />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showImageBindDialog = false">取消</el-button>
-        <el-button type="primary" @click="saveImageBinding">保存</el-button>
+        <el-button @click="showImageBindDialog = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          @click="saveImageBinding"
+        >
+          保存
+        </el-button>
       </template>
     </el-dialog>
 
@@ -927,7 +1357,10 @@
           <el-input v-model="promptForm.name" />
         </el-form-item>
         <el-form-item label="分类">
-          <el-select v-model="promptForm.category" style="width: 100%">
+          <el-select
+            v-model="promptForm.category"
+            style="width: 100%"
+          >
             <el-option
               v-for="item in promptFilters.filter((row) => row.key !== 'all')"
               :key="item.key"
@@ -938,12 +1371,23 @@
         </el-form-item>
         <el-form-item label="适用范围">
           <el-radio-group v-model="promptForm.scope">
-            <el-radio-button label="global">全局</el-radio-button>
-            <el-radio-button label="book">单本书</el-radio-button>
+            <el-radio-button label="global">
+              全局
+            </el-radio-button>
+            <el-radio-button label="book">
+              单本书
+            </el-radio-button>
           </el-radio-group>
         </el-form-item>
-        <el-form-item v-if="promptForm.scope === 'book'" label="选择作品">
-          <el-select v-model="promptForm.bookId" filterable style="width: 100%">
+        <el-form-item
+          v-if="promptForm.scope === 'book'"
+          label="选择作品"
+        >
+          <el-select
+            v-model="promptForm.bookId"
+            filterable
+            style="width: 100%"
+          >
             <el-option
               v-for="book in books"
               :key="bookKey(book)"
@@ -953,22 +1397,46 @@
           </el-select>
         </el-form-item>
         <el-form-item label="系统指令">
-          <el-input v-model="promptForm.systemPrompt" type="textarea" :rows="5" />
+          <el-input
+            v-model="promptForm.systemPrompt"
+            type="textarea"
+            :rows="5"
+          />
         </el-form-item>
         <el-form-item label="Prompt 内容">
-          <el-input v-model="promptForm.userPromptTemplate" type="textarea" :rows="6" />
+          <el-input
+            v-model="promptForm.userPromptTemplate"
+            type="textarea"
+            :rows="6"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showPromptDialog = false">取消</el-button>
-        <el-button type="primary" :loading="savingPrompt" @click="savePrompt">保存</el-button>
+        <el-button @click="showPromptDialog = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="savingPrompt"
+          @click="savePrompt"
+        >
+          保存
+        </el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="showPromptBindDialog" title="绑定提示词到作品" width="460px">
+    <el-dialog
+      v-model="showPromptBindDialog"
+      title="绑定提示词到作品"
+      width="460px"
+    >
       <el-form label-position="top">
         <el-form-item label="选择作品">
-          <el-select v-model="promptBindForm.bookId" filterable style="width: 100%">
+          <el-select
+            v-model="promptBindForm.bookId"
+            filterable
+            style="width: 100%"
+          >
             <el-option
               v-for="book in books"
               :key="bookKey(book)"
@@ -979,8 +1447,15 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showPromptBindDialog = false">取消</el-button>
-        <el-button type="primary" @click="savePromptBinding">保存</el-button>
+        <el-button @click="showPromptBindDialog = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          @click="savePromptBinding"
+        >
+          保存
+        </el-button>
       </template>
     </el-dialog>
 
@@ -992,30 +1467,68 @@
       destroy-on-close
       align-center
     >
-      <el-tabs v-model="activeImportTab" class="add-book-tabs">
-        <el-tab-pane label="服务器书源" name="server">
-          <NovelImportPanel ref="novelImportRef" @imported="handleNovelImported" />
+      <el-tabs
+        v-model="activeImportTab"
+        class="add-book-tabs"
+      >
+        <el-tab-pane
+          label="服务器书源"
+          name="server"
+        >
+          <NovelImportPanel
+            ref="novelImportRef"
+            @imported="handleNovelImported"
+          />
         </el-tab-pane>
-        <el-tab-pane label="本地文件导入" name="local">
-          <LocalBookImportPanel ref="localBookImportRef" @imported="handleLocalBookImported" />
+        <el-tab-pane
+          label="本地文件导入"
+          name="local"
+        >
+          <LocalBookImportPanel
+            ref="localBookImportRef"
+            @imported="handleLocalBookImported"
+          />
         </el-tab-pane>
       </el-tabs>
     </el-dialog>
 
     <!-- 图片大图预览弹窗 -->
-    <el-dialog v-model="imagePreviewVisible" title="图片预览" width="800px" destroy-on-close align-center popper-class="image-lightbox-dialog">
+    <el-dialog
+      v-model="imagePreviewVisible"
+      title="图片预览"
+      width="800px"
+      destroy-on-close
+      align-center
+      popper-class="image-lightbox-dialog"
+    >
       <div class="lightbox-wrapper">
         <div class="lightbox-image-container">
-          <img :src="previewImageUrl" :alt="previewImageName" />
+          <img
+            :src="previewImageUrl"
+            :alt="previewImageName"
+          >
         </div>
         <div class="lightbox-meta">
           <div>
             <h3>{{ previewImageName }}</h3>
-            <p v-if="previewImageBook">所属作品: {{ previewImageBook }}</p>
+            <p v-if="previewImageBook">
+              所属作品: {{ previewImageBook }}
+            </p>
           </div>
           <div class="lightbox-actions">
-            <el-button v-motion-feedback type="primary" @click="downloadImage(previewImageAsset)">下载原图</el-button>
-            <el-button v-motion-feedback @click="imagePreviewVisible = false">关闭</el-button>
+            <el-button
+              v-motion-feedback
+              type="primary"
+              @click="downloadImage(previewImageAsset)"
+            >
+              下载原图
+            </el-button>
+            <el-button
+              v-motion-feedback
+              @click="imagePreviewVisible = false"
+            >
+              关闭
+            </el-button>
           </div>
         </div>
       </div>
