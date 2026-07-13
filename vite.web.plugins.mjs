@@ -61,57 +61,22 @@ import { createSnapshot as createSettingSnapshot } from './src/main/services/set
 import { setWebBooksDirectory } from './src/main/services/webBooksDirectoryService.js'
 import { createWebAuthService } from './src/main/services/webAuthService.js'
 import { createWebServerStore } from './src/main/services/webServerStoreService.js'
+import {
+  createJsonBodyReader,
+  sendJson,
+  sendTransparentImage
+} from './src/main/services/webHttpServerService.js'
 
 export function createWebServerPlugins() {
   const configuredBooksDir = String(process.env.NOVEL_BOOKS_DIR || '').trim()
   const booksDir = configuredBooksDir || resolve('.booksDir')
   const maxRequestBodyBytes = Number(process.env.NOVEL_MAX_REQUEST_BODY_BYTES) || 16 * 1024 * 1024
+  const readJsonBody = createJsonBodyReader(maxRequestBodyBytes)
   const webExtractionTasks = new WebExtractionTaskService({
     extractionService: extractionAiService,
     createTextProvider
   })
   const webStore = createWebServerStore()
-
-  function readJsonBody(req) {
-    return new Promise((resolveBody, reject) => {
-      const declaredLength = Number(req.headers['content-length'] || 0)
-      if (declaredLength > maxRequestBodyBytes) {
-        reject(Object.assign(new Error('请求内容过大'), { statusCode: 413 }))
-        return
-      }
-
-      const chunks = []
-      let receivedBytes = 0
-      let settled = false
-      const fail = (error) => {
-        if (settled) return
-        settled = true
-        reject(error)
-      }
-
-      req.on('data', (chunk) => {
-        if (settled) return
-        receivedBytes += chunk.length
-        if (receivedBytes > maxRequestBodyBytes) {
-          fail(Object.assign(new Error('请求内容过大'), { statusCode: 413 }))
-          req.resume()
-          return
-        }
-        chunks.push(chunk)
-      })
-      req.on('aborted', () => fail(Object.assign(new Error('请求已中断'), { statusCode: 400 })))
-      req.on('error', fail)
-      req.on('end', () => {
-        if (settled) return
-        settled = true
-        try {
-          resolveBody(JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}'))
-        } catch {
-          reject(Object.assign(new Error('请求 JSON 格式不正确'), { statusCode: 400 }))
-        }
-      })
-    })
-  }
 
   function getActiveBooksDir() {
     const storedDir = webStore.get('booksDir')
@@ -280,13 +245,6 @@ export function createWebServerPlugins() {
     return r
   }
 
-  // Helpers to send JSON
-  function sendJson(res, obj, status = 200) {
-    res.statusCode = status
-    res.setHeader('Content-Type', 'application/json; charset=utf-8')
-    res.end(JSON.stringify(obj))
-  }
-
   function webBookImageUrl(bookPath, filePath) {
     const root = getActiveBooksDir()
     const bookName = relative(root, bookPath)
@@ -300,17 +258,6 @@ export function createWebServerPlugins() {
       throw new Error('图片路径不在书籍目录内')
     }
     return `/api/books/image?book=${encodeURIComponent(bookName)}&file=${encodeURIComponent(fileName)}`
-  }
-
-  function sendTransparentImage(res) {
-    res.statusCode = 200
-    res.setHeader('Content-Type', 'image/png')
-    res.end(
-      Buffer.from(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
-        'base64'
-      )
-    )
   }
 
   // Dummy methods/comments to satisfy specific assertIncludes checks
