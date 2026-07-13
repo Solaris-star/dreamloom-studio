@@ -9,6 +9,10 @@ globalThis.fetch = async () =>
 
 const editor = await import('../src/renderer/src/service/editor.js')
 
+function withChanges(response, changes) {
+  return { ...structuredClone(response), ...changes }
+}
+
 const cases = [
   [() => editor.setSortOrder('作品', 'asc'), { success: false, message: '拒绝保存' }],
   [() => editor.getSortOrder('作品'), { success: true, order: 'unknown' }],
@@ -209,6 +213,139 @@ const cases = [
   [() => editor.getAgentProgressServer(), { success: true, host: 'localhost', port: 0, path: '/', url: 'ws://localhost' }],
   [() => editor.getAgentProgressServer(), { success: true, host: 'localhost', port: 8787, path: '', url: 'ws://localhost' }]
 ]
+
+const validNoteRead = {
+  success: true,
+  bookName: '作品',
+  notebookName: '笔记本',
+  noteName: '笔记',
+  filePath: '/books/作品/笔记/笔记本/笔记.md',
+  content: '正文'
+}
+for (const changes of [
+  { bookName: '另一作品' },
+  { notebookName: '另一笔记本' },
+  { noteName: '另一笔记' },
+  { filePath: null },
+  { filePath: '/books/作品/笔记/其他目录/笔记.md' },
+  { content: null }
+]) {
+  cases.push([
+    () => editor.readNoteDocument('作品', '笔记本', '笔记'),
+    withChanges(validNoteRead, changes)
+  ])
+}
+
+const validNoteWrite = {
+  success: true,
+  bookName: '作品',
+  notebookName: '笔记本',
+  noteName: '笔记',
+  filePath: '/books/作品/笔记/笔记本/笔记.md',
+  contentLength: 2
+}
+for (const changes of [
+  { bookName: '另一作品' },
+  { notebookName: '另一笔记本' },
+  { noteName: '' },
+  { filePath: null },
+  { filePath: '/books/作品/笔记/其他目录/笔记.md' },
+  { contentLength: 1 }
+]) {
+  cases.push([
+    () =>
+      editor.writeNoteDocument({
+        bookName: '作品',
+        notebookName: '笔记本',
+        noteName: '笔记',
+        content: '正文'
+      }),
+    withChanges(validNoteWrite, changes)
+  ])
+}
+
+const validChapterRead = {
+  success: true,
+  bookName: '作品',
+  volumeName: '第一卷',
+  chapterName: '第一章',
+  filePath: '/books/作品/正文/第一卷/第一章.txt',
+  content: '正文',
+  wordCount: 2
+}
+for (const changes of [
+  { bookName: '另一作品' },
+  { volumeName: '第二卷' },
+  { chapterName: '第二章' },
+  { filePath: null },
+  { filePath: '/books/作品/正文/第二卷/第一章.txt' },
+  { content: null },
+  { wordCount: 'invalid' }
+]) {
+  cases.push([
+    () => editor.readChapterContent('作品', '第一卷', '第一章'),
+    withChanges(validChapterRead, changes)
+  ])
+}
+
+const validChapterWrite = {
+  ...validChapterRead,
+  databaseSync: { success: true, chapterName: '第一章' }
+}
+for (const changes of [
+  { bookName: '另一作品' },
+  { volumeName: '第二卷' },
+  { chapterName: '第二章' },
+  { filePath: null },
+  { filePath: '/books/作品/正文/第二卷/第一章.txt' },
+  { wordCount: 'invalid' },
+  { wordCount: 1 },
+  { databaseSync: null },
+  { databaseSync: { success: false } },
+  { databaseSync: { success: true, chapterName: '第二章' } }
+]) {
+  const response = withChanges(validChapterWrite, changes)
+  cases.push([
+    () =>
+      editor.upsertChapterDocument({
+        bookName: '作品',
+        volumeName: '第一卷',
+        chapterName: '第一章',
+        content: '正文'
+      }),
+    response
+  ])
+  cases.push([
+    () =>
+      editor.saveChapterDocument({
+        bookName: '作品',
+        volumeName: '第一卷',
+        chapterName: '第一章',
+        content: '正文'
+      }),
+    response
+  ])
+}
+
+const validProgressServer = {
+  success: true,
+  host: 'localhost',
+  port: 8787,
+  path: '/',
+  url: 'ws://localhost:8787/'
+}
+for (const changes of [
+  { host: null },
+  { host: ' ' },
+  { port: 'invalid' },
+  { port: -1 },
+  { path: null },
+  { path: ' ' },
+  { url: null },
+  { url: 'http://localhost:8787/' }
+]) {
+  cases.push([() => editor.getAgentProgressServer(), withChanges(validProgressServer, changes)])
+}
 
 for (const [index, [call, response]] of cases.entries()) {
   nextResponse = response
