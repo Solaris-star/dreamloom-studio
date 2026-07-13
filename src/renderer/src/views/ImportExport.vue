@@ -1,14 +1,23 @@
 <template>
   <div class="import-export-page">
-    <div v-if="!embedded" class="module-local-actions">
-      <el-button :loading="loadingBooks || loadingTasks" @click="loadData">
+    <div
+      v-if="!embedded"
+      class="module-local-actions"
+    >
+      <el-button
+        :loading="loadingBooks || loadingTasks"
+        @click="loadData"
+      >
         <RefreshCw :size="16" />
         <span>刷新</span>
       </el-button>
     </div>
 
     <main class="tool-layout">
-      <section v-if="showSection('import')" class="panel panel-wide">
+      <section
+        v-if="showSection('import')"
+        class="panel panel-wide"
+      >
         <div class="panel-title">
           <div>
             <h2>导入</h2>
@@ -24,7 +33,7 @@
               :disabled="previewing || importing"
               type="file"
               @change="handleImportFileChange"
-            />
+            >
             <Upload :size="20" />
             <span>{{ importForm.fileName || '选择 TXT、Markdown 或 DOCX' }}</span>
           </label>
@@ -47,7 +56,10 @@
           </div>
         </div>
 
-        <div v-if="preview" class="preview-box">
+        <div
+          v-if="preview"
+          class="preview-box"
+        >
           <div class="preview-summary">
             <strong>{{ preview.bookName }}</strong>
             <strong>{{ preview.chapterCount }} 章</strong>
@@ -55,7 +67,10 @@
             <span>{{ preview.fileName }}</span>
           </div>
           <div class="chapter-preview-list">
-            <article v-for="chapter in preview.chapters.slice(0, 8)" :key="chapter.index">
+            <article
+              v-for="chapter in preview.chapters.slice(0, 8)"
+              :key="chapter.index"
+            >
               <b>{{ chapter.index }}. {{ chapter.title }}</b>
               <small>{{ formatNumber(chapter.wordCount) }} 字</small>
               <p>{{ chapter.preview || '空章节' }}</p>
@@ -64,7 +79,10 @@
         </div>
       </section>
 
-      <section v-if="showSection('export')" class="panel panel-wide">
+      <section
+        v-if="showSection('export')"
+        class="panel panel-wide"
+      >
         <div class="panel-title">
           <div>
             <h2>导出</h2>
@@ -73,12 +91,21 @@
           <FileDown :size="22" />
         </div>
 
-        <div v-if="booksLoadError" class="read-error-card" role="alert">
+        <div
+          v-if="booksLoadError"
+          class="read-error-card"
+          role="alert"
+        >
           <strong>读取书架失败</strong>
           <span>{{ booksLoadError }}</span>
-          <el-button type="primary" plain :loading="loadingBooks" @click="retryLoadBooks"
-            >重试</el-button
+          <el-button
+            type="primary"
+            plain
+            :loading="loadingBooks"
+            @click="retryLoadBooks"
           >
+            重试
+          </el-button>
         </div>
 
         <div class="form-grid">
@@ -96,9 +123,15 @@
             />
           </el-select>
           <el-radio-group v-model="exportForm.format">
-            <el-radio-button label="txt">TXT</el-radio-button>
-            <el-radio-button label="md">Markdown</el-radio-button>
-            <el-radio-button label="project">项目包</el-radio-button>
+            <el-radio-button label="txt">
+              TXT
+            </el-radio-button>
+            <el-radio-button label="md">
+              Markdown
+            </el-radio-button>
+            <el-radio-button label="project">
+              项目包
+            </el-radio-button>
           </el-radio-group>
           <el-button
             type="primary"
@@ -110,14 +143,20 @@
           </el-button>
         </div>
 
-        <div v-if="lastExport" class="result-box">
+        <div
+          v-if="lastExport"
+          class="result-box"
+        >
           <b>{{ lastExport.fileName }}</b>
           <span>{{ formatSize(lastExport.size) }}</span>
           <small :title="lastExport.filePath">{{ lastExport.filePath }}</small>
         </div>
       </section>
 
-      <section v-if="showSection('backup')" class="panel panel-wide">
+      <section
+        v-if="showSection('backup')"
+        class="panel panel-wide"
+      >
         <div class="panel-title">
           <div>
             <h2>备份与恢复</h2>
@@ -126,18 +165,34 @@
           <ArchiveRestore :size="22" />
         </div>
 
-        <div v-if="booksLoadError" class="read-error-card" role="alert">
+        <div
+          v-if="booksLoadError"
+          class="read-error-card"
+          role="alert"
+        >
           <strong>读取书架失败</strong>
           <span>{{ booksLoadError }}</span>
-          <el-button type="primary" plain :loading="loadingBooks" @click="retryLoadBooks"
-            >重试</el-button
+          <el-button
+            type="primary"
+            plain
+            :loading="loadingBooks"
+            @click="retryLoadBooks"
           >
+            重试
+          </el-button>
         </div>
 
         <div class="form-grid">
-          <el-radio-group v-model="backupForm.scope" :disabled="!!booksLoadError">
-            <el-radio-button label="library">整个书库</el-radio-button>
-            <el-radio-button label="book">单本书</el-radio-button>
+          <el-radio-group
+            v-model="backupForm.scope"
+            :disabled="!!booksLoadError"
+          >
+            <el-radio-button label="library">
+              整个书库
+            </el-radio-button>
+            <el-radio-button label="book">
+              单本书
+            </el-radio-button>
           </el-radio-group>
           <el-select
             v-if="backupForm.scope === 'book'"
@@ -170,13 +225,20 @@
               :disabled="inspecting || restoring"
               type="file"
               @change="handleBackupFileChange"
-            />
+            >
             <Upload :size="20" />
             <span>{{ restoreForm.fileName || '选择备份 zip' }}</span>
           </label>
-          <el-radio-group v-model="restoreForm.mode" @change="handleRestoreModeChange">
-            <el-radio-button label="library">加入当前书库</el-radio-button>
-            <el-radio-button label="archive">恢复到新目录</el-radio-button>
+          <el-radio-group
+            v-model="restoreForm.mode"
+            @change="handleRestoreModeChange"
+          >
+            <el-radio-button label="library">
+              加入当前书库
+            </el-radio-button>
+            <el-radio-button label="archive">
+              恢复到新目录
+            </el-radio-button>
           </el-radio-group>
           <el-input
             v-if="restoreForm.mode === 'archive'"
@@ -203,20 +265,32 @@
           </div>
         </div>
 
-        <div v-if="restoreSummary" class="result-box">
+        <div
+          v-if="restoreSummary"
+          class="result-box"
+        >
           <b>{{ restoreSummary.bookCount || restoreSummary.maziCount }} 本书</b>
           <span>{{ restoreSummary.fileCount }} 个文件</span>
           <span>{{ formatSize(restoreSummary.totalSize) }}</span>
           <small>{{ restoreSummary.maziCount }} 个书籍元数据文件</small>
         </div>
-        <div v-if="restoreSummary?.books?.length" class="restore-book-list">
-          <span v-for="book in restoreSummary.books" :key="book.root || book.name">
+        <div
+          v-if="restoreSummary?.books?.length"
+          class="restore-book-list"
+        >
+          <span
+            v-for="book in restoreSummary.books"
+            :key="book.root || book.name"
+          >
             {{ book.name }} · {{ book.fileCount }} 个文件
           </span>
         </div>
       </section>
 
-      <section v-if="showSection('jobs')" class="panel panel-wide">
+      <section
+        v-if="showSection('jobs')"
+        class="panel panel-wide"
+      >
         <div class="panel-title">
           <div>
             <h2>任务记录</h2>
@@ -225,9 +299,18 @@
           <History :size="22" />
         </div>
 
-        <el-empty v-if="tasks.length === 0" description="暂无记录" />
-        <div v-else class="task-list">
-          <article v-for="task in tasks" :key="task.id">
+        <el-empty
+          v-if="tasks.length === 0"
+          description="暂无记录"
+        />
+        <div
+          v-else
+          class="task-list"
+        >
+          <article
+            v-for="task in tasks"
+            :key="task.id"
+          >
             <span>{{ taskTypeLabel(task.type) }}</span>
             <b>{{ task.title }}</b>
             <small>{{ formatDate(task.createdAt) }}</small>
