@@ -51,6 +51,7 @@ export default defineConfig({
   server: {
     port: 5173,
     open: process.env.NOVEL_OPEN_BROWSER !== 'false',
+    hmr: process.env.PLAYWRIGHT_TEST === 'true' ? false : undefined,
     watch: {
       ignored: ['**/.booksDir/**', '**/.store.json', '**/assets-trash/**']
     }

@@ -71,7 +71,8 @@ export default defineConfig({
     env: {
       ...process.env,
       NOVEL_BOOKS_DIR: e2eBooksDir,
-      NOVEL_OPEN_BROWSER: 'false'
+      NOVEL_OPEN_BROWSER: 'false',
+      PLAYWRIGHT_TEST: 'true'
     }
   }
 })
