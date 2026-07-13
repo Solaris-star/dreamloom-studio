@@ -1,20 +1,40 @@
 <template>
   <section class="book-asset-page">
-    <div v-if="loading" class="asset-loading">正在读取作品资产...</div>
+    <div
+      v-if="loading"
+      class="asset-loading"
+    >
+      正在读取作品资产...
+    </div>
 
     <template v-else-if="!book">
       <div class="missing-book">
         <h1>没有找到这本书</h1>
         <p>作品资产台必须绑定一本书，请从创作库作品书架进入。</p>
-        <el-button type="primary" @click="router.push('/knowledge')">返回书架</el-button>
+        <el-button
+          type="primary"
+          @click="router.push('/knowledge')"
+        >
+          返回书架
+        </el-button>
       </div>
     </template>
 
     <template v-else>
       <nav class="breadcrumb">
-        <button type="button" @click="router.push('/knowledge')">创作库</button>
+        <button
+          type="button"
+          @click="router.push('/knowledge')"
+        >
+          创作库
+        </button>
         <span>/</span>
-        <button type="button" @click="router.push('/knowledge')">作品书架</button>
+        <button
+          type="button"
+          @click="router.push('/knowledge')"
+        >
+          作品书架
+        </button>
         <span>/</span>
         <strong>{{ bookTitle(book) }}</strong>
         <span>/</span>
@@ -27,15 +47,33 @@
           :class="{ placeholder: !hasBookCover(book) }"
           :style="bookCoverStyle(book)"
         >
-          <span v-if="!hasBookCover(book)" class="book-mark"></span>
+          <span
+            v-if="!hasBookCover(book)"
+            class="book-mark"
+          />
         </div>
         <div class="header-main">
           <div class="header-kicker">
-            <span class="book-kind-icon" :title="bookTypeLabel(book)">
-              <Download v-if="isDownloadedBook(book)" :size="14" />
-              <Archive v-else-if="isImportedBook(book)" :size="14" />
-              <Bookmark v-else-if="book.sourceType === 'reference'" :size="14" />
-              <BookOpen v-else :size="14" />
+            <span
+              class="book-kind-icon"
+              :title="bookTypeLabel(book)"
+            >
+              <Download
+                v-if="isDownloadedBook(book)"
+                :size="14"
+              />
+              <Archive
+                v-else-if="isImportedBook(book)"
+                :size="14"
+              />
+              <Bookmark
+                v-else-if="book.sourceType === 'reference'"
+                :size="14"
+              />
+              <BookOpen
+                v-else
+                :size="14"
+              />
             </span>
             <span>{{ bookStatusLabel(book) }}</span>
             <span>{{ analysisStatus(book) }}</span>
@@ -47,21 +85,44 @@
             <span>{{ formatWords(book.totalWords) }}</span>
             <span>{{ chapterCount }} 章</span>
             <span>{{ formatDate(bookUpdatedAt(book)) }}</span>
-            <span v-for="tag in bookTags(book).slice(0, 3)" :key="tag">{{ tag }}</span>
+            <span
+              v-for="tag in bookTags(book).slice(0, 3)"
+              :key="tag"
+            >{{ tag }}</span>
           </div>
         </div>
         <div class="header-actions">
-          <el-button @click="router.push('/knowledge')">返回书架</el-button>
-          <el-button @click="openStudio()">打开创作台</el-button>
-          <el-button v-if="isDownloadedBook(book)" @click="openStudio('read')">阅读模式</el-button>
-          <el-button type="primary" :loading="splitNavigationPending" @click="startSplit()">{{
-            splitButtonText
-          }}</el-button>
-          <el-button @click="openOutlineTool">打开大纲工具</el-button>
+          <el-button @click="router.push('/knowledge')">
+            返回书架
+          </el-button>
+          <el-button @click="openStudio()">
+            打开创作台
+          </el-button>
+          <el-button
+            v-if="isDownloadedBook(book)"
+            @click="openStudio('read')"
+          >
+            阅读模式
+          </el-button>
+          <el-button
+            type="primary"
+            :loading="splitNavigationPending"
+            @click="startSplit()"
+          >
+            {{
+              splitButtonText
+            }}
+          </el-button>
+          <el-button @click="openOutlineTool">
+            打开大纲工具
+          </el-button>
         </div>
       </header>
 
-      <nav class="asset-tabs card-panel" aria-label="作品资产台导航">
+      <nav
+        class="asset-tabs card-panel"
+        aria-label="作品资产台导航"
+      >
         <button
           v-for="tab in tabs"
           :key="tab.key"
@@ -72,14 +133,25 @@
           {{ tab.label }}
         </button>
       </nav>
-      <div v-if="assetReadErrorSummary" class="read-error asset-read-error">
+      <div
+        v-if="assetReadErrorSummary"
+        class="read-error asset-read-error"
+      >
         <strong>作品资料读取失败</strong>
         <span>{{ assetReadErrorSummary }}</span>
-        <button type="button" @click="loadData()">重试</button>
+        <button
+          type="button"
+          @click="loadData()"
+        >
+          重试
+        </button>
       </div>
 
       <main class="tab-panel card-panel">
-        <section v-if="activeTab === 'overview'" class="overview-tab">
+        <section
+          v-if="activeTab === 'overview'"
+          class="overview-tab"
+        >
           <div class="overview-main">
             <h2>总览</h2>
             <p>{{ book.intro || '这本书还没有填写简介。' }}</p>
@@ -106,107 +178,185 @@
           <aside class="overview-side">
             <h3>资产统计</h3>
             <div class="asset-stat-grid">
-              <span v-for="item in assetStats" :key="item.label">
+              <span
+                v-for="item in assetStats"
+                :key="item.label"
+              >
                 <b>{{ item.value }}</b>
                 <small>{{ item.label }}</small>
               </span>
             </div>
           </aside>
 
-          <div v-if="!isSplitReady(book)" class="split-empty">
+          <div
+            v-if="!isSplitReady(book)"
+            class="split-empty"
+          >
             <h3>这本书还没有拆书结果。</h3>
             <p>
               当前只能查看原文、章节和基础信息。完成 AI
               拆书后，可以生成角色、世界观、设定集、伏笔、图片提示词和图谱。
             </p>
             <div>
-              <el-button type="primary" :loading="splitNavigationPending" @click="startSplit()"
-                >开始拆书</el-button
+              <el-button
+                type="primary"
+                :loading="splitNavigationPending"
+                @click="startSplit()"
               >
-              <el-button :loading="splitNavigationPending" @click="startSplit('character')"
-                >只提取角色</el-button
+                开始拆书
+              </el-button>
+              <el-button
+                :loading="splitNavigationPending"
+                @click="startSplit('character')"
               >
-              <el-button :loading="splitNavigationPending" @click="startSplit('world')"
-                >只提取世界观</el-button
+                只提取角色
+              </el-button>
+              <el-button
+                :loading="splitNavigationPending"
+                @click="startSplit('world')"
               >
-              <el-button :loading="splitNavigationPending" @click="startSplit('foreshadowing')"
-                >只提取伏笔</el-button
+                只提取世界观
+              </el-button>
+              <el-button
+                :loading="splitNavigationPending"
+                @click="startSplit('foreshadowing')"
               >
-              <el-button @click="openStudio('read')">阅读模式</el-button>
+                只提取伏笔
+              </el-button>
+              <el-button @click="openStudio('read')">
+                阅读模式
+              </el-button>
             </div>
           </div>
 
-          <section v-else class="recent-assets">
+          <section
+            v-else
+            class="recent-assets"
+          >
             <div class="section-title">
               <h3>最近资产动态</h3>
               <span>{{ relatedKnowledge.length }} 条</span>
             </div>
-            <div v-if="recentKnowledge.length" class="asset-row-list">
-              <article v-for="item in recentKnowledge" :key="item.id">
+            <div
+              v-if="recentKnowledge.length"
+              class="asset-row-list"
+            >
+              <article
+                v-for="item in recentKnowledge"
+                :key="item.id"
+              >
                 <span>{{ knowledgeTypeLabel(item) }}</span>
                 <h4>{{ item.title }}</h4>
                 <p>{{ item.summary || item.content || '暂无摘要' }}</p>
               </article>
             </div>
-            <p v-else class="soft-text">暂无最近资产动态。</p>
+            <p
+              v-else
+              class="soft-text"
+            >
+              暂无最近资产动态。
+            </p>
           </section>
         </section>
 
-        <section v-else-if="activeTab === 'chapters'" class="chapters-tab">
+        <section
+          v-else-if="activeTab === 'chapters'"
+          class="chapters-tab"
+        >
           <div class="section-title">
             <h2>章节</h2>
             <span>{{ chapterCount }} 章</span>
           </div>
-          <div v-if="chapterLoadError" class="read-error">
+          <div
+            v-if="chapterLoadError"
+            class="read-error"
+          >
             <strong>章节读取失败</strong>
             <span>{{ chapterLoadError }}</span>
-            <button type="button" @click="loadChapters()">重试</button>
+            <button
+              type="button"
+              @click="loadChapters()"
+            >
+              重试
+            </button>
           </div>
-          <div v-else-if="chapterRows.length" class="chapter-list">
-            <article v-for="row in chapterRows" :key="row.key" class="chapter-row">
+          <div
+            v-else-if="chapterRows.length"
+            class="chapter-list"
+          >
+            <article
+              v-for="row in chapterRows"
+              :key="row.key"
+              class="chapter-row"
+            >
               <div>
                 <span>{{ row.volumeName }}</span>
                 <h3>{{ row.name }}</h3>
                 <p>{{ chapterAssetStatusText(row) }}</p>
               </div>
               <div class="chapter-actions">
-                <el-button size="small" @click="openStudio()">打开创作台</el-button>
-                <el-button size="small" @click="openStudio('read')">阅读</el-button>
+                <el-button
+                  size="small"
+                  @click="openStudio()"
+                >
+                  打开创作台
+                </el-button>
+                <el-button
+                  size="small"
+                  @click="openStudio('read')"
+                >
+                  阅读
+                </el-button>
                 <el-button
                   size="small"
                   :loading="splitNavigationPending"
                   @click="startSplit('chapter', row)"
-                  >拆本章</el-button
                 >
+                  拆本章
+                </el-button>
                 <el-button
                   size="small"
                   :loading="splitNavigationPending"
                   @click="startSplit('character')"
-                  >提取角色</el-button
                 >
+                  提取角色
+                </el-button>
                 <el-button
                   size="small"
                   :loading="splitNavigationPending"
                   @click="startSplit('world')"
-                  >提取世界观</el-button
                 >
+                  提取世界观
+                </el-button>
                 <el-button
                   size="small"
                   :loading="splitNavigationPending"
                   @click="startSplit('foreshadowing')"
-                  >提取伏笔</el-button
                 >
+                  提取伏笔
+                </el-button>
               </div>
             </article>
           </div>
-          <div v-else class="soft-empty">
+          <div
+            v-else
+            class="soft-empty"
+          >
             <strong>暂无章节</strong>
             <span>正文编辑属于创作台，进入创作台后可以新建章节。</span>
-            <button type="button" @click="openStudio()">打开创作台</button>
+            <button
+              type="button"
+              @click="openStudio()"
+            >
+              打开创作台
+            </button>
           </div>
         </section>
 
-        <section v-else-if="activeTab === 'split'" class="split-tab">
+        <section
+          v-else-if="activeTab === 'split'"
+          class="split-tab"
+        >
           <div class="split-summary-strip">
             <span>
               <b>{{ chapterCount || '未读取' }}</b>
@@ -238,9 +388,17 @@
             </span>
           </div>
 
-          <p v-if="extractionError" class="split-error">{{ extractionError }}</p>
+          <p
+            v-if="extractionError"
+            class="split-error"
+          >
+            {{ extractionError }}
+          </p>
 
-          <section v-if="activeExtractionProgress" class="extraction-progress-board">
+          <section
+            v-if="activeExtractionProgress"
+            class="extraction-progress-board"
+          >
             <div class="section-title">
               <h3>正在拆书</h3>
               <span>{{ extractionStatusLabel(activeExtractionProgress.status) }}</span>
@@ -255,7 +413,10 @@
               </div>
               <b>{{ extractionProgressPercent }}%</b>
             </div>
-            <el-progress :percentage="extractionProgressPercent" :stroke-width="10" />
+            <el-progress
+              :percentage="extractionProgressPercent"
+              :stroke-width="10"
+            />
 
             <div class="task-grid">
               <article
@@ -279,8 +440,13 @@
               </article>
             </div>
 
-            <div v-if="visibleExtractionLogs.length" class="extraction-log-list">
-              <div class="mini-title">任务记录</div>
+            <div
+              v-if="visibleExtractionLogs.length"
+              class="extraction-log-list"
+            >
+              <div class="mini-title">
+                任务记录
+              </div>
               <article
                 v-for="log in visibleExtractionLogs"
                 :key="log.id || `${log.time}-${log.message}`"
@@ -302,12 +468,23 @@
                 <span>{{ extractionRecords.length }} 次</span>
               </div>
 
-              <div v-if="extractionRecordsError" class="read-error">
+              <div
+                v-if="extractionRecordsError"
+                class="read-error"
+              >
                 <strong>拆书任务读取失败</strong>
                 <span>{{ extractionRecordsError }}</span>
-                <button type="button" @click="loadExtractionRecords()">重试</button>
+                <button
+                  type="button"
+                  @click="loadExtractionRecords()"
+                >
+                  重试
+                </button>
               </div>
-              <div v-else-if="extractionRecords.length" class="record-list">
+              <div
+                v-else-if="extractionRecords.length"
+                class="record-list"
+              >
                 <article
                   v-for="record in extractionRecords"
                   :key="record.id"
@@ -318,7 +495,10 @@
                   }"
                   @click="toggleExtractionRecord(record)"
                 >
-                  <div class="record-status-rail" :class="recordStatusClass(record)"></div>
+                  <div
+                    class="record-status-rail"
+                    :class="recordStatusClass(record)"
+                  />
                   <div class="record-main">
                     <div class="record-title-line">
                       <strong>{{ record.sourceBookName || bookTitle(book) }}</strong>
@@ -338,9 +518,7 @@
                       }}</small>
                       <small>分组：{{ extractionRecordGroupCount(record) }}</small>
                       <small>结果：{{ extractionRecordItemCount(record) }} 条</small>
-                      <small v-if="extractionRecordFailedCount(record)"
-                        >失败：{{ extractionRecordFailedCount(record) }} 组</small
-                      >
+                      <small v-if="extractionRecordFailedCount(record)">失败：{{ extractionRecordFailedCount(record) }} 组</small>
                     </div>
                     <div class="record-progress-line">
                       <el-progress
@@ -351,7 +529,10 @@
                       <b>{{ extractionRecordPercent(record) }}%</b>
                     </div>
 
-                    <div v-if="expandedExtractionId === record.id" class="record-expanded">
+                    <div
+                      v-if="expandedExtractionId === record.id"
+                      class="record-expanded"
+                    >
                       <div class="record-dimension-grid">
                         <span
                           v-for="card in Object.entries(record.dimensions || {})"
@@ -361,7 +542,10 @@
                           <small>{{ card[1]?.itemCount || 0 }} 条</small>
                         </span>
                       </div>
-                      <div v-if="extractionRecordRows(record).length" class="task-grid compact">
+                      <div
+                        v-if="extractionRecordRows(record).length"
+                        class="task-grid compact"
+                      >
                         <article
                           v-for="task in extractionRecordRows(record)"
                           :key="task.id || task.dimension"
@@ -386,7 +570,9 @@
                         v-if="extractionRecordLogs(record).length"
                         class="extraction-log-list compact"
                       >
-                        <div class="mini-title">最近记录</div>
+                        <div class="mini-title">
+                          最近记录
+                        </div>
                         <article
                           v-for="log in extractionRecordLogs(record)"
                           :key="log.id || `${log.time}-${log.message}`"
@@ -398,8 +584,14 @@
                       </div>
                     </div>
                   </div>
-                  <div class="record-side" @click.stop>
-                    <button type="button" @click="toggleExtractionRecord(record)">
+                  <div
+                    class="record-side"
+                    @click.stop
+                  >
+                    <button
+                      type="button"
+                      @click="toggleExtractionRecord(record)"
+                    >
                       {{ expandedExtractionId === record.id ? '收起' : '详情' }}
                     </button>
                     <button
@@ -410,13 +602,20 @@
                     >
                       查看结果
                     </button>
-                    <button type="button" class="danger" @click="deleteExtractionRecord(record)">
+                    <button
+                      type="button"
+                      class="danger"
+                      @click="deleteExtractionRecord(record)"
+                    >
                       删除
                     </button>
                   </div>
                 </article>
               </div>
-              <div v-else class="soft-empty">
+              <div
+                v-else
+                class="soft-empty"
+              >
                 <strong>还没有拆书任务</strong>
                 <span>先在右侧选择模型和提取内容，然后开始拆书。</span>
               </div>
@@ -430,7 +629,12 @@
                   从真实章节中提取文风、情节、角色、世界观和章节大纲。下载书的结果只作为参考素材保存。
                 </p>
               </div>
-              <p v-if="textProviderError" class="split-error">{{ textProviderError }}</p>
+              <p
+                v-if="textProviderError"
+                class="split-error"
+              >
+                {{ textProviderError }}
+              </p>
               <label>
                 <span>拆书模型</span>
                 <select
@@ -439,7 +643,11 @@
                   @change="handleProviderChange"
                 >
                   <option value="">使用当前文本模型</option>
-                  <option v-for="provider in textProviders" :key="provider.id" :value="provider.id">
+                  <option
+                    v-for="provider in textProviders"
+                    :key="provider.id"
+                    :value="provider.id"
+                  >
                     {{ provider.name || provider.model || provider.id }}
                   </option>
                 </select>
@@ -448,7 +656,11 @@
                 <span>具体模型</span>
                 <select v-model="selectedModel">
                   <option value="">使用默认模型</option>
-                  <option v-for="model in selectedProviderModels" :key="model" :value="model">
+                  <option
+                    v-for="model in selectedProviderModels"
+                    :key="model"
+                    :value="model"
+                  >
                     {{ model }}
                   </option>
                 </select>
@@ -456,7 +668,11 @@
               <div class="chapter-scope-picker">
                 <div class="chapter-scope-head">
                   <span>处理章节</span>
-                  <button type="button" :disabled="!chapterCount" @click="useAllExtractionChapters">
+                  <button
+                    type="button"
+                    :disabled="!chapterCount"
+                    @click="useAllExtractionChapters"
+                  >
                     整本
                   </button>
                 </div>
@@ -502,7 +718,10 @@
                   >
                     <header>
                       <strong>{{ group.label }}</strong>
-                      <button type="button" @click="toggleDimensionGroup(group)">
+                      <button
+                        type="button"
+                        @click="toggleDimensionGroup(group)"
+                      >
                         {{ isDimensionGroupSelected(group) ? '取消本组' : '选择本组' }}
                       </button>
                     </header>
@@ -520,7 +739,10 @@
                   </section>
                 </div>
               </div>
-              <div v-if="isSplitReady(book)" class="split-rerun-actions">
+              <div
+                v-if="isSplitReady(book)"
+                class="split-rerun-actions"
+              >
                 <el-button
                   type="primary"
                   :loading="extractionRunning"
@@ -528,10 +750,17 @@
                 >
                   查看最近结果
                 </el-button>
-                <el-button :loading="extractionRunning" @click="runExtraction('fillMissing')">
+                <el-button
+                  :loading="extractionRunning"
+                  @click="runExtraction('fillMissing')"
+                >
                   补充缺失内容
                 </el-button>
-                <el-button plain :loading="extractionRunning" @click="confirmReplaceExtraction">
+                <el-button
+                  plain
+                  :loading="extractionRunning"
+                  @click="confirmReplaceExtraction"
+                >
                   重新拆书
                 </el-button>
               </div>
@@ -552,7 +781,10 @@
                 <h3>拆书素材预览</h3>
                 <p>这里只预览少量素材，完整内容请进入“查看结果”分页阅读。</p>
               </div>
-              <button type="button" @click="splitAssetPreviewOpen = !splitAssetPreviewOpen">
+              <button
+                type="button"
+                @click="splitAssetPreviewOpen = !splitAssetPreviewOpen"
+              >
                 {{ splitAssetPreviewOpen ? '收起' : `展开 ${splitItems.length} 条` }}
               </button>
             </div>
@@ -619,67 +851,149 @@
           @open-material="openMaterialBox"
         />
 
-        <section v-else-if="activeTab === 'images'" class="images-tab">
+        <section
+          v-else-if="activeTab === 'images'"
+          class="images-tab"
+        >
           <div class="section-title">
             <h2>图片</h2>
             <div class="section-actions">
               <span>{{ relatedImages.length }} 张</span>
-              <button type="button" @click="uploadBookImage">上传图片</button>
-              <button type="button" @click="openImageLibrary">去图库</button>
+              <button
+                type="button"
+                @click="uploadBookImage"
+              >
+                上传图片
+              </button>
+              <button
+                type="button"
+                @click="openImageLibrary"
+              >
+                去图库
+              </button>
             </div>
           </div>
-          <div v-if="assetsLoadError" class="read-error">
+          <div
+            v-if="assetsLoadError"
+            class="read-error"
+          >
             <strong>图片读取失败</strong>
             <span>{{ assetsLoadError }}</span>
-            <button type="button" @click="loadData()">重试</button>
+            <button
+              type="button"
+              @click="loadData()"
+            >
+              重试
+            </button>
           </div>
-          <div v-else-if="relatedImages.length" class="image-grid">
-            <article v-for="asset in relatedImages" :key="asset.id">
+          <div
+            v-else-if="relatedImages.length"
+            class="image-grid"
+          >
+            <article
+              v-for="asset in relatedImages"
+              :key="asset.id"
+            >
               <div class="image-preview">
-                <img v-if="asset.isImage" :src="assetUrl(asset)" :alt="asset.name" />
-                <FileImage v-else :size="34" />
+                <img
+                  v-if="asset.isImage"
+                  :src="assetUrl(asset)"
+                  :alt="asset.name"
+                >
+                <FileImage
+                  v-else
+                  :size="34"
+                />
               </div>
               <h3>{{ asset.name }}</h3>
               <p>{{ imageTypeLabel(asset) }}</p>
             </article>
           </div>
-          <div v-else class="soft-empty">
+          <div
+            v-else
+            class="soft-empty"
+          >
             <strong>暂无图片</strong>
             <span>当前书绑定的封面、角色图、场景图、地图和参考图会显示在这里。</span>
           </div>
         </section>
 
-        <section v-else-if="activeTab === 'prompts'" class="prompts-tab">
+        <section
+          v-else-if="activeTab === 'prompts'"
+          class="prompts-tab"
+        >
           <div class="section-title">
             <h2>提示词</h2>
             <span>{{ bookPrompts.length }} 个</span>
           </div>
-          <div v-if="promptsLoadError" class="read-error">
+          <div
+            v-if="promptsLoadError"
+            class="read-error"
+          >
             <strong>提示词读取失败</strong>
             <span>{{ promptsLoadError }}</span>
-            <button type="button" @click="loadData()">重试</button>
+            <button
+              type="button"
+              @click="loadData()"
+            >
+              重试
+            </button>
           </div>
-          <div v-else-if="bookPrompts.length" class="prompt-list">
-            <article v-for="preset in bookPrompts" :key="preset.id">
+          <div
+            v-else-if="bookPrompts.length"
+            class="prompt-list"
+          >
+            <article
+              v-for="preset in bookPrompts"
+              :key="preset.id"
+            >
               <span>{{ promptCategoryLabel(preset.category) }}</span>
               <h3>{{ preset.name }}</h3>
               <p>{{ preset.systemPrompt || preset.userPromptTemplate || '暂无内容' }}</p>
-              <el-button size="small" @click="usePrompt(preset)">使用</el-button>
+              <el-button
+                size="small"
+                @click="usePrompt(preset)"
+              >
+                使用
+              </el-button>
             </article>
           </div>
-          <div v-else class="soft-empty">
+          <div
+            v-else
+            class="soft-empty"
+          >
             <strong>暂无本书提示词</strong>
             <span>提示词管理入口在创作库，AI 工坊负责调用。</span>
-            <button type="button" @click="openPromptManager">去管理提示词</button>
+            <button
+              type="button"
+              @click="openPromptManager"
+            >
+              去管理提示词
+            </button>
           </div>
         </section>
 
-        <section v-else class="graph-tab">
-          <div v-if="relationshipGraphsError" class="graph-read-error">
+        <section
+          v-else
+          class="graph-tab"
+        >
+          <div
+            v-if="relationshipGraphsError"
+            class="graph-read-error"
+          >
             <span>{{ relationshipGraphsError }}</span>
-            <el-button type="primary" plain @click="loadRelationshipGraphs">重试</el-button>
+            <el-button
+              type="primary"
+              plain
+              @click="loadRelationshipGraphs"
+            >
+              重试
+            </el-button>
           </div>
-          <div v-else-if="isSplitReady(book) || relationshipGraphs.length" class="graph-board">
+          <div
+            v-else-if="isSplitReady(book) || relationshipGraphs.length"
+            class="graph-board"
+          >
             <div class="section-title">
               <div>
                 <h2>图谱</h2>
@@ -688,36 +1002,73 @@
               <span>{{ relationshipGraphs.length }} 张关系图</span>
             </div>
             <div class="graph-node-grid">
-              <span v-for="item in graphNodes" :key="item.label">
+              <span
+                v-for="item in graphNodes"
+                :key="item.label"
+              >
                 <b>{{ item.count }}</b>
                 <small>{{ item.label }}</small>
               </span>
             </div>
             <div class="graph-actions">
-              <el-button type="primary" @click="openRelationshipList">打开关系列表</el-button>
-              <el-button @click="createMainRelationshipGraph">新建主关系图</el-button>
+              <el-button
+                type="primary"
+                @click="openRelationshipList"
+              >
+                打开关系列表
+              </el-button>
+              <el-button @click="createMainRelationshipGraph">
+                新建主关系图
+              </el-button>
             </div>
-            <div v-if="relationshipGraphs.length" class="relationship-graph-list">
-              <article v-for="item in relationshipGraphs" :key="item.id || item.name">
+            <div
+              v-if="relationshipGraphs.length"
+              class="relationship-graph-list"
+            >
+              <article
+                v-for="item in relationshipGraphs"
+                :key="item.id || item.name"
+              >
                 <div>
                   <h3>{{ item.name || '未命名关系图' }}</h3>
                   <p>{{ item.description || '暂无描述' }}</p>
                   <small>{{ formatDateTime(item.updatedAt || item.createdAt) }}</small>
                 </div>
-                <el-button size="small" @click="openRelationshipGraph(item)">打开</el-button>
+                <el-button
+                  size="small"
+                  @click="openRelationshipGraph(item)"
+                >
+                  打开
+                </el-button>
               </article>
             </div>
-            <p v-else class="soft-text">当前作品还没有关系图，可以新建一张主关系图。</p>
+            <p
+              v-else
+              class="soft-text"
+            >
+              当前作品还没有关系图，可以新建一张主关系图。
+            </p>
           </div>
-          <div v-else class="split-empty">
+          <div
+            v-else
+            class="split-empty"
+          >
             <h3>当前没有可用资产，不能显示虚构图谱。</h3>
             <p>可以先拆书提取资料，也可以先创建一张空白关系图，后续再补人物和连线。</p>
             <div>
-              <el-button type="primary" :loading="splitNavigationPending" @click="startSplit()"
-                >开始拆书</el-button
+              <el-button
+                type="primary"
+                :loading="splitNavigationPending"
+                @click="startSplit()"
               >
-              <el-button @click="openRelationshipList">打开关系列表</el-button>
-              <el-button @click="createMainRelationshipGraph">新建主关系图</el-button>
+                开始拆书
+              </el-button>
+              <el-button @click="openRelationshipList">
+                打开关系列表
+              </el-button>
+              <el-button @click="createMainRelationshipGraph">
+                新建主关系图
+              </el-button>
             </div>
           </div>
         </section>
@@ -765,18 +1116,36 @@
                 @keyup.enter="reloadResultPage"
                 @clear="reloadResultPage"
               />
-              <el-button :loading="resultViewerLoading" @click="reloadResultPage">搜索</el-button>
+              <el-button
+                :loading="resultViewerLoading"
+                @click="reloadResultPage"
+              >
+                搜索
+              </el-button>
             </div>
 
-            <div v-if="resultViewerError" class="result-viewer-error">
+            <div
+              v-if="resultViewerError"
+              class="result-viewer-error"
+            >
               {{ resultViewerError }}
             </div>
-            <div v-else-if="resultViewerLoading" class="soft-empty">
+            <div
+              v-else-if="resultViewerLoading"
+              class="soft-empty"
+            >
               <strong>正在读取结果</strong>
               <span>请稍等。</span>
             </div>
-            <div v-else-if="resultViewerItems.length" class="result-item-list">
-              <article v-for="item in resultViewerItems" :key="item.id" class="result-item-card">
+            <div
+              v-else-if="resultViewerItems.length"
+              class="result-item-list"
+            >
+              <article
+                v-for="item in resultViewerItems"
+                :key="item.id"
+                class="result-item-card"
+              >
                 <header>
                   <strong>{{ extractionItemTitle(item.item, 0) }}</strong>
                   <span>{{ item.chapterRange || item.group || item.dimensionLabel }}</span>
@@ -784,7 +1153,10 @@
                 <p>{{ item.text }}</p>
               </article>
             </div>
-            <div v-else class="soft-empty">
+            <div
+              v-else
+              class="soft-empty"
+            >
               <strong>当前分类暂无结果</strong>
               <span>可以换一个分类，或者检查这次任务是否成功。</span>
             </div>
