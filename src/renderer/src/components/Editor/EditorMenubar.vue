@@ -6,14 +6,40 @@
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
       >
-        <el-select v-model="fontFamily" class="toolbar-item" size="small" style="width: 82px">
-          <el-option label="宋体" value="SimSun" />
-          <el-option label="黑体" value="SimHei" />
-          <el-option label="楷体" value="KaiTi" />
-          <el-option label="仿宋" value="FangSong" />
-          <el-option label="思源黑体" value="SourceHanSans" />
-          <el-option label="思源宋体" value="SourceHanSerif" />
-          <el-option label="苹方" value="PingFang" />
+        <el-select
+          v-model="fontFamily"
+          class="toolbar-item"
+          size="small"
+          style="width: 82px"
+        >
+          <el-option
+            label="宋体"
+            value="SimSun"
+          />
+          <el-option
+            label="黑体"
+            value="SimHei"
+          />
+          <el-option
+            label="楷体"
+            value="KaiTi"
+          />
+          <el-option
+            label="仿宋"
+            value="FangSong"
+          />
+          <el-option
+            label="思源黑体"
+            value="SourceHanSans"
+          />
+          <el-option
+            label="思源宋体"
+            value="SourceHanSerif"
+          />
+          <el-option
+            label="苹方"
+            value="PingFang"
+          />
         </el-select>
       </el-tooltip>
       <el-tooltip
@@ -29,11 +55,26 @@
           style="width: 70px"
           @change="handleHeadingChange"
         >
-          <el-option :label="t('editorMenubar.body')" value="0" />
-          <el-option :label="t('editorMenubar.heading1')" value="1" />
-          <el-option :label="t('editorMenubar.heading2')" value="2" />
-          <el-option :label="t('editorMenubar.heading3')" value="3" />
-          <el-option :label="t('editorMenubar.heading4')" value="4" />
+          <el-option
+            :label="t('editorMenubar.body')"
+            value="0"
+          />
+          <el-option
+            :label="t('editorMenubar.heading1')"
+            value="1"
+          />
+          <el-option
+            :label="t('editorMenubar.heading2')"
+            value="2"
+          />
+          <el-option
+            :label="t('editorMenubar.heading3')"
+            value="3"
+          />
+          <el-option
+            :label="t('editorMenubar.heading4')"
+            value="4"
+          />
         </el-select>
       </el-tooltip>
       <el-tooltip
@@ -41,22 +82,72 @@
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
       >
-        <el-select v-model="fontSize" class="toolbar-item" size="small" style="width: 62px">
-          <el-option label="12px" value="12px" />
-          <el-option label="13px" value="13px" />
-          <el-option label="14px" value="14px" />
-          <el-option label="15px" value="15px" />
-          <el-option label="16px" value="16px" />
-          <el-option label="18px" value="18px" />
-          <el-option label="20px" value="20px" />
-          <el-option label="22px" value="22px" />
-          <el-option label="24px" value="24px" />
-          <el-option label="26px" value="26px" />
-          <el-option label="28px" value="28px" />
-          <el-option label="30px" value="30px" />
-          <el-option label="32px" value="32px" />
-          <el-option label="34px" value="34px" />
-          <el-option label="36px" value="36px" />
+        <el-select
+          v-model="fontSize"
+          class="toolbar-item"
+          size="small"
+          style="width: 62px"
+        >
+          <el-option
+            label="12px"
+            value="12px"
+          />
+          <el-option
+            label="13px"
+            value="13px"
+          />
+          <el-option
+            label="14px"
+            value="14px"
+          />
+          <el-option
+            label="15px"
+            value="15px"
+          />
+          <el-option
+            label="16px"
+            value="16px"
+          />
+          <el-option
+            label="18px"
+            value="18px"
+          />
+          <el-option
+            label="20px"
+            value="20px"
+          />
+          <el-option
+            label="22px"
+            value="22px"
+          />
+          <el-option
+            label="24px"
+            value="24px"
+          />
+          <el-option
+            label="26px"
+            value="26px"
+          />
+          <el-option
+            label="28px"
+            value="28px"
+          />
+          <el-option
+            label="30px"
+            value="30px"
+          />
+          <el-option
+            label="32px"
+            value="32px"
+          />
+          <el-option
+            label="34px"
+            value="34px"
+          />
+          <el-option
+            label="36px"
+            value="36px"
+          />
         </el-select>
       </el-tooltip>
       <el-tooltip
@@ -64,13 +155,36 @@
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
       >
-        <el-select v-model="lineHeight" class="toolbar-item" size="small" style="width: 50px">
-          <el-option label="1.4" value="1.4" />
-          <el-option label="1.6" value="1.6" />
-          <el-option label="1.8" value="1.8" />
-          <el-option label="2" value="2" />
-          <el-option label="2.2" value="2.2" />
-          <el-option label="2.4" value="2.4" />
+        <el-select
+          v-model="lineHeight"
+          class="toolbar-item"
+          size="small"
+          style="width: 50px"
+        >
+          <el-option
+            label="1.4"
+            value="1.4"
+          />
+          <el-option
+            label="1.6"
+            value="1.6"
+          />
+          <el-option
+            label="1.8"
+            value="1.8"
+          />
+          <el-option
+            label="2"
+            value="2"
+          />
+          <el-option
+            label="2.2"
+            value="2.2"
+          />
+          <el-option
+            label="2.4"
+            value="2.4"
+          />
         </el-select>
       </el-tooltip>
       <el-tooltip
@@ -78,13 +192,36 @@
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
       >
-        <el-select v-model="paragraphSpacing" class="toolbar-item" size="small" style="width: 60px">
-          <el-option :label="t('editorMenubar.none')" value="0" />
-          <el-option label="0.25" value="0.25em" />
-          <el-option label="0.5" value="0.5em" />
-          <el-option label="0.75" value="0.75em" />
-          <el-option label="1" value="1em" />
-          <el-option label="1.5" value="1.5em" />
+        <el-select
+          v-model="paragraphSpacing"
+          class="toolbar-item"
+          size="small"
+          style="width: 60px"
+        >
+          <el-option
+            :label="t('editorMenubar.none')"
+            value="0"
+          />
+          <el-option
+            label="0.25"
+            value="0.25em"
+          />
+          <el-option
+            label="0.5"
+            value="0.5em"
+          />
+          <el-option
+            label="0.75"
+            value="0.75em"
+          />
+          <el-option
+            label="1"
+            value="1em"
+          />
+          <el-option
+            label="1.5"
+            value="1.5em"
+          />
         </el-select>
       </el-tooltip>
       <el-tooltip
@@ -92,11 +229,28 @@
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
       >
-        <el-select v-model="pageWidth" class="toolbar-item" size="small" style="width: 105px">
-          <el-option label="自适应 (极宽)" value="100%" />
-          <el-option label="自适应 (宽)" value="90%" />
-          <el-option label="自适应 (中)" value="80%" />
-          <el-option label="自适应 (窄)" value="70%" />
+        <el-select
+          v-model="pageWidth"
+          class="toolbar-item"
+          size="small"
+          style="width: 105px"
+        >
+          <el-option
+            label="自适应 (极宽)"
+            value="100%"
+          />
+          <el-option
+            label="自适应 (宽)"
+            value="90%"
+          />
+          <el-option
+            label="自适应 (中)"
+            value="80%"
+          />
+          <el-option
+            label="自适应 (窄)"
+            value="70%"
+          />
         </el-select>
       </el-tooltip>
       <el-tooltip
@@ -142,7 +296,10 @@
             :title="t('editorMenubar.highlight')"
             :type="isHighlight ? 'primary' : 'default'"
           >
-            <SvgIcon name="highlight" :size="12" />
+            <SvgIcon
+              name="highlight"
+              :size="12"
+            />
           </el-button>
         </template>
         <div class="highlight-color-picker">
@@ -158,9 +315,9 @@
               <div
                 :style="{ backgroundColor: color.value }"
                 class="hightlight-color-item-main"
-              ></div>
+              />
             </div>
-            <div class="highlight-color-split"></div>
+            <div class="highlight-color-split" />
             <div
               :class="{ active: !isHighlight }"
               class="highlight-color-item highlight-color-none"
@@ -182,7 +339,11 @@
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
       >
-        <el-button size="small" class="toolbar-item" @click="handleFormatContent">
+        <el-button
+          size="small"
+          class="toolbar-item"
+          @click="handleFormatContent"
+        >
           <el-icon><Tickets /></el-icon>
         </el-button>
       </el-tooltip>
@@ -191,7 +352,12 @@
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
       >
-        <el-button size="small" class="toolbar-item" :disabled="!canUndo" @click="handleUndo">
+        <el-button
+          size="small"
+          class="toolbar-item"
+          :disabled="!canUndo"
+          @click="handleUndo"
+        >
           <Undo :size="12" />
         </el-button>
       </el-tooltip>
@@ -200,7 +366,12 @@
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
       >
-        <el-button size="small" class="toolbar-item" :disabled="!canRedo" @click="handleRedo">
+        <el-button
+          size="small"
+          class="toolbar-item"
+          :disabled="!canRedo"
+          @click="handleRedo"
+        >
           <Redo :size="12" />
         </el-button>
       </el-tooltip>
@@ -233,7 +404,11 @@
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
       >
-        <el-button size="small" class="toolbar-item" @click="handleToggleSearchPanel">
+        <el-button
+          size="small"
+          class="toolbar-item"
+          @click="handleToggleSearchPanel"
+        >
           <el-icon><Search /></el-icon>
         </el-button>
       </el-tooltip>
@@ -244,8 +419,15 @@
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
       >
-        <el-button size="small" class="toolbar-item" @click="handleSave">
-          <SvgIcon name="save" :size="12" />
+        <el-button
+          size="small"
+          class="toolbar-item"
+          @click="handleSave"
+        >
+          <SvgIcon
+            name="save"
+            :size="12"
+          />
         </el-button>
       </el-tooltip>
       <el-tooltip
@@ -254,8 +436,15 @@
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
       >
-        <el-button size="small" class="toolbar-item" @click="handleExport">
-          <SvgIcon name="export" :size="12" />
+        <el-button
+          size="small"
+          class="toolbar-item"
+          @click="handleExport"
+        >
+          <SvgIcon
+            name="export"
+            :size="12"
+          />
         </el-button>
       </el-tooltip>
     </div>
