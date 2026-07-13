@@ -1,18 +1,27 @@
 <template>
   <LayoutTool :title="kindUi.layoutTitle">
     <template #headrAction>
-      <el-button type="primary" @click="handleCreateEntity">
+      <el-button
+        type="primary"
+        @click="handleCreateEntity"
+      >
         <el-icon><Plus /></el-icon>
         <span>{{ kindUi.createBtn }}</span>
       </el-button>
     </template>
     <template #default>
       <div class="profile-toolbar">
-        <el-radio-group v-model="profileKind" size="small" class="profile-kind-tabs">
+        <el-radio-group
+          v-model="profileKind"
+          size="small"
+          class="profile-kind-tabs"
+        >
           <el-radio-button value="character">
             {{ t('characterProfile.kind.character') }}
           </el-radio-button>
-          <el-radio-button value="mount">{{ t('characterProfile.kind.mount') }}</el-radio-button>
+          <el-radio-button value="mount">
+            {{ t('characterProfile.kind.mount') }}
+          </el-radio-button>
           <el-radio-button value="monster">
             {{ t('characterProfile.kind.monster') }}
           </el-radio-button>
@@ -23,7 +32,11 @@
             {{ t('characterProfile.kind.artifact') }}
           </el-radio-button>
         </el-radio-group>
-        <el-radio-group v-model="viewMode" size="small" class="view-toggle-inner">
+        <el-radio-group
+          v-model="viewMode"
+          size="small"
+          class="view-toggle-inner"
+        >
           <el-radio-button value="card">
             <el-icon><Grid /></el-icon>
             {{ t('characterProfile.cardMode') }}
@@ -35,7 +48,10 @@
         </el-radio-group>
       </div>
       <!-- 卡片模式 -->
-      <div v-if="viewMode === 'card'" class="character-grid">
+      <div
+        v-if="viewMode === 'card'"
+        class="character-grid"
+      >
         <div
           v-for="character in displayEntities"
           :key="character.id"
@@ -45,7 +61,10 @@
         >
           <div class="character-info">
             <div class="character-header">
-              <div class="character-avatar" @click.stop="previewCharacterAvatar(character)">
+              <div
+                class="character-avatar"
+                @click.stop="previewCharacterAvatar(character)"
+              >
                 <el-image
                   v-if="character.avatar"
                   :src="getAvatarSrc(character.avatar)"
@@ -53,7 +72,10 @@
                   class="avatar-image"
                   fit="cover"
                 />
-                <div v-else class="avatar-placeholder">
+                <div
+                  v-else
+                  class="avatar-placeholder"
+                >
                   {{ character.name.charAt(0) }}
                 </div>
               </div>
@@ -64,7 +86,7 @@
                     v-if="character.markerColor"
                     class="character-marker"
                     :style="{ backgroundColor: character.markerColor }"
-                  ></span>
+                  />
                   <span class="character-name">{{ character.name }}</span>
                   <span class="character-age">
                     {{ t('characterProfile.ageValue', { age: character.age }) }}
@@ -72,21 +94,41 @@
                   <span class="character-height">{{ character.height }}cm</span>
                 </div>
                 <!-- 标签显示区域 -->
-                <div v-if="character.tags && character.tags.length > 0" class="character-tags">
-                  <el-tag v-for="tag in character.tags" :key="tag" size="small" class="tag-item">
+                <div
+                  v-if="character.tags && character.tags.length > 0"
+                  class="character-tags"
+                >
+                  <el-tag
+                    v-for="tag in character.tags"
+                    :key="tag"
+                    size="small"
+                    class="tag-item"
+                  >
                     {{ tag }}
                   </el-tag>
                 </div>
               </div>
             </div>
             <!-- 形象介绍 -->
-            <div v-if="character.appearance" class="character-section">
-              <div class="section-title">{{ kindUi.appearanceLabel }}</div>
-              <p class="character-intro appearance-intro">{{ character.appearance }}</p>
+            <div
+              v-if="character.appearance"
+              class="character-section"
+            >
+              <div class="section-title">
+                {{ kindUi.appearanceLabel }}
+              </div>
+              <p class="character-intro appearance-intro">
+                {{ character.appearance }}
+              </p>
             </div>
             <!-- 生平介绍 -->
-            <div v-if="character.biography" class="character-section">
-              <div class="section-title">{{ kindUi.biographyLabel }}</div>
+            <div
+              v-if="character.biography"
+              class="character-section"
+            >
+              <div class="section-title">
+                {{ kindUi.biographyLabel }}
+              </div>
               <el-tooltip
                 placement="top-start"
                 :show-after="300"
@@ -94,37 +136,58 @@
                 :popper-style="{ maxWidth: '400px', width: '400px' }"
               >
                 <template #content>
-                  <div class="biography-tooltip-content">{{ character.biography }}</div>
+                  <div class="biography-tooltip-content">
+                    {{ character.biography }}
+                  </div>
                 </template>
-                <p class="character-intro biography-intro">{{ character.biography }}</p>
+                <p class="character-intro biography-intro">
+                  {{ character.biography }}
+                </p>
               </el-tooltip>
             </div>
             <!-- 人物图列表：卡片下方一行多张 -->
             <div class="character-portrait-row">
-              <div class="portrait-label">{{ kindUi.galleryLabel }}</div>
-              <div v-if="getCharacterImages(character).length" class="character-portrait-list">
+              <div class="portrait-label">
+                {{ kindUi.galleryLabel }}
+              </div>
+              <div
+                v-if="getCharacterImages(character).length"
+                class="character-portrait-list"
+              >
                 <div
                   v-for="(img, idx) in getCharacterImages(character)"
                   :key="idx"
                   class="character-portrait-thumb"
                   @click.stop="previewCharacterImages(character, idx)"
                 >
-                  <el-image :src="getAvatarSrc(img)" alt="人物图" fit="cover" />
+                  <el-image
+                    :src="getAvatarSrc(img)"
+                    alt="人物图"
+                    fit="cover"
+                  />
                 </div>
               </div>
-              <div v-else class="character-portrait-placeholder">
+              <div
+                v-else
+                class="character-portrait-placeholder"
+              >
                 {{ kindUi.galleryEmptyShort }}
               </div>
             </div>
           </div>
           <div class="character-actions">
-            <el-icon @click.stop="handleDeleteEntity(character)"><Delete /></el-icon>
+            <el-icon @click.stop="handleDeleteEntity(character)">
+              <Delete />
+            </el-icon>
           </div>
         </div>
       </div>
 
       <!-- 表格模式 -->
-      <div v-else-if="viewMode === 'table'" class="character-table">
+      <div
+        v-else-if="viewMode === 'table'"
+        class="character-table"
+      >
         <el-table
           ref="tableRef"
           :data="displayEntities"
@@ -133,9 +196,16 @@
           style="width: 100%"
           @row-click="handleEditEntity"
         >
-          <el-table-column :label="t('characterProfile.avatar')" width="80" align="center">
+          <el-table-column
+            :label="t('characterProfile.avatar')"
+            width="80"
+            align="center"
+          >
             <template #default="{ row }">
-              <div class="table-avatar" @click.stop="previewCharacterAvatar(row)">
+              <div
+                class="table-avatar"
+                @click.stop="previewCharacterAvatar(row)"
+              >
                 <el-image
                   v-if="row.avatar"
                   :src="getAvatarSrc(row.avatar)"
@@ -143,13 +213,20 @@
                   class="table-avatar-image"
                   fit="cover"
                 />
-                <div v-else class="table-avatar-placeholder">
+                <div
+                  v-else
+                  class="table-avatar-placeholder"
+                >
                   {{ row.name.charAt(0) }}
                 </div>
               </div>
             </template>
           </el-table-column>
-          <el-table-column :label="kindUi.galleryLabel" width="120" align="center">
+          <el-table-column
+            :label="kindUi.galleryLabel"
+            width="120"
+            align="center"
+          >
             <template #default="{ row }">
               <div
                 v-if="getCharacterImages(row).length"
@@ -161,23 +238,38 @@
                   :key="idx"
                   class="table-portrait table-portrait-vertical"
                 >
-                  <el-image :src="getAvatarSrc(img)" alt="人物图" fit="cover" />
+                  <el-image
+                    :src="getAvatarSrc(img)"
+                    alt="人物图"
+                    fit="cover"
+                  />
                 </div>
-                <span v-if="getCharacterImages(row).length > 3" class="table-portrait-more">
+                <span
+                  v-if="getCharacterImages(row).length > 3"
+                  class="table-portrait-more"
+                >
                   +{{ getCharacterImages(row).length - 3 }}
                 </span>
               </div>
-              <span v-else class="no-portrait">{{ t('characterProfile.none') }}</span>
+              <span
+                v-else
+                class="no-portrait"
+              >{{ t('characterProfile.none') }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="name" :label="kindUi.nameColumnLabel" width="140" align="center">
+          <el-table-column
+            prop="name"
+            :label="kindUi.nameColumnLabel"
+            width="140"
+            align="center"
+          >
             <template #default="{ row }">
               <div class="table-name-cell">
                 <span
                   v-if="row.markerColor"
                   class="table-marker"
                   :style="{ backgroundColor: row.markerColor }"
-                ></span>
+                />
                 <span>{{ row.name }}</span>
               </div>
             </template>
@@ -201,7 +293,10 @@
             align="center"
           >
             <template #default="{ row }">
-              <el-tag :type="row.gender === '男' ? 'primary' : 'danger'" size="small">
+              <el-tag
+                :type="row.gender === '男' ? 'primary' : 'danger'"
+                size="small"
+              >
                 {{ row.gender }}
               </el-tag>
             </template>
@@ -213,7 +308,9 @@
             width="100"
             align="center"
           >
-            <template #default="{ row }"> {{ row.height }}cm </template>
+            <template #default="{ row }">
+              {{ row.height }}cm
+            </template>
           </el-table-column>
           <el-table-column
             prop="tags"
@@ -222,12 +319,23 @@
             align="center"
           >
             <template #default="{ row }">
-              <div v-if="row.tags && row.tags.length > 0" class="table-tags">
-                <el-tag v-for="tag in row.tags" :key="tag" size="small" class="tag-item">
+              <div
+                v-if="row.tags && row.tags.length > 0"
+                class="table-tags"
+              >
+                <el-tag
+                  v-for="tag in row.tags"
+                  :key="tag"
+                  size="small"
+                  class="tag-item"
+                >
                   {{ tag }}
                 </el-tag>
               </div>
-              <span v-else class="no-tags">{{ t('characterProfile.noTags') }}</span>
+              <span
+                v-else
+                class="no-tags"
+              >{{ t('characterProfile.noTags') }}</span>
             </template>
           </el-table-column>
           <el-table-column
@@ -250,11 +358,19 @@
           >
             <template #default="{ row }">
               <div class="action-buttons">
-                <el-button type="primary" size="small" @click.stop="handleEditEntity(row)">
+                <el-button
+                  type="primary"
+                  size="small"
+                  @click.stop="handleEditEntity(row)"
+                >
                   <el-icon><Edit /></el-icon>
                   {{ t('common.edit') }}
                 </el-button>
-                <el-button type="danger" size="small" @click.stop="handleDeleteEntity(row)">
+                <el-button
+                  type="danger"
+                  size="small"
+                  @click.stop="handleDeleteEntity(row)"
+                >
                   <el-icon><Delete /></el-icon>
                   {{ t('common.delete') }}
                 </el-button>
@@ -293,9 +409,15 @@
       @submit.prevent="confirmSave"
     >
       <!-- 头像：用于列表/卡片小图 -->
-      <el-form-item :label="t('characterProfile.avatar')" class="avatar-form-item">
+      <el-form-item
+        :label="t('characterProfile.avatar')"
+        class="avatar-form-item"
+      >
         <div class="avatar-form-section">
-          <div class="avatar-preview" @click="previewFormAvatar">
+          <div
+            class="avatar-preview"
+            @click="previewFormAvatar"
+          >
             <el-image
               v-if="characterForm.avatar"
               :src="getAvatarSrc(characterForm.avatar)"
@@ -303,7 +425,10 @@
               class="form-avatar-image"
               fit="cover"
             />
-            <div v-else class="form-avatar-placeholder">
+            <div
+              v-else
+              class="form-avatar-placeholder"
+            >
               {{ characterForm.name ? characterForm.name.charAt(0) : '头' }}
             </div>
           </div>
@@ -322,16 +447,29 @@
         </div>
       </el-form-item>
       <!-- 人物图列表：多张竖版全身，可 AI 生成或本地添加 -->
-      <el-form-item :label="kindUi.galleryLabel" class="character-image-form-item">
+      <el-form-item
+        :label="kindUi.galleryLabel"
+        class="character-image-form-item"
+      >
         <div class="character-image-form-section">
-          <div v-if="characterForm.characterImages.length" class="character-image-list">
+          <div
+            v-if="characterForm.characterImages.length"
+            class="character-image-list"
+          >
             <div
               v-for="(img, idx) in characterForm.characterImages"
               :key="idx"
               class="character-image-preview-wrap"
             >
-              <div class="character-image-preview" @click="previewFormCharacterImages(idx)">
-                <el-image :src="getAvatarSrc(img)" alt="人物图" fit="cover" />
+              <div
+                class="character-image-preview"
+                @click="previewFormCharacterImages(idx)"
+              >
+                <el-image
+                  :src="getAvatarSrc(img)"
+                  alt="人物图"
+                  fit="cover"
+                />
               </div>
               <el-button
                 type="danger"
@@ -344,13 +482,21 @@
               </el-button>
             </div>
           </div>
-          <div v-else class="character-image-placeholder">{{ kindUi.galleryEmpty }}</div>
+          <div
+            v-else
+            class="character-image-placeholder"
+          >
+            {{ kindUi.galleryEmpty }}
+          </div>
           <div class="character-image-input-section">
             <div class="input-row">
               <el-button @click="selectLocalImageForCharacterImage">
                 {{ t('characterProfile.selectLocalImage') }}
               </el-button>
-              <el-button type="success" @click="openAICharacterDrawer">
+              <el-button
+                type="success"
+                @click="openAICharacterDrawer"
+              >
                 <el-icon><MagicStick /></el-icon>
                 {{ kindUi.aiGenLabel }}
               </el-button>
@@ -360,7 +506,10 @@
       </el-form-item>
       <el-row :gutter="10">
         <el-col :span="kindUi.showHumanFields ? 12 : 24">
-          <el-form-item :label="kindUi.nameLabel" prop="name">
+          <el-form-item
+            :label="kindUi.nameLabel"
+            prop="name"
+          >
             <el-input
               v-model="characterForm.name"
               :placeholder="kindUi.namePlaceholder"
@@ -368,18 +517,34 @@
             />
           </el-form-item>
         </el-col>
-        <el-col v-if="kindUi.showHumanFields" :span="12">
-          <el-form-item :label="t('characterProfile.gender')" prop="gender">
+        <el-col
+          v-if="kindUi.showHumanFields"
+          :span="12"
+        >
+          <el-form-item
+            :label="t('characterProfile.gender')"
+            prop="gender"
+          >
             <el-radio-group v-model="characterForm.gender">
-              <el-radio value="男">{{ t('characterProfile.genderMale') }}</el-radio>
-              <el-radio value="女">{{ t('characterProfile.genderFemale') }}</el-radio>
+              <el-radio value="男">
+                {{ t('characterProfile.genderMale') }}
+              </el-radio>
+              <el-radio value="女">
+                {{ t('characterProfile.genderFemale') }}
+              </el-radio>
             </el-radio-group>
           </el-form-item>
         </el-col>
       </el-row>
-      <el-row v-if="kindUi.showHumanFields" :gutter="10">
+      <el-row
+        v-if="kindUi.showHumanFields"
+        :gutter="10"
+      >
         <el-col :span="12">
-          <el-form-item :label="t('characterProfile.age')" prop="age">
+          <el-form-item
+            :label="t('characterProfile.age')"
+            prop="age"
+          >
             <el-input-number
               v-model="characterForm.age"
               :min="1"
@@ -390,7 +555,10 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item :label="t('characterProfile.height')" prop="height">
+          <el-form-item
+            :label="t('characterProfile.height')"
+            prop="height"
+          >
             <el-input-number
               v-model="characterForm.height"
               :min="1"
@@ -401,7 +569,10 @@
           </el-form-item>
         </el-col>
       </el-row>
-      <el-form-item :label="kindUi.appearanceLabel" prop="appearance">
+      <el-form-item
+        :label="kindUi.appearanceLabel"
+        prop="appearance"
+      >
         <el-input
           v-model="characterForm.appearance"
           :placeholder="kindUi.appearancePlaceholder"
@@ -410,7 +581,10 @@
           clearable
         />
       </el-form-item>
-      <el-form-item :label="kindUi.biographyLabel" prop="biography">
+      <el-form-item
+        :label="kindUi.biographyLabel"
+        prop="biography"
+      >
         <el-input
           v-model="characterForm.biography"
           :placeholder="kindUi.biographyPlaceholder"
@@ -419,7 +593,10 @@
           clearable
         />
       </el-form-item>
-      <el-form-item :label="t('characterProfile.tags')" prop="tags">
+      <el-form-item
+        :label="t('characterProfile.tags')"
+        prop="tags"
+      >
         <el-tree-select
           v-model="characterForm.tags"
           :data="tagOptions"
@@ -450,7 +627,10 @@
             :style="color ? { backgroundColor: color } : {}"
             @click="handlePresetMarkerClick(color)"
           >
-            <span v-if="!color" class="marker-none">{{ t('characterProfile.none') }}</span>
+            <span
+              v-if="!color"
+              class="marker-none"
+            >{{ t('characterProfile.none') }}</span>
           </button>
           <el-color-picker
             v-model="characterForm.markerColor"
@@ -462,8 +642,15 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="drawerVisible = false">{{ t('common.cancel') }}</el-button>
-      <el-button type="primary" @click="confirmSave">{{ t('common.confirm') }}</el-button>
+      <el-button @click="drawerVisible = false">
+        {{ t('common.cancel') }}
+      </el-button>
+      <el-button
+        type="primary"
+        @click="confirmSave"
+      >
+        {{ t('common.confirm') }}
+      </el-button>
     </template>
   </el-drawer>
 
@@ -804,7 +991,7 @@ async function saveEntityCategory(category) {
         return
     }
     const raw = clonePlainData(toRaw(payload)).map((item) => {
-      // eslint-disable-next-line no-unused-vars
+
       const { sort, ...rest } = item
       return rest
     })
@@ -1023,7 +1210,7 @@ async function saveCharacters() {
   try {
     // 移除 sort 字段（如果存在），因为数组顺序就是最终顺序
     const rawCharacters = clonePlainData(toRaw(characters.value)).map((character) => {
-      // eslint-disable-next-line no-unused-vars
+
       const { sort, ...rest } = character
       return rest
     })
