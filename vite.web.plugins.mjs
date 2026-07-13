@@ -60,6 +60,7 @@ import { handleAiChatRoute } from './src/main/webApi/aiChatRoutes.js'
 import { createSnapshot as createSettingSnapshot } from './src/main/services/settingSnapshotService.js'
 import { setWebBooksDirectory } from './src/main/services/webBooksDirectoryService.js'
 import { createWebAuthService } from './src/main/services/webAuthService.js'
+import { createWebServerStore } from './src/main/services/webServerStoreService.js'
 
 export function createWebServerPlugins() {
   const configuredBooksDir = String(process.env.NOVEL_BOOKS_DIR || '').trim()
@@ -69,6 +70,7 @@ export function createWebServerPlugins() {
     extractionService: extractionAiService,
     createTextProvider
   })
+  const webStore = createWebServerStore()
 
   function readJsonBody(req) {
     return new Promise((resolveBody, reject) => {
@@ -112,7 +114,7 @@ export function createWebServerPlugins() {
   }
 
   function getActiveBooksDir() {
-    const storedDir = webStoreGet('booksDir')
+    const storedDir = webStore.get('booksDir')
     const dir = String(configuredBooksDir || storedDir || booksDir).trim() || booksDir
     fs.mkdirSync(dir, { recursive: true })
     return dir
@@ -152,59 +154,10 @@ export function createWebServerPlugins() {
     return relation === '' || (relation && !relation.startsWith('..') && !isAbsolute(relation))
   }
 
-  function webStoreAdapter() {
-    return {
-      get: (key) => webStoreGet(key),
-      set: (key, value) => webStoreSet(key, value),
-      delete: (key) => webStoreDelete(key)
-    }
-  }
-
-  // --- store APIs ---
-  function webStoreGet(key) {
-    try {
-      const store = readWebStoreRaw()
-      return store[key]
-    } catch (error) {
-      throw new Error(`Web 本地设置读取失败：${error.message}`)
-    }
-  }
-
-  function readWebStoreRaw() {
-    const storeFile = resolve('.store.json')
-    if (!fs.existsSync(storeFile)) return {}
-    let store
-    try {
-      store = JSON.parse(fs.readFileSync(storeFile, 'utf-8') || 'null')
-    } catch (error) {
-      throw new Error(`Web 本地设置读取失败：${error.message}`)
-    }
-    if (!store || typeof store !== 'object' || Array.isArray(store)) {
-      throw new Error('Web 本地设置格式异常，已停止读取 Provider 配置')
-    }
-    return store
-  }
-
-  function webStoreSet(key, value) {
-    const storeFile = resolve('.store.json')
-    const store = readWebStoreRaw()
-    store[key] = value
-    fs.writeFileSync(storeFile, JSON.stringify(store, null, 2))
-    return true
-  }
-
-  function webStoreDelete(key) {
-    const storeFile = resolve('.store.json')
-    const store = readWebStoreRaw()
-    delete store[key]
-    fs.writeFileSync(storeFile, JSON.stringify(store, null, 2))
-    return true
-  }
-
   const webAuth = createWebAuthService({
-    storeGet: webStoreGet,
-    storeSet: webStoreSet,
-    storeDelete: webStoreDelete
+    storeGet: webStore.get,
+    storeSet: webStore.set,
+    storeDelete: webStore.delete
   })
 
   // --- Embedding Provider normalization ---
@@ -235,14 +188,14 @@ export function createWebServerPlugins() {
   }
 
   function getEmbeddingProviders() {
-    const store = readWebStoreRaw()
+    const store = webStore.read()
     if (!store.embeddingProviders) store.embeddingProviders = []
     return store.embeddingProviders.map((provider) => normalizeEmbeddingProviderPayload(provider))
   }
 
   // --- AI History ---
   function readAiHistoryRows(action = '读取 AI 历史') {
-    const store = readWebStoreRaw()
+    const store = webStore.read()
     const rows = store['ai:history']
     if (rows == null) return []
     if (!Array.isArray(rows)) {
@@ -521,7 +474,7 @@ export function createWebServerPlugins() {
                 setWebBooksDirectory({
                   requestedDir,
                   configuredDir: configuredBooksDir,
-                  setStoreValue: webStoreSet
+                  setStoreValue: webStore.set
                 })
             })
           ) {
@@ -566,8 +519,8 @@ export function createWebServerPlugins() {
               res,
               booksDir: getActiveBooksDir(),
               sendJson,
-              readStore: readWebStoreRaw,
-              setStoreValue: webStoreSet,
+              readStore: webStore.read,
+              setStoreValue: webStore.set,
               isPathInside
             })
           ) {
@@ -599,9 +552,9 @@ export function createWebServerPlugins() {
               res,
               booksDir: getActiveBooksDir(),
               sendJson,
-              storeGet: webStoreGet,
-              storeSet: webStoreSet,
-              storeDelete: webStoreDelete
+              storeGet: webStore.get,
+              storeSet: webStore.set,
+              storeDelete: webStore.delete
             })
           ) {
             return
@@ -612,7 +565,7 @@ export function createWebServerPlugins() {
               res,
               booksDir: getActiveBooksDir(),
               sendJson,
-              store: webStoreAdapter(),
+              store: webStore.adapter(),
               readHistory: readAiHistoryRows,
               runTextTask: runWebAiTextTask,
               requestProxy: requestWebAiProxy,
@@ -631,7 +584,7 @@ export function createWebServerPlugins() {
               res,
               booksDir: getActiveBooksDir(),
               sendJson,
-              store: webStoreAdapter(),
+              store: webStore.adapter(),
               resolveBookPath: resolveBookPathForWebPayload,
               generateImage: generateImageResultByProvider,
               saveImage: saveGeneratedWebImage,
@@ -649,7 +602,7 @@ export function createWebServerPlugins() {
               booksDir: getActiveBooksDir(),
               sendJson,
               sanitizeText,
-              store: webStoreAdapter(),
+              store: webStore.adapter(),
               dimensions: EXTRACTION_DIMENSIONS,
               dimensionLabels: EXTRACTION_DIMENSION_LABELS,
               tasks: webExtractionTasks,
@@ -666,7 +619,7 @@ export function createWebServerPlugins() {
               booksDir: getActiveBooksDir(),
               sendJson,
               sanitizeText,
-              store: webStoreAdapter(),
+              store: webStore.adapter(),
               createProvider: createTextProvider,
               aiService: knowledgeTopicAiService,
               knowledge: knowledgeBaseService
@@ -680,7 +633,7 @@ export function createWebServerPlugins() {
               res,
               booksDir: getActiveBooksDir(),
               sendJson,
-              store: webStoreAdapter(),
+              store: webStore.adapter(),
               createProvider: createTextProvider,
               resolveBookPath: resolveBookPathForWebPayload,
               runCheck: runConsistencyCheck,
@@ -718,7 +671,7 @@ export function createWebServerPlugins() {
               res,
               booksDir: getActiveBooksDir(),
               sendJson,
-              store: webStoreAdapter(),
+              store: webStore.adapter(),
               createProvider: createTextProvider,
               resolveBookPath: resolveBookPathForWebPayload,
               plotService: plotEvolutionAiService,
@@ -735,7 +688,7 @@ export function createWebServerPlugins() {
               res,
               booksDir: getActiveBooksDir(),
               sendJson,
-              store: webStoreAdapter(),
+              store: webStore.adapter(),
               createProvider: createTextProvider,
               resolveBookPath: resolveBookPathForWebPayload,
               sendChat: sendChatMessage
