@@ -70,6 +70,28 @@ assert.throws(
   () => assets.requireAssetListResult({ success: true, items: {}, books: [] }),
   /素材接口返回格式不正确/
 )
+assert.throws(
+  () =>
+    assets.requireAssetListResult({
+      success: true,
+      items: [],
+      books: {},
+      message: '书籍数据损坏'
+    }),
+  /书籍数据损坏/
+)
+assert.throws(
+  () => assets.requireAssetListResult({ success: true, items: [], books: [], summary: [] }),
+  /素材接口返回统计格式不正确/
+)
+assert.throws(
+  () => assets.requireAssetListResult({ success: false, error: '服务拒绝' }, '自定义错误'),
+  /服务拒绝/
+)
+assert.throws(
+  () => assets.requireAssetListResult(null, '自定义错误'),
+  /自定义错误/
+)
 responseData = { success: true, references: null }
 await assert.rejects(() => assets.findAssetReferences('asset-1'), /接口返回格式不正确/)
 responseData = { success: true, item: { id: 'asset-2', bookName: '作品乙' } }
@@ -77,5 +99,41 @@ await assert.rejects(
   () => assets.attachAssetToBook({ id: 'asset-2', bookName: '作品甲' }),
   /书籍不匹配/
 )
+responseData = {
+  success: true,
+  item: { id: 'asset-3' },
+  bookFolderName: '作品甲'
+}
+assert.equal(
+  (await assets.importAsset({ dataUrl: 'data:image/png;base64,AA==', bookName: '作品甲' }))
+    .item.id,
+  'asset-3'
+)
+responseData = { success: true, item: null }
+await assert.rejects(() => assets.deleteAsset('asset-3'), /接口返回格式不正确/)
+responseData = { success: true, item: { id: 'asset-3' } }
+await assert.rejects(() => assets.restoreAsset('asset-3'), /接口缺少 restoredPath/)
+responseData = { success: false, message: '删除失败' }
+await assert.rejects(() => assets.deleteAsset('asset-3'), /删除失败/)
+
+assert.equal(assets.imageSelectionToImportInput(null), null)
+assert.equal(assets.imageSelectionToImportInput({ success: false, error: '未选择文件' }), null)
+assert.throws(
+  () => assets.imageSelectionToImportInput({ success: false }),
+  /选择图片失败/
+)
+assert.deepEqual(
+  assets.imageSelectionToImportInput({
+    filePath: 'data:image/jpeg;base64,AA==',
+    fileName: 'cover.jpg'
+  }),
+  { dataUrl: 'data:image/jpeg;base64,AA==', fileName: 'cover.jpg' }
+)
+assert.throws(
+  () => assets.imageSelectionToImportInput({ path: 'D:/image.png' }),
+  /不能读取本地文件路径/
+)
+assert.equal(assets.imageSelectionToImportInput({}), null)
+assert.equal(assets.getAssetUrl(), '/api/assets/get?id=&trash=')
 
 console.log('Web 素材服务测试通过')
