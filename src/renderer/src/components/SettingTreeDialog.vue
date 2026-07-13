@@ -8,7 +8,10 @@
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <div class="setting-tree-content">
-      <el-form label-width="80px" class="setting-tree-form">
+      <el-form
+        label-width="80px"
+        class="setting-tree-form"
+      >
         <el-form-item :label="t('settingTree.creativity')">
           <el-input
             v-model="creativity"
@@ -19,10 +22,18 @@
         </el-form-item>
         <el-form-item :label="t('settingTree.strategy')">
           <el-radio-group v-model="strategy">
-            <el-radio value="xuanhuan">{{ t('settingTree.strategyXuanhuan') }}</el-radio>
-            <el-radio value="dushi">{{ t('settingTree.strategyDushi') }}</el-radio>
-            <el-radio value="kehuan">{{ t('settingTree.strategyKehuan') }}</el-radio>
-            <el-radio value="free">{{ t('settingTree.strategyFree') }}</el-radio>
+            <el-radio value="xuanhuan">
+              {{ t('settingTree.strategyXuanhuan') }}
+            </el-radio>
+            <el-radio value="dushi">
+              {{ t('settingTree.strategyDushi') }}
+            </el-radio>
+            <el-radio value="kehuan">
+              {{ t('settingTree.strategyKehuan') }}
+            </el-radio>
+            <el-radio value="free">
+              {{ t('settingTree.strategyFree') }}
+            </el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -38,15 +49,33 @@
         </el-button>
       </div>
 
-      <div v-if="treeData.length > 0" class="tree-preview">
-        <div class="tree-preview-title">{{ t('settingTree.preview') }}</div>
-        <el-tree :data="treeData" node-key="name" default-expand-all :expand-on-click-node="false">
+      <div
+        v-if="treeData.length > 0"
+        class="tree-preview"
+      >
+        <div class="tree-preview-title">
+          {{ t('settingTree.preview') }}
+        </div>
+        <el-tree
+          :data="treeData"
+          node-key="name"
+          default-expand-all
+          :expand-on-click-node="false"
+        >
           <template #default="{ data }">
             <div class="tree-node">
               <span class="node-name">{{ data.name }}</span>
-              <span v-if="data.description" class="node-desc">{{ data.description }}</span>
+              <span
+                v-if="data.description"
+                class="node-desc"
+              >{{ data.description }}</span>
               <div class="node-actions">
-                <el-button link type="primary" size="small" @click.stop="openEditNode(data)">
+                <el-button
+                  link
+                  type="primary"
+                  size="small"
+                  @click.stop="openEditNode(data)"
+                >
                   {{ t('settingTree.edit') }}
                 </el-button>
                 <el-button
@@ -66,13 +95,23 @@
     </div>
 
     <template #footer>
-      <el-button @click="$emit('update:modelValue', false)">{{
-        t('settingTree.cancel')
-      }}</el-button>
-      <el-button type="warning" :disabled="treeData.length === 0" @click="handleApply('merge')">
+      <el-button @click="$emit('update:modelValue', false)">
+        {{
+          t('settingTree.cancel')
+        }}
+      </el-button>
+      <el-button
+        type="warning"
+        :disabled="treeData.length === 0"
+        @click="handleApply('merge')"
+      >
         {{ t('settingTree.merge') }}
       </el-button>
-      <el-button type="primary" :disabled="treeData.length === 0" @click="handleApply('replace')">
+      <el-button
+        type="primary"
+        :disabled="treeData.length === 0"
+        @click="handleApply('replace')"
+      >
         {{ t('settingTree.replace') }}
       </el-button>
     </template>
@@ -89,12 +128,23 @@
           <el-input v-model="editingNode.name" />
         </el-form-item>
         <el-form-item :label="t('settingTree.nodeDesc')">
-          <el-input v-model="editingNode.description" type="textarea" :rows="4" />
+          <el-input
+            v-model="editingNode.description"
+            type="textarea"
+            :rows="4"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="editNodeVisible = false">{{ t('settingTree.cancel') }}</el-button>
-        <el-button type="primary" @click="saveEditNode">{{ t('settingTree.save') }}</el-button>
+        <el-button @click="editNodeVisible = false">
+          {{ t('settingTree.cancel') }}
+        </el-button>
+        <el-button
+          type="primary"
+          @click="saveEditNode"
+        >
+          {{ t('settingTree.save') }}
+        </el-button>
       </template>
     </el-dialog>
   </el-dialog>

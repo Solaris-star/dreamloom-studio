@@ -21,28 +21,51 @@
           </el-button>
         </div>
 
-        <div v-if="snapshotLoadError" class="snapshot-read-error">
+        <div
+          v-if="snapshotLoadError"
+          class="snapshot-read-error"
+        >
           <span>{{ snapshotLoadError }}</span>
-          <el-button type="primary" plain :loading="loadingSnapshots" @click="loadSnapshots">
+          <el-button
+            type="primary"
+            plain
+            :loading="loadingSnapshots"
+            @click="loadSnapshots"
+          >
             {{ t('common.retry') }}
           </el-button>
         </div>
 
-        <div v-else-if="loadingSnapshots" class="snapshot-loading">
-          <el-skeleton :rows="4" animated />
+        <div
+          v-else-if="loadingSnapshots"
+          class="snapshot-loading"
+        >
+          <el-skeleton
+            :rows="4"
+            animated
+          />
         </div>
 
-        <el-timeline v-else-if="snapshotList.length > 0" class="snapshot-timeline">
+        <el-timeline
+          v-else-if="snapshotList.length > 0"
+          class="snapshot-timeline"
+        >
           <el-timeline-item
             v-for="snap in snapshotList"
             :key="snap.id"
             :timestamp="formatTime(snap.createdAt)"
             placement="top"
           >
-            <el-card shadow="hover" class="snapshot-card">
+            <el-card
+              shadow="hover"
+              class="snapshot-card"
+            >
               <div class="snapshot-header">
                 <span class="snapshot-name">{{ snap.name }}</span>
-                <el-tag size="small" :type="triggerTagType(snap.triggerType)">
+                <el-tag
+                  size="small"
+                  :type="triggerTagType(snap.triggerType)"
+                >
                   {{ snap.triggerType }}
                 </el-tag>
               </div>
@@ -76,7 +99,10 @@
           </el-timeline-item>
         </el-timeline>
 
-        <el-empty v-else :description="t('settingSnapshot.emptyHint')" />
+        <el-empty
+          v-else
+          :description="t('settingSnapshot.emptyHint')"
+        />
       </div>
     </div>
 
@@ -93,7 +119,12 @@
           :placeholder="t('settingSnapshot.selectLeft')"
           style="width: 45%"
         >
-          <el-option v-for="s in snapshotList" :key="s.id" :label="s.name" :value="s.id" />
+          <el-option
+            v-for="s in snapshotList"
+            :key="s.id"
+            :label="s.name"
+            :value="s.id"
+          />
         </el-select>
         <span class="diff-vs">VS</span>
         <el-select
@@ -101,7 +132,12 @@
           :placeholder="t('settingSnapshot.selectRight')"
           style="width: 45%"
         >
-          <el-option v-for="s in snapshotList" :key="s.id" :label="s.name" :value="s.id" />
+          <el-option
+            v-for="s in snapshotList"
+            :key="s.id"
+            :label="s.name"
+            :value="s.id"
+          />
         </el-select>
       </div>
       <el-button
@@ -113,11 +149,19 @@
       >
         {{ t('settingSnapshot.compare') }}
       </el-button>
-      <div v-if="diffResult" class="diff-result">
+      <div
+        v-if="diffResult"
+        class="diff-result"
+      >
         <div class="diff-pane">
-          <div class="diff-pane-title">新增 {{ diffResult.added.length }}</div>
+          <div class="diff-pane-title">
+            新增 {{ diffResult.added.length }}
+          </div>
           <el-scrollbar max-height="400px">
-            <div v-if="diffResult.added.length" class="diff-list">
+            <div
+              v-if="diffResult.added.length"
+              class="diff-list"
+            >
               <div
                 v-for="item in diffResult.added"
                 :key="`added-${item.path}`"
@@ -127,13 +171,22 @@
                 <span class="diff-desc">{{ item.introduction || '无简介' }}</span>
               </div>
             </div>
-            <el-empty v-else description="无新增设定" :image-size="64" />
+            <el-empty
+              v-else
+              description="无新增设定"
+              :image-size="64"
+            />
           </el-scrollbar>
         </div>
         <div class="diff-pane">
-          <div class="diff-pane-title">删除 {{ diffResult.removed.length }}</div>
+          <div class="diff-pane-title">
+            删除 {{ diffResult.removed.length }}
+          </div>
           <el-scrollbar max-height="400px">
-            <div v-if="diffResult.removed.length" class="diff-list">
+            <div
+              v-if="diffResult.removed.length"
+              class="diff-list"
+            >
               <div
                 v-for="item in diffResult.removed"
                 :key="`removed-${item.path}`"
@@ -143,13 +196,22 @@
                 <span class="diff-desc">{{ item.introduction || '无简介' }}</span>
               </div>
             </div>
-            <el-empty v-else description="无删除设定" :image-size="64" />
+            <el-empty
+              v-else
+              description="无删除设定"
+              :image-size="64"
+            />
           </el-scrollbar>
         </div>
         <div class="diff-pane">
-          <div class="diff-pane-title">修改 {{ diffResult.modified.length }}</div>
+          <div class="diff-pane-title">
+            修改 {{ diffResult.modified.length }}
+          </div>
           <el-scrollbar max-height="400px">
-            <div v-if="diffResult.modified.length" class="diff-list">
+            <div
+              v-if="diffResult.modified.length"
+              class="diff-list"
+            >
               <div
                 v-for="item in diffResult.modified"
                 :key="`modified-${item.path}`"
@@ -159,7 +221,11 @@
                 <span class="diff-desc">{{ item.introduction || '无简介' }}</span>
               </div>
             </div>
-            <el-empty v-else description="无修改设定" :image-size="64" />
+            <el-empty
+              v-else
+              description="无修改设定"
+              :image-size="64"
+            />
           </el-scrollbar>
         </div>
       </div>
