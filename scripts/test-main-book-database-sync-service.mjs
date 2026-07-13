@@ -4,7 +4,10 @@ import os from 'node:os'
 import { join } from 'node:path'
 import {
   countChapterWords,
+  inferBookNameFromPath,
   readBookMeta,
+  safeBookFolderName,
+  syncBookDocument,
   syncBookDocumentFile,
   syncBookDocumentPath,
   syncBookProject,
@@ -36,6 +39,24 @@ function documentTypes(repository, projectId) {
 
 try {
   fs.mkdirSync(join(originalBookPath, '正文', '第一卷'), { recursive: true })
+  assert.equal(safeBookFolderName(' 书/名:*? '), '书_名___')
+  assert.equal(safeBookFolderName('', ' 默认作品 '), '默认作品')
+  assert.equal(countChapterWords('甲 乙\n丙\t丁'), 4)
+  assert.equal(countChapterWords(null), 0)
+  assert.equal(readBookMeta(''), null)
+  assert.equal(readBookMeta(join(rootDir, '不存在')), null)
+  assert.equal(inferBookNameFromPath(join(booksDir, ' 作品 ')), '作品')
+  assert.equal(inferBookNameFromPath(''), '')
+  assert.equal(syncBookProject(), null)
+  assert.equal(syncBookProject({ booksDir }), null)
+  assert.equal(syncBookDocument(), null)
+  assert.equal(
+    syncBookDocument({ booksDir, bookName: originalBookName, fileName: 'unknown.json' }),
+    null
+  )
+  assert.equal(syncBookDocumentFile({ fileName: 'unknown.json' }), null)
+  assert.equal(syncBookDocumentPath(), null)
+  assert.equal(syncChapterWrite(), null)
 
   const originalMeta = {
     id: 'book_wucheng',
@@ -50,6 +71,10 @@ try {
   writeJson(join(originalBookPath, 'settings.json'), {
     categories: [{ name: '城市', items: [{ name: '雾城', introduction: '常年起雾。' }] }]
   })
+  assert.equal(readBookMeta(join(rootDir, 'primitive-meta')), null)
+  fs.mkdirSync(join(rootDir, 'primitive-meta'))
+  fs.writeFileSync(join(rootDir, 'primitive-meta', 'mazi.json'), '"text"', 'utf8')
+  assert.equal(readBookMeta(join(rootDir, 'primitive-meta')), null)
 
   const project = syncBookProject({
     booksDir,
@@ -67,6 +92,12 @@ try {
     bookPath: originalBookPath,
     fileName: 'characters.json'
   })
+  const inferredDocument = syncBookDocument({
+    booksDir,
+    bookName: originalBookName,
+    fileName: 'characters.json'
+  })
+  assert.equal(inferredDocument.documentType, 'characters')
   syncBookDocumentFile({
     booksDir,
     bookName: originalBookName,
@@ -117,6 +148,14 @@ try {
     content: firstChapterContent,
     filePath: firstChapterPath
   })
+  const defaultChapterPath = syncChapterWrite({
+    booksDir,
+    bookName: originalBookName,
+    volumeName: '第一卷',
+    chapterName: '第二章',
+    content: null
+  })
+  assert.equal(defaultChapterPath.wordCount, 0)
 
   fs.renameSync(originalBookPath, renamedBookPath)
   const renamedMeta = {
@@ -174,6 +213,7 @@ try {
     }
   })
   assert.equal(missingBooksDirExportResult.databaseSync.success, false)
+  assert.equal(syncExportResult({ result: null }).databaseSync.success, false)
 
   const emptyExportResult = syncExportResult({ booksDir, result: {} })
   assert.equal(emptyExportResult.databaseSync.success, false)
@@ -242,6 +282,7 @@ try {
     }
   })
   assert.equal(failedBackupResult.databaseSync.success, false)
+  assert.equal(syncBackupResult({ result: null }).databaseSync.success, false)
 
   const failedBackupSyncResult = syncBackupResult({
     booksDir,
@@ -341,6 +382,20 @@ try {
   })
   assert.equal(missingImportPathSyncResult.databaseSync.success, false)
 
+  const noMetaBookName = '缺少元数据'
+  const noMetaBookPath = join(booksDir, noMetaBookName)
+  fs.mkdirSync(noMetaBookPath)
+  const noMetaImportResult = syncImportResult({
+    booksDir,
+    result: {
+      success: true,
+      bookName: noMetaBookName,
+      bookPath: noMetaBookPath
+    }
+  })
+  assert.equal(noMetaImportResult.databaseSync.success, false)
+  assert.match(noMetaImportResult.databaseSync.message, /mazi\.json/)
+
   const outsideBookName = '外部导入作品'
   const outsideBookPath = join(rootDir, outsideBookName)
   fs.mkdirSync(outsideBookPath, { recursive: true })
@@ -378,6 +433,13 @@ try {
     restoredChapterContent,
     'utf-8'
   )
+  fs.mkdirSync(join(restoredBookPath, '正文', '第二卷', '上篇'), { recursive: true })
+  fs.writeFileSync(
+    join(restoredBookPath, '正文', '第二卷', '上篇', '第二章.txt'),
+    '林照进入暗区后关闭了所有信标。',
+    'utf8'
+  )
+  fs.writeFileSync(join(restoredBookPath, '正文', '说明.md'), '不是章节', 'utf8')
   const restoreSyncResult = syncRestoreResult({
     booksDir,
     result: {
@@ -402,7 +464,7 @@ try {
   })
   assert.equal(restoreSyncResult.databaseSync.success, true)
   assert.equal(restoreSyncResult.databaseSync.projectCount, 1)
-  assert.equal(restoreSyncResult.databaseSync.chapterCount, 1)
+  assert.equal(restoreSyncResult.databaseSync.chapterCount, 2)
   assert.equal(restoreSyncResult.databaseSync.documentTypes.includes('characters'), true)
   assert.equal(restoreSyncResult.databaseSync.documentTypes.includes('outlines'), true)
   assert.equal(restoreSyncResult.projectRecords[0].id, 'book_restored_xinghe')
@@ -417,6 +479,17 @@ try {
   })
   assert.equal(archiveRestoreSyncResult.databaseSync.success, true)
   assert.equal(archiveRestoreSyncResult.databaseSync.projectCount, 0)
+
+  const restoreModeAliasResult = syncRestoreResult({
+    booksDir,
+    result: {
+      success: true,
+      restoreMode: 'bookshelf',
+      restoredBooks: [{ folderName: restoredBookName, path: restoredBookPath }]
+    }
+  })
+  assert.equal(restoreModeAliasResult.databaseSync.success, true)
+  assert.equal(restoreModeAliasResult.databaseSync.projectCount, 1)
 
   const failedRestoreResult = syncRestoreResult({
     booksDir,
@@ -463,10 +536,10 @@ try {
     assert.equal(types.has('settings'), true)
 
     const chapters = repository.listChapters(storedProject.id)
-    assert.equal(chapters.length, 1)
-    assert.equal(chapters[0].chapterName, renamedChapterName)
-    assert.equal(chapters[0].content, renamedChapterContent)
-    assert.equal(chapters[0].wordCount, countChapterWords(renamedChapterContent))
+    assert.equal(chapters.length, 2)
+    const renamedChapter = chapters.find((chapter) => chapter.chapterName === renamedChapterName)
+    assert.equal(renamedChapter.content, renamedChapterContent)
+    assert.equal(renamedChapter.wordCount, countChapterWords(renamedChapterContent))
 
     const exports = repository.listExports(storedProject.id)
     assert.equal(exports.length, 1)
@@ -512,7 +585,7 @@ try {
     assert.equal(restoredTypes.has('characters'), true)
     assert.equal(restoredTypes.has('outlines'), true)
     const restoredChapters = repository.listChapters(restoredProject.id)
-    assert.equal(restoredChapters.length, 1)
+    assert.equal(restoredChapters.length, 2)
     assert.equal(restoredChapters[0].content, restoredChapterContent)
   } finally {
     repository.close()
