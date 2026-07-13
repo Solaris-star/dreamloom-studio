@@ -727,6 +727,16 @@ function requireNotesRowsResult(response) {
   if (!Array.isArray(result.notes)) {
     throw new Error('读取笔记失败：接口返回格式不正确')
   }
+  for (const notebook of result.notes) {
+    if (!notebook || typeof notebook !== 'object' || Array.isArray(notebook)) {
+      throw new Error('读取笔记失败：笔记本目录格式不正确')
+    }
+    const notebookName = String(notebook.name || notebook.notebookName || '').trim()
+    if (!notebookName) {
+      throw new Error('读取笔记失败：笔记本缺少名称')
+    }
+    requireNoteChildrenRows(notebook)
+  }
   return result.notes
 }
 
