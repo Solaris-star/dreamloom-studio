@@ -11,7 +11,12 @@
   >
     <div class="ai-scene-drawer-content">
       <div class="ai-scene-drawer-body">
-        <el-alert type="info" :closable="false" show-icon class="ai-scene-tip">
+        <el-alert
+          type="info"
+          :closable="false"
+          show-icon
+          class="ai-scene-tip"
+        >
           {{ t('aiSceneImage.tip') }}
         </el-alert>
 
@@ -25,12 +30,23 @@
         >
           <template v-if="providersLoaded">
             <el-form-item v-if="noImageProviders">
-              <el-alert type="warning" :closable="false" show-icon class="ai-drawer-provider-alert">
+              <el-alert
+                type="warning"
+                :closable="false"
+                show-icon
+                class="ai-drawer-provider-alert"
+              >
                 {{ t('imageAi.noProviderHint') }}
               </el-alert>
             </el-form-item>
-            <el-form-item v-else :label="t('imageAi.serviceLabel')">
-              <el-select v-model="selectedProvider" style="width: 100%">
+            <el-form-item
+              v-else
+              :label="t('imageAi.serviceLabel')"
+            >
+              <el-select
+                v-model="selectedProvider"
+                style="width: 100%"
+              >
                 <el-option
                   v-for="p in imageProviders"
                   :key="p"
@@ -136,7 +152,10 @@
             </el-select>
           </el-form-item>
 
-          <el-form-item :label="t('aiSceneImage.prompt')" prop="prompt">
+          <el-form-item
+            :label="t('aiSceneImage.prompt')"
+            prop="prompt"
+          >
             <el-input
               v-model="form.prompt"
               type="textarea"
@@ -155,7 +174,10 @@
               >
                 {{ t('aiSceneImage.refineWithDeepSeek') }}
               </el-button>
-              <span v-if="refineError" class="refine-error">{{ refineError }}</span>
+              <span
+                v-if="refineError"
+                class="refine-error"
+              >{{ refineError }}</span>
             </div>
           </el-form-item>
 
@@ -171,25 +193,46 @@
           </el-form-item>
         </el-form>
 
-        <el-alert v-if="generating" type="info" :closable="false" show-icon class="generating-hint">
+        <el-alert
+          v-if="generating"
+          type="info"
+          :closable="false"
+          show-icon
+          class="generating-hint"
+        >
           {{ t('aiSceneImage.generating') }}
         </el-alert>
 
-        <div v-if="generatedList.length > 0" class="generated-section">
-          <div class="section-title">{{ t('aiSceneImage.generatedTitle') }}</div>
-          <div v-for="(item, index) in generatedList" :key="item.localPath" class="generated-block">
+        <div
+          v-if="generatedList.length > 0"
+          class="generated-section"
+        >
+          <div class="section-title">
+            {{ t('aiSceneImage.generatedTitle') }}
+          </div>
+          <div
+            v-for="(item, index) in generatedList"
+            :key="item.localPath"
+            class="generated-block"
+          >
             <div class="generated-thumb-wrap">
               <img
                 :src="item.previewUrl"
                 :alt="t('aiSceneImage.generatedAlt', { index: index + 1 })"
                 class="generated-thumb"
-              />
+              >
             </div>
             <div class="path-row">
               <span class="path-label">{{ t('aiSceneImage.savePath') }}</span>
-              <el-input :model-value="item.localPath" readonly class="path-input">
+              <el-input
+                :model-value="item.localPath"
+                readonly
+                class="path-input"
+              >
                 <template #append>
-                  <el-button @click="copyPath(item.localPath)">{{ t('common.copy') }}</el-button>
+                  <el-button @click="copyPath(item.localPath)">
+                    {{ t('common.copy') }}
+                  </el-button>
                 </template>
               </el-input>
             </div>
@@ -198,7 +241,9 @@
       </div>
 
       <div class="ai-scene-drawer-footer">
-        <el-button @click="handleClose">{{ t('common.close') }}</el-button>
+        <el-button @click="handleClose">
+          {{ t('common.close') }}
+        </el-button>
         <el-button
           type="primary"
           :loading="generating"
