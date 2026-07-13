@@ -5,7 +5,10 @@
         <el-icon><MagicStick /></el-icon>
         <span>拆书</span>
       </el-button>
-      <el-button type="primary" @click="openCreateDialog(activeCreateType)">
+      <el-button
+        type="primary"
+        @click="openCreateDialog(activeCreateType)"
+      >
         <el-icon><Plus /></el-icon>
         <span>新建资产</span>
       </el-button>
@@ -58,7 +61,12 @@
               <el-icon><Search /></el-icon>
             </template>
           </el-input>
-          <el-select v-model="filters.type" clearable placeholder="类型" class="filter-select">
+          <el-select
+            v-model="filters.type"
+            clearable
+            placeholder="类型"
+            class="filter-select"
+          >
             <el-option
               v-for="type in typeOptions"
               :key="type.value"
@@ -100,9 +108,19 @@
             placeholder="题材"
             class="filter-select"
           >
-            <el-option v-for="genre in genreOptions" :key="genre" :label="genre" :value="genre" />
+            <el-option
+              v-for="genre in genreOptions"
+              :key="genre"
+              :label="genre"
+              :value="genre"
+            />
           </el-select>
-          <el-select v-model="filters.status" clearable placeholder="状态" class="filter-select">
+          <el-select
+            v-model="filters.status"
+            clearable
+            placeholder="状态"
+            class="filter-select"
+          >
             <el-option
               v-for="status in statusOptions"
               :key="status.value"
@@ -110,19 +128,43 @@
               :value="status.value"
             />
           </el-select>
-          <el-select v-model="filters.sortBy" placeholder="排序" class="filter-select">
-            <el-option label="最近更新" value="updatedAt" />
-            <el-option label="最近创建" value="createdAt" />
-            <el-option label="标题" value="title" />
-            <el-option label="热度" value="heat" />
-            <el-option label="商业潜力" value="commercial" />
-            <el-option label="最近使用" value="lastUsedAt" />
+          <el-select
+            v-model="filters.sortBy"
+            placeholder="排序"
+            class="filter-select"
+          >
+            <el-option
+              label="最近更新"
+              value="updatedAt"
+            />
+            <el-option
+              label="最近创建"
+              value="createdAt"
+            />
+            <el-option
+              label="标题"
+              value="title"
+            />
+            <el-option
+              label="热度"
+              value="heat"
+            />
+            <el-option
+              label="商业潜力"
+              value="commercial"
+            />
+            <el-option
+              label="最近使用"
+              value="lastUsedAt"
+            />
           </el-select>
         </section>
 
         <section class="workspace">
           <aside class="category-panel">
-            <div class="panel-title">资产目录</div>
+            <div class="panel-title">
+              资产目录
+            </div>
             <button
               v-for="group in directoryGroups"
               :key="group.key"
@@ -133,19 +175,35 @@
               <span>{{ group.label }}</span>
               <small>{{ group.count }}</small>
             </button>
-            <div class="panel-title secondary">快捷入口</div>
-            <button class="directory-item" @click="goToMarketInspiration">
+            <div class="panel-title secondary">
+              快捷入口
+            </div>
+            <button
+              class="directory-item"
+              @click="goToMarketInspiration"
+            >
               <span>打开市场灵感</span>
               <small>录入热点和活动</small>
             </button>
           </aside>
 
           <main class="asset-list">
-            <p v-if="itemsLoadError" class="list-read-error">
+            <p
+              v-if="itemsLoadError"
+              class="list-read-error"
+            >
               <span>{{ itemsLoadError }}</span>
-              <button type="button" @click="loadItems">重试</button>
+              <button
+                type="button"
+                @click="loadItems"
+              >
+                重试
+              </button>
             </p>
-            <el-empty v-if="filteredItems.length === 0" :description="emptyText" />
+            <el-empty
+              v-if="filteredItems.length === 0"
+              :description="emptyText"
+            />
             <article
               v-for="item in filteredItems"
               v-else
@@ -155,13 +213,31 @@
               @click="selectItem(item)"
             >
               <div class="card-topline">
-                <el-tag size="small" :type="tagTypeForItem(item)" round>{{
-                  typeLabel(item.type)
-                }}</el-tag>
-                <el-tag v-if="item.status" size="small" :type="statusTagType(item.status)" round>
+                <el-tag
+                  size="small"
+                  :type="tagTypeForItem(item)"
+                  round
+                >
+                  {{
+                    typeLabel(item.type)
+                  }}
+                </el-tag>
+                <el-tag
+                  v-if="item.status"
+                  size="small"
+                  :type="statusTagType(item.status)"
+                  round
+                >
                   {{ statusLabel(item.status) }}
                 </el-tag>
-                <el-tag v-if="isEndingSoon(item)" size="small" type="danger" round>即将截止</el-tag>
+                <el-tag
+                  v-if="isEndingSoon(item)"
+                  size="small"
+                  type="danger"
+                  round
+                >
+                  即将截止
+                </el-tag>
                 <el-button
                   class="favorite-btn"
                   text
@@ -174,17 +250,38 @@
 
               <template v-if="item.type === 'topic_card'">
                 <h3>{{ item.title }}</h3>
-                <p class="hook">{{ topicMeta(item).oneLineHook || item.summary }}</p>
+                <p class="hook">
+                  {{ topicMeta(item).oneLineHook || item.summary }}
+                </p>
                 <div class="score-grid">
-                  <ScoreBar label="热度" :value="topicMeta(item).marketHeatScore" />
-                  <ScoreBar label="原创" :value="topicMeta(item).originalityScore" />
-                  <ScoreBar label="商业" :value="topicMeta(item).commercialPotentialScore" />
-                  <ScoreBar label="难度" :value="topicMeta(item).writingDifficultyScore" />
+                  <ScoreBar
+                    label="热度"
+                    :value="topicMeta(item).marketHeatScore"
+                  />
+                  <ScoreBar
+                    label="原创"
+                    :value="topicMeta(item).originalityScore"
+                  />
+                  <ScoreBar
+                    label="商业"
+                    :value="topicMeta(item).commercialPotentialScore"
+                  />
+                  <ScoreBar
+                    label="难度"
+                    :value="topicMeta(item).writingDifficultyScore"
+                  />
                 </div>
                 <div class="tag-row">
-                  <el-tag v-for="tag in item.genreTags.slice(0, 3)" :key="tag" size="small" round>{{
-                    tag
-                  }}</el-tag>
+                  <el-tag
+                    v-for="tag in item.genreTags.slice(0, 3)"
+                    :key="tag"
+                    size="small"
+                    round
+                  >
+                    {{
+                      tag
+                    }}
+                  </el-tag>
                   <el-tag
                     v-for="tag in item.platformTags.slice(0, 3)"
                     :key="tag"
@@ -241,9 +338,16 @@
                 <h3>{{ item.title }}</h3>
                 <p>{{ item.summary || item.content || '这个资产还没有摘要。' }}</p>
                 <div class="tag-row">
-                  <el-tag v-for="tag in allTags(item).slice(0, 6)" :key="tag" size="small" round>{{
-                    tag
-                  }}</el-tag>
+                  <el-tag
+                    v-for="tag in allTags(item).slice(0, 6)"
+                    :key="tag"
+                    size="small"
+                    round
+                  >
+                    {{
+                      tag
+                    }}
+                  </el-tag>
                 </div>
               </template>
 
@@ -251,19 +355,24 @@
                 <span>{{ item.sourceName || sourceLabel(item.sourceType) }}</span>
                 <span>{{ formatDate(item.updatedAt) }}</span>
               </div>
-              <div class="action-row" @click.stop>
+              <div
+                class="action-row"
+                @click.stop
+              >
                 <el-button
                   v-if="item.type === 'topic_card'"
                   size="small"
                   @click="runAi(item, 'expand')"
-                  >AI 扩展</el-button
                 >
+                  AI 扩展
+                </el-button>
                 <el-button
                   v-if="item.type === 'topic_card'"
                   size="small"
                   @click="runAi(item, 'outline')"
-                  >生成大纲</el-button
                 >
+                  生成大纲
+                </el-button>
                 <el-button
                   v-if="item.type === 'topic_card'"
                   size="small"
@@ -275,46 +384,64 @@
                   v-if="item.type === 'topic_card'"
                   size="small"
                   @click="runAi(item, 'characters')"
-                  >角色设定</el-button
                 >
+                  角色设定
+                </el-button>
                 <el-button
                   v-if="item.type === 'topic_card'"
                   size="small"
                   @click="runAi(item, 'world')"
-                  >世界观</el-button
                 >
+                  世界观
+                </el-button>
                 <el-button
                   v-if="item.type === 'topic_card'"
                   size="small"
                   @click="runAi(item, 'evaluate')"
-                  >评估</el-button
                 >
+                  评估
+                </el-button>
                 <el-button
                   v-if="item.type === 'topic_card'"
                   size="small"
                   @click="convertToBook(item)"
-                  >转为新书</el-button
                 >
+                  转为新书
+                </el-button>
                 <el-button
                   v-if="item.type === 'market_hotspot'"
                   size="small"
                   @click="generateTopicFrom(item)"
-                  >生成选题</el-button
                 >
+                  生成选题
+                </el-button>
                 <el-button
                   v-if="item.type === 'writer_activity'"
                   size="small"
                   @click="generateTopicFrom(item)"
-                  >生成投稿选题</el-button
                 >
+                  生成投稿选题
+                </el-button>
                 <el-button
                   v-if="item.type === 'book_analysis'"
                   size="small"
                   @click="generateTopicFrom(item)"
-                  >基于此生成选题</el-button
                 >
-                <el-button size="small" @click="archiveItem(item)">归档</el-button>
-                <el-button size="small" type="danger" @click="removeItem(item)">删除</el-button>
+                  基于此生成选题
+                </el-button>
+                <el-button
+                  size="small"
+                  @click="archiveItem(item)"
+                >
+                  归档
+                </el-button>
+                <el-button
+                  size="small"
+                  type="danger"
+                  @click="removeItem(item)"
+                >
+                  删除
+                </el-button>
               </div>
             </article>
           </main>
@@ -323,9 +450,15 @@
             <template v-if="selectedItem">
               <div class="detail-header">
                 <div>
-                  <el-tag size="small" :type="tagTypeForItem(selectedItem)" round>{{
-                    typeLabel(selectedItem.type)
-                  }}</el-tag>
+                  <el-tag
+                    size="small"
+                    :type="tagTypeForItem(selectedItem)"
+                    round
+                  >
+                    {{
+                      typeLabel(selectedItem.type)
+                    }}
+                  </el-tag>
                   <h2>{{ selectedItem.title }}</h2>
                 </div>
                 <el-button
@@ -336,9 +469,16 @@
                   <el-icon><StarFilled v-if="selectedItem.favorite" /><Star v-else /></el-icon>
                 </el-button>
               </div>
-              <p class="detail-summary">{{ selectedItem.summary || '暂无摘要' }}</p>
+              <p class="detail-summary">
+                {{ selectedItem.summary || '暂无摘要' }}
+              </p>
               <div class="detail-actions">
-                <el-button size="small" @click="editItem(selectedItem)">编辑</el-button>
+                <el-button
+                  size="small"
+                  @click="editItem(selectedItem)"
+                >
+                  编辑
+                </el-button>
                 <el-button
                   v-if="selectedItem.sourceUrl"
                   size="small"
@@ -377,7 +517,10 @@
                 <span>更新：{{ formatDate(selectedItem.updatedAt) }}</span>
               </div>
             </template>
-            <el-empty v-else description="点击卡片查看资产详情" />
+            <el-empty
+              v-else
+              description="点击卡片查看资产详情"
+            />
           </aside>
         </section>
       </div>
@@ -389,9 +532,15 @@
     :title="editingItem ? '编辑资产' : '新建资产'"
     width="760px"
   >
-    <el-form label-width="92px" :model="itemForm">
+    <el-form
+      label-width="92px"
+      :model="itemForm"
+    >
       <el-form-item label="类型">
-        <el-select v-model="itemForm.type" style="width: 100%">
+        <el-select
+          v-model="itemForm.type"
+          style="width: 100%"
+        >
           <el-option
             v-for="type in typeOptions"
             :key="type.value"
@@ -401,13 +550,25 @@
         </el-select>
       </el-form-item>
       <el-form-item label="标题">
-        <el-input v-model="itemForm.title" maxlength="80" show-word-limit />
+        <el-input
+          v-model="itemForm.title"
+          maxlength="80"
+          show-word-limit
+        />
       </el-form-item>
       <el-form-item label="摘要">
-        <el-input v-model="itemForm.summary" type="textarea" :rows="2" />
+        <el-input
+          v-model="itemForm.summary"
+          type="textarea"
+          :rows="2"
+        />
       </el-form-item>
       <el-form-item label="正文">
-        <el-input v-model="itemForm.content" type="textarea" :rows="5" />
+        <el-input
+          v-model="itemForm.content"
+          type="textarea"
+          :rows="5"
+        />
       </el-form-item>
       <el-form-item label="标签">
         <el-select
@@ -440,14 +601,19 @@
         />
       </el-form-item>
       <el-form-item label="来源">
-        <el-input v-model="itemForm.sourceName" placeholder="平台、活动、导入来源" />
+        <el-input
+          v-model="itemForm.sourceName"
+          placeholder="平台、活动、导入来源"
+        />
       </el-form-item>
       <el-form-item label="来源链接">
         <el-input v-model="itemForm.sourceUrl" />
       </el-form-item>
 
       <template v-if="itemForm.type === 'topic_card'">
-        <el-divider content-position="left">选题卡</el-divider>
+        <el-divider content-position="left">
+          选题卡
+        </el-divider>
         <el-form-item label="一句话卖点">
           <el-input v-model="itemForm.topicCard.oneLineHook" />
         </el-form-item>
@@ -458,10 +624,18 @@
           <el-input v-model="itemForm.topicCard.goldenFinger" />
         </el-form-item>
         <el-form-item label="世界观">
-          <el-input v-model="itemForm.topicCard.worldSetting" type="textarea" :rows="2" />
+          <el-input
+            v-model="itemForm.topicCard.worldSetting"
+            type="textarea"
+            :rows="2"
+          />
         </el-form-item>
         <el-form-item label="核心冲突">
-          <el-input v-model="itemForm.topicCard.coreConflict" type="textarea" :rows="2" />
+          <el-input
+            v-model="itemForm.topicCard.coreConflict"
+            type="textarea"
+            :rows="2"
+          />
         </el-form-item>
         <el-form-item label="爽点">
           <el-select
@@ -484,12 +658,17 @@
       </template>
 
       <template v-if="itemForm.type === 'writer_activity'">
-        <el-divider content-position="left">作家活动</el-divider>
+        <el-divider content-position="left">
+          作家活动
+        </el-divider>
         <el-form-item label="平台">
           <el-input v-model="itemForm.writerActivity.platform" />
         </el-form-item>
         <el-form-item label="活动类型">
-          <el-select v-model="itemForm.writerActivity.activityType" style="width: 100%">
+          <el-select
+            v-model="itemForm.writerActivity.activityType"
+            style="width: 100%"
+          >
             <el-option
               v-for="type in activityTypeOptions"
               :key="type.value"
@@ -513,7 +692,11 @@
           />
         </el-form-item>
         <el-form-item label="奖励摘要">
-          <el-input v-model="itemForm.writerActivity.rewardSummary" type="textarea" :rows="2" />
+          <el-input
+            v-model="itemForm.writerActivity.rewardSummary"
+            type="textarea"
+            :rows="2"
+          />
         </el-form-item>
         <el-form-item label="要求摘要">
           <el-input
@@ -525,14 +708,30 @@
       </template>
     </el-form>
     <template #footer>
-      <el-button @click="itemDialogVisible = false">取消</el-button>
-      <el-button type="primary" @click="saveItem">保存</el-button>
+      <el-button @click="itemDialogVisible = false">
+        取消
+      </el-button>
+      <el-button
+        type="primary"
+        @click="saveItem"
+      >
+        保存
+      </el-button>
     </template>
   </el-dialog>
 
-  <el-dialog v-model="aiDialogVisible" title="AI 生成结果" width="820px">
-    <div v-if="aiLoading" class="ai-loading">
-      <el-icon class="is-loading"><Loading /></el-icon>
+  <el-dialog
+    v-model="aiDialogVisible"
+    title="AI 生成结果"
+    width="820px"
+  >
+    <div
+      v-if="aiLoading"
+      class="ai-loading"
+    >
+      <el-icon class="is-loading">
+        <Loading />
+      </el-icon>
       <span>正在加工资产...</span>
     </div>
     <template v-else>
@@ -543,10 +742,16 @@
         :closable="false"
         title="AI 返回不是标准 JSON，已保留原始输出。"
       />
-      <el-input v-model="aiEditableText" type="textarea" :rows="16" />
+      <el-input
+        v-model="aiEditableText"
+        type="textarea"
+        :rows="16"
+      />
     </template>
     <template #footer>
-      <el-button @click="aiDialogVisible = false">关闭</el-button>
+      <el-button @click="aiDialogVisible = false">
+        关闭
+      </el-button>
       <el-button
         v-if="aiResult.task === 'topic_card'"
         type="primary"
@@ -555,18 +760,35 @@
       >
         保存为选题卡
       </el-button>
-      <el-button v-else type="primary" :disabled="!aiEditableText" @click="applyAiToCurrentItem">
+      <el-button
+        v-else
+        type="primary"
+        :disabled="!aiEditableText"
+        @click="applyAiToCurrentItem"
+      >
         写入当前资产
       </el-button>
     </template>
   </el-dialog>
 
-  <el-dialog v-model="reminderDialogVisible" title="活动提醒" width="420px">
+  <el-dialog
+    v-model="reminderDialogVisible"
+    title="活动提醒"
+    width="420px"
+  >
     <el-radio-group v-model="reminderPreset">
-      <el-radio value="7">截止前 7 天</el-radio>
-      <el-radio value="3">截止前 3 天</el-radio>
-      <el-radio value="1">截止前 1 天</el-radio>
-      <el-radio value="custom">自定义时间</el-radio>
+      <el-radio value="7">
+        截止前 7 天
+      </el-radio>
+      <el-radio value="3">
+        截止前 3 天
+      </el-radio>
+      <el-radio value="1">
+        截止前 1 天
+      </el-radio>
+      <el-radio value="custom">
+        自定义时间
+      </el-radio>
     </el-radio-group>
     <el-date-picker
       v-if="reminderPreset === 'custom'"
@@ -576,8 +798,15 @@
       style="width: 100%; margin-top: 16px"
     />
     <template #footer>
-      <el-button @click="cancelReminder">取消提醒</el-button>
-      <el-button type="primary" @click="saveReminder">保存提醒</el-button>
+      <el-button @click="cancelReminder">
+        取消提醒
+      </el-button>
+      <el-button
+        type="primary"
+        @click="saveReminder"
+      >
+        保存提醒
+      </el-button>
     </template>
   </el-dialog>
 
@@ -590,12 +819,19 @@
     <el-form label-width="100px">
       <el-form-item label="来源">
         <el-radio-group v-model="createForm.sourceType">
-          <el-radio value="online">在线书籍</el-radio>
-          <el-radio value="local">本地书籍</el-radio>
+          <el-radio value="online">
+            在线书籍
+          </el-radio>
+          <el-radio value="local">
+            本地书籍
+          </el-radio>
         </el-radio-group>
       </el-form-item>
 
-      <el-form-item v-if="createForm.sourceType === 'online'" label="在线搜索">
+      <el-form-item
+        v-if="createForm.sourceType === 'online'"
+        label="在线搜索"
+      >
         <div class="online-search-wrap">
           <div class="online-search-row">
             <el-input
@@ -608,13 +844,25 @@
                 <el-icon><Search /></el-icon>
               </template>
             </el-input>
-            <el-button type="primary" :loading="onlineSearching" @click="handleOnlineSearch"
-              >搜索</el-button
+            <el-button
+              type="primary"
+              :loading="onlineSearching"
+              @click="handleOnlineSearch"
             >
+              搜索
+            </el-button>
           </div>
-          <p v-if="onlineSearchError" class="dialog-error">
+          <p
+            v-if="onlineSearchError"
+            class="dialog-error"
+          >
             <span>{{ onlineSearchError }}</span>
-            <button type="button" @click="handleOnlineSearch">重试</button>
+            <button
+              type="button"
+              @click="handleOnlineSearch"
+            >
+              重试
+            </button>
           </p>
           <el-table
             v-if="onlineSearchResults.length"
@@ -624,9 +872,22 @@
             max-height="240"
             @row-click="selectOnlineBook"
           >
-            <el-table-column prop="title" label="书名" min-width="160" show-overflow-tooltip />
-            <el-table-column prop="author" label="作者" width="100" show-overflow-tooltip />
-            <el-table-column width="80" align="center">
+            <el-table-column
+              prop="title"
+              label="书名"
+              min-width="160"
+              show-overflow-tooltip
+            />
+            <el-table-column
+              prop="author"
+              label="作者"
+              width="100"
+              show-overflow-tooltip
+            />
+            <el-table-column
+              width="80"
+              align="center"
+            >
               <template #default="{ row }">
                 <el-button
                   :type="createForm.selectedBook?.url === row.url ? 'success' : 'primary'"
@@ -642,7 +903,10 @@
         </div>
       </el-form-item>
 
-      <el-form-item v-if="createForm.sourceType === 'local'" label="本地书籍">
+      <el-form-item
+        v-if="createForm.sourceType === 'local'"
+        label="本地书籍"
+      >
         <el-select
           v-model="createForm.selectedLocalBook"
           filterable
@@ -664,8 +928,9 @@
             <el-checkbox
               v-model="createForm.limitChapters"
               :disabled="createForm.sourceType === 'online'"
-              >只处理前</el-checkbox
             >
+              只处理前
+            </el-checkbox>
             <el-input-number
               v-model="createForm.chapterLimit"
               :disabled="createForm.sourceType === 'local' && !createForm.limitChapters"
@@ -684,16 +949,29 @@
       <el-form-item label="拆书维度">
         <el-checkbox-group v-model="createForm.selectedDimensions">
           <div class="extraction-dimension-groups">
-            <section v-for="group in extractionDimensionGroups" :key="group.key">
+            <section
+              v-for="group in extractionDimensionGroups"
+              :key="group.key"
+            >
               <header>
                 <strong>{{ group.label }}</strong>
-                <el-button text size="small" @click.prevent="toggleCreateDimensionGroup(group)">
+                <el-button
+                  text
+                  size="small"
+                  @click.prevent="toggleCreateDimensionGroup(group)"
+                >
                   {{ isCreateDimensionGroupSelected(group) ? '取消本组' : '选择本组' }}
                 </el-button>
               </header>
-              <el-checkbox v-for="dim in group.dimensions" :key="dim.key" :value="dim.key">{{
-                dim.label
-              }}</el-checkbox>
+              <el-checkbox
+                v-for="dim in group.dimensions"
+                :key="dim.key"
+                :value="dim.key"
+              >
+                {{
+                  dim.label
+                }}
+              </el-checkbox>
             </section>
           </div>
         </el-checkbox-group>
@@ -707,12 +985,25 @@
           :disabled="!!textProviderError"
           @change="handleProviderChange"
         >
-          <el-option v-for="p in textProviders" :key="p.id" :label="p.name" :value="p.id" />
+          <el-option
+            v-for="p in textProviders"
+            :key="p.id"
+            :label="p.name"
+            :value="p.id"
+          />
         </el-select>
       </el-form-item>
-      <p v-if="textProviderError" class="dialog-error">
+      <p
+        v-if="textProviderError"
+        class="dialog-error"
+      >
         <span>{{ textProviderError }}</span>
-        <button type="button" @click="loadTextProviders">重试</button>
+        <button
+          type="button"
+          @click="loadTextProviders"
+        >
+          重试
+        </button>
       </p>
       <el-form-item label="模型">
         <el-select
@@ -722,22 +1013,31 @@
           allow-create
           :disabled="!createForm.selectedProviderId"
         >
-          <el-option v-for="m in providerModels" :key="m" :label="m" :value="m" />
+          <el-option
+            v-for="m in providerModels"
+            :key="m"
+            :label="m"
+            :value="m"
+          />
         </el-select>
       </el-form-item>
 
-      <section v-if="extractionProgress" class="dialog-extraction-progress">
+      <section
+        v-if="extractionProgress"
+        class="dialog-extraction-progress"
+      >
         <div class="dialog-progress-head">
           <strong>{{ extractionProgress.currentStep || '正在拆书' }}</strong>
-          <span
-            >{{
-              Math.round(
-                extractionProgress.overallPercent || extractionProgress.progress?.percent || 0
-              )
-            }}%</span
-          >
+          <span>{{
+            Math.round(
+              extractionProgress.overallPercent || extractionProgress.progress?.percent || 0
+            )
+          }}%</span>
         </div>
-        <p v-if="extractionProgressScopeText" class="dialog-progress-scope">
+        <p
+          v-if="extractionProgressScopeText"
+          class="dialog-progress-scope"
+        >
           {{ extractionProgressScopeText }}
         </p>
         <el-progress
@@ -748,14 +1048,19 @@
           "
         />
         <div class="dialog-task-list">
-          <span v-for="task in extractionProgressTasks" :key="task.id || task.dimension">
+          <span
+            v-for="task in extractionProgressTasks"
+            :key="task.id || task.dimension"
+          >
             {{ task.label }}：{{ task.extractedCount || task.itemCount || 0 }} 条
           </span>
         </div>
       </section>
     </el-form>
     <template #footer>
-      <el-button @click="createDialogVisible = false">取消</el-button>
+      <el-button @click="createDialogVisible = false">
+        取消
+      </el-button>
       <el-button
         type="primary"
         :loading="creating"
