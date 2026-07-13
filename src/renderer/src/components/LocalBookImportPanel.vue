@@ -23,12 +23,21 @@
           multiple
           accept=".txt,.md,.markdown,.docx,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           @change="handleFileChange"
-        />
-        <el-button type="primary" :loading="parsing" :disabled="batchImporting" @click="openFilePicker">
+        >
+        <el-button
+          type="primary"
+          :loading="parsing"
+          :disabled="batchImporting"
+          @click="openFilePicker"
+        >
           <Upload :size="16" />
           选择文件
         </el-button>
-        <el-button :loading="batchImporting" :disabled="!readyRows.length" @click="importReadyRows">
+        <el-button
+          :loading="batchImporting"
+          :disabled="!readyRows.length"
+          @click="importReadyRows"
+        >
           全部加入书架
         </el-button>
       </div>
@@ -46,24 +55,43 @@
         multiple
         accept=".txt,.md,.markdown,.docx,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         @change="handleFileChange"
-      />
+      >
       <Upload :size="26" />
       <span>拖入文件，或选择文件</span>
     </label>
 
-    <div v-if="rows.length" class="local-import-list">
-      <article v-for="row in rows" :key="row.id" class="local-import-item" :class="row.status">
+    <div
+      v-if="rows.length"
+      class="local-import-list"
+    >
+      <article
+        v-for="row in rows"
+        :key="row.id"
+        class="local-import-item"
+        :class="row.status"
+      >
         <div class="file-state">
-          <CheckCircle2 v-if="row.status === 'done'" :size="18" />
-          <AlertCircle v-else-if="row.status === 'error'" :size="18" />
-          <FileText v-else :size="18" />
+          <CheckCircle2
+            v-if="row.status === 'done'"
+            :size="18"
+          />
+          <AlertCircle
+            v-else-if="row.status === 'error'"
+            :size="18"
+          />
+          <FileText
+            v-else
+            :size="18"
+          />
         </div>
         <div class="file-main">
           <div class="file-title-line">
             <h4>{{ row.parsed?.title || row.fileName }}</h4>
             <span>{{ row.extension.toUpperCase() }}</span>
           </div>
-          <p v-if="row.status === 'error'">{{ row.error }}</p>
+          <p v-if="row.status === 'error'">
+            {{ row.error }}
+          </p>
           <p v-else>
             {{ formatFileSize(row.parsed?.fileSize) }} · {{ row.parsed?.encoding }} ·
             {{ formatWords(row.parsed?.totalWords) }} · {{ row.parsed?.chapterCount || 0 }} 章
@@ -82,8 +110,14 @@
             :closable="false"
             show-icon
           />
-          <div v-if="row.parsed?.chapters?.length" class="chapter-preview">
-            <span v-for="chapter in row.parsed.chapters.slice(0, 4)" :key="chapter.title">{{
+          <div
+            v-if="row.parsed?.chapters?.length"
+            class="chapter-preview"
+          >
+            <span
+              v-for="chapter in row.parsed.chapters.slice(0, 4)"
+              :key="chapter.title"
+            >{{
               chapter.title
             }}</span>
           </div>
@@ -95,11 +129,25 @@
             @click="row.expanded = !row.expanded"
           >
             {{ row.expanded ? '收起预览' : '查看完整预览' }}
-            <ChevronDown :size="15" :class="{ rotated: row.expanded }" />
+            <ChevronDown
+              :size="15"
+              :class="{ rotated: row.expanded }"
+            />
           </button>
-          <div v-if="row.expanded && row.parsed" class="full-preview">
-            <div v-if="row.parsed.warnings.length" class="warning-list">
-              <p v-for="warning in row.parsed.warnings" :key="warning">{{ warning }}</p>
+          <div
+            v-if="row.expanded && row.parsed"
+            class="full-preview"
+          >
+            <div
+              v-if="row.parsed.warnings.length"
+              class="warning-list"
+            >
+              <p
+                v-for="warning in row.parsed.warnings"
+                :key="warning"
+              >
+                {{ warning }}
+              </p>
             </div>
             <ol>
               <li
@@ -125,11 +173,17 @@
         >
           {{ row.status === 'error' && row.parsed ? '重试' : '加入书架' }}
         </el-button>
-        <span v-else class="done-label">已加入</span>
+        <span
+          v-else
+          class="done-label"
+        >已加入</span>
       </article>
     </div>
 
-    <div v-else class="local-import-empty">
+    <div
+      v-else
+      class="local-import-empty"
+    >
       <strong>等待本地文件</strong>
       <span>可一次选择多本书。</span>
     </div>
