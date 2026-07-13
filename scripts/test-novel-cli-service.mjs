@@ -286,6 +286,18 @@ function createAbortableProvider(abortController) {
   return provider
 }
 
+function createChatOnlyProvider(responseFactory) {
+  const requests = []
+  return {
+    providerId: 'chat-only-cli-provider',
+    requests,
+    async chat(options) {
+      requests.push(options)
+      return responseFactory(options)
+    }
+  }
+}
+
 try {
   fs.mkdirSync(emptyEnvDir, { recursive: true })
 
@@ -492,6 +504,61 @@ try {
   assert.equal(outlines.children[0].title, '风雪试剑 全书大纲')
   assert.equal(outlines.children[0].children.length, 3)
 
+  const invalidOutlineProvider = createChatOnlyProvider(() => ({
+    content: '这不是可解析的大纲',
+    providerId: 'invalid-outline-provider'
+  }))
+  await assert.rejects(
+    () =>
+      generateNovelOutline({
+        booksDir,
+        bookName,
+        idea: '返回无法解析的内容。',
+        count: 2,
+        useMarket: false,
+        textProvider: invalidOutlineProvider
+      }),
+    /AI 大纲解析失败/
+  )
+
+  const emptyOutlineProvider = createChatOnlyProvider(() => ({
+    content: JSON.stringify({ items: [] }),
+    providerId: 'empty-outline-provider'
+  }))
+  await assert.rejects(
+    () =>
+      generateNovelOutline({
+        booksDir,
+        bookName,
+        idea: '返回空大纲。',
+        count: 2,
+        useMarket: false,
+        textProvider: emptyOutlineProvider
+      }),
+    /AI 大纲解析失败/
+  )
+
+  const marketOutlineProvider = createOfflineProvider()
+  const marketOutlineResult = await generateNovelOutline({
+    booksDir,
+    bookName,
+    title: '寒门剑修参考大纲',
+    idea: '参考当前市场资料生成大纲。',
+    count: 2,
+    marketLimit: 1,
+    saveMode: 'unsupported-mode',
+    textProvider: marketOutlineProvider,
+    modelName: 'market-outline-model'
+  })
+  assert.equal(marketOutlineResult.success, true)
+  assert.equal(marketOutlineResult.saveMode, 'append')
+  assert.equal(marketOutlineResult.title, '寒门剑修参考大纲')
+  assert.equal(marketOutlineResult.research.topics.length, 1)
+  const marketOutlineRequest = marketOutlineProvider.requests.find((item) =>
+    item.requestId.includes('outline_split')
+  )
+  assert.ok(requestText(marketOutlineRequest).includes('寒门剑修登榜'))
+
   fs.writeFileSync(
     join(booksDir, bookName, 'characters.json'),
     JSON.stringify([{ name: '林青', gender: '女', age: 18 }], null, 2),
@@ -686,6 +753,36 @@ try {
     fs.existsSync(join(booksDir, bookName, '正文', '第一卷', '第二章 月影试剑.txt')),
     true
   )
+
+  const chatOnlyProvider = createChatOnlyProvider((options) => ({
+    result: `林青按计划进入藏书楼查阅旧案。请求：${options.requestId}`,
+    providerId: 'chat-only-cli-provider',
+    model: 'chat-only-model',
+    usage: { total_tokens: 30 }
+  }))
+  const plannedWriteResult = await writeNovelChapters({
+    booksDir,
+    bookName,
+    volumeName: '计划卷',
+    prompt: '保持旧案主线。',
+    chapterPlans: [
+      {
+        title: '藏书楼旧卷',
+        content: '林青进入藏书楼寻找旧案。'
+      }
+    ],
+    chapterDrafts: [{ content: '她在书架后发现一页残卷。' }],
+    chapters: 'invalid',
+    targetWords: 80,
+    autoEdit: false,
+    textProvider: chatOnlyProvider,
+    modelName: 'chat-only-model'
+  })
+  assert.equal(plannedWriteResult.success, true)
+  assert.equal(plannedWriteResult.count, 1)
+  assert.equal(plannedWriteResult.chapters[0].repaired, false)
+  assert.equal(plannedWriteResult.providerId, 'chat-only-cli-provider')
+  assert.ok(requestText(chatOnlyProvider.requests[0]).includes('她在书架后发现一页残卷'))
 
   const resumeProvider = createOfflineProvider()
   const resumeWriteResult = await writeNovelChapters({
