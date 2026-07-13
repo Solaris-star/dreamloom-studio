@@ -86,12 +86,21 @@ const userFacingRoots = [
   ...listFiles(path.join(root, 'src/renderer/src/locales'), new Set(['.json']))
 ]
 const desktopUserFacingPattern =
-  /织梦书房|51\s*码字|51mazi|QQQRCode|AliPayQRCode|WeChatPayQRCode|Electron|桌面(?:端|客户端|应用|版本)|客户端(?:下载|安装包)|desktop\s+(?:app|client|version)/i
+  /织梦书房|ZhimengShufang|51\s*码字|51mazi|QQQRCode|AliPayQRCode|WeChatPayQRCode|Electron|桌面(?:端|客户端|应用|版本)|客户端(?:下载|安装包)|desktop\s+(?:app|client|version)/i
 for (const absolutePath of new Set(userFacingRoots)) {
   assert.doesNotMatch(
     fs.readFileSync(absolutePath, 'utf8'),
     desktopUserFacingPattern,
     `用户可见文件不能包含旧项目或桌面端内容：${path.relative(root, absolutePath)}`
+  )
+}
+
+const runtimeBrandPattern = /织梦书房|ZhimengShufang|51\s*码字|51mazi/i
+for (const absolutePath of listFiles(path.join(root, 'src'), new Set(['.js', '.mjs', '.vue']))) {
+  assert.doesNotMatch(
+    fs.readFileSync(absolutePath, 'utf8'),
+    runtimeBrandPattern,
+    `运行代码不能包含旧项目品牌：${path.relative(root, absolutePath)}`
   )
 }
 

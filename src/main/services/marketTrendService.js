@@ -914,7 +914,7 @@ function requestHeaders() {
   return {
     accept: 'application/json,text/html,text/plain,*/*',
     'accept-language': 'zh-CN,zh;q=0.9,en;q=0.6',
-    'user-agent': 'Mozilla/5.0 ZhimengShufang MarketTrendService'
+    'user-agent': 'Mozilla/5.0 DreamloomStudio MarketTrendService'
   }
 }
 
