@@ -2424,6 +2424,7 @@ function writeGraphData(
   const data =
     graphData && typeof graphData === 'object' && !Array.isArray(graphData) ? graphData : {}
   const savedData = {
+    ...previous,
     ...data,
     id: data.id || previous.id || safeName,
     name: data.name || previous.name || safeName,

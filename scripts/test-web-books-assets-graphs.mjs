@@ -141,6 +141,41 @@ try {
   assert.equal(readCharacters(bookName, booksDir).data[0].name, '林青')
   assert.equal(readEntityProfilesForBook(bookName, booksDir).data.artifact[0].name, '月影剑')
 
+  fs.writeFileSync(
+    join(booksDir, bookName, 'settings.json'),
+    JSON.stringify({
+      categories: [
+        null,
+        {
+          children: [
+            {
+              id: 'nested-category',
+              name: '  嵌套分类  ',
+              introduction: null,
+              children: 'invalid',
+              items: [null, { name: '  无名术法  ', introduction: '  术法说明  ' }]
+            }
+          ],
+          items: 'invalid'
+        }
+      ]
+    }),
+    'utf8'
+  )
+  const normalizedSettings = readSettings(bookName, booksDir)
+  assert.equal(normalizedSettings.success, true)
+  assert.match(normalizedSettings.data.categories[0].id, /^category-/)
+  assert.equal(normalizedSettings.data.categories[0].name, '未命名分类')
+  assert.deepEqual(normalizedSettings.data.categories[0].items, [])
+  assert.equal(normalizedSettings.data.categories[0].children[0].name, '嵌套分类')
+  assert.equal(normalizedSettings.data.categories[0].children[0].introduction, '')
+  assert.deepEqual(normalizedSettings.data.categories[0].children[0].children, [])
+  assert.match(normalizedSettings.data.categories[0].children[0].items[0].id, /^setting-/)
+  assert.equal(normalizedSettings.data.categories[0].children[0].items[0].name, '无名术法')
+  assert.equal(normalizedSettings.data.categories[0].children[0].items[0].introduction, '术法说明')
+  assert.equal(writeSettings({ bookName, data: { categories: null } }, booksDir).success, true)
+  assert.equal(readSettings(bookName, booksDir).data.categories[0].id, 'default')
+
   fs.writeFileSync(join(booksDir, bookName, 'outline-ai-sessions.json'), '[]', 'utf8')
   assert.equal(readOutlineAiSessions(bookName, booksDir).success, false)
   fs.writeFileSync(join(booksDir, bookName, 'outline-ai-sessions.json'), '{broken', 'utf8')
@@ -160,6 +195,19 @@ try {
   )
 
   assert.deepEqual(readMaps(bookName, booksDir), { success: true, data: [] })
+  const mapsDir = join(booksDir, bookName, 'maps')
+  fs.writeFileSync(join(mapsDir, '旧地图.png'), pngBytes)
+  fs.writeFileSync(join(mapsDir, '旧地图.json'), JSON.stringify(null), 'utf8')
+  assert.deepEqual(readMaps(bookName, booksDir).data[0], {
+    id: '旧地图',
+    name: '旧地图',
+    description: '',
+    createdAt: '',
+    updatedAt: '',
+    thumbnail: pngDataUrl
+  })
+  fs.rmSync(join(mapsDir, '旧地图.png'))
+  fs.rmSync(join(mapsDir, '旧地图.json'))
   assert.equal(
     createMap({ bookName, mapName: '山门图', description: '山门地形' }, booksDir).success,
     false
@@ -271,6 +319,22 @@ try {
   )
   assert.equal(deleteRelationship({ bookName, relationshipName: '人物关系' }, booksDir).existed, true)
   assert.equal(deleteRelationship({ bookName, relationshipName: '人物关系' }, booksDir).existed, false)
+  const relationshipsDir = join(booksDir, bookName, 'relationships')
+  fs.writeFileSync(
+    join(relationshipsDir, '旧关系.json'),
+    JSON.stringify({ nodes: 'invalid', lines: null }),
+    'utf8'
+  )
+  const legacyRelationship = readRelationships(bookName, booksDir).data.find(
+    (item) => item.name === '旧关系'
+  )
+  assert.equal(legacyRelationship.id, '旧关系')
+  assert.equal(legacyRelationship.description, '')
+  assert.equal(legacyRelationship.thumbnail, '')
+  assert.deepEqual(legacyRelationship.nodes, [])
+  assert.deepEqual(legacyRelationship.lines, [])
+  assert.ok(legacyRelationship.createdAt)
+  assert.ok(legacyRelationship.updatedAt)
 
   assert.deepEqual(readOrganizations(bookName, booksDir).data, [])
   assert.equal(
@@ -314,6 +378,38 @@ try {
   )
   assert.equal(deleteOrganization({ bookName, organizationName: '山门组织' }, booksDir).existed, true)
   assert.equal(deleteOrganization({ bookName, organizationName: '山门组织' }, booksDir).existed, false)
+  const organizationsDir = join(booksDir, bookName, 'organizations')
+  fs.writeFileSync(
+    join(organizationsDir, '旧组织.json'),
+    JSON.stringify({
+      id: 'legacy-organization',
+      name: '旧组织',
+      description: '旧说明',
+      nodes: [{ id: 'legacy-node' }],
+      lines: [{ id: 'legacy-line' }],
+      createdAt: '2024-01-01T00:00:00.000Z',
+      customField: '保留字段'
+    }),
+    'utf8'
+  )
+  const updatedLegacyOrganization = writeOrganization(
+    {
+      bookName,
+      organizationName: '旧组织',
+      organizationData: { description: '新说明' }
+    },
+    booksDir
+  )
+  assert.equal(updatedLegacyOrganization.created, false)
+  const persistedLegacyOrganization = JSON.parse(
+    fs.readFileSync(join(organizationsDir, '旧组织.json'), 'utf8')
+  )
+  assert.equal(persistedLegacyOrganization.id, 'legacy-organization')
+  assert.equal(persistedLegacyOrganization.description, '新说明')
+  assert.deepEqual(persistedLegacyOrganization.nodes, [{ id: 'legacy-node' }])
+  assert.deepEqual(persistedLegacyOrganization.lines, [{ id: 'legacy-line' }])
+  assert.equal(persistedLegacyOrganization.createdAt, '2024-01-01T00:00:00.000Z')
+  assert.equal(persistedLegacyOrganization.customField, '保留字段')
 } finally {
   fs.rmSync(root, { recursive: true, force: true })
 }

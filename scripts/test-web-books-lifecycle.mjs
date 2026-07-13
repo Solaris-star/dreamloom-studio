@@ -90,11 +90,89 @@ try {
     'utf8'
   )
 
+  const legacyBooks = [
+    {
+      folderName: '旧导入作品',
+      meta: {
+        id: 'legacy-imported-book',
+        name: '旧导入作品',
+        importedFrom: 'importExport',
+        type: 'imported',
+        typeName: '导入',
+        sourceType: 'downloaded',
+        downloaded: true,
+        metadata: { wordCount: 1234 }
+      },
+      expected: {
+        bookRole: 'creative',
+        type: 'original',
+        typeName: '导入作品',
+        sourceType: 'user_imported',
+        downloaded: false,
+        totalWords: 1234
+      }
+    },
+    {
+      folderName: '旧下载作品',
+      meta: {
+        id: 'legacy-downloaded-book',
+        name: '旧下载作品',
+        importedFrom: 'novelDownload',
+        wordCount: 567
+      },
+      expected: { bookRole: 'downloaded', totalWords: 567 }
+    },
+    {
+      folderName: '旧来源作品',
+      meta: {
+        id: 'legacy-source-book',
+        name: '旧来源作品',
+        sourceType: 'downloadedNovel',
+        metadata: { totalWords: 890 }
+      },
+      expected: { bookRole: 'downloaded', totalWords: 890 }
+    },
+    {
+      folderName: '旧简介作品',
+      meta: {
+        id: 'legacy-intro-book',
+        name: '旧简介作品',
+        intro: '从网络下载',
+        bookRole: 'creative'
+      },
+      expected: { bookRole: 'creative', totalWords: 0 }
+    }
+  ]
+  for (const legacyBook of legacyBooks) {
+    const legacyBookDir = join(booksDir, legacyBook.folderName)
+    fs.mkdirSync(legacyBookDir, { recursive: true })
+    fs.writeFileSync(
+      join(legacyBookDir, 'mazi.json'),
+      JSON.stringify(legacyBook.meta, null, 2),
+      'utf8'
+    )
+  }
+
   const books = await readBooksDir(booksDir)
-  assert.equal(books.length, 1)
-  assert.equal(books[0].folderName, '生命周期作品')
-  assert.equal(books[0].chapterCount, 1)
-  assert.equal(books[0].totalWords > 0, true)
+  assert.equal(books.length, legacyBooks.length + 1)
+  const lifecycleBook = books.find((book) => book.folderName === '生命周期作品')
+  assert.equal(lifecycleBook.chapterCount, 1)
+  assert.equal(lifecycleBook.totalWords > 0, true)
+  for (const legacyBook of legacyBooks) {
+    const migratedBook = books.find((book) => book.folderName === legacyBook.folderName)
+    assert.ok(migratedBook)
+    assert.deepEqual(
+      Object.fromEntries(
+        Object.keys(legacyBook.expected).map((key) => [key, migratedBook[key]])
+      ),
+      legacyBook.expected
+    )
+    const persistedMeta = JSON.parse(
+      fs.readFileSync(join(booksDir, legacyBook.folderName, 'mazi.json'), 'utf8')
+    )
+    assert.equal(persistedMeta.bookRole, legacyBook.expected.bookRole)
+    assert.equal(persistedMeta.totalWords, legacyBook.expected.totalWords)
+  }
 
   const conflict = await createBook({ id: 'conflict-book', name: '冲突作品' }, booksDir)
   assert.equal(conflict.success, true)
