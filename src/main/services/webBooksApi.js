@@ -199,6 +199,7 @@ function convertNumberToChinese(num) {
   const units = ['', '十', '百', '千']
   const bigUnits = ['', '万', '亿']
   if (num < 10) return digits[num]
+  if (num < 20) return num === 10 ? '十' : `十${digits[num % 10]}`
   const parts = []
   let unitIndex = 0
   let n = num

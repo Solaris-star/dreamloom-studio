@@ -7,10 +7,35 @@ import {
   createBook,
   createMap,
   createRelationship,
+  deleteMap,
+  deleteOrganization,
+  deleteRelationship,
   editBook,
+  exportOrganizationToNote,
+  loadMapData,
+  readCharacters,
+  readDictionary,
+  readEntityProfilesForBook,
+  readMapImage,
+  readMaps,
+  readOrganization,
+  readOrganizationImage,
+  readOrganizations,
+  readOutlineAiSessions,
+  readRelationshipData,
+  readRelationshipImage,
+  readRelationships,
+  readSequenceCharts,
+  readSettings,
+  readTimeline,
   saveChapter,
+  saveMapData,
+  saveRelationshipData,
+  updateOrganizationThumbnail,
+  updateRelationshipThumbnail,
   updateMap,
   upsertChapter,
+  writeOrganization,
   writeCharacters,
   writeDictionary,
   writeEntityProfileCategory,
@@ -30,6 +55,8 @@ const rootDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-web-books-db-'))
 const booksDir = join(rootDir, 'books')
 const originalBookName = '雪岭旧案'
 const renamedBookName = '雪岭新案'
+const imageData =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGOSHzRgQAAAABJRU5ErkJggg=='
 
 function documentTypes(repository, projectId) {
   return new Set(repository.listBookDocuments(projectId).map((item) => item.documentType))
@@ -253,8 +280,7 @@ try {
         bookName: originalBookName,
         mapName: '雪岭地图',
         description: '主地图',
-        imageData:
-          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGOSHzRgQAAAABJRU5ErkJggg=='
+        imageData
       },
       booksDir
     ),
@@ -377,6 +403,161 @@ try {
   } finally {
     repository.close()
   }
+
+  assert.equal(readTimeline(renamedBookName, booksDir).data.length, 1)
+  assert.equal(readCharacters(renamedBookName, booksDir).data[0].name, '林青')
+  assert.equal(readDictionary(renamedBookName, booksDir).data[0].term, '雪岭')
+  assert.equal(readSettings(renamedBookName, booksDir).data.categories.length, 1)
+  assert.equal(readSequenceCharts(renamedBookName, booksDir).data.length, 1)
+  assert.equal(
+    readOutlineAiSessions(renamedBookName, booksDir).data.nodes.outline_root.length,
+    1
+  )
+  assert.equal(
+    readEntityProfilesForBook(renamedBookName, booksDir).data.artifact[0].name,
+    '寒月剑'
+  )
+
+  assert.equal(readMaps(renamedBookName, booksDir).data[0].name, '雪岭地图')
+  const savedMapData = saveMapData(
+    {
+      bookName: renamedBookName,
+      mapName: '雪岭地图',
+      mapData: { elements: [{ id: 'cliff', type: 'text', text: '断崖' }] }
+    },
+    booksDir
+  )
+  assert.equal(savedMapData.success, true)
+  assert.equal(loadMapData({ bookName: renamedBookName, mapName: '雪岭地图' }, booksDir).elements.length, 1)
+  assert.match(
+    readMapImage({ bookName: renamedBookName, mapName: '雪岭地图' }, booksDir),
+    /^data:image\/png;base64,/
+  )
+
+  assert.equal(readRelationships(renamedBookName, booksDir).data.length, 1)
+  assert.equal(
+    readRelationshipData(
+      { bookName: renamedBookName, relationshipName: '主关系图' },
+      booksDir
+    ).data.nodes.length,
+    1
+  )
+  assert.equal(
+    createRelationship(
+      {
+        bookName: renamedBookName,
+        relationshipName: '主关系图',
+        relationshipData: {}
+      },
+      booksDir
+    ).success,
+    false
+  )
+  const savedRelationship = saveRelationshipData(
+    {
+      bookName: renamedBookName,
+      relationshipName: '主关系图',
+      relationshipData: { description: '更新后的关系图' }
+    },
+    booksDir
+  )
+  assert.equal(savedRelationship.success, true)
+  assert.equal(savedRelationship.nodeCount, 1)
+  assert.equal(
+    updateRelationshipThumbnail(
+      { bookName: renamedBookName, relationshipName: '主关系图', thumbnailData: '' },
+      booksDir
+    ).success,
+    false
+  )
+  assert.equal(
+    updateRelationshipThumbnail(
+      { bookName: renamedBookName, relationshipName: '主关系图', thumbnailData: imageData },
+      booksDir
+    ).success,
+    true
+  )
+  assert.match(
+    readRelationshipImage(
+      { bookName: renamedBookName, imageName: '主关系图.png' },
+      booksDir
+    ),
+    /^data:image\/png;base64,/
+  )
+
+  assert.equal(readOrganizations(renamedBookName, booksDir).data.length, 1)
+  assert.equal(
+    readOrganization(
+      { bookName: renamedBookName, organizationName: '主势力图' },
+      booksDir
+    ).data.nodes.length,
+    1
+  )
+  const writtenOrganization = writeOrganization(
+    {
+      bookName: renamedBookName,
+      organizationName: '主势力图',
+      organizationData: { description: '更新后的势力图' }
+    },
+    booksDir
+  )
+  assert.equal(writtenOrganization.success, true)
+  assert.equal(writtenOrganization.nodeCount, 1)
+  assert.equal(
+    updateOrganizationThumbnail(
+      { bookName: renamedBookName, organizationId: '主势力图', thumbnailData: imageData },
+      booksDir
+    ).success,
+    true
+  )
+  assert.match(
+    readOrganizationImage(
+      { bookName: renamedBookName, imageName: '主势力图.png' },
+      booksDir
+    ),
+    /^data:image\/png;base64,/
+  )
+  const exportedOrganization = await exportOrganizationToNote(
+    {
+      bookName: renamedBookName,
+      organizationName: '主势力图',
+      content: '雪岭门负责守卫北境。'
+    },
+    booksDir
+  )
+  assert.equal(exportedOrganization.success, true)
+  assert.equal(fs.existsSync(exportedOrganization.notePath), true)
+
+  assert.equal(deleteMap({ bookName: renamedBookName, mapName: '雪岭地图' }, booksDir).existed, true)
+  assert.equal(deleteMap({ bookName: renamedBookName, mapName: '雪岭地图' }, booksDir).existed, false)
+  assert.equal(
+    deleteRelationship(
+      { bookName: renamedBookName, relationshipName: '主关系图' },
+      booksDir
+    ).existed,
+    true
+  )
+  assert.equal(
+    readRelationshipData(
+      { bookName: renamedBookName, relationshipName: '主关系图' },
+      booksDir
+    ).success,
+    false
+  )
+  assert.equal(
+    deleteOrganization(
+      { bookName: renamedBookName, organizationName: '主势力图' },
+      booksDir
+    ).existed,
+    true
+  )
+  assert.equal(
+    readOrganization(
+      { bookName: renamedBookName, organizationName: '主势力图' },
+      booksDir
+    ).success,
+    false
+  )
 } finally {
   fs.rmSync(rootDir, { recursive: true, force: true })
 }

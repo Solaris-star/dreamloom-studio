@@ -7,6 +7,7 @@ import {
   createChapter,
   createNote,
   createNotebook,
+  createVolume,
   deleteBook,
   deleteNode,
   deleteNote,
@@ -14,14 +15,21 @@ import {
   editBook,
   editNode,
   editNote,
+  getChapterSettings,
+  getSortOrder,
   loadChapters,
   loadNotes,
   readBooksDir,
   readChapter,
   readNote,
+  reformatChapterNumbers,
   renameNote,
   renameNotebook,
   saveChapter,
+  setChapterTargetWords,
+  setSortOrder,
+  storeDelete,
+  updateChapterFormat,
   upsertChapter
 } from '../src/main/services/webBooksApi.js'
 
@@ -57,6 +65,123 @@ try {
 
   const conflict = await createBook({ id: 'conflict-book', name: '冲突作品' }, booksDir)
   assert.equal(conflict.success, true)
+  storeDelete('sortOrder:冲突作品')
+  storeDelete('chapterSettings:冲突作品')
+  assert.equal(getSortOrder('冲突作品'), 'desc')
+  assert.deepEqual(setSortOrder({ bookName: '', order: 'asc' }), {
+    success: false,
+    message: '排序参数无效'
+  })
+  assert.deepEqual(setSortOrder({ bookName: '冲突作品', order: 'invalid' }), {
+    success: false,
+    message: '排序参数无效'
+  })
+  assert.deepEqual(setSortOrder({ bookName: '冲突作品', order: 'asc' }), {
+    success: true,
+    order: 'asc'
+  })
+  assert.equal(getSortOrder('冲突作品'), 'asc')
+  assert.equal(setChapterTargetWords({ bookName: '', targetWords: 3000 }).success, false)
+  assert.equal(
+    setChapterTargetWords({ bookName: '冲突作品', targetWords: 'invalid' }).settings.targetWords,
+    2000
+  )
+  assert.equal(
+    setChapterTargetWords({ bookName: '冲突作品', targetWords: 3560.4 }).settings.targetWords,
+    3560
+  )
+  assert.equal(getChapterSettings('冲突作品').targetWords, 3560)
+
+  const extraVolume = await createVolume('冲突作品', booksDir)
+  assert.equal(extraVolume.success, true)
+  const duplicateExtraVolume = await createVolume('冲突作品', booksDir)
+  assert.equal(duplicateExtraVolume.volumeName, '新加卷1')
+  await upsertChapter(
+    {
+      bookName: '冲突作品',
+      volumeName: extraVolume.volumeName,
+      chapterName: '第10章 尾声',
+      content: '格式测试正文。'
+    },
+    booksDir
+  )
+  await upsertChapter(
+    {
+      bookName: '冲突作品',
+      volumeName: extraVolume.volumeName,
+      chapterName: '第11章 转折',
+      content: '格式测试正文。'
+    },
+    booksDir
+  )
+  await upsertChapter(
+    {
+      bookName: '冲突作品',
+      volumeName: extraVolume.volumeName,
+      chapterName: '第20章 终局',
+      content: '格式测试正文。'
+    },
+    booksDir
+  )
+  fs.writeFileSync(
+    join(booksDir, '冲突作品', '正文', extraVolume.volumeName, '序章.txt'),
+    '没有章节编号的正文。',
+    'utf8'
+  )
+  const formatted = await updateChapterFormat(
+    {
+      bookName: '冲突作品',
+      settings: { chapterFormat: 'hanzi', suffixType: '回', targetWords: 1800 }
+    },
+    booksDir
+  )
+  assert.equal(formatted.success, true)
+  assert.equal(formatted.totalRenamed >= 1, true)
+  assert.equal(formatted.settings.chapterFormat, 'hanzi')
+  assert.equal(
+    fs.existsSync(join(booksDir, '冲突作品', '正文', extraVolume.volumeName, '第十回 尾声.txt')),
+    true
+  )
+  assert.equal(
+    fs.existsSync(join(booksDir, '冲突作品', '正文', extraVolume.volumeName, '第十一回 转折.txt')),
+    true
+  )
+  assert.equal(
+    fs.existsSync(join(booksDir, '冲突作品', '正文', extraVolume.volumeName, '第二十回 终局.txt')),
+    true
+  )
+  const reformatted = await reformatChapterNumbers(
+    {
+      bookName: '冲突作品',
+      volumeName: extraVolume.volumeName,
+      settings: { chapterFormat: 'number', suffixType: '章' }
+    },
+    booksDir
+  )
+  assert.equal(reformatted.success, true)
+  assert.equal(reformatted.totalRenamed, 4)
+  assert.equal(
+    fs.existsSync(join(booksDir, '冲突作品', '正文', extraVolume.volumeName, '第1章 尾声.txt')),
+    true
+  )
+  assert.equal(
+    (await reformatChapterNumbers(
+      {
+        bookName: '冲突作品',
+        volumeName: '不存在卷',
+        settings: {}
+      },
+      booksDir
+    )).success,
+    false
+  )
+  assert.equal(
+    (await updateChapterFormat(
+      { bookName: '不存在作品', settings: {} },
+      booksDir
+    )).success,
+    false
+  )
   const coverPath = join(booksDir, '生命周期作品', 'cover.png')
   const conflictRename = await editBook(
     { originalName: '生命周期作品', name: '冲突作品', coverUrl: null },
@@ -267,6 +392,26 @@ try {
   assert.equal(notebook.success, true)
   const duplicateNotebook = await createNotebook({ bookName: '生命周期作品' }, booksDir)
   assert.equal(duplicateNotebook.notebookName, '新建笔记本1')
+  assert.equal(
+    (
+      await renameNotebook({
+        bookName: '生命周期作品',
+        oldName: '不存在笔记本',
+        newName: '新名称'
+      }, booksDir)
+    ).success,
+    false
+  )
+  assert.equal(
+    (
+      await renameNotebook({
+        bookName: '生命周期作品',
+        oldName: duplicateNotebook.notebookName,
+        newName: duplicateNotebook.notebookName
+      }, booksDir)
+    ).message,
+    '名称未变化'
+  )
   const note = await createNote(
     {
       bookName: '生命周期作品',
@@ -326,6 +471,34 @@ try {
       )
     ).success,
     false
+  )
+  assert.equal(
+    (
+      await renameNote(
+        {
+          bookName: '生命周期作品',
+          notebookName: notebook.notebookName,
+          oldName: '不存在笔记',
+          newName: '新名称'
+        },
+        booksDir
+      )
+    ).success,
+    false
+  )
+  assert.equal(
+    (
+      await renameNote(
+        {
+          bookName: '生命周期作品',
+          notebookName: notebook.notebookName,
+          oldName: '伏笔记录',
+          newName: '伏笔记录'
+        },
+        booksDir
+      )
+    ).message,
+    '名称未变化'
   )
   assert.equal(
     (
