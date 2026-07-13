@@ -628,4 +628,170 @@ await assert.rejects(
   /词条数量不匹配/
 )
 
+response = {
+  success: true,
+  bookName: '作品',
+  volumeName: '第一卷',
+  chapterName: '第一章',
+  filePath: 'D:/books/作品/正文/第一卷/第一章.txt',
+  content: '正文',
+  wordCount: 2
+}
+assert.equal((await service.readChapterContent('作品', '第一卷', '第一章')).content, '正文')
+assert.equal(request.url, '/api/chapters/read')
+
+response = {
+  success: true,
+  bookName: '作品',
+  volumeName: '第一卷',
+  chapterName: '第一章',
+  filePath: 'D:/books/作品/正文/第一卷/第一章.txt',
+  wordCount: 0,
+  databaseSync: { success: true, chapterName: '第一章' }
+}
+await service.upsertChapterDocument({
+  bookName: '作品',
+  volumeName: '第一卷',
+  chapterName: '第一章',
+  content: ''
+})
+assert.equal(request.url, '/api/chapters/upsert')
+await assert.rejects(() => service.upsertChapterDocument({}), /缺少作品名/)
+
+response = {
+  success: true,
+  settings: { chapterFormat: 'arabic', suffixType: '章', targetWords: 2000 }
+}
+assert.equal((await service.getChapterSettings('作品')).targetWords, 2000)
+assert.equal(request.url, '/api/chapter-settings/get')
+
+response = { success: true, node: { name: '新章名' } }
+await service.editChapterNode('作品', { type: 'chapter', oldName: '旧章名', newName: '新章名' })
+assert.equal(request.url, '/api/nodes/edit')
+await assert.rejects(() => service.editChapterNode('', {}), /缺少作品名/)
+
+response = { success: true, deleted: true }
+await service.deleteChapterNode('作品', { type: 'chapter', name: '第一章' })
+assert.equal(request.url, '/api/nodes/delete')
+await assert.rejects(() => service.deleteChapterNode('', {}), /缺少作品名/)
+
+response = { success: true, notebookName: '新资料' }
+await service.renameNotebookDocument('作品', '旧资料', '新资料')
+assert.equal(request.url, '/api/notebooks/rename')
+response = { success: true, noteName: '新人物' }
+await service.renameNoteDocument('作品', '资料', '旧人物', '新人物')
+assert.equal(request.url, '/api/notes/rename')
+response = { success: true, deleted: true }
+await service.deleteNotebookDocument('作品', '资料')
+assert.equal(request.url, '/api/notebooks/delete')
+response = { success: true, deleted: true }
+await service.deleteNoteDocument('作品', '资料', '人物')
+assert.equal(request.url, '/api/notes/delete')
+
+await assert.rejects(() => service.ensureNotebookDocument('', '资料'), /缺少作品名/)
+await assert.rejects(() => service.ensureNotebookDocument('作品', ''), /缺少笔记本名称/)
+await assert.rejects(() => service.ensureNoteDocument('', '资料', '人物'), /缺少作品名/)
+await assert.rejects(() => service.ensureNoteDocument('作品', '', '人物'), /缺少笔记本名称/)
+await assert.rejects(() => service.ensureNoteDocument('作品', '资料', ''), /缺少笔记名称/)
+
+await assert.rejects(() => service.readSettingsDocument(''), /缺少作品名/)
+await assert.rejects(() => service.writeSettingsDocument('', { categories: [] }), /缺少作品名/)
+await assert.rejects(() => service.writeSettingsDocument('作品', []), /内容格式不正确/)
+await assert.rejects(
+  () => service.writeSettingsDocument('作品', { categories: {} }),
+  /分类格式不正确/
+)
+
+await assert.rejects(() => service.readTimelineDocument(''), /缺少作品名/)
+await assert.rejects(() => service.readSequenceChartsDocument(''), /缺少作品名/)
+await assert.rejects(() => service.readCharactersDocument(''), /缺少作品名/)
+await assert.rejects(() => service.readMapDocuments(''), /缺少作品名/)
+await assert.rejects(() => service.readMapDataDocument('', '王都'), /缺少作品名/)
+await assert.rejects(() => service.readMapDataDocument('作品', ''), /缺少地图名/)
+await assert.rejects(() => service.updateMapDocument({}), /缺少作品名/)
+await assert.rejects(() => service.updateMapDocument({ bookName: '作品' }), /缺少地图名/)
+await assert.rejects(
+  () => service.updateMapDocument({ bookName: '作品', mapName: '王都' }),
+  /缺少图片数据/
+)
+await assert.rejects(() => service.deleteMapDocument('', '王都'), /缺少作品名/)
+
+await assert.rejects(() => service.readRelationshipGraphs(''), /缺少作品名/)
+await assert.rejects(() => service.readRelationshipGraphData('', '关系一'), /缺少作品名/)
+await assert.rejects(() => service.readRelationshipGraphData('作品', ''), /缺少图谱名/)
+await assert.rejects(() => service.createRelationshipGraph('', '关系一'), /缺少作品名/)
+await assert.rejects(() => service.createRelationshipGraph('作品', ''), /缺少图谱名/)
+await assert.rejects(() => service.writeRelationshipGraphData('', '关系一'), /缺少作品名/)
+await assert.rejects(() => service.writeRelationshipGraphData('作品', ''), /缺少图谱名/)
+await assert.rejects(
+  () => service.writeRelationshipGraphData('作品', '关系一', null),
+  /内容格式不正确/
+)
+await assert.rejects(
+  () => service.writeRelationshipGraphThumbnail('', '关系一', 'image'),
+  /缺少作品名/
+)
+await assert.rejects(
+  () => service.writeRelationshipGraphThumbnail('作品', '', 'image'),
+  /缺少图谱名/
+)
+await assert.rejects(() => service.readRelationshipGraphImage('', '关系一.png'), /缺少作品名/)
+await assert.rejects(() => service.readRelationshipGraphImage('作品', ''), /缺少图片名/)
+await assert.rejects(() => service.deleteRelationshipGraph('', '关系一'), /缺少作品名/)
+await assert.rejects(() => service.deleteRelationshipGraph('作品', ''), /缺少图谱名/)
+
+await assert.rejects(() => service.readOrganizationGraphs(''), /缺少作品名/)
+await assert.rejects(() => service.readOrganizationGraphData('', '宗门'), /缺少作品名/)
+await assert.rejects(() => service.readOrganizationGraphData('作品', ''), /缺少图谱名/)
+await assert.rejects(() => service.createOrganizationGraph('', '宗门'), /缺少作品名/)
+await assert.rejects(() => service.createOrganizationGraph('作品', ''), /缺少图谱名/)
+await assert.rejects(() => service.createOrganizationGraph('作品', '宗门', []), /内容格式不正确/)
+await assert.rejects(() => service.writeOrganizationGraphData('', '宗门'), /缺少作品名/)
+await assert.rejects(() => service.writeOrganizationGraphData('作品', ''), /缺少图谱名/)
+await assert.rejects(
+  () => service.writeOrganizationGraphThumbnail('作品', '宗门', ''),
+  /缺少图片数据/
+)
+await assert.rejects(() => service.readOrganizationGraphImage('', '宗门.png'), /缺少作品名/)
+await assert.rejects(() => service.readOrganizationGraphImage('作品', ''), /缺少图片名/)
+await assert.rejects(() => service.deleteOrganizationGraph('', '宗门'), /缺少作品名/)
+await assert.rejects(() => service.deleteOrganizationGraph('作品', ''), /缺少图谱名/)
+await assert.rejects(
+  () => service.exportOrganizationGraphToNote({ bookName: '作品' }),
+  /缺少图谱名/
+)
+
+await assert.rejects(() => service.readEntityProfilesDocument(''), /缺少作品名/)
+await assert.rejects(
+  () => service.writeEntityProfileCategoryDocument('', 'artifact', []),
+  /缺少作品名/
+)
+await assert.rejects(
+  () => service.writeEntityProfileCategoryDocument('作品', 'artifact', {}),
+  /内容格式不正确/
+)
+await assert.rejects(() => service.writeDictionaryDocument('', []), /缺少作品名/)
+await assert.rejects(() => service.writeDictionaryDocument('作品', {}), /内容格式不正确/)
+
+response = {
+  success: true,
+  bookName: '作品',
+  volumeName: '第一卷',
+  message: '已重新编号 3 章',
+  totalRenamed: 3,
+  settings: { chapterFormat: 'arabic', suffixType: '章' }
+}
+assert.equal(
+  (
+    await service.reformatChapterNumbers('作品', '第一卷', {
+      chapterFormat: 'arabic',
+      suffixType: '章'
+    })
+  ).totalRenamed,
+  3
+)
+assert.equal(request.url, '/api/chapter-numbers/reformat')
+await assert.rejects(() => service.reformatChapterNumbers('', '第一卷'), /缺少作品名/)
+await assert.rejects(() => service.reformatChapterNumbers('作品', ''), /缺少卷名/)
+
 console.log('Web 编辑器章节树与笔记服务测试通过')
