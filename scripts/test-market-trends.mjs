@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import { join } from 'node:path'
 import assert from 'node:assert/strict'
+import iconv from 'iconv-lite'
 import marketService from '../src/main/services/marketService.js'
 import marketTrendService from '../src/main/services/marketTrendService.js'
 
@@ -185,6 +186,51 @@ const timeoutFailed = await marketService.refreshMarketTrends(booksDir, {
 assert.equal(timeoutFailed.success, false)
 assert.equal(timeoutFailed.results[0].failures[0].errorType, 'timeout')
 
+const sourceFormatsDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-market-sources-'))
+const nestedSources = await marketService.refreshMarketTrends(sourceFormatsDir, {
+  sources: ['aggregated', 'ikun'],
+  force: true,
+  requestIntervalMs: 0,
+  fetchImpl: async (url) => {
+    if (url.includes('hewoyi')) {
+      return response({
+        code: 200,
+        data: {
+          movieList: [
+            '暑期电影票房刷新纪录',
+            {
+              name: '悬疑新剧开播',
+              hotValue: '2.3亿',
+              href: 'https://example.com/movie'
+            },
+            123,
+            null
+          ]
+        }
+      })
+    }
+    return response({
+      data: {
+        zhihu: [
+          { query: '年轻人开始关注职业小说', score: '6.6万' },
+          { label: '都市题材讨论升温', value: 3200 }
+        ]
+      }
+    })
+  }
+})
+assert.equal(nestedSources.success, true)
+assert.equal(
+  nestedSources.results.find((item) => item.source === 'aggregated')?.topics.length,
+  2
+)
+assert.equal(
+  nestedSources.results.find((item) => item.source === 'ikun')?.topics.some(
+    (topic) => topic.extra.platform === '知乎'
+  ),
+  true
+)
+
 const skippedOptional = await marketService.refreshMarketTrends(booksDir, {
   sources: ['dailyhot'],
   force: true
@@ -293,6 +339,42 @@ assert.equal(htmlResult.results[0].topics.length, 2)
 const qidianTopics = marketService.listHotTopics(booksDir, { source: 'qidian', limit: 10 })
 assert.equal(qidianTopics.length, 2)
 assert.equal(qidianTopics[0].extra.category.length > 0, true)
+
+const jjwxcHtml = `
+  <html>
+    <head><title>晋江文学城作品榜</title></head>
+    <body>
+      <table>
+        <tr><td>作者春山 言情-近代现代 连载</td><td><a href="/onebook.php?novelid=901">《春山来信》</a></td></tr>
+        <tr><td>作者秋水 纯爱-架空历史 完结</td><td><a href="/onebook.php?novelid=902">秋水长天</a></td></tr>
+        <tr><td><a href="/onebook.php?novelid=903">登录</a></td></tr>
+      </table>
+    </body>
+  </html>
+`
+const jjwxcResult = await marketService.refreshMarketTrends(sourceFormatsDir, {
+  sources: ['jjwxc'],
+  force: true,
+  requestIntervalMs: 0,
+  fetchImpl: async () => ({
+    ok: true,
+    status: 200,
+    headers: { get: () => 'text/html; charset=gb18030' },
+    async arrayBuffer() {
+      return iconv.encode(jjwxcHtml, 'gb18030')
+    }
+  })
+})
+assert.equal(jjwxcResult.success, true)
+assert.equal(jjwxcResult.results[0].topics.length, 2)
+assert.equal(jjwxcResult.results[0].topics[0].extra.sourceType, 'novel_rank')
+assert.equal(
+  marketService.listHotTopics(sourceFormatsDir, { source: 'jjwxc' }).some(
+    (topic) => topic.keyword === '春山来信'
+  ),
+  true
+)
+fs.rmSync(sourceFormatsDir, { recursive: true, force: true })
 
 const fanqieHtml = `
   <html>
@@ -427,6 +509,36 @@ const emptyOverview = marketService.getMarketOverview(emptyBooksDir, { channel: 
 const emptyCloud = marketService.getMarketKeywordCloud(emptyBooksDir, { channel: 'all' })
 assert.equal(emptyOverview.writableDirections.length, 0)
 assert.equal(emptyCloud.popularCombinations.length, 0)
+assert.equal(marketTrendService.listHotTopics(emptyBooksDir).length, 0)
+assert.equal(marketTrendService.listTrendRecords(emptyBooksDir).length, 0)
+assert.equal(marketTrendService.getTrendRecord(emptyBooksDir, '不存在'), null)
+assert.equal(marketTrendService.listSourceStatus(emptyBooksDir).length, 10)
+assert.equal(marketTrendService.buildRuleOpportunities(emptyBooksDir).length, 0)
+const emptyRank = marketTrendService.buildHotRank(emptyBooksDir, {
+  channel: 'invalid-channel'
+})
+assert.equal(emptyRank.channel, 'all')
+assert.equal(emptyRank.items.length, 0)
+assert.equal(emptyRank.selectedItem, null)
+const emptyCombination = marketTrendService.combinationDetailFromKeywords(
+  emptyBooksDir,
+  ['悬疑'],
+  'male'
+)
+assert.equal(emptyCombination.title, '悬疑')
+assert.equal(emptyCombination.writableDirections.length, 0)
+assert.equal(emptyCombination.sourceInsightId, '')
+const emptyActivities = marketTrendService.buildActivities(emptyBooksDir, {
+  channel: 'female'
+})
+assert.equal(emptyActivities.activities.length, 0)
+assert.equal(emptyActivities.selectedActivityDetail, null)
+const emptyDashboard = marketTrendService.getMarketDashboard(emptyBooksDir, {
+  channel: 'invalid-channel'
+})
+assert.equal(emptyDashboard.channel, 'all')
+assert.equal(emptyDashboard.agentBrief.directions.length, 0)
+assert.equal(emptyDashboard.lastUpdatedAt, '')
 fs.rmSync(emptyBooksDir, { recursive: true, force: true })
 
 const scenarioDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-market-scenarios-'))
@@ -675,6 +787,37 @@ const fencedOpportunities = await marketService.generateMarketOpportunities(book
 assert.equal(fencedOpportunities.success, true)
 assert.equal(fencedOpportunities.items[0].keyword, 'AI 短剧爆火')
 
+const partialProvider = {
+  id: 'partial-provider',
+  async chat() {
+    return {
+      content: JSON.stringify({
+        items: [
+          null,
+          [],
+          {
+            keyword: 'AI 短剧爆火',
+            summary: '只返回摘要。'
+          },
+          {
+            keyword: '重生题材热度上涨',
+            suggestion: '只返回建议。'
+          }
+        ]
+      })
+    }
+  }
+}
+const partialOpportunities = await marketService.generateMarketOpportunities(booksDir, {
+  provider: partialProvider
+})
+assert.equal(partialOpportunities.success, true)
+assert.equal(partialOpportunities.providerId, 'partial-provider')
+assert.equal(partialOpportunities.items[0].summary, '只返回摘要。')
+assert.equal(Boolean(partialOpportunities.items[0].suggestion), true)
+assert.equal(partialOpportunities.items[1].suggestion, '只返回建议。')
+assert.equal(Boolean(partialOpportunities.items[1].summary), true)
+
 const embeddedArrayProvider = {
   providerId: 'embedded-provider',
   async chat() {
@@ -692,6 +835,30 @@ assert.equal(
   ).success,
   true
 )
+
+const unparsableProvider = {
+  providerId: 'unparsable-provider',
+  async chat() {
+    return { content: '没有可解析的 JSON 数据' }
+  }
+}
+const unparsableOpportunities = await marketService.generateMarketOpportunities(booksDir, {
+  provider: unparsableProvider
+})
+assert.equal(unparsableOpportunities.success, false)
+assert.match(unparsableOpportunities.message, /无法解析/)
+
+const malformedArrayProvider = {
+  providerId: 'malformed-array-provider',
+  async chat() {
+    return { content: '说明：[{"keyword":}] 结束' }
+  }
+}
+const malformedArrayOpportunities = await marketService.generateMarketOpportunities(booksDir, {
+  provider: malformedArrayProvider
+})
+assert.equal(malformedArrayOpportunities.success, false)
+assert.match(malformedArrayOpportunities.message, /无法解析/)
 
 const badTextProvider = {
   id: 'bad-market-provider',
