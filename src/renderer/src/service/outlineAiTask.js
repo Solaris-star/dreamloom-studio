@@ -11,12 +11,14 @@ function extractJson(textValue) {
     .trim()
   const objectStart = source.indexOf('{')
   const objectEnd = source.lastIndexOf('}')
-  if (objectStart !== -1 && objectEnd > objectStart) return source.slice(objectStart, objectEnd + 1)
   const arrayStart = source.indexOf('[')
   const arrayEnd = source.lastIndexOf(']')
-  return arrayStart !== -1 && arrayEnd > arrayStart
-    ? source.slice(arrayStart, arrayEnd + 1)
-    : source
+  const hasObject = objectStart !== -1 && objectEnd > objectStart
+  const hasArray = arrayStart !== -1 && arrayEnd > arrayStart
+  if (hasArray && (!hasObject || arrayStart < objectStart)) {
+    return source.slice(arrayStart, arrayEnd + 1)
+  }
+  return hasObject ? source.slice(objectStart, objectEnd + 1) : source
 }
 
 function itemContent(item) {
