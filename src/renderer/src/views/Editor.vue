@@ -193,6 +193,10 @@ const storageKey = computed(() => createEditorLayoutKey(bookName.value, editorDe
 const legacyStorageKey = computed(
   () => `dreamloom:editor-layout:${encodeURIComponent(bookName.value || 'default')}`
 )
+const legacyWideStorageKey = computed(
+  () =>
+    `dreamloom:editor-layout:v2:${encodeURIComponent(bookName.value || 'default')}:desktop`
+)
 const leftPanelSize = ref(240)
 const rightPanelSize = ref(180)
 const lastLeftPanelSize = ref(240)
@@ -226,7 +230,9 @@ function loadLayout() {
     localStorage,
     storageKey.value,
     editorDevice.value,
-    editorDevice.value === 'desktop' ? legacyStorageKey.value : ''
+    editorDevice.value === 'wide'
+      ? [legacyWideStorageKey.value, legacyStorageKey.value]
+      : []
   )
   leftPanelSize.value = data.left
   rightPanelSize.value = data.right

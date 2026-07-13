@@ -10,11 +10,11 @@ import {
 
 assert.equal(getEditorDevice(390), 'mobile')
 assert.equal(getEditorDevice(768), 'tablet')
-assert.equal(getEditorDevice(1180), 'desktop')
-assert.deepEqual(getEditorPanelVisibility('desktop', false), { left: true, right: true })
+assert.equal(getEditorDevice(1180), 'wide')
+assert.deepEqual(getEditorPanelVisibility('wide', false), { left: true, right: true })
 assert.deepEqual(getEditorPanelVisibility('tablet', false), { left: true, right: true })
 assert.deepEqual(getEditorPanelVisibility('mobile', false), { left: false, right: false })
-assert.deepEqual(getEditorPanelVisibility('desktop', true), { left: false, right: false })
+assert.deepEqual(getEditorPanelVisibility('wide', true), { left: false, right: false })
 assert.equal(shouldExitEditorFocusMode({ key: 'Escape' }, true), true)
 assert.equal(shouldExitEditorFocusMode({ key: 'Escape', defaultPrevented: true }, true), false)
 assert.equal(shouldExitEditorFocusMode({ key: 'Enter' }, true), false)
@@ -45,7 +45,7 @@ const unsafe = normalizeEditorLayout(
     contentWidth: 2000,
     focus: 'false'
   },
-  'desktop'
+  'wide'
 )
 assert.equal(unsafe.left, 450)
 assert.equal(unsafe.right, 60)
@@ -56,11 +56,16 @@ assert.equal(unsafe.contentWidth, 960)
 assert.equal(unsafe.focus, false)
 
 const values = new Map([
+  ['legacy-wide', JSON.stringify({ left: 320, right: 200 })],
   ['legacy', JSON.stringify({ left: 300, right: 220 })],
   ['broken', '{']
 ])
 const storage = { getItem: (key) => values.get(key) || null }
-assert.equal(readEditorLayout(storage, 'missing', 'desktop', 'legacy').left, 300)
-assert.equal(readEditorLayout(storage, 'broken', 'desktop').left, 240)
+assert.equal(
+  readEditorLayout(storage, 'missing', 'wide', ['legacy-wide', 'legacy']).left,
+  320
+)
+assert.equal(readEditorLayout(storage, 'missing', 'wide', ['missing-old', 'legacy']).left, 300)
+assert.equal(readEditorLayout(storage, 'broken', 'wide').left, 240)
 
 console.log('编辑器布局状态测试通过')

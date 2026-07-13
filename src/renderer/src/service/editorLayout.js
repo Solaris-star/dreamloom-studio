@@ -13,7 +13,7 @@ export function getEditorDevice(width) {
   const value = Number(width)
   if (Number.isFinite(value) && value < 768) return 'mobile'
   if (Number.isFinite(value) && value < 1180) return 'tablet'
-  return 'desktop'
+  return 'wide'
 }
 
 export function getEditorPanelVisibility(device, focusMode = false) {
@@ -28,7 +28,7 @@ export function shouldExitEditorFocusMode(event, focusMode = false) {
 
 export function createEditorLayoutKey(bookName, device) {
   const safeBookName = encodeURIComponent(String(bookName || 'default').trim() || 'default')
-  const safeDevice = ['mobile', 'tablet', 'desktop'].includes(device) ? device : 'desktop'
+  const safeDevice = ['mobile', 'tablet', 'wide'].includes(device) ? device : 'wide'
   return `dreamloom:editor-layout:v2:${safeBookName}:${safeDevice}`
 }
 
@@ -37,7 +37,7 @@ function clamp(value, fallback, min, max) {
   return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback
 }
 
-export function normalizeEditorLayout(value = {}, device = 'desktop') {
+export function normalizeEditorLayout(value = {}, device = 'wide') {
   const defaults =
     device === 'mobile'
       ? { ...DEFAULT_EDITOR_LAYOUT, left: 0, right: 60, lastLeft: 240, lastRight: 180 }
@@ -55,8 +55,14 @@ export function normalizeEditorLayout(value = {}, device = 'desktop') {
   }
 }
 
-export function readEditorLayout(storage, key, device, legacyKey = '') {
-  const serialized = storage?.getItem(key) || (legacyKey ? storage?.getItem(legacyKey) : '')
+export function readEditorLayout(storage, key, device, legacyKeys = []) {
+  const fallbackKeys = Array.isArray(legacyKeys) ? legacyKeys : [legacyKeys]
+  const serialized =
+    storage?.getItem(key) ||
+    fallbackKeys.reduce(
+      (value, legacyKey) => value || (legacyKey ? storage?.getItem(legacyKey) : ''),
+      ''
+    )
   if (!serialized) return normalizeEditorLayout({}, device)
 
   try {
