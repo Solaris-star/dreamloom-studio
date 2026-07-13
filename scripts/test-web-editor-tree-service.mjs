@@ -5,8 +5,9 @@ let request
 
 globalThis.fetch = async (url, options = {}) => {
   request = { url, payload: JSON.parse(options.body || '{}') }
-  return new Response(JSON.stringify(response), {
-    status: response.success === false ? 400 : 200,
+  const data = typeof response === 'function' ? response(request) : response
+  return new Response(JSON.stringify(data), {
+    status: data.success === false ? 400 : 200,
     headers: { 'Content-Type': 'application/json' }
   })
 }
@@ -83,6 +84,10 @@ assert.deepEqual(request, {
   url: '/api/sort-order/get',
   payload: { bookName: '作品' }
 })
+response = 'asc'
+assert.equal(await service.getSortOrder('作品'), 'asc')
+response = { success: true, order: 'sideways' }
+await assert.rejects(() => service.getSortOrder('作品'), /接口返回格式不正确/)
 
 response = { success: true, order: 'asc' }
 await service.setSortOrder('作品', 'asc')
@@ -157,6 +162,18 @@ await assert.rejects(
 response = { success: true, chapters: [{ type: 'volume', name: '第一卷', children: [] }] }
 assert.equal((await service.listChapterTree('作品')).length, 1)
 assert.equal(request.url, '/api/chapters/load')
+response = {
+  success: true,
+  bookName: '另一部作品',
+  chapters: []
+}
+await assert.rejects(() => service.listChapterTree('作品'), /接口返回的作品不匹配/)
+response = { success: true, chapters: [{ name: '第一卷', children: {} }] }
+await assert.rejects(() => service.listChapterTree('作品'), /接口返回格式不正确/)
+response = { success: true, chapters: [null] }
+await assert.rejects(() => service.listChapterTree('作品'), /接口返回格式不正确/)
+response = { success: true, chapters: {} }
+await assert.rejects(() => service.listChapterTree('作品'), /接口返回格式不正确/)
 
 response = { success: true, notes: [{ type: 'folder', name: '资料', children: [] }] }
 assert.equal((await service.listNoteTree('作品')).length, 1)
@@ -208,6 +225,66 @@ assert.deepEqual(request, {
   url: '/api/notes/create',
   payload: { bookName: '作品', notebookName: '笔记本1' }
 })
+
+response = {
+  success: true,
+  notes: [{ type: 'folder', name: '资料', children: [] }]
+}
+assert.deepEqual(await service.ensureNotebookDocument('作品', '资料'), {
+  notebookName: '资料',
+  created: false,
+  renamed: false
+})
+
+response = ({ url }) => {
+  if (url === '/api/notes/load') return { success: true, notes: [] }
+  if (url === '/api/notebooks/create') return { success: true, notebookName: '笔记本1' }
+  if (url === '/api/notebooks/rename') return { success: true, notebookName: '资料' }
+  return { success: false, message: `未模拟接口：${url}` }
+}
+assert.deepEqual(await service.ensureNotebookDocument('作品', '资料'), {
+  notebookName: '资料',
+  created: true,
+  renamed: true
+})
+
+response = ({ url }) => {
+  if (url === '/api/notes/load') {
+    return {
+      success: true,
+      notes: [{ type: 'folder', name: '资料', children: [{ name: '人物' }] }]
+    }
+  }
+  return { success: false, message: `未模拟接口：${url}` }
+}
+assert.deepEqual(await service.ensureNoteDocument('作品', '资料', '人物'), {
+  notebookName: '资料',
+  noteName: '人物',
+  created: false
+})
+
+response = ({ url }) => {
+  if (url === '/api/notes/load') {
+    return { success: true, notes: [{ type: 'folder', name: '资料', children: [] }] }
+  }
+  if (url === '/api/notes/create') {
+    return { success: true, noteName: '人物', fileName: '人物.txt' }
+  }
+  return { success: false, message: `未模拟接口：${url}` }
+}
+assert.deepEqual(await service.ensureNoteDocument('作品', '资料', '人物'), {
+  notebookName: '资料',
+  noteName: '人物',
+  created: true
+})
+response = {
+  success: true,
+  notes: [{ type: 'folder', name: '资料', children: {} }]
+}
+await assert.rejects(
+  () => service.ensureNoteDocument('作品', '资料', '人物'),
+  /笔记本目录格式不正确/
+)
 
 response = {
   success: true,
@@ -315,6 +392,10 @@ assert.deepEqual(request, {
   url: '/api/studio/settings/read',
   payload: { bookName: '作品' }
 })
+response = { success: true, data: null }
+assert.equal(await service.readSettingsDocument('作品'), null)
+response = { success: true, data: [] }
+await assert.rejects(() => service.readSettingsDocument('作品'), /接口返回格式不正确/)
 
 response = {
   success: true,
@@ -340,6 +421,17 @@ assert.deepEqual(request, {
   url: '/api/studio/outlines/read',
   payload: { bookName: '作品' }
 })
+response = { success: true, data: null }
+assert.equal(await service.readOutlineDocument('作品'), null)
+response = { success: true, data: [{ title: '第一卷' }] }
+assert.deepEqual(await service.readOutlineDocument('作品'), {
+  content: '',
+  children: [{ title: '第一卷' }]
+})
+response = { success: true, data: '损坏内容' }
+await assert.rejects(() => service.readOutlineDocument('作品'), /接口返回格式不正确/)
+response = { success: true, data: { children: {} } }
+await assert.rejects(() => service.readOutlineDocument('作品'), /接口返回格式不正确/)
 
 response = {
   success: true,
@@ -358,6 +450,18 @@ assert.deepEqual(request, {
 response = { success: true, data: { version: 1, nodes: {} } }
 assert.deepEqual(await service.readOutlineAiSessionsDocument('作品'), { version: 1, nodes: {} })
 assert.equal(request.url, '/api/studio/outline-ai-sessions/read')
+response = { version: 0 }
+assert.deepEqual(await service.readOutlineAiSessionsDocument('作品'), { version: 1, nodes: {} })
+response = { success: false, error: '会话文件损坏' }
+await assert.rejects(
+  () => service.readOutlineAiSessionsDocument('作品'),
+  /会话文件损坏/
+)
+response = { success: true, data: { nodes: [] } }
+await assert.rejects(
+  () => service.readOutlineAiSessionsDocument('作品'),
+  /接口返回格式不正确/
+)
 
 response = {
   success: true,
@@ -664,6 +768,20 @@ response = {
 }
 assert.equal((await service.getChapterSettings('作品')).targetWords, 2000)
 assert.equal(request.url, '/api/chapter-settings/get')
+response = { chapterFormat: 'hanzi', suffixType: '', targetWords: '2500' }
+assert.deepEqual(await service.getChapterSettings('作品'), {
+  chapterFormat: 'hanzi',
+  suffixType: '章',
+  targetWords: 2500
+})
+response = { chapterFormat: 'invalid', suffixType: '回', targetWords: -1 }
+assert.deepEqual(await service.getChapterSettings('作品'), {
+  chapterFormat: 'number',
+  suffixType: '回',
+  targetWords: 2000
+})
+response = { success: true, settings: [] }
+await assert.rejects(() => service.getChapterSettings('作品'), /接口返回格式不正确/)
 
 response = { success: true, node: { name: '新章名' } }
 await service.editChapterNode('作品', { type: 'chapter', oldName: '旧章名', newName: '新章名' })
