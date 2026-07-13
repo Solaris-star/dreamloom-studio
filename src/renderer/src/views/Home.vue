@@ -3,18 +3,30 @@
     <header class="dashboard-header">
       <div>
         <h1>{{ APP_NAME_ZH }}</h1>
-        <p class="brand-en">Dreamloom Studio · DLS</p>
-        <p class="headline">今天想写一个什么样的故事？</p>
-        <p class="subline">从一个念头开始，把故事慢慢织出来。</p>
+        <p class="brand-en">
+          Dreamloom Studio · DLS
+        </p>
+        <p class="headline">
+          今天想写一个什么样的故事？
+        </p>
+        <p class="subline">
+          从一个念头开始，把故事慢慢织出来。
+        </p>
       </div>
     </header>
 
     <section class="dashboard-main-grid">
-      <article ref="starterCardRef" class="dashboard-card creation-card" aria-label="创作起笔">
+      <article
+        ref="starterCardRef"
+        class="dashboard-card creation-card"
+        aria-label="创作起笔"
+      >
         <div class="card-title">
           <div>
             <h2>创作起笔</h2>
-            <p class="starter-kicker">设定生成，黄金三章</p>
+            <p class="starter-kicker">
+              设定生成，黄金三章
+            </p>
           </div>
         </div>
         <p class="starter-desc">
@@ -24,7 +36,7 @@
           v-model="ideaInput"
           class="creation-textarea"
           placeholder="请输入您的小说创意想法，例如：一个现代都市的年轻程序员意外获得了穿越时空的能力..."
-        ></textarea>
+        />
         <div class="starter-control-row">
           <label>
             <span>AI 服务</span>
@@ -53,12 +65,21 @@
               placeholder="选择或输入模型"
               :disabled="!selectedProviderId"
             >
-              <el-option v-for="model in modelOptions" :key="model" :label="model" :value="model" />
+              <el-option
+                v-for="model in modelOptions"
+                :key="model"
+                :label="model"
+                :value="model"
+              />
             </el-select>
           </label>
           <label class="strategy-field">
             <span>提示词</span>
-            <el-select v-model="selectedStarterPresetId" filterable placeholder="选择提示词">
+            <el-select
+              v-model="selectedStarterPresetId"
+              filterable
+              placeholder="选择提示词"
+            >
               <el-option
                 v-for="preset in starterPresetOptions"
                 :key="preset.id"
@@ -90,15 +111,25 @@
         </div>
       </article>
 
-      <aside class="dashboard-side-stack" aria-label="首页信息栏">
-        <article class="dashboard-card market-card" aria-label="市场风向">
+      <aside
+        class="dashboard-side-stack"
+        aria-label="首页信息栏"
+      >
+        <article
+          class="dashboard-card market-card"
+          aria-label="市场风向"
+        >
           <div class="card-title">
             <div>
               <h2>市场风向</h2>
             </div>
             <span class="update-text">{{ marketUpdateText }}</span>
           </div>
-          <div class="market-tabs" role="tablist" aria-label="市场时间范围">
+          <div
+            class="market-tabs"
+            role="tablist"
+            aria-label="市场时间范围"
+          >
             <button
               v-for="tab in marketTabs"
               :key="tab.key"
@@ -111,19 +142,32 @@
               {{ tab.label }}
             </button>
           </div>
-          <div v-if="marketError" class="small-error">{{ marketError }}</div>
+          <div
+            v-if="marketError"
+            class="small-error"
+          >
+            {{ marketError }}
+          </div>
           <div
             v-else-if="!marketHotspots.length && !marketActivities.length"
             class="compact-empty market-empty"
           >
             <strong>暂无市场数据</strong>
             <span>点击市场灵感里的刷新热榜，织梦会自动整理公开热词和活动。</span>
-            <button type="button" @click="router.push('/market/overview')">去刷新热榜</button>
+            <button
+              type="button"
+              @click="router.push('/market/overview')"
+            >
+              去刷新热榜
+            </button>
           </div>
           <template v-else>
             <div class="market-section">
               <h3>热点题材</h3>
-              <ol v-if="marketHotspots.length" class="market-list">
+              <ol
+                v-if="marketHotspots.length"
+                class="market-list"
+              >
                 <li
                   v-for="(item, index) in marketHotspots"
                   :key="item.id"
@@ -135,11 +179,19 @@
                   <span class="trend-arrow">↑</span>
                 </li>
               </ol>
-              <p v-else class="inline-empty">暂无热点题材。</p>
+              <p
+                v-else
+                class="inline-empty"
+              >
+                暂无热点题材。
+              </p>
             </div>
             <div class="market-section">
               <h3>作家活动</h3>
-              <div v-if="marketActivities.length" class="activity-list">
+              <div
+                v-if="marketActivities.length"
+                class="activity-list"
+              >
                 <button
                   v-for="item in marketActivities"
                   :key="item.id"
@@ -150,15 +202,27 @@
                   <small>{{ remainingText(item) }}</small>
                 </button>
               </div>
-              <p v-else class="inline-empty">暂无进行中的作家活动。</p>
+              <p
+                v-else
+                class="inline-empty"
+              >
+                暂无进行中的作家活动。
+              </p>
             </div>
           </template>
-          <button class="more-link" type="button" @click="router.push('/market/overview')">
+          <button
+            class="more-link"
+            type="button"
+            @click="router.push('/market/overview')"
+          >
             查看市场灵感 >
           </button>
         </article>
 
-        <article class="dashboard-card status-card" aria-label="写作近况">
+        <article
+          class="dashboard-card status-card"
+          aria-label="写作近况"
+        >
           <div class="card-title">
             <div>
               <h2>写作近况</h2>
@@ -171,9 +235,18 @@
               查看数据中心 >
             </button>
           </div>
-          <div v-if="statsError" class="small-error status-error">
+          <div
+            v-if="statsError"
+            class="small-error status-error"
+          >
             <span>{{ statsError }}</span>
-            <button type="button" :disabled="statsLoading" @click="loadStats">重试</button>
+            <button
+              type="button"
+              :disabled="statsLoading"
+              @click="loadStats"
+            >
+              重试
+            </button>
           </div>
           <div class="status-grid">
             <div>
@@ -193,8 +266,16 @@
               <span>Token</span>
             </div>
           </div>
-          <div v-if="hasTrendData" class="mini-line-chart" aria-label="最近 7 天净增字数">
-            <svg viewBox="0 0 240 78" preserveAspectRatio="none" role="img">
+          <div
+            v-if="hasTrendData"
+            class="mini-line-chart"
+            aria-label="最近 7 天净增字数"
+          >
+            <svg
+              viewBox="0 0 240 78"
+              preserveAspectRatio="none"
+              role="img"
+            >
               <polyline :points="chartPoints" />
               <circle
                 v-for="point in chartPointRows"
@@ -205,7 +286,12 @@
               />
             </svg>
           </div>
-          <p v-else class="chart-empty">写几章后，这里会出现你的 7 天创作曲线。</p>
+          <p
+            v-else
+            class="chart-empty"
+          >
+            写几章后，这里会出现你的 7 天创作曲线。
+          </p>
         </article>
       </aside>
     </section>
@@ -241,29 +327,56 @@
             查看更多 >
           </button>
         </div>
-        <div v-if="recentBooksReadError" class="small-error list-error">
+        <div
+          v-if="recentBooksReadError"
+          class="small-error list-error"
+        >
           <span>{{ recentBooksReadError }}</span>
-          <button type="button" :disabled="recentBooksLoading" @click="loadRecentBookDetails">
+          <button
+            type="button"
+            :disabled="recentBooksLoading"
+            @click="loadRecentBookDetails"
+          >
             重试
           </button>
         </div>
-        <div v-if="recentBooks.length" class="writing-list">
+        <div
+          v-if="recentBooks.length"
+          class="writing-list"
+        >
           <div
             v-for="book in recentBooks"
             :key="book.id || book.folderName || book.name"
             class="writing-row"
           >
-            <div class="cover-thumb" :style="{ backgroundColor: wabiCoverColor(book.coverColor) }">
-              <img v-if="coverSrc(book)" :src="coverSrc(book)" :alt="book.name" />
+            <div
+              class="cover-thumb"
+              :style="{ backgroundColor: wabiCoverColor(book.coverColor) }"
+            >
+              <img
+                v-if="coverSrc(book)"
+                :src="coverSrc(book)"
+                :alt="book.name"
+              >
             </div>
             <div class="writing-main">
               <strong>{{ book.name || book.folderName }}</strong>
               <small>{{ latestChapterText(book) }} · {{ todayBookWordsText(book) }}</small>
             </div>
-            <el-button size="small" @click="openBook(book)">继续写</el-button>
+            <el-button
+              size="small"
+              @click="openBook(book)"
+            >
+              继续写
+            </el-button>
           </div>
         </div>
-        <p v-else class="soft-empty">还没有作品。可以先用「创作起笔」生成起笔方案，再转为新书。</p>
+        <p
+          v-else
+          class="soft-empty"
+        >
+          还没有作品。可以先用「创作起笔」生成起笔方案，再转为新书。
+        </p>
       </article>
 
       <article class="dashboard-card materials-card">
@@ -279,23 +392,48 @@
             查看更多 >
           </button>
         </div>
-        <div v-if="recentMaterials.length" class="material-list">
-          <div v-for="item in recentMaterials" :key="item.key" class="material-row">
+        <div
+          v-if="recentMaterials.length"
+          class="material-list"
+        >
+          <div
+            v-for="item in recentMaterials"
+            :key="item.key"
+            class="material-row"
+          >
             <div>
               <span class="type-tag">{{ item.typeLabel }}</span>
               <strong>{{ item.title }}</strong>
               <small>{{ formatDate(item.updatedAt) }}</small>
             </div>
             <div class="material-actions">
-              <button type="button" @click="openMaterial(item)">打开</button>
-              <button type="button" @click="quoteMaterial(item)">引用到创作起笔</button>
+              <button
+                type="button"
+                @click="openMaterial(item)"
+              >
+                打开
+              </button>
+              <button
+                type="button"
+                @click="quoteMaterial(item)"
+              >
+                引用到创作起笔
+              </button>
             </div>
           </div>
         </div>
-        <div v-else class="compact-empty">
+        <div
+          v-else
+          class="compact-empty"
+        >
           <strong>暂无可引用资料</strong>
           <span>去创作库添加资料，或在 AI 工坊保存 Prompt 模板。</span>
-          <button type="button" @click="router.push('/knowledge-library/all')">添加资料</button>
+          <button
+            type="button"
+            @click="router.push('/knowledge-library/all')"
+          >
+            添加资料
+          </button>
         </div>
       </article>
     </section>

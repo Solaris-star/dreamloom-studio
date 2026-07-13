@@ -23,9 +23,7 @@ for (const expected of [
   'const bookDailyStatsErrors = ref({})',
   'const bookChapterLoadErrors = ref({})',
   'const recentBooksReadError = computed(() => {',
-  '<div v-if="statsError" class="small-error status-error">',
   '@click="loadStats"',
-  '<div v-if="recentBooksReadError" class="small-error list-error">',
   '@click="loadRecentBookDetails"',
   'await Promise.allSettled([loadKnowledge(), loadPromptPresets(), loadMarketData(), loadTextProviders()])',
   'await loadBooks()',
@@ -39,6 +37,14 @@ for (const expected of [
 ]) {
   assertIncludes(homeView, expected, `Home view missing ${expected}`)
 }
+assert(
+  /<div\s+v-if="statsError"\s+class="small-error status-error"\s*>/.test(homeView),
+  'Home view missing statistics error state'
+)
+assert(
+  /<div\s+v-if="recentBooksReadError"\s+class="small-error list-error"\s*>/.test(homeView),
+  'Home view missing recent books error state'
+)
 
 for (const forbidden of [
   'window.electron.loadChapters',
