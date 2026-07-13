@@ -117,6 +117,77 @@ function fakeTextProvider({
 }
 
 {
+  const variants = [
+    {
+      id: 'plot-proposals',
+      content:
+        '```json\n{"proposals":[{"title":"声东击西","summary":"主角制造假线索转移对手注意。","keyEvents":["放出假消息","追踪内应",""]}]}\n```'
+    },
+    {
+      id: 'plot-options',
+      content: '前缀{"options":[{"summary":"主角暂时退让，等待对手露出真正目的。"}]}后缀'
+    },
+    {
+      id: 'plot-items',
+      content: '{"items":[{"title":"引蛇出洞","keyEvents":"不是数组"}]}'
+    },
+    {
+      id: 'plot-text',
+      content:
+        '方案一：\n标题：借刀试探\n摘要：主角借盟友之手试探城中内应。\n冲突：盟友并不完全可信\n情绪：紧张\n关键事件：\n- 放出消息\n2. 观察反应'
+    }
+  ].map(({ id, content }) =>
+    fakeTextProvider({
+      id,
+      name: '',
+      model: '',
+      content
+    })
+  )
+
+  const result = await plotEvolutionAiService.evolvePlot({
+    outlineTitle: 123,
+    outlineContent: '主角准备确认内应。',
+    userHint: '不要立即揭晓身份。',
+    providers: variants
+  })
+
+  assert.equal(result.success, true)
+  assert.equal(result.groups.length, 4)
+  assert.equal(result.groups[0].proposals[0].keyEvents.length, 2)
+  assert.equal(result.groups[1].proposals[0].title, '未命名方案')
+  assert.equal(result.groups[2].proposals[0].keyEvents.length, 0)
+  assert.equal(result.groups[3].proposals[0].title, '借刀试探')
+  assert.equal(result.groups[3].proposals[0].keyEvents.length, 2)
+  assert.match(variants[0].calls[0].messages[1].content, /用户补充要求/)
+}
+
+{
+  const textProviderCalls = []
+  const provider = {
+    providerId: 'fallback-provider',
+    providerName: 'Fallback Provider',
+    modelName: 'fallback-model',
+    textProvider: {
+      async chat(options) {
+        textProviderCalls.push(options)
+        return {
+          content: '{"title":"单点突破","summary":"主角集中力量先解决最弱的一个环节。"}'
+        }
+      }
+    }
+  }
+  const result = await plotEvolutionAiService.evolvePlot({
+    outlineContent: '主角面对三方阻拦。',
+    providers: [provider]
+  })
+  assert.equal(result.groups[0].providerId, 'fallback-provider')
+  assert.equal(result.groups[0].providerName, 'Fallback Provider')
+  assert.equal(result.groups[0].model, 'fallback-model')
+  assert.equal(textProviderCalls[0].model, 'fallback-model')
+}
+
+{
   const emptyProvider = fakeTextProvider({
     id: 'plot-empty',
     name: 'Plot Empty',
@@ -134,6 +205,30 @@ function fakeTextProvider({
   assert.equal(result.groups.length, 1)
   assert.equal(result.groups[0].proposals.length, 0)
   assert.match(result.groups[0].error, /返回内容为空/)
+}
+
+{
+  const result = await plotEvolutionAiService.evolvePlot({
+    outlineContent: '主角需要继续行动。',
+    providers: [
+      {
+        id: 'missing-service'
+      },
+      {
+        id: 'string-error',
+        service: {
+          async chat() {
+            throw 'plain failure'
+          }
+        }
+      }
+    ]
+  })
+  assert.equal(result.success, false)
+  assert.match(result.message, /缺少文本服务/)
+  assert.equal(result.groups[0].providerName, 'missing-service')
+  assert.equal(result.groups[0].model, '未知模型')
+  assert.equal(result.groups[1].error, '调用失败')
 }
 
 {
@@ -181,6 +276,24 @@ await assert.rejects(
 await assert.rejects(
   () => plotEvolutionAiService.regenerateProposal({ outlineContent: '有内容' }),
   /Provider/
+)
+
+await assert.rejects(
+  () =>
+    plotEvolutionAiService.regenerateProposal({
+      outlineContent: '',
+      provider: fakeTextProvider({ content: '{}' })
+    }),
+  /章纲内容为空/
+)
+
+await assert.rejects(
+  () =>
+    plotEvolutionAiService.regenerateProposal({
+      outlineContent: '有内容',
+      provider: { name: '无服务 Provider' }
+    }),
+  /缺少文本服务/
 )
 
 await assert.rejects(
