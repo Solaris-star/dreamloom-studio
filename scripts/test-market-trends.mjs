@@ -429,6 +429,204 @@ assert.equal(emptyOverview.writableDirections.length, 0)
 assert.equal(emptyCloud.popularCombinations.length, 0)
 fs.rmSync(emptyBooksDir, { recursive: true, force: true })
 
+const scenarioDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-market-scenarios-'))
+const scenarioNow = new Date().toISOString()
+const soonDeadline = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+  .toISOString()
+  .slice(0, 10)
+const scenarioTopics = [
+  ['weibo', '豪门弃妇离婚后直播复仇', '都市'],
+  ['baidu', '破产老板靠股票和投资翻身', '都市'],
+  ['aggregated', '警方通报失踪案件真相', '悬疑'],
+  ['weibo', '全网黑女演员直播翻盘', '娱乐圈'],
+  ['baidu', 'AI 芯片机器人改变游戏行业', '科幻'],
+  ['aggregated', '高中学生高考改志愿', '青春'],
+  ['weibo', '医院医生手术后重排人生', '现实'],
+  ['baidu', '谈判专家面对制裁布局反击', '都市'],
+  ['qimao', '重生嫡女回侯府宫斗', '古言'],
+  ['qidian', '玄幻宗门废柴修真成圣', '玄幻'],
+  ['qidian', '边关小卒在烽火中封侯', '架空历史'],
+  ['jjwxc', '赐婚县主与王爷先婚后爱', '古言'],
+  ['rsshub', '特朗普与外交部举行会晤', '新闻']
+].map(([source, keyword, category], index) => ({
+  id: `scenario-${index}`,
+  source,
+  keyword,
+  title: keyword,
+  heatIndex: 1000 - index * 20,
+  normalizedHeat: 90 - index,
+  capturedAt: scenarioNow,
+  createdAt: scenarioNow,
+  updatedAt: scenarioNow,
+  tags: index === 0 ? ['反转', '直播'] : undefined,
+  extra: {
+    category,
+    rank: index + 1,
+    rawHeat: `${100 - index}万`,
+    author: `作者${index}`,
+    intro: `${keyword}的公开作品简介。`,
+    platform:
+      source === 'qidian'
+        ? '起点'
+        : source === 'qimao'
+          ? '七猫'
+          : source === 'jjwxc'
+            ? '晋江'
+            : '',
+    sourceType: ['qidian', 'qimao', 'jjwxc'].includes(source) ? 'novel_rank' : undefined
+  }
+}))
+scenarioTopics.push(
+  {
+    id: 'activity-ended',
+    source: 'fanqie',
+    keyword: '短篇征稿活动',
+    title: '短篇征稿活动',
+    heatIndex: 80,
+    normalizedHeat: 80,
+    capturedAt: scenarioNow,
+    extra: {
+      sourceType: 'activity',
+      platform: '番茄',
+      category: '女频现言',
+      tags: ['短篇', '现言'],
+      intro: '活动时间：2020-01-01 2020-02-01，征稿 1万-3万字，奖金 5 万元。'
+    }
+  },
+  {
+    id: 'activity-soon',
+    source: 'qidian',
+    keyword: '玄幻投稿比赛',
+    title: '玄幻投稿比赛',
+    heatIndex: 75,
+    normalizedHeat: 75,
+    capturedAt: scenarioNow,
+    extra: {
+      platform: '起点',
+      category: '男频玄幻',
+      intro: `投稿截止 ${soonDeadline}，要求 5 万字，流量扶持。`
+    }
+  },
+  {
+    id: 'activity-unknown',
+    source: 'dailyhot',
+    keyword: '脑洞创作活动',
+    title: '脑洞创作活动',
+    heatIndex: 70,
+    normalizedHeat: 70,
+    capturedAt: scenarioNow,
+    extra: {
+      platform: '短剧',
+      intro: '面向原创作者的脑洞活动，具体日期见来源页。'
+    }
+  },
+  {
+    id: 'activity-invalid',
+    source: 'dailyhot',
+    keyword: '征文活动',
+    title: '征文活动',
+    heatIndex: 60,
+    normalizedHeat: 60,
+    capturedAt: scenarioNow,
+    extra: { sourceType: 'activity' }
+  }
+)
+writeMarketFile(scenarioDir, 'hot-topics.json', { items: scenarioTopics })
+writeMarketFile(scenarioDir, 'trend-records.json', {
+  items: scenarioTopics.slice(0, 4).map((topic, index) => ({
+    keyword: topic.keyword,
+    updatedAt: scenarioNow,
+    trendSeries: [
+      { timestamp: 1, value: index === 0 ? 90 : 20 },
+      { timestamp: 2, value: index === 0 ? 30 : 85 }
+    ]
+  }))
+})
+writeMarketFile(scenarioDir, 'source-status.json', {
+  items: [
+    { source: 'weibo', label: '微博', lastSuccessAt: scenarioNow },
+    {
+      source: 'baidu',
+      label: '百度',
+      lastFailureAt: scenarioNow,
+      lastMessage: '临时失败'
+    },
+    { source: 'qidian', label: '起点', lastSuccessAt: '2020-01-01T00:00:00.000Z' },
+    { source: 'dailyhot', label: 'DailyHot', skipped: true }
+  ]
+})
+
+const allInsights = marketTrendService.listMarketInsights(scenarioDir, {
+  channel: 'all',
+  limit: 50
+})
+assert.equal(allInsights.length >= 10, true)
+assert.equal(allInsights.some((item) => item.genre === '历史权谋'), true)
+assert.equal(allInsights.some((item) => item.genre === '古言权谋'), true)
+assert.equal(allInsights.some((item) => item.genre === '玄幻仙侠'), true)
+assert.equal(allInsights.some((item) => item.originalTitle.includes('特朗普')), false)
+assert.equal(
+  allInsights.find((item) => item.originalTitle.includes('边关小卒'))?.sourceType,
+  'novel_rank'
+)
+
+const maleScenario = marketTrendService.buildMarketOverview(scenarioDir, {
+  channel: 'male',
+  limit: 50
+})
+const femaleScenario = marketTrendService.buildMarketOverview(scenarioDir, {
+  channel: 'female',
+  limit: 50
+})
+assert.equal(maleScenario.writableDirections.some((item) => item.channel === 'male'), true)
+assert.equal(femaleScenario.writableDirections.some((item) => item.channel === 'female'), true)
+assert.equal(maleScenario.opportunityIndex.score > 0, true)
+
+const sourceRank = marketTrendService.buildHotRank(scenarioDir, {
+  channel: 'all',
+  source: 'qidian'
+})
+assert.equal(sourceRank.items.length > 0, true)
+assert.equal(sourceRank.items.every((item) => item.rawPayload.source === 'qidian'), true)
+assert.equal(sourceRank.sources.some((item) => item.status === 'stale'), true)
+assert.equal(sourceRank.sources.some((item) => item.status === 'error'), true)
+
+const scenarioCloud = marketTrendService.buildKeywordCloud(scenarioDir, { channel: 'female' })
+assert.equal(scenarioCloud.keywordClusters.length > 0, true)
+assert.equal(scenarioCloud.popularCombinations.length > 0, true)
+const blankCombination = marketTrendService.combinationDetailFromKeywords(
+  scenarioDir,
+  [],
+  'female'
+)
+assert.equal(blankCombination.writableDirections.length > 0, true)
+const knownCombination = marketTrendService.combinationDetailFromKeywords(
+  scenarioDir,
+  ['古言', '反转'],
+  'female'
+)
+assert.equal(knownCombination.title, '古言 + 反转')
+
+const scenarioActivities = marketTrendService.buildActivities(scenarioDir, { channel: 'all' })
+assert.equal(scenarioActivities.activities.length, 3)
+assert.equal(scenarioActivities.activities.some((item) => item.status === 'ended'), true)
+assert.equal(scenarioActivities.activities.some((item) => item.status === 'ending_soon'), true)
+assert.equal(scenarioActivities.activities.some((item) => item.status === 'unknown'), true)
+assert.equal(scenarioActivities.activities.some((item) => item.channel === 'female'), true)
+assert.equal(scenarioActivities.activities.some((item) => item.channel === 'male'), true)
+assert.equal(scenarioActivities.activities.some((item) => item.wordCountRequirement), true)
+assert.equal(scenarioActivities.activities.some((item) => item.reward), true)
+
+const scenarioDashboard = marketTrendService.getMarketDashboard(scenarioDir, {
+  channel: 'male',
+  source: 'all',
+  limit: 50
+})
+assert.equal(scenarioDashboard.agentBrief.directions.length, 3)
+assert.equal(scenarioDashboard.platformRankings.length > 0, true)
+assert.equal(scenarioDashboard.novelSignals.length > 0, true)
+fs.rmSync(scenarioDir, { recursive: true, force: true })
+
 const fakeTextProvider = {
   id: 'fake-market-provider',
   providerId: 'fake-market-provider',
