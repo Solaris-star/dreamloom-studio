@@ -9,29 +9,77 @@
   >
     <div class="preset-content">
       <div class="preset-toolbar">
-        <el-button type="primary" :disabled="!!presetLoadError" @click="openEditDialog(null)">{{
-          t('promptPreset.create')
-        }}</el-button>
-        <el-button :disabled="!!presetLoadError" @click="handleImport">{{
-          t('promptPreset.import')
-        }}</el-button>
-        <el-button :disabled="!!presetLoadError" @click="handleExport">{{
-          t('promptPreset.export')
-        }}</el-button>
+        <el-button
+          type="primary"
+          :disabled="!!presetLoadError"
+          @click="openEditDialog(null)"
+        >
+          {{
+            t('promptPreset.create')
+          }}
+        </el-button>
+        <el-button
+          :disabled="!!presetLoadError"
+          @click="handleImport"
+        >
+          {{
+            t('promptPreset.import')
+          }}
+        </el-button>
+        <el-button
+          :disabled="!!presetLoadError"
+          @click="handleExport"
+        >
+          {{
+            t('promptPreset.export')
+          }}
+        </el-button>
       </div>
-      <div v-if="presetLoadError" class="preset-read-error">
+      <div
+        v-if="presetLoadError"
+        class="preset-read-error"
+      >
         <span>{{ presetLoadError }}</span>
-        <el-button size="small" @click="loadPresets">重试</el-button>
+        <el-button
+          size="small"
+          @click="loadPresets"
+        >
+          重试
+        </el-button>
       </div>
 
-      <el-tabs v-model="activeCategory" class="preset-tabs">
-        <el-tab-pane :label="t('promptPreset.all')" name="all" />
-        <el-tab-pane :label="t('promptPreset.continue')" name="continue" />
-        <el-tab-pane :label="t('promptPreset.polish')" name="polish" />
-        <el-tab-pane :label="t('promptPreset.evolve')" name="evolve" />
-        <el-tab-pane :label="t('promptPreset.deconstruct')" name="deconstruct" />
-        <el-tab-pane :label="t('promptPreset.settingTree')" name="settingTree" />
-        <el-tab-pane :label="t('promptPreset.chat')" name="chat" />
+      <el-tabs
+        v-model="activeCategory"
+        class="preset-tabs"
+      >
+        <el-tab-pane
+          :label="t('promptPreset.all')"
+          name="all"
+        />
+        <el-tab-pane
+          :label="t('promptPreset.continue')"
+          name="continue"
+        />
+        <el-tab-pane
+          :label="t('promptPreset.polish')"
+          name="polish"
+        />
+        <el-tab-pane
+          :label="t('promptPreset.evolve')"
+          name="evolve"
+        />
+        <el-tab-pane
+          :label="t('promptPreset.deconstruct')"
+          name="deconstruct"
+        />
+        <el-tab-pane
+          :label="t('promptPreset.settingTree')"
+          name="settingTree"
+        />
+        <el-tab-pane
+          :label="t('promptPreset.chat')"
+          name="chat"
+        />
       </el-tabs>
 
       <div class="preset-list">
@@ -43,7 +91,9 @@
         >
           <div class="preset-card-header">
             <span class="preset-name">{{ preset.name }}</span>
-            <el-tag size="small">{{ preset.category }}</el-tag>
+            <el-tag size="small">
+              {{ preset.category }}
+            </el-tag>
             <el-icon
               class="preset-fav"
               :class="{ active: preset.favorite }"
@@ -53,20 +103,40 @@
               <Star v-else />
             </el-icon>
           </div>
-          <div class="preset-preview">{{ preset.systemPrompt?.slice(0, 120) }}</div>
+          <div class="preset-preview">
+            {{ preset.systemPrompt?.slice(0, 120) }}
+          </div>
           <div class="preset-card-actions">
-            <el-button link type="primary" size="small" @click="openEditDialog(preset)">
+            <el-button
+              link
+              type="primary"
+              size="small"
+              @click="openEditDialog(preset)"
+            >
               {{ t('promptPreset.edit') }}
             </el-button>
-            <el-button link type="success" size="small" @click="handleDuplicate(preset)">
+            <el-button
+              link
+              type="success"
+              size="small"
+              @click="handleDuplicate(preset)"
+            >
               {{ t('promptPreset.duplicate') }}
             </el-button>
-            <el-button link type="danger" size="small" @click="handleDelete(preset)">
+            <el-button
+              link
+              type="danger"
+              size="small"
+              @click="handleDelete(preset)"
+            >
               {{ t('promptPreset.delete') }}
             </el-button>
           </div>
         </el-card>
-        <el-empty v-if="filteredPresets.length === 0" :description="t('promptPreset.emptyHint')" />
+        <el-empty
+          v-if="filteredPresets.length === 0"
+          :description="t('promptPreset.emptyHint')"
+        />
       </div>
     </div>
 
@@ -82,23 +152,58 @@
           <el-input v-model="editingPreset.name" />
         </el-form-item>
         <el-form-item :label="t('promptPreset.category')">
-          <el-select v-model="editingPreset.category" style="width: 100%">
-            <el-option value="continue" :label="t('promptPreset.continue')" />
-            <el-option value="polish" :label="t('promptPreset.polish')" />
-            <el-option value="evolve" :label="t('promptPreset.evolve')" />
-            <el-option value="deconstruct" :label="t('promptPreset.deconstruct')" />
-            <el-option value="settingTree" :label="t('promptPreset.settingTree')" />
-            <el-option value="chat" :label="t('promptPreset.chat')" />
+          <el-select
+            v-model="editingPreset.category"
+            style="width: 100%"
+          >
+            <el-option
+              value="continue"
+              :label="t('promptPreset.continue')"
+            />
+            <el-option
+              value="polish"
+              :label="t('promptPreset.polish')"
+            />
+            <el-option
+              value="evolve"
+              :label="t('promptPreset.evolve')"
+            />
+            <el-option
+              value="deconstruct"
+              :label="t('promptPreset.deconstruct')"
+            />
+            <el-option
+              value="settingTree"
+              :label="t('promptPreset.settingTree')"
+            />
+            <el-option
+              value="chat"
+              :label="t('promptPreset.chat')"
+            />
           </el-select>
         </el-form-item>
         <el-form-item :label="t('promptPreset.systemPrompt')">
-          <el-input v-model="editingPreset.systemPrompt" type="textarea" :rows="6" />
+          <el-input
+            v-model="editingPreset.systemPrompt"
+            type="textarea"
+            :rows="6"
+          />
         </el-form-item>
         <el-form-item :label="t('promptPreset.userPrompt')">
-          <el-input v-model="editingPreset.userPromptTemplate" type="textarea" :rows="4" />
+          <el-input
+            v-model="editingPreset.userPromptTemplate"
+            type="textarea"
+            :rows="4"
+          />
         </el-form-item>
         <el-form-item :label="t('promptPreset.temperature')">
-          <el-slider v-model="editingPreset.temperature" :min="0" :max="2" :step="0.1" show-input />
+          <el-slider
+            v-model="editingPreset.temperature"
+            :min="0"
+            :max="2"
+            :step="0.1"
+            show-input
+          />
         </el-form-item>
         <el-form-item :label="t('promptPreset.maxTokens')">
           <el-slider
@@ -110,14 +215,28 @@
           />
         </el-form-item>
         <el-form-item :label="t('promptPreset.topP')">
-          <el-slider v-model="editingPreset.topP" :min="0" :max="1" :step="0.05" show-input />
+          <el-slider
+            v-model="editingPreset.topP"
+            :min="0"
+            :max="1"
+            :step="0.05"
+            show-input
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="editVisible = false">{{ t('promptPreset.cancel') }}</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSave">{{
-          t('promptPreset.save')
-        }}</el-button>
+        <el-button @click="editVisible = false">
+          {{ t('promptPreset.cancel') }}
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="saving"
+          @click="handleSave"
+        >
+          {{
+            t('promptPreset.save')
+          }}
+        </el-button>
       </template>
     </el-dialog>
   </el-dialog>
