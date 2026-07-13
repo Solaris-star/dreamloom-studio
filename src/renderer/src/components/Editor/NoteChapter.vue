@@ -2,9 +2,15 @@
   <div class="note-chapter">
     <!-- 笔记部分 -->
     <div class="panel-section">
-      <div class="section-header" @click="toggleNotes">
+      <div
+        class="section-header"
+        @click="toggleNotes"
+      >
         <div class="section-header-left">
-          <el-icon class="toggle-icon" :class="{ 'is-active': notesExpanded }">
+          <el-icon
+            class="toggle-icon"
+            :class="{ 'is-active': notesExpanded }"
+          >
             <ArrowRight />
           </el-icon>
           <span>{{ t('noteChapter.notes') }}</span>
@@ -15,11 +21,16 @@
             placement="bottom"
             :show-after="2000"
           >
-            <el-icon @click.stop="createNotebook"><FolderAdd /></el-icon>
+            <el-icon @click.stop="createNotebook">
+              <FolderAdd />
+            </el-icon>
           </el-tooltip>
         </div>
       </div>
-      <div v-show="notesExpanded" class="section-content">
+      <div
+        v-show="notesExpanded"
+        class="section-content"
+      >
         <el-tree
           :data="notesTree"
           :props="defaultProps"
@@ -48,11 +59,18 @@
                 @blur="confirmEditNote(node)"
               />
               <div class="chapter-actions">
-                <el-icon v-if="node.data.type === 'folder'" @click.stop="createNote(node)">
+                <el-icon
+                  v-if="node.data.type === 'folder'"
+                  @click.stop="createNote(node)"
+                >
                   <DocumentAdd />
                 </el-icon>
-                <el-icon @click.stop="editNoteNode(node)"><Edit /></el-icon>
-                <el-icon @click.stop="deleteNoteNode(node)"><Delete /></el-icon>
+                <el-icon @click.stop="editNoteNode(node)">
+                  <Edit />
+                </el-icon>
+                <el-icon @click.stop="deleteNoteNode(node)">
+                  <Delete />
+                </el-icon>
               </div>
             </div>
           </template>
@@ -62,9 +80,15 @@
 
     <!-- 正文部分 -->
     <div class="panel-section">
-      <div class="section-header" @click="toggleChapters">
+      <div
+        class="section-header"
+        @click="toggleChapters"
+      >
         <div class="section-header-left">
-          <el-icon class="toggle-icon" :class="{ 'is-active': chaptersExpanded }">
+          <el-icon
+            class="toggle-icon"
+            :class="{ 'is-active': chaptersExpanded }"
+          >
             <ArrowRight />
           </el-icon>
           <span>{{ t('noteChapter.chapters') }}</span>
@@ -75,21 +99,34 @@
             placement="bottom"
             :show-after="2000"
           >
-            <el-icon @click.stop="createVolume"><FolderAdd /></el-icon>
+            <el-icon @click.stop="createVolume">
+              <FolderAdd />
+            </el-icon>
           </el-tooltip>
-          <el-tooltip :content="t('noteChapter.sortVolumes')" placement="bottom" :show-after="2000">
-            <el-icon @click.stop="sortVolumes"><Sort /></el-icon>
+          <el-tooltip
+            :content="t('noteChapter.sortVolumes')"
+            placement="bottom"
+            :show-after="2000"
+          >
+            <el-icon @click.stop="sortVolumes">
+              <Sort />
+            </el-icon>
           </el-tooltip>
           <el-tooltip
             :content="t('noteChapter.chapterSettings')"
             placement="bottom"
             :show-after="2000"
           >
-            <el-icon @click.stop="openChapterSettings"><Setting /></el-icon>
+            <el-icon @click.stop="openChapterSettings">
+              <Setting />
+            </el-icon>
           </el-tooltip>
         </div>
       </div>
-      <div v-show="chaptersExpanded" class="section-content">
+      <div
+        v-show="chaptersExpanded"
+        class="section-content"
+      >
         <el-tree
           ref="chapterTreeRef"
           :data="chaptersTree"
@@ -106,7 +143,10 @@
         >
           <template #default="{ node }">
             <div class="custom-tree-node">
-              <span v-if="!editingNode || editingNode.path !== node.data.path" class="node-name">
+              <span
+                v-if="!editingNode || editingNode.path !== node.data.path"
+                class="node-name"
+              >
                 {{ node.label }}
               </span>
               <el-input
@@ -125,8 +165,12 @@
                 >
                   <DocumentAdd />
                 </el-icon>
-                <el-icon @click.stop="editNode(node)"><Edit /></el-icon>
-                <el-icon @click.stop="deleteNode(node)"><Delete /></el-icon>
+                <el-icon @click.stop="editNode(node)">
+                  <Edit />
+                </el-icon>
+                <el-icon @click.stop="deleteNode(node)">
+                  <Delete />
+                </el-icon>
               </div>
             </div>
           </template>
