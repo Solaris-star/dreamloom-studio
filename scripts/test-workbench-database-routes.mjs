@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import {
   handleWorkbenchDatabaseRoute,
-  isWorkbenchDatabaseRoute
+  isWorkbenchDatabaseRoute,
+  WORKBENCH_DATABASE_ROUTE_CONTRACTS
 } from '../src/main/webApi/workbenchDatabaseRoutes.js'
 
 const calls = []
@@ -21,12 +22,28 @@ const sendJson = (_res, payload, statusCode = 200) => responses.push([statusCode
 assert.equal(isWorkbenchDatabaseRoute('/api/workbench-database/snapshot'), true)
 assert.equal(isWorkbenchDatabaseRoute('/api/workbench-database/query'), true)
 assert.equal(isWorkbenchDatabaseRoute('/api/books/list'), false)
+assert.deepEqual(WORKBENCH_DATABASE_ROUTE_CONTRACTS, {
+  '/api/workbench-database/snapshot': 'POST',
+  '/api/workbench-database/query': 'POST'
+})
 
 assert.equal(
   handleWorkbenchDatabaseRoute({
     path: '/api/workbench-database/snapshot',
     req: { method: 'POST' },
     body: { bookName: '测试书' },
+    res: {},
+    booksDir: 'D:/books',
+    sendJson,
+    workbenchDatabaseService: service
+  }),
+  true
+)
+assert.equal(
+  handleWorkbenchDatabaseRoute({
+    path: '/api/workbench-database/snapshot',
+    req: { method: 'GET' },
+    body: {},
     res: {},
     booksDir: 'D:/books',
     sendJson,
@@ -77,6 +94,7 @@ assert.deepEqual(calls, [
 ])
 assert.deepEqual(responses, [
   [200, { success: true, snapshot: { books: [] } }],
+  [405, { success: false, message: '请求方法不受支持' }],
   [200, { success: true, items: [] }],
   [405, { success: false, message: '请求方法不受支持' }]
 ])

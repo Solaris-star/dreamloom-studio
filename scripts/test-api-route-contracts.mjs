@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { WORKBENCH_DATABASE_ROUTE_CONTRACTS } from '../src/main/webApi/workbenchDatabaseRoutes.js'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
@@ -28,8 +29,15 @@ const serverSource = serverSources.join('\n')
 const collectPaths = (source) =>
   new Set([...source.matchAll(/['"`](\/api\/[a-z0-9_./-]+)['"`]/gi)].map((match) => match[1]))
 
-const clientPaths = collectPaths(clientSources.join('\n'))
+const clientSource = clientSources.join('\n')
+const clientPaths = collectPaths(clientSource)
 const serverPaths = collectPaths(serverSource)
+const clientContracts = [
+  ...clientSource.matchAll(/\b(postJson|fetchJson)\s*\(\s*['"`](\/api\/[a-z0-9_./-]+)['"`]/gi)
+].map((match) => ({
+  method: match[1] === 'postJson' ? 'POST' : 'GET',
+  path: match[2]
+}))
 const knownMissingPaths = new Set()
 const ignoredProxyPaths = new Set(['/api/agent-tasks/queue/status'])
 const missing = [...clientPaths].filter(
@@ -48,9 +56,20 @@ assert.deepEqual(
   [],
   `以下 API 已有实现，请从已知缺失清单移除：${resolvedBaselinePaths.join('、')}`
 )
-assert.ok(serverPaths.has('/api/workbench-database/snapshot'))
-assert.ok(serverPaths.has('/api/workbench-database/query'))
+for (const contract of clientContracts) {
+  assert.ok(
+    serverPaths.has(contract.path) || ignoredProxyPaths.has(contract.path),
+    `前端 ${contract.method} ${contract.path} 没有对应后端路由`
+  )
+}
+assert.deepEqual(WORKBENCH_DATABASE_ROUTE_CONTRACTS, {
+  '/api/workbench-database/snapshot': 'POST',
+  '/api/workbench-database/query': 'POST'
+})
+for (const [apiPath] of Object.entries(WORKBENCH_DATABASE_ROUTE_CONTRACTS)) {
+  assert.ok(serverPaths.has(apiPath), `工作台数据库路由未注册：${apiPath}`)
+}
 
 console.log(
-  `API 路由检查通过：检查 ${clientPaths.size} 个静态路径，仍有 ${missing.length} 个已知缺失接口`
+  `API 路由检查通过：检查 ${clientPaths.size} 个静态路径和 ${clientContracts.length} 处明确调用`
 )
