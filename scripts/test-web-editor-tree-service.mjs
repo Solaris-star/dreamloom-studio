@@ -413,4 +413,219 @@ assert.deepEqual(request, {
   }
 })
 
+const documentWriteResponse = (fileName, documentType, itemCount = undefined) => ({
+  success: true,
+  fileName,
+  documentType,
+  path: `D:/books/作品/${fileName}`,
+  documentPath: `D:/books/作品/${fileName}`,
+  ...(itemCount === undefined ? {} : { itemCount }),
+  databaseSync: { success: true }
+})
+
+response = documentWriteResponse('timelines.json', 'timeline', 1)
+await service.writeTimelineDocument(' 作品 ', [{ title: '主时间线' }])
+assert.deepEqual(request, {
+  url: '/api/studio/timeline/write',
+  payload: { bookName: '作品', data: [{ title: '主时间线' }] }
+})
+await assert.rejects(() => service.writeTimelineDocument('', []), /缺少作品名/)
+await assert.rejects(() => service.writeTimelineDocument('作品', {}), /内容格式不正确/)
+
+response = documentWriteResponse('sequence-charts.json', 'sequence_charts', 1)
+await service.writeSequenceChartsDocument('作品', [{ title: '主线事件' }])
+assert.equal(request.url, '/api/studio/sequences/write')
+await assert.rejects(() => service.writeSequenceChartsDocument('作品', null), /内容格式不正确/)
+
+response = documentWriteResponse('characters.json', 'characters', 1)
+await service.writeCharactersDocument('作品', [{ name: '林青' }])
+assert.equal(request.url, '/api/studio/characters/write')
+await assert.rejects(() => service.writeCharactersDocument('作品', '林青'), /内容格式不正确/)
+
+const mapResponse = (withDataDocument = false) => ({
+  success: true,
+  mapName: '王都',
+  assetType: 'map',
+  fileName: '王都.png',
+  path: 'D:/books/作品/maps/王都.png',
+  bookPath: 'D:/books/作品',
+  databaseSync: {
+    success: true,
+    documentType: 'map:王都',
+    documentPath: 'D:/books/作品/maps/王都.png'
+  },
+  ...(withDataDocument
+    ? {
+        dataDatabaseSync: {
+          success: true,
+          documentType: 'map_data:王都',
+          documentPath: 'D:/books/作品/maps/王都.json'
+        }
+      }
+    : {})
+})
+
+response = mapResponse()
+await service.createMapDocument({
+  bookName: '作品',
+  mapName: '王都',
+  description: '都城',
+  imageData: 'data:image/png;base64,AA=='
+})
+assert.equal(request.url, '/api/studio/maps/create')
+await assert.rejects(() => service.createMapDocument({}), /缺少作品名/)
+await assert.rejects(() => service.createMapDocument({ bookName: '作品' }), /缺少地图名/)
+await assert.rejects(
+  () => service.createMapDocument({ bookName: '作品', mapName: '王都' }),
+  /缺少图片数据/
+)
+
+response = mapResponse(true)
+await service.updateMapDocument({
+  bookName: '作品',
+  mapName: '王都',
+  imageData: 'data:image/png;base64,AA==',
+  mapData: { elements: [] }
+})
+assert.equal(request.url, '/api/studio/maps/update')
+
+response = {
+  success: true,
+  mapName: '王都',
+  assetType: 'map',
+  deletedFiles: ['王都.png'],
+  existed: true
+}
+await service.deleteMapDocument('作品', '王都')
+assert.equal(request.url, '/api/studio/maps/delete')
+await assert.rejects(() => service.deleteMapDocument('作品', ''), /缺少地图名/)
+
+const graphWriteResponse = (assetType, collection, graphName) => ({
+  success: true,
+  graphName,
+  assetType,
+  collection,
+  fileName: `${graphName}.json`,
+  path: `D:/books/作品/${collection}/${graphName}.json`,
+  graphPath: `D:/books/作品/${collection}/${graphName}.json`,
+  nodeCount: 1,
+  lineCount: 0,
+  databaseSync: {
+    success: true,
+    documentType: `${assetType}_graph:${graphName}`,
+    documentPath: `D:/books/作品/${collection}/${graphName}.json`
+  }
+})
+const graphThumbnailResponse = (assetType, collection, graphName) => ({
+  success: true,
+  graphName,
+  assetType,
+  collection,
+  fileName: `${graphName}.png`,
+  path: `D:/books/作品/${collection}/${graphName}.png`,
+  thumbnailPath: `D:/books/作品/${collection}/${graphName}.png`,
+  bookPath: 'D:/books/作品'
+})
+const graphDeleteResponse = (assetType, collection, graphName) => ({
+  success: true,
+  graphName,
+  assetType,
+  collection,
+  deletedFiles: [`${graphName}.json`],
+  existed: true
+})
+
+const relationshipData = { nodes: [{ id: 'a' }], lines: [] }
+response = graphWriteResponse('relationship', 'relationships', '关系一')
+await service.createRelationshipGraph('作品', '关系一', relationshipData)
+assert.equal(request.url, '/api/studio/relationships/create')
+response = graphWriteResponse('relationship', 'relationships', '关系一')
+await service.writeRelationshipGraphData('作品', '关系一', relationshipData)
+assert.equal(request.url, '/api/studio/relationships/write')
+response = graphThumbnailResponse('relationship', 'relationships', '关系一')
+await service.writeRelationshipGraphThumbnail(
+  '作品',
+  '关系一',
+  'data:image/png;base64,AA=='
+)
+assert.equal(request.url, '/api/studio/relationships/thumbnail')
+response = { success: true, data: 'data:image/png;base64,AA==' }
+assert.equal(
+  await service.readRelationshipGraphImage('作品', '关系一.png'),
+  'data:image/png;base64,AA=='
+)
+response = graphDeleteResponse('relationship', 'relationships', '关系一')
+await service.deleteRelationshipGraph('作品', '关系一')
+assert.equal(request.url, '/api/studio/relationships/delete')
+await assert.rejects(
+  () => service.createRelationshipGraph('作品', '关系一', []),
+  /内容格式不正确/
+)
+await assert.rejects(
+  () => service.writeRelationshipGraphThumbnail('作品', '关系一', ''),
+  /缺少图片数据/
+)
+
+const organizationData = { nodes: [{ id: 'root' }], lines: [] }
+response = graphWriteResponse('organization', 'organizations', '宗门')
+await service.createOrganizationGraph('作品', '宗门', organizationData)
+assert.equal(request.url, '/api/studio/organizations/create')
+response = graphWriteResponse('organization', 'organizations', '宗门')
+await service.writeOrganizationGraphData('作品', '宗门', organizationData)
+assert.equal(request.url, '/api/studio/organizations/write')
+response = graphThumbnailResponse('organization', 'organizations', '宗门')
+await service.writeOrganizationGraphThumbnail('作品', '宗门', 'data:image/png;base64,AA==')
+assert.deepEqual(request, {
+  url: '/api/studio/organizations/thumbnail',
+  payload: {
+    bookName: '作品',
+    organizationId: '宗门',
+    thumbnailData: 'data:image/png;base64,AA=='
+  }
+})
+response = 'data:image/png;base64,AA=='
+assert.equal(
+  await service.readOrganizationGraphImage('作品', '宗门.png'),
+  'data:image/png;base64,AA=='
+)
+response = graphDeleteResponse('organization', 'organizations', '宗门')
+await service.deleteOrganizationGraph('作品', '宗门')
+assert.equal(request.url, '/api/studio/organizations/delete')
+
+response = {
+  success: true,
+  bookName: '作品',
+  notebookName: '组织架构',
+  noteName: '宗门',
+  fileName: '宗门.txt',
+  notePath: 'D:/books/作品/笔记/组织架构/宗门.txt',
+  path: 'D:/books/作品/笔记/组织架构/宗门.txt',
+  bookPath: 'D:/books/作品',
+  notebookPath: 'D:/books/作品/笔记/组织架构'
+}
+await service.exportOrganizationGraphToNote({
+  bookName: '作品',
+  organizationName: '宗门',
+  content: '宗门资料'
+})
+assert.equal(request.url, '/api/organizations/export-note')
+await assert.rejects(() => service.exportOrganizationGraphToNote({}), /缺少作品名/)
+
+response = documentWriteResponse('entity_profiles.json', 'entity_profiles')
+await service.writeEntityProfileCategoryDocument('作品', 'artifact', [{ name: '青锋剑' }])
+assert.equal(request.url, '/api/studio/entity-profiles/write-category')
+await assert.rejects(
+  () => service.writeEntityProfileCategoryDocument('作品', 'unknown', []),
+  /档案分类不正确/
+)
+
+response = documentWriteResponse('dictionary.json', 'dictionary', 1)
+await service.writeDictionaryDocument('作品', [{ name: '灵脉' }])
+assert.equal(request.url, '/api/studio/dictionary/write')
+response = documentWriteResponse('dictionary.json', 'dictionary', 0)
+await assert.rejects(
+  () => service.writeDictionaryDocument('作品', [{ name: '灵脉' }]),
+  /词条数量不匹配/
+)
+
 console.log('Web 编辑器章节树与笔记服务测试通过')
