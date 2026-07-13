@@ -18,7 +18,6 @@ for (const expected of [
   'const isLoadingStatistics = ref(false)',
   'const isTrendLoading = ref(false)',
   'const isUsageLoading = ref(false)',
-  '<div v-if="statisticsReadError" class="statistics-read-error">',
   '@click="retryLoadAllData"',
   '@change="handleTrendDaysChange"',
   '@click="handleRefreshUsage"',
@@ -29,6 +28,11 @@ for (const expected of [
 ]) {
   assert(statisticsView.includes(expected), `统计页面缺少：${expected}`)
 }
+
+assert(
+  /<div\s+v-if="statisticsReadError"\s+class="statistics-read-error"\s*>/.test(statisticsView),
+  '统计页面缺少读取失败提示区域'
+)
 
 for (const expected of [
   "import { statisticsService } from '@renderer/service/statisticsService'",

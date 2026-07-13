@@ -9,7 +9,10 @@
           clearable
           @change="handleFilterChange"
         >
-          <el-option :label="t('statistics.allBooks')" value="" />
+          <el-option
+            :label="t('statistics.allBooks')"
+            value=""
+          />
           <el-option
             v-for="book in bookList"
             :key="book.folderName || book.name"
@@ -20,18 +23,32 @@
       </div>
     </div>
 
-    <div v-if="statisticsReadError" class="statistics-read-error">
+    <div
+      v-if="statisticsReadError"
+      class="statistics-read-error"
+    >
       <div>
         <strong>{{ t('statistics.loadFailed') }}</strong>
         <p>{{ statisticsReadError }}</p>
       </div>
-      <el-button type="primary" :loading="isLoadingStatistics" @click="retryLoadAllData">
+      <el-button
+        type="primary"
+        :loading="isLoadingStatistics"
+        @click="retryLoadAllData"
+      >
         {{ t('common.retry') }}
       </el-button>
     </div>
 
-    <div v-else v-loading="isLoadingStatistics" class="scroll-container">
-      <div v-if="activeSection === 'overview' || activeSection === 'words'" class="overview-grid">
+    <div
+      v-else
+      v-loading="isLoadingStatistics"
+      class="scroll-container"
+    >
+      <div
+        v-if="activeSection === 'overview' || activeSection === 'words'"
+        class="overview-grid"
+      >
         <StatCard
           :title="t('statistics.totalWords')"
           :value="overview.totalWords"
@@ -62,7 +79,10 @@
         />
       </div>
 
-      <div v-if="activeSection === 'overview' || activeSection === 'words'" class="charts-section">
+      <div
+        v-if="activeSection === 'overview' || activeSection === 'words'"
+        class="charts-section"
+      >
         <div class="chart-card">
           <div class="chart-header">
             <h3>{{ t('statistics.trend') }}</h3>
@@ -72,11 +92,18 @@
               :disabled="isTrendLoading || isLoadingStatistics"
               @change="handleTrendDaysChange"
             >
-              <el-radio-button :label="7">{{ t('statistics.last7Days') }}</el-radio-button>
-              <el-radio-button :label="30">{{ t('statistics.last30Days') }}</el-radio-button>
+              <el-radio-button :label="7">
+                {{ t('statistics.last7Days') }}
+              </el-radio-button>
+              <el-radio-button :label="30">
+                {{ t('statistics.last30Days') }}
+              </el-radio-button>
             </el-radio-group>
           </div>
-          <div ref="trendChartRef" class="chart-body"></div>
+          <div
+            ref="trendChartRef"
+            class="chart-body"
+          />
         </div>
 
         <div class="chart-card heatmap-card">
@@ -84,16 +111,28 @@
             <h3>{{ t('statistics.heatmap') }}</h3>
             <span class="muted">{{ habit.activeDays }} 个写作日</span>
           </div>
-          <div ref="heatmapChartRef" class="chart-body heatmap-body"></div>
+          <div
+            ref="heatmapChartRef"
+            class="chart-body heatmap-body"
+          />
         </div>
       </div>
 
-      <div v-if="activeSection === 'overview'" class="overview-lower-section">
+      <div
+        v-if="activeSection === 'overview'"
+        class="overview-lower-section"
+      >
         <div class="lower-column">
           <div class="info-card ai-usage">
             <div class="card-header">
               <h3>{{ t('statistics.aiUsage') }}</h3>
-              <el-button link :loading="isUsageLoading" @click="handleRefreshUsage">刷新</el-button>
+              <el-button
+                link
+                :loading="isUsageLoading"
+                @click="handleRefreshUsage"
+              >
+                刷新
+              </el-button>
             </div>
             <div class="ai-stat">
               <span class="label">{{ t('statistics.aiTokens') }}</span>
@@ -111,7 +150,10 @@
               <span>输入 {{ formatNumber(tokenStats.promptTokens) }}</span>
               <span>输出 {{ formatNumber(tokenStats.completionTokens) }}</span>
             </div>
-            <div v-if="tokenStats.byFeature?.length" class="usage-list">
+            <div
+              v-if="tokenStats.byFeature?.length"
+              class="usage-list"
+            >
               <div
                 v-for="row in tokenStats.byFeature.slice(0, 5)"
                 :key="row.feature"
@@ -152,14 +194,31 @@
           <div class="info-card goals-card">
             <div class="card-header">
               <h3>{{ t('statistics.goals') }}</h3>
-              <el-button type="primary" link :disabled="goalActionBusy" @click="handleAddGoal">
+              <el-button
+                type="primary"
+                link
+                :disabled="goalActionBusy"
+                @click="handleAddGoal"
+              >
                 <Plus :size="16" />
                 {{ t('statistics.createGoal') }}
               </el-button>
             </div>
-            <div v-if="goals.length === 0" class="goal-empty">暂无目标</div>
-            <div v-else class="goal-list">
-              <article v-for="goal in goals" :key="goal.id" class="goal-item">
+            <div
+              v-if="goals.length === 0"
+              class="goal-empty"
+            >
+              暂无目标
+            </div>
+            <div
+              v-else
+              class="goal-list"
+            >
+              <article
+                v-for="goal in goals"
+                :key="goal.id"
+                class="goal-item"
+              >
                 <div class="goal-main">
                   <div>
                     <h4>{{ goal.title }}</h4>
@@ -169,16 +228,21 @@
                       <span v-if="goal.endDate"> · 截止 {{ goal.endDate }}</span>
                     </p>
                   </div>
-                  <el-tag :type="goalStatusType(goal.status)" size="small" round>
+                  <el-tag
+                    :type="goalStatusType(goal.status)"
+                    size="small"
+                    round
+                  >
                     {{ goalStatusLabel(goal.status) }}
                   </el-tag>
                 </div>
-                <el-progress :percentage="goal.percent" :stroke-width="8" />
+                <el-progress
+                  :percentage="goal.percent"
+                  :stroke-width="8"
+                />
                 <div class="goal-footer">
-                  <span
-                    >{{ formatNumber(goal.currentValue) }} /
-                    {{ formatNumber(goal.targetValue) }} 字</span
-                  >
+                  <span>{{ formatNumber(goal.currentValue) }} /
+                    {{ formatNumber(goal.targetValue) }} 字</span>
                   <span>还差 {{ formatNumber(goal.remaining) }} 字</span>
                   <div class="goal-actions">
                     <el-button
@@ -186,8 +250,9 @@
                       link
                       :disabled="goalActionBusy"
                       @click="handleEditGoal(goal)"
-                      >编辑</el-button
                     >
+                      编辑
+                    </el-button>
                     <el-button
                       size="small"
                       link
@@ -195,8 +260,9 @@
                       :loading="deletingGoalId === goal.id"
                       :disabled="goalActionBusy && deletingGoalId !== goal.id"
                       @click="handleDeleteGoal(goal)"
-                      >删除</el-button
                     >
+                      删除
+                    </el-button>
                   </div>
                 </div>
               </article>
@@ -233,10 +299,19 @@
         v-else-if="activeSection === 'tokens' || activeSection === 'goals'"
         class="bottom-section single"
       >
-        <div v-if="activeSection === 'tokens'" class="info-card ai-usage">
+        <div
+          v-if="activeSection === 'tokens'"
+          class="info-card ai-usage"
+        >
           <div class="card-header">
             <h3>{{ t('statistics.aiUsage') }}</h3>
-            <el-button link :loading="isUsageLoading" @click="handleRefreshUsage">刷新</el-button>
+            <el-button
+              link
+              :loading="isUsageLoading"
+              @click="handleRefreshUsage"
+            >
+              刷新
+            </el-button>
           </div>
           <div class="ai-stat">
             <span class="label">{{ t('statistics.aiTokens') }}</span>
@@ -254,7 +329,10 @@
             <span>输入 {{ formatNumber(tokenStats.promptTokens) }}</span>
             <span>输出 {{ formatNumber(tokenStats.completionTokens) }}</span>
           </div>
-          <div v-if="tokenStats.byFeature?.length" class="usage-list">
+          <div
+            v-if="tokenStats.byFeature?.length"
+            class="usage-list"
+          >
             <div
               v-for="row in tokenStats.byFeature.slice(0, 5)"
               :key="row.feature"
@@ -266,17 +344,37 @@
           </div>
         </div>
 
-        <div v-if="activeSection === 'goals'" class="info-card goals-card">
+        <div
+          v-if="activeSection === 'goals'"
+          class="info-card goals-card"
+        >
           <div class="card-header">
             <h3>{{ t('statistics.goals') }}</h3>
-            <el-button type="primary" link :disabled="goalActionBusy" @click="handleAddGoal">
+            <el-button
+              type="primary"
+              link
+              :disabled="goalActionBusy"
+              @click="handleAddGoal"
+            >
               <Plus :size="16" />
               {{ t('statistics.createGoal') }}
             </el-button>
           </div>
-          <div v-if="goals.length === 0" class="goal-empty">暂无目标</div>
-          <div v-else class="goal-list">
-            <article v-for="goal in goals" :key="goal.id" class="goal-item">
+          <div
+            v-if="goals.length === 0"
+            class="goal-empty"
+          >
+            暂无目标
+          </div>
+          <div
+            v-else
+            class="goal-list"
+          >
+            <article
+              v-for="goal in goals"
+              :key="goal.id"
+              class="goal-item"
+            >
               <div class="goal-main">
                 <div>
                   <h4>{{ goal.title }}</h4>
@@ -286,16 +384,21 @@
                     <span v-if="goal.endDate"> · 截止 {{ goal.endDate }}</span>
                   </p>
                 </div>
-                <el-tag :type="goalStatusType(goal.status)" size="small" round>
+                <el-tag
+                  :type="goalStatusType(goal.status)"
+                  size="small"
+                  round
+                >
                   {{ goalStatusLabel(goal.status) }}
                 </el-tag>
               </div>
-              <el-progress :percentage="goal.percent" :stroke-width="8" />
+              <el-progress
+                :percentage="goal.percent"
+                :stroke-width="8"
+              />
               <div class="goal-footer">
-                <span
-                  >{{ formatNumber(goal.currentValue) }} /
-                  {{ formatNumber(goal.targetValue) }} 字</span
-                >
+                <span>{{ formatNumber(goal.currentValue) }} /
+                  {{ formatNumber(goal.targetValue) }} 字</span>
                 <span>还差 {{ formatNumber(goal.remaining) }} 字</span>
                 <div class="goal-actions">
                   <el-button
@@ -303,8 +406,9 @@
                     link
                     :disabled="goalActionBusy"
                     @click="handleEditGoal(goal)"
-                    >编辑</el-button
                   >
+                    编辑
+                  </el-button>
                   <el-button
                     size="small"
                     link
@@ -312,8 +416,9 @@
                     :loading="deletingGoalId === goal.id"
                     :disabled="goalActionBusy && deletingGoalId !== goal.id"
                     @click="handleDeleteGoal(goal)"
-                    >删除</el-button
                   >
+                    删除
+                  </el-button>
                 </div>
               </div>
             </article>
@@ -321,7 +426,10 @@
         </div>
       </div>
 
-      <div v-else-if="activeSection === 'logs'" class="report-section">
+      <div
+        v-else-if="activeSection === 'logs'"
+        class="report-section"
+      >
         <div class="info-card session-card">
           <div class="card-header">
             <h3>写作会话</h3>
@@ -394,7 +502,10 @@
         </div>
       </div>
 
-      <div v-else-if="activeSection === 'books'" class="info-card empty-tip">
+      <div
+        v-else-if="activeSection === 'books'"
+        class="info-card empty-tip"
+      >
         暂无作品统计数据。
       </div>
     </div>
@@ -420,9 +531,18 @@
         <div class="form-grid">
           <el-form-item label="目标类型">
             <el-select v-model="goalForm.type">
-              <el-option label="周期新增字数" value="range" />
-              <el-option label="今日新增字数" value="daily" />
-              <el-option label="总字数" value="total" />
+              <el-option
+                label="周期新增字数"
+                value="range"
+              />
+              <el-option
+                label="今日新增字数"
+                value="daily"
+              />
+              <el-option
+                label="总字数"
+                value="total"
+              />
             </el-select>
           </el-form-item>
           <el-form-item :label="t('statistics.goalTarget')">
@@ -441,7 +561,10 @@
             filterable
             :placeholder="t('statistics.allBooks')"
           >
-            <el-option :label="t('statistics.allBooks')" value="" />
+            <el-option
+              :label="t('statistics.allBooks')"
+              value=""
+            />
             <el-option
               v-for="book in bookList"
               :key="book.folderName || book.name"
@@ -452,7 +575,11 @@
         </el-form-item>
         <div class="form-grid">
           <el-form-item label="开始日期">
-            <el-date-picker v-model="goalForm.startDate" type="date" value-format="YYYY-MM-DD" />
+            <el-date-picker
+              v-model="goalForm.startDate"
+              type="date"
+              value-format="YYYY-MM-DD"
+            />
           </el-form-item>
           <el-form-item :label="t('statistics.goalDeadline')">
             <el-date-picker
@@ -474,8 +601,19 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button :disabled="goalSaving" @click="goalDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="goalSaving" @click="handleSubmitGoal">保存</el-button>
+        <el-button
+          :disabled="goalSaving"
+          @click="goalDialogVisible = false"
+        >
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="goalSaving"
+          @click="handleSubmitGoal"
+        >
+          保存
+        </el-button>
       </template>
     </el-dialog>
   </div>
