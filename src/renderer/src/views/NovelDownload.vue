@@ -1,22 +1,35 @@
 <template>
-  <div class="novel-download-page" :class="{ 'has-download-card': selectedBook }">
+  <div
+    class="novel-download-page"
+    :class="{ 'has-download-card': selectedBook }"
+  >
     <!-- 顶部：悬浮栏，返回 + 标题 -->
     <header class="page-header">
-      <el-button class="back-button" type="primary" @click="goBack">
+      <el-button
+        class="back-button"
+        type="primary"
+        @click="goBack"
+      >
         <el-icon><ArrowLeft /></el-icon>
         {{ t('novelDownload.backHome') }}
       </el-button>
       <div class="header-content">
         <div class="header-text">
-          <h1 class="page-title">{{ t('novelDownload.title') }}</h1>
-          <p class="subtitle">{{ t('novelDownload.subtitle') }}</p>
+          <h1 class="page-title">
+            {{ t('novelDownload.title') }}
+          </h1>
+          <p class="subtitle">
+            {{ t('novelDownload.subtitle') }}
+          </p>
         </div>
       </div>
     </header>
 
     <!-- 免责声明 -->
     <section class="disclaimer-card">
-      <div class="disclaimer-title">{{ t('novelDownload.disclaimerTitle') }}</div>
+      <div class="disclaimer-title">
+        {{ t('novelDownload.disclaimerTitle') }}
+      </div>
       <ul class="disclaimer-list">
         <li>
           {{ t('novelDownload.disclaimer1') }}
@@ -39,7 +52,12 @@
           class="source-select"
           size="large"
         >
-          <el-option v-for="s in sources" :key="s.id" :label="s.name" :value="s.id" />
+          <el-option
+            v-for="s in sources"
+            :key="s.id"
+            :label="s.name"
+            :value="s.id"
+          />
         </el-select>
         <el-input
           v-model="keyword"
@@ -60,22 +78,37 @@
           :loading="searching"
           @click="handleSearch"
         >
-          <el-icon v-if="!searching"><Search /></el-icon>
+          <el-icon v-if="!searching">
+            <Search />
+          </el-icon>
           <span>{{ t('novelDownload.search') }}</span>
         </el-button>
       </div>
     </section>
 
     <!-- 搜索结果 -->
-    <section v-if="searchResult.length > 0" class="result-card">
+    <section
+      v-if="searchResult.length > 0"
+      class="result-card"
+    >
       <div class="result-header">
         <span class="result-title">{{ t('novelDownload.results') }}</span>
-        <el-tag type="info" size="small" round>{{
-          t('novelDownload.resultsCount', { count: searchResult.length })
-        }}</el-tag>
+        <el-tag
+          type="info"
+          size="small"
+          round
+        >
+          {{
+            t('novelDownload.resultsCount', { count: searchResult.length })
+          }}
+        </el-tag>
       </div>
       <div class="result-table-wrap">
-        <el-table :data="searchResult" stripe class="result-table">
+        <el-table
+          :data="searchResult"
+          stripe
+          class="result-table"
+        >
           <el-table-column
             prop="title"
             :label="t('novelDownload.bookTitle')"
@@ -112,11 +145,18 @@
     </section>
 
     <!-- 选中书籍后的下载操作区：悬浮在页面底部，滚动时列表不被遮挡 -->
-    <section v-if="selectedBook && !confirmingAction" class="download-card download-card--fixed">
+    <section
+      v-if="selectedBook && !confirmingAction"
+      class="download-card download-card--fixed"
+    >
       <div class="download-card-inner">
         <div class="download-header">
-          <h3 class="download-title">《{{ selectedBook.title }}》</h3>
-          <p class="download-meta">{{ selectedBook.author }} · 共 {{ chapterList.length }} 章</p>
+          <h3 class="download-title">
+            《{{ selectedBook.title }}》
+          </h3>
+          <p class="download-meta">
+            {{ selectedBook.author }} · 共 {{ chapterList.length }} 章
+          </p>
         </div>
         <div class="download-actions">
           <el-button
@@ -126,13 +166,15 @@
             :disabled="chapterList.length === 0"
             @click="handleDownloadToBookshelf"
           >
-            <el-icon v-if="!downloading"><FolderOpened /></el-icon>
+            <el-icon v-if="!downloading">
+              <FolderOpened />
+            </el-icon>
             <span>{{
               downloading
                 ? t('novelDownload.downloadingProgress', {
-                    current: downloadProgress.current,
-                    total: downloadProgress.total
-                  })
+                  current: downloadProgress.current,
+                  total: downloadProgress.total
+                })
                 : t('novelDownload.downloadAndAdd')
             }}</span>
           </el-button>
@@ -142,14 +184,23 @@
             :disabled="chapterList.length === 0"
             @click="handleExportTxt"
           >
-            <el-icon v-if="!downloading"><Document /></el-icon>
+            <el-icon v-if="!downloading">
+              <Document />
+            </el-icon>
             <span>{{ t('novelDownload.exportTxt') }}</span>
           </el-button>
-          <el-button size="large" :disabled="downloading" @click="clearSelection">
+          <el-button
+            size="large"
+            :disabled="downloading"
+            @click="clearSelection"
+          >
             {{ t('common.cancel') }}
           </el-button>
         </div>
-        <div v-if="downloading" class="progress-wrap">
+        <div
+          v-if="downloading"
+          class="progress-wrap"
+        >
           <el-progress
             :percentage="progressPercent"
             :stroke-width="8"
@@ -172,8 +223,17 @@
         </template>
       </el-empty>
     </section>
-    <section v-if="errorMsg" class="error-card">
-      <el-alert type="error" :title="errorMsg" show-icon closable @close="errorMsg = ''" />
+    <section
+      v-if="errorMsg"
+      class="error-card"
+    >
+      <el-alert
+        type="error"
+        :title="errorMsg"
+        show-icon
+        closable
+        @close="errorMsg = ''"
+      />
     </section>
   </div>
 </template>
