@@ -67,6 +67,18 @@ try {
   mkdirSync('books', { recursive: true })
   const goalService = await import(`../src/main/services/goalService.js?goal-redline-${Date.now()}`)
 
+  assert.deepEqual(goalService.listGoals(join(tempRoot, 'books')), [])
+  const emptyProgress = goalService.calculateProgress(
+    { id: 'empty', targetValue: 'not-a-number', status: '' },
+    join(tempRoot, 'books')
+  )
+  assert.equal(emptyProgress.title, '写作目标')
+  assert.equal(emptyProgress.type, 'range')
+  assert.equal(emptyProgress.targetValue, 0)
+  assert.equal(emptyProgress.percent, 0)
+  assert.equal(emptyProgress.remaining, 0)
+  assert.equal(emptyProgress.status, 'active')
+
   writeFileSync('.store.json', '{"stats:goals":', 'utf8')
   assert.throws(
     () => goalService.listGoals(join(tempRoot, 'books')),
@@ -175,12 +187,64 @@ try {
   assert.equal(totalResult.item.currentValue, 0)
   assert.equal(totalResult.item.percent, 0)
 
+  const overdueResult = goalService.createGoal(
+    {
+      id: 'goal-overdue',
+      name: '过期目标',
+      bookName: 'book-1',
+      targetWords: 1000.4,
+      startDate: '2020-01-01',
+      endDate: '2020-01-02'
+    },
+    join(tempRoot, 'books')
+  )
+  assert.equal(overdueResult.success, true)
+  assert.equal(overdueResult.item.title, '过期目标')
+  assert.equal(overdueResult.item.bookId, 'book-1')
+  assert.equal(overdueResult.item.targetValue, 1000)
+  assert.equal(overdueResult.item.overdue, true)
+  assert.equal(overdueResult.item.status, 'overdue')
+
+  const pausedResult = goalService.createGoal(
+    {
+      id: 'goal-paused',
+      type: 'range',
+      target: 2000,
+      status: 'paused',
+      note: 123
+    },
+    join(tempRoot, 'books')
+  )
+  assert.equal(pausedResult.success, true)
+  assert.equal(pausedResult.item.title, '写作目标')
+  assert.equal(pausedResult.item.note, '123')
+  assert.equal(pausedResult.item.status, 'paused')
+
+  const defaultDailyResult = goalService.createGoal(
+    {
+      id: 'goal-default-daily',
+      type: 'daily',
+      targetValue: 1
+    },
+    join(tempRoot, 'books')
+  )
+  assert.equal(defaultDailyResult.success, true)
+  assert.equal(defaultDailyResult.item.title, '每日写作目标')
+
   assert.deepEqual(
     goalService.createGoal({ title: '', targetValue: 1000 }, join(tempRoot, 'books')),
     { success: false, message: '目标名称不能为空' }
   )
   assert.deepEqual(
+    goalService.createGoal({ name: ' ', targetValue: 1000 }, join(tempRoot, 'books')),
+    { success: false, message: '目标名称不能为空' }
+  )
+  assert.deepEqual(
     goalService.createGoal({ title: '无效目标', targetValue: 0 }, join(tempRoot, 'books')),
+    { success: false, message: '目标字数必须大于 0' }
+  )
+  assert.deepEqual(
+    goalService.createGoal({ title: '负数目标', targetValue: -10 }, join(tempRoot, 'books')),
     { success: false, message: '目标字数必须大于 0' }
   )
   assert.deepEqual(
@@ -208,8 +272,17 @@ try {
   assert.equal(updateResult.item.targetValue, 400)
 
   const listedGoals = goalService.listGoals(join(tempRoot, 'books'))
-  assert.equal(listedGoals.length, 3)
-  assert.equal(listedGoals.at(-1).status, 'completed')
+  assert.equal(listedGoals.length, 6)
+  assert.equal(listedGoals.at(-1).status, 'paused')
+  assert.equal(listedGoals.some((goal) => goal.status === 'completed'), true)
+
+  const unknownStatusUpdate = goalService.updateGoal(
+    'goal-paused',
+    { status: 'custom', endDate: '' },
+    join(tempRoot, 'books')
+  )
+  assert.equal(unknownStatusUpdate.success, true)
+  assert.equal(unknownStatusUpdate.item.status, 'custom')
 
   assert.deepEqual(goalService.deleteGoal('missing', join(tempRoot, 'books')), {
     success: false,
