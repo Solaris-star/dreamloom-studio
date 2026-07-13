@@ -178,8 +178,8 @@ test('创作台资料入口携带当前书籍并打开对应页面', async ({ pa
   const entries = [
     { buttonName: '大纲管理', pageTitle: '大纲管理', path: 'outline-manager' },
     { buttonName: '设定管理', pageTitle: '设定管理', path: 'setting-manager' },
-    { buttonName: '词条字典', pageTitle: '词典', path: 'dictionary' },
-    { buttonName: '人物谱', pageTitle: '角色档案', path: 'character-profile' },
+    { buttonName: '词条字典', pageTitle: '词条字典', path: 'dictionary' },
+    { buttonName: '人物谱', pageTitle: '人物谱管理', path: 'character-profile' },
     { buttonName: '时间线', pageTitle: '时间线', path: 'timeline' }
   ]
   page.on('pageerror', (error) => runtimeErrors.push(error.message))
