@@ -2,7 +2,11 @@
   <div class="system-settings">
     <div class="settings-body">
       <!-- 左侧二级导航 (侧边栏风格) -->
-      <nav class="settings-nav" aria-label="设置分类" tabindex="0">
+      <nav
+        class="settings-nav"
+        aria-label="设置分类"
+        tabindex="0"
+      >
         <button
           v-for="item in menuItems"
           :key="item.index"
@@ -12,7 +16,10 @@
           type="button"
           @click="openSettingsTab(item)"
         >
-          <component :is="item.icon" :size="18" />
+          <component
+            :is="item.icon"
+            :size="18"
+          />
           <span>{{ item.label }}</span>
         </button>
       </nav>
@@ -22,20 +29,30 @@
         <el-scrollbar>
           <div class="content-wrapper">
             <!-- 常规设置 -->
-            <div v-if="activeTab === 'general'" class="settings-section">
-              <h2 class="section-title">{{ t('home.systemSettings.tabs.general') }}</h2>
+            <div
+              v-if="activeTab === 'general'"
+              class="settings-section"
+            >
+              <h2 class="section-title">
+                {{ t('home.systemSettings.tabs.general') }}
+              </h2>
               <div class="setting-item">
                 <label>{{ t('home.systemSettings.booksDir') }}</label>
                 <div class="dir-picker">
-                  <el-input v-model="bookDir" readonly placeholder="未设置目录" />
+                  <el-input
+                    v-model="bookDir"
+                    readonly
+                    placeholder="未设置目录"
+                  />
                   <el-button
                     type="primary"
                     :loading="savingBooksDir"
                     :disabled="!booksDirConfigurable"
                     :title="booksDirConfigurable ? '' : '书库目录由服务器配置'"
                     @click="handleChooseDir"
-                    >选择目录</el-button
                   >
+                    选择目录
+                  </el-button>
                 </div>
               </div>
               <div class="setting-item">
@@ -46,59 +63,106 @@
                   aria-label="界面语言"
                   @change="handleLocaleChange"
                 >
-                  <el-option label="简体中文" value="zh-CN" />
-                  <el-option label="English" value="en-US" />
+                  <el-option
+                    label="简体中文"
+                    value="zh-CN"
+                  />
+                  <el-option
+                    label="English"
+                    value="en-US"
+                  />
                 </el-select>
               </div>
             </div>
 
-            <div v-if="activeTab === 'profile'" class="settings-section">
-              <h2 class="section-title">个人信息</h2>
+            <div
+              v-if="activeTab === 'profile'"
+              class="settings-section"
+            >
+              <h2 class="section-title">
+                个人信息
+              </h2>
               <div class="setting-card">
                 <div class="setting-grid">
                   <div class="setting-item">
                     <label>昵称</label>
-                    <el-input v-model="profileForm.nickname" placeholder="用于页面显示" />
+                    <el-input
+                      v-model="profileForm.nickname"
+                      placeholder="用于页面显示"
+                    />
                   </div>
                   <div class="setting-item">
                     <label>作者署名</label>
-                    <el-input v-model="profileForm.authorName" placeholder="导出和新书默认署名" />
+                    <el-input
+                      v-model="profileForm.authorName"
+                      placeholder="导出和新书默认署名"
+                    />
                   </div>
                 </div>
                 <el-button
                   type="primary"
                   :loading="savingProfileSettings"
                   @click="saveProfileSettings"
-                  >保存个人信息</el-button
                 >
+                  保存个人信息
+                </el-button>
               </div>
             </div>
 
             <!-- AI 设置 -->
-            <div v-if="activeTab === 'ai'" class="settings-section">
-              <h2 class="section-title">{{ t('home.systemSettings.tabs.ai') }}</h2>
+            <div
+              v-if="activeTab === 'ai'"
+              class="settings-section"
+            >
+              <h2 class="section-title">
+                {{ t('home.systemSettings.tabs.ai') }}
+              </h2>
               <AISettingsContent />
             </div>
 
             <!-- 主题设置 -->
-            <div v-if="activeTab === 'embedding'" class="settings-section">
-              <h3 class="section-title">{{ t('home.systemSettings.tabs.embedding') }}</h3>
+            <div
+              v-if="activeTab === 'embedding'"
+              class="settings-section"
+            >
+              <h3 class="section-title">
+                {{ t('home.systemSettings.tabs.embedding') }}
+              </h3>
               <EmbeddingProviderConfig v-model="embeddingConfigVisible" />
-              <el-button type="primary" @click="embeddingConfigVisible = true">
+              <el-button
+                type="primary"
+                @click="embeddingConfigVisible = true"
+              >
                 {{ t('home.systemSettings.manageEmbedding') }}
               </el-button>
             </div>
 
-            <div v-if="activeTab === 'prompts'" class="settings-section">
-              <h3 class="section-title">{{ t('home.systemSettings.tabs.prompts') }}</h3>
-              <PromptPresetManager v-model="promptManagerVisible" :book-path="''" />
-              <el-button type="primary" @click="promptManagerVisible = true">
+            <div
+              v-if="activeTab === 'prompts'"
+              class="settings-section"
+            >
+              <h3 class="section-title">
+                {{ t('home.systemSettings.tabs.prompts') }}
+              </h3>
+              <PromptPresetManager
+                v-model="promptManagerVisible"
+                :book-path="''"
+              />
+              <el-button
+                type="primary"
+                @click="promptManagerVisible = true"
+              >
                 {{ t('home.systemSettings.managePrompts') }}
               </el-button>
             </div>
 
-            <div v-if="activeTab === 'theme'" class="settings-section">
-              <h2 class="section-title">{{ t('home.systemSettings.tabs.theme') }}</h2>
+            <div
+              v-if="activeTab === 'theme'"
+              class="settings-section"
+            >
+              <h2 class="section-title">
+                {{ t('home.systemSettings.tabs.theme') }}
+              </h2>
               <div class="theme-board">
                 <button
                   v-for="theme in availableThemes"
@@ -114,11 +178,11 @@
                     :style="getPreviewStyle(theme.key)"
                     aria-hidden="true"
                   >
-                    <i class="preview-paper"></i>
-                    <i class="preview-line line-one"></i>
-                    <i class="preview-line line-two"></i>
-                    <i class="preview-dot dot-one"></i>
-                    <i class="preview-dot dot-two"></i>
+                    <i class="preview-paper" />
+                    <i class="preview-line line-one" />
+                    <i class="preview-line line-two" />
+                    <i class="preview-dot dot-one" />
+                    <i class="preview-dot dot-two" />
                   </span>
                   <span class="theme-label">{{ theme.name }}</span>
                   <Check
@@ -131,8 +195,13 @@
               </div>
             </div>
 
-            <div v-if="activeTab === 'editor'" class="settings-section">
-              <h2 class="section-title">编辑器设置</h2>
+            <div
+              v-if="activeTab === 'editor'"
+              class="settings-section"
+            >
+              <h2 class="section-title">
+                编辑器设置
+              </h2>
               <div class="setting-card">
                 <div class="setting-grid">
                   <div class="setting-item">
@@ -142,51 +211,90 @@
                       class="full-width"
                       aria-label="编辑器字体"
                     >
-                      <el-option label="默认" value="" />
-                      <el-option label="宋体" value="SimSun" />
-                      <el-option label="黑体" value="SimHei" />
-                      <el-option label="微软雅黑" value="Microsoft YaHei" />
-                      <el-option label="楷体" value="KaiTi" />
+                      <el-option
+                        label="默认"
+                        value=""
+                      />
+                      <el-option
+                        label="宋体"
+                        value="SimSun"
+                      />
+                      <el-option
+                        label="黑体"
+                        value="SimHei"
+                      />
+                      <el-option
+                        label="微软雅黑"
+                        value="Microsoft YaHei"
+                      />
+                      <el-option
+                        label="楷体"
+                        value="KaiTi"
+                      />
                     </el-select>
                   </div>
                   <div class="setting-item">
                     <label>字号</label>
-                    <el-input v-model="editorForm.fontSize" placeholder="例如 16px" />
+                    <el-input
+                      v-model="editorForm.fontSize"
+                      placeholder="例如 16px"
+                    />
                   </div>
                   <div class="setting-item">
                     <label>行高</label>
-                    <el-input v-model="editorForm.lineHeight" placeholder="例如 1.6" />
+                    <el-input
+                      v-model="editorForm.lineHeight"
+                      placeholder="例如 1.6"
+                    />
                   </div>
                   <div class="setting-item">
                     <label>段落间距</label>
-                    <el-input v-model="editorForm.paragraphSpacing" placeholder="例如 0.5em" />
+                    <el-input
+                      v-model="editorForm.paragraphSpacing"
+                      placeholder="例如 0.5em"
+                    />
                   </div>
                 </div>
                 <div class="switch-list">
-                  <el-checkbox v-model="editorForm.autoSave">自动保存</el-checkbox>
+                  <el-checkbox v-model="editorForm.autoSave">
+                    自动保存
+                  </el-checkbox>
                 </div>
                 <el-button
                   type="primary"
                   :loading="savingEditorSettings"
                   @click="saveEditorSettings"
-                  >保存编辑器设置</el-button
                 >
+                  保存编辑器设置
+                </el-button>
               </div>
             </div>
 
             <!-- 安全隐私 -->
-            <div v-if="activeTab === 'security'" class="settings-section">
-              <h2 class="section-title">{{ t('home.systemSettings.tabs.security') }}</h2>
+            <div
+              v-if="activeTab === 'security'"
+              class="settings-section"
+            >
+              <h2 class="section-title">
+                {{ t('home.systemSettings.tabs.security') }}
+              </h2>
               <div class="security-card">
                 <div class="info">
                   <h3>Web 访问密钥</h3>
                   <p>{{ hasPassword ? '已启用密钥登录' : '当前未设置密钥，访问时无需登录' }}</p>
                 </div>
                 <div class="security-actions">
-                  <el-button type="primary" @click="showPasswordDialog = true">
+                  <el-button
+                    type="primary"
+                    @click="showPasswordDialog = true"
+                  >
                     {{ hasPassword ? '修改密钥' : '设置密钥' }}
                   </el-button>
-                  <el-button v-if="hasPassword" :icon="LogOut" @click="handleLogout">
+                  <el-button
+                    v-if="hasPassword"
+                    :icon="LogOut"
+                    @click="handleLogout"
+                  >
                     退出登录
                   </el-button>
                 </div>
@@ -194,21 +302,33 @@
               <div class="setting-card">
                 <h3>隐私</h3>
                 <div class="switch-list">
-                  <el-checkbox v-model="privacyForm.saveAiHistory">保存 AI 历史</el-checkbox>
-                  <el-checkbox v-model="privacyForm.saveUsageStats">保存用量统计</el-checkbox>
-                  <el-checkbox v-model="privacyForm.localOnly">只使用本地文件存储</el-checkbox>
+                  <el-checkbox v-model="privacyForm.saveAiHistory">
+                    保存 AI 历史
+                  </el-checkbox>
+                  <el-checkbox v-model="privacyForm.saveUsageStats">
+                    保存用量统计
+                  </el-checkbox>
+                  <el-checkbox v-model="privacyForm.localOnly">
+                    只使用本地文件存储
+                  </el-checkbox>
                 </div>
                 <el-button
                   type="primary"
                   :loading="savingPrivacySettings"
                   @click="savePrivacySettings"
-                  >保存隐私设置</el-button
                 >
+                  保存隐私设置
+                </el-button>
               </div>
             </div>
 
-            <div v-if="activeTab === 'storage'" class="settings-section">
-              <h2 class="section-title">存储</h2>
+            <div
+              v-if="activeTab === 'storage'"
+              class="settings-section"
+            >
+              <h2 class="section-title">
+                存储
+              </h2>
               <div class="setting-card">
                 <div class="data-stats">
                   <div>
@@ -229,61 +349,94 @@
                   </div>
                 </div>
                 <div class="button-row">
-                  <el-button :loading="loadingStorageStats" @click="loadStorageStats"
-                    >刷新</el-button
+                  <el-button
+                    :loading="loadingStorageStats"
+                    @click="loadStorageStats"
                   >
-                  <el-button type="danger" plain :loading="clearingTrash" @click="handleClearTrash"
-                    >清理回收站</el-button
+                    刷新
+                  </el-button>
+                  <el-button
+                    type="danger"
+                    plain
+                    :loading="clearingTrash"
+                    @click="handleClearTrash"
                   >
+                    清理回收站
+                  </el-button>
                 </div>
               </div>
             </div>
 
-            <div v-if="activeTab === 'notifications'" class="settings-section">
-              <h2 class="section-title">通知</h2>
+            <div
+              v-if="activeTab === 'notifications'"
+              class="settings-section"
+            >
+              <h2 class="section-title">
+                通知
+              </h2>
               <div class="setting-card">
                 <div class="switch-list">
                   <el-checkbox v-model="notificationForm.encourageToast">
                     显示写作鼓励提示
                   </el-checkbox>
-                  <el-checkbox v-model="notificationForm.goalReminder">提醒写作目标</el-checkbox>
+                  <el-checkbox v-model="notificationForm.goalReminder">
+                    提醒写作目标
+                  </el-checkbox>
                 </div>
                 <el-button
                   type="primary"
                   :loading="savingNotificationSettings"
                   @click="saveNotificationSettings"
-                  >保存通知设置</el-button
                 >
+                  保存通知设置
+                </el-button>
               </div>
             </div>
 
-            <div v-if="activeTab === 'shortcuts'" class="settings-section">
-              <h2 class="section-title">快捷键</h2>
+            <div
+              v-if="activeTab === 'shortcuts'"
+              class="settings-section"
+            >
+              <h2 class="section-title">
+                快捷键
+              </h2>
               <div class="shortcut-list">
-                <div v-for="item in shortcutItems" :key="item.key">
+                <div
+                  v-for="item in shortcutItems"
+                  :key="item.key"
+                >
                   <kbd>{{ item.key }}</kbd>
                   <span>{{ item.action }}</span>
                 </div>
               </div>
             </div>
 
-            <div v-if="activeTab === 'data'" class="settings-section">
-              <h2 class="section-title">数据管理</h2>
+            <div
+              v-if="activeTab === 'data'"
+              class="settings-section"
+            >
+              <h2 class="section-title">
+                数据管理
+              </h2>
               <div class="setting-card">
                 <div class="button-row">
                   <el-button
                     type="primary"
                     :loading="exportingSettings"
                     @click="handleExportSettings"
-                    >导出设置</el-button
                   >
-                  <label class="import-settings-button" title="导入设置会合并到当前设置文件">
+                    导出设置
+                  </el-button>
+                  <label
+                    class="import-settings-button"
+                    title="导入设置会合并到当前设置文件"
+                  >
                     <input
                       accept=".json,application/json"
                       :disabled="importingSettings"
                       type="file"
                       @change="handleImportSettingsFile"
-                    />
+                    >
                     <span>导入设置</span>
                   </label>
                 </div>
@@ -291,11 +444,19 @@
             </div>
 
             <!-- 关于 -->
-            <div v-if="activeTab === 'about'" class="settings-section about-page">
+            <div
+              v-if="activeTab === 'about'"
+              class="settings-section about-page"
+            >
               <div class="about-hero">
-                <img :src="brandLogoUrl" alt="织梦工坊" />
+                <img
+                  :src="brandLogoUrl"
+                  alt="织梦工坊"
+                >
                 <h1>织梦工坊</h1>
-                <p class="brand-name-en">Dreamloom Studio · DLS</p>
+                <p class="brand-name-en">
+                  Dreamloom Studio · DLS
+                </p>
                 <p>Version {{ currentVersion }}</p>
               </div>
             </div>
@@ -305,8 +466,14 @@
     </div>
 
     <!-- 弹窗 -->
-    <BookshelfPasswordSettings v-model="showPasswordDialog" @saved="loadPasswordStatus" />
-    <DirSelectorDialog v-model="showDirSelector" @select="handleDirSelected" />
+    <BookshelfPasswordSettings
+      v-model="showPasswordDialog"
+      @saved="loadPasswordStatus"
+    />
+    <DirSelectorDialog
+      v-model="showDirSelector"
+      @select="handleDirSelected"
+    />
   </div>
 </template>
 
