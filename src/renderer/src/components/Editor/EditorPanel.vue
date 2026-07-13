@@ -264,7 +264,10 @@ import {
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowDown } from '@element-plus/icons-vue'
 import { EditorContent } from '@tiptap/vue-3'
-import { createEditorSaveQueue } from '../../service/editorSaveQueue'
+import {
+  createEditorSaveQueue,
+  saveEditorBeforeLeave
+} from '../../service/editorSaveQueue'
 import {
   readEditorRecoveryDraft,
   removeEditorRecoveryDraft,
@@ -2171,7 +2174,7 @@ defineExpose({
   handlePolishCommand,
   handleContinueClick,
   handleAISceneImageClick,
-  saveBeforeLeave: () => saveFile(false)
+  saveBeforeLeave: () => saveEditorBeforeLeave(editorStore.file, () => saveFile(false))
 })
 </script>
 

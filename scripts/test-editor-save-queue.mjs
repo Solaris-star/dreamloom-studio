@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict'
-import { createEditorSaveQueue } from '../src/renderer/src/service/editorSaveQueue.js'
+import {
+  createEditorSaveQueue,
+  saveEditorBeforeLeave
+} from '../src/renderer/src/service/editorSaveQueue.js'
 import {
   getEditorRecoveryDraftKey,
   readEditorRecoveryDraft,
@@ -13,6 +16,33 @@ const firstGate = new Promise((resolve) => {
   releaseFirst = resolve
 })
 const statuses = []
+
+let leaveSaveCalls = 0
+assert.equal(
+  await saveEditorBeforeLeave(null, async () => {
+    leaveSaveCalls += 1
+    return false
+  }),
+  true
+)
+assert.equal(leaveSaveCalls, 0)
+assert.equal(await saveEditorBeforeLeave({ path: 'chapter-a' }, null), false)
+assert.equal(
+  await saveEditorBeforeLeave({ path: 'chapter-a' }, async () => {
+    leaveSaveCalls += 1
+    return true
+  }),
+  true
+)
+assert.equal(
+  await saveEditorBeforeLeave({ path: 'chapter-a' }, async () => {
+    leaveSaveCalls += 1
+    return false
+  }),
+  false
+)
+assert.equal(leaveSaveCalls, 2)
+
 const queue = createEditorSaveQueue({
   async persist(snapshot) {
     calls.push(snapshot)

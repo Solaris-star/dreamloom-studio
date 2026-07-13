@@ -14,6 +14,12 @@ function isOfflineError(error) {
   return error instanceof TypeError && /fetch|network|failed/i.test(error.message || '')
 }
 
+export async function saveEditorBeforeLeave(currentFile, save) {
+  if (!currentFile) return true
+  if (typeof save !== 'function') return false
+  return (await save()) !== false
+}
+
 export function createEditorSaveQueue({
   persist,
   onStatusChange = () => {},
