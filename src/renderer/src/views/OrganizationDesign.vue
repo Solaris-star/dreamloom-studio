@@ -1,18 +1,28 @@
 <template>
   <LayoutTool :title="organizationName || t('organizationDesign.titleFallback')">
     <template #headrAction>
-      <el-button :loading="exporting" @click="handleExportToNote">
+      <el-button
+        :loading="exporting"
+        @click="handleExportToNote"
+      >
         <el-icon><Download /></el-icon>
         <span>{{ t('organizationDesign.exportToNote') }}</span>
       </el-button>
-      <el-button type="primary" :loading="saving" @click="handleSave">
+      <el-button
+        type="primary"
+        :loading="saving"
+        @click="handleSave"
+      >
         <el-icon><Check /></el-icon>
         <span>{{ t('common.save') }}</span>
       </el-button>
     </template>
     <template #default>
       <div class="organization-design">
-        <div ref="canvasRef" class="design-canvas">
+        <div
+          ref="canvasRef"
+          class="design-canvas"
+        >
           <RelationGraph
             ref="graphRef"
             :options="graphOptions"
@@ -32,8 +42,13 @@
           </RelationGraph>
 
           <!-- 节点信息浮窗 -->
-          <div v-if="tooltipVisible" class="node-tooltip">
-            <div class="tooltip-title">{{ hoveredNode?.text }}</div>
+          <div
+            v-if="tooltipVisible"
+            class="node-tooltip"
+          >
+            <div class="tooltip-title">
+              {{ hoveredNode?.text }}
+            </div>
             <div class="tooltip-description">
               {{ hoveredNode?.data?.description || t('organizationDesign.noDescription') }}
             </div>
@@ -50,9 +65,15 @@
     width="500px"
     :close-on-click-modal="false"
   >
-    <el-form label-width="80px" @submit.prevent="confirmNodeAction">
+    <el-form
+      label-width="80px"
+      @submit.prevent="confirmNodeAction"
+    >
       <el-form-item :label="t('organizationDesign.nodeName')">
-        <el-input v-model="currentForm.text" :placeholder="dialogConfig.namePlaceholder" />
+        <el-input
+          v-model="currentForm.text"
+          :placeholder="dialogConfig.namePlaceholder"
+        />
       </el-form-item>
       <el-form-item
         v-if="dialogMode === 'edit' && selectedNode?.type !== 'root'"
@@ -90,7 +111,7 @@
               class="color-preset-item"
               :style="{ backgroundColor: color }"
               @click="currentForm.color = color"
-            ></div>
+            />
           </div>
         </div>
       </el-form-item>
@@ -105,13 +126,24 @@
           >
             {{ t('organizationDesign.deleteNode') }}
           </el-button>
-          <el-button v-if="dialogConfig.showAddChild" type="success" @click="switchToAddChildMode">
+          <el-button
+            v-if="dialogConfig.showAddChild"
+            type="success"
+            @click="switchToAddChildMode"
+          >
             {{ t('organizationDesign.addChildNode') }}
           </el-button>
         </div>
         <div class="dialog-footer-right">
-          <el-button @click="closeNodeDialog">{{ t('common.cancel') }}</el-button>
-          <el-button type="primary" @click="confirmNodeAction">{{ t('common.confirm') }}</el-button>
+          <el-button @click="closeNodeDialog">
+            {{ t('common.cancel') }}
+          </el-button>
+          <el-button
+            type="primary"
+            @click="confirmNodeAction"
+          >
+            {{ t('common.confirm') }}
+          </el-button>
         </div>
       </div>
     </template>
@@ -125,20 +157,31 @@
     :close-on-click-modal="false"
   >
     <div class="delete-confirm-content">
-      <el-icon class="warning-icon"><Warning /></el-icon>
+      <el-icon class="warning-icon">
+        <Warning />
+      </el-icon>
       <div class="warning-text">
         <p>
           {{ t('organizationDesign.deleteNodeConfirm', { name: selectedNode?.text || '' }) }}
         </p>
-        <p class="warning-detail">{{ t('organizationDesign.deleteWarningDetail') }}</p>
+        <p class="warning-detail">
+          {{ t('organizationDesign.deleteWarningDetail') }}
+        </p>
       </div>
     </div>
     <template #footer>
       <div class="dialog-footer delete-confirm-footer">
-        <el-button @click="deleteConfirmVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="danger" @click="confirmDeleteNode">{{
-          t('organizationDesign.confirmDelete')
-        }}</el-button>
+        <el-button @click="deleteConfirmVisible = false">
+          {{ t('common.cancel') }}
+        </el-button>
+        <el-button
+          type="danger"
+          @click="confirmDeleteNode"
+        >
+          {{
+            t('organizationDesign.confirmDelete')
+          }}
+        </el-button>
       </div>
     </template>
   </el-dialog>
