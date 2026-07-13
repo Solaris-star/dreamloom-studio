@@ -1,56 +1,98 @@
 <template>
   <div class="map-toolbar">
     <!-- 选择工具组 -->
-    <el-tooltip :content="t('mapToolbar.move')" placement="bottom" :show-after="2000">
+    <el-tooltip
+      :content="t('mapToolbar.move')"
+      placement="bottom"
+      :show-after="2000"
+    >
       <div
         :class="['tool-btn', modelValue === 'move' ? 'active' : '']"
         @click="handleToolSelect('move')"
       >
-        <SvgIcon name="hand" :size="iconSize" />
+        <SvgIcon
+          name="hand"
+          :size="iconSize"
+        />
       </div>
     </el-tooltip>
-    <el-tooltip :content="t('mapToolbar.select')" placement="bottom" :show-after="2000">
+    <el-tooltip
+      :content="t('mapToolbar.select')"
+      placement="bottom"
+      :show-after="2000"
+    >
       <div
         :class="['tool-btn', modelValue === 'select' ? 'active' : '']"
         @click="handleToolSelect('select')"
       >
-        <SvgIcon name="xuanze" :size="iconSize" />
+        <SvgIcon
+          name="xuanze"
+          :size="iconSize"
+        />
       </div>
     </el-tooltip>
     <el-divider direction="vertical" />
 
     <!-- 绘图工具组 -->
-    <el-tooltip :content="t('mapToolbar.background')" placement="bottom" :show-after="2000">
+    <el-tooltip
+      :content="t('mapToolbar.background')"
+      placement="bottom"
+      :show-after="2000"
+    >
       <div
         :class="['tool-btn', modelValue === 'background' ? 'active' : '']"
         @click="handleToolSelect('background')"
       >
-        <SvgIcon name="background" :size="iconSize" />
+        <SvgIcon
+          name="background"
+          :size="iconSize"
+        />
       </div>
     </el-tooltip>
-    <el-tooltip :content="t('mapToolbar.pencil')" placement="bottom" :show-after="2000">
+    <el-tooltip
+      :content="t('mapToolbar.pencil')"
+      placement="bottom"
+      :show-after="2000"
+    >
       <div
         :class="['tool-btn', modelValue === 'pencil' ? 'active' : '']"
         @click="handleToolSelect('pencil')"
       >
-        <SvgIcon name="pencil" :size="iconSize" />
+        <SvgIcon
+          name="pencil"
+          :size="iconSize"
+        />
       </div>
     </el-tooltip>
-    <el-tooltip :content="t('mapToolbar.eraser')" placement="bottom" :show-after="2000">
+    <el-tooltip
+      :content="t('mapToolbar.eraser')"
+      placement="bottom"
+      :show-after="2000"
+    >
       <div
         :class="['tool-btn', modelValue === 'eraser' ? 'active' : '']"
         @click="handleToolSelect('eraser')"
       >
-        <SvgIcon name="eraser" :size="iconSize" />
+        <SvgIcon
+          name="eraser"
+          :size="iconSize"
+        />
       </div>
     </el-tooltip>
     <div class="shape-tool-btn-wrapper">
-      <el-tooltip :content="t('mapToolbar.shape')" placement="bottom" :show-after="2000">
+      <el-tooltip
+        :content="t('mapToolbar.shape')"
+        placement="bottom"
+        :show-after="2000"
+      >
         <div
           :class="['tool-btn', modelValue === 'shape' ? 'active' : '']"
           @click.stop="handleShapeToolClick"
         >
-          <SvgIcon :name="currentShapeIcon" :size="iconSize" />
+          <SvgIcon
+            :name="currentShapeIcon"
+            :size="iconSize"
+          />
         </div>
       </el-tooltip>
       <!-- 图形工具弹出层 -->
@@ -61,31 +103,52 @@
         @update:visible="shapeToolPanelVisible = $event"
       />
     </div>
-    <el-tooltip :content="t('mapToolbar.bucket')" placement="bottom" :show-after="2000">
+    <el-tooltip
+      :content="t('mapToolbar.bucket')"
+      placement="bottom"
+      :show-after="2000"
+    >
       <div
         :class="['tool-btn', modelValue === 'bucket' ? 'active' : '']"
         @click="handleToolSelect('bucket')"
       >
-        <SvgIcon name="bucket" :size="iconSize" />
+        <SvgIcon
+          name="bucket"
+          :size="iconSize"
+        />
       </div>
     </el-tooltip>
-    <el-tooltip :content="t('mapToolbar.text')" placement="bottom" :show-after="2000">
+    <el-tooltip
+      :content="t('mapToolbar.text')"
+      placement="bottom"
+      :show-after="2000"
+    >
       <div
         :class="['tool-btn', modelValue === 'text' ? 'active' : '']"
         @click="handleToolSelect('text')"
       >
-        <SvgIcon name="text" :size="iconSize" />
+        <SvgIcon
+          name="text"
+          :size="iconSize"
+        />
       </div>
     </el-tooltip>
 
     <!-- 资源工具 -->
     <div class="resource-tool-btn-wrapper">
-      <el-tooltip :content="t('mapToolbar.resource')" placement="bottom" :show-after="2000">
+      <el-tooltip
+        :content="t('mapToolbar.resource')"
+        placement="bottom"
+        :show-after="2000"
+      >
         <div
           :class="['tool-btn', resourcePanelVisible ? 'active' : '']"
           @click.stop="handleResourceToolClick"
         >
-          <SvgIcon name="resource" :size="iconSize" />
+          <SvgIcon
+            name="resource"
+            :size="iconSize"
+          />
         </div>
       </el-tooltip>
       <!-- 资源工具弹出层 -->
@@ -100,15 +163,35 @@
     <el-divider direction="vertical" />
 
     <!-- 操作工具组 -->
-    <el-tooltip :content="t('mapToolbar.clearCanvas')" placement="bottom" :show-after="2000">
-      <div class="tool-btn" @click="handleClear">
-        <SvgIcon name="clear" :size="iconSize" />
+    <el-tooltip
+      :content="t('mapToolbar.clearCanvas')"
+      placement="bottom"
+      :show-after="2000"
+    >
+      <div
+        class="tool-btn"
+        @click="handleClear"
+      >
+        <SvgIcon
+          name="clear"
+          :size="iconSize"
+        />
       </div>
     </el-tooltip>
     <el-divider direction="vertical" />
-    <el-tooltip :content="t('common.save')" placement="bottom" :show-after="2000">
-      <div class="tool-btn" @click="handleSaveMap">
-        <SvgIcon name="save" :size="iconSize" />
+    <el-tooltip
+      :content="t('common.save')"
+      placement="bottom"
+      :show-after="2000"
+    >
+      <div
+        class="tool-btn"
+        @click="handleSaveMap"
+      >
+        <SvgIcon
+          name="save"
+          :size="iconSize"
+        />
       </div>
     </el-tooltip>
   </div>
