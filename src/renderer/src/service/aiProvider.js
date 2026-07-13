@@ -69,8 +69,9 @@ async function saveActiveProvider(category, providerId) {
 function normalizeEmbeddingProvider(provider = {}) {
   const modelName = String(provider.modelName || provider.model || '').trim()
   const dimension = Number(provider.dimension ?? provider.dimensions)
+  const { dimension: _dimension, dimensions: _dimensions, ...providerFields } = provider
   const normalized = {
-    ...provider,
+    ...providerFields,
     id: provider.id || crypto.randomUUID(),
     name: String(provider.name || '').trim(),
     baseUrl: String(provider.baseUrl || '').trim(),
