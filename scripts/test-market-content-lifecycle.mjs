@@ -67,6 +67,34 @@ try {
   assert.equal(updateHotspot(booksDir, 'missing', {}).success, false)
   const updatedHotspot = updateHotspot(booksDir, 'hotspot-1', { opportunityScore: 91 })
   assert.equal(updatedHotspot.item.opportunityScore, 91)
+  const sparseHotspot = createHotspot(booksDir, {
+    title: '',
+    keyword: '',
+    url: 'https://example.com/sparse',
+    platforms: ['测试平台', null, ''],
+    categories: ['其他'],
+    tags: '不是数组',
+    heatScore: 150,
+    growthScore: -10,
+    competitionScore: 'invalid',
+    opportunityScore: 75.4,
+    extra: null,
+    createdAt: '2024-01-01T00:00:00.000Z'
+  }).item
+  assert.match(sparseHotspot.id, /^market_hotspot_/)
+  assert.equal(sparseHotspot.title, '未命名热点')
+  assert.equal(sparseHotspot.sourceUrl, 'https://example.com/sparse')
+  assert.deepEqual(sparseHotspot.tags, [])
+  assert.equal(sparseHotspot.heatScore, 100)
+  assert.equal(sparseHotspot.growthScore, 0)
+  assert.equal(sparseHotspot.competitionScore, 0)
+  assert.equal(sparseHotspot.opportunityScore, 75)
+  assert.deepEqual(sparseHotspot.extra, {})
+  assert.equal(listHotspots(booksDir, { category: '其他' }).length, 1)
+  assert.equal(listHotspots(booksDir, { status: 'missing' }).length, 0)
+  assert.equal(listHotspots(booksDir, { sortBy: 'opportunity' })[0].id, 'hotspot-1')
+  assert.equal(listHotspots(booksDir, { sortBy: 'createdAt' }).at(-1).id, sparseHotspot.id)
+  assert.equal(listHotspots(booksDir, { sortBy: 'updatedAt' }).length, 2)
 
   const savedHotspot = saveHotspotToKnowledge(booksDir, 'hotspot-1')
   assert.equal(savedHotspot.success, true)
@@ -92,7 +120,25 @@ try {
     updateActivity(booksDir, 'activity-1', { reminderEnabled: true }).item.reminderEnabled,
     true
   )
+  const sparseActivity = createActivity(booksDir, {
+    title: '',
+    url: 'https://example.com/activity',
+    categories: '不是数组',
+    targetAudience: [null, '新作者'],
+    tags: ['短篇', ''],
+    endDate: '2024-01-01'
+  }).item
+  assert.match(sparseActivity.id, /^market_activity_/)
+  assert.equal(sparseActivity.title, '未命名活动')
+  assert.equal(sparseActivity.activityType, 'other')
+  assert.equal(sparseActivity.sourceUrl, 'https://example.com/activity')
+  assert.deepEqual(sparseActivity.categories, [])
+  assert.deepEqual(sparseActivity.targetAudience, ['新作者'])
+  assert.equal(listActivities(booksDir, { platform: '不存在' }).length, 0)
+  assert.equal(listActivities(booksDir, { status: sparseActivity.status }).length > 0, true)
+  assert.equal(listActivities(booksDir, { sortBy: 'createdAt' }).length, 2)
   assert.equal(Boolean(saveActivityToKnowledge(booksDir, 'activity-1').knowledgeItem?.id), true)
+  assert.equal(saveActivityToKnowledge(booksDir, 'missing').success, false)
   assert.equal(
     createTopicCardFromActivity(booksDir, 'activity-1').topicCard.type,
     'topic_card'
@@ -108,6 +154,35 @@ try {
   assert.equal(outline.success, true)
   assert.equal(outline.outline.volumes.length, 3)
   assert.equal(Boolean(outline.item.id), true)
+  const maleOutline = generateOutlineFromInsight(booksDir, {
+    insight: {
+      title: '系统创业',
+      channel: 'male',
+      genre: '都市科技',
+      tags: ['系统'],
+      riskPenalty: 20
+    }
+  })
+  assert.equal(maleOutline.outline.protagonist.startsWith('男主'), true)
+  assert.equal(maleOutline.outline.titles[0], '系统创业')
+  assert.equal(maleOutline.outline.emotionalHook, '反击、反转、共情')
+  const neutralSaved = saveInsightToKnowledge(booksDir, {
+    insight: {
+      originalTitle: '原始信号',
+      rawPayload: { platform: '公开来源', sourceType: 'rank', url: 'https://example.com/rank' },
+      channel: 'invalid',
+      genre: '未知题材',
+      heatScore: 'invalid',
+      opportunityScore: 180,
+      tags: [null, '新题材'],
+      bookTitleIdeas: '不是数组'
+    }
+  })
+  assert.equal(neutralSaved.success, true)
+  assert.equal(neutralSaved.item.metadata.topicCard.protagonist.includes('普通人'), true)
+  assert.equal(neutralSaved.item.metadata.topicCard.targetLength, 'medium')
+  assert.equal(neutralSaved.item.sourceName, '公开来源')
+  assert.equal(neutralSaved.item.sourceUrl, 'https://example.com/rank')
 
   assert.equal(applyInsightToBook(booksDir, { insight }).success, false)
   const applied = applyInsightToBook(booksDir, {
@@ -118,8 +193,33 @@ try {
   assert.equal(applied.success, true)
   assert.equal(applied.bookName, '已有作品')
   assert.equal(applied.item.type, 'character_setting')
+  assert.equal(
+    applyInsightToBook(booksDir, {
+      insight,
+      bookId: '已有作品',
+      targetSection: 'worldview'
+    }).item.type,
+    'world_setting'
+  )
+  assert.equal(
+    applyInsightToBook(booksDir, {
+      insight,
+      bookName: '已有作品',
+      targetSection: 'book_setting'
+    }).item.type,
+    'world_setting'
+  )
+  assert.equal(
+    applyInsightToBook(booksDir, {
+      insight,
+      bookName: '已有作品',
+      targetSection: 'conflict'
+    }).item.type,
+    'plot_fragment'
+  )
 
   assert.equal(createBookFromInsight('', { insight }).success, false)
+  assert.equal(createBookFromInsight({}, { insight }).success, false)
   const escaped = createBookFromInsight(booksDir, { insight, selectedTitle: '..' })
   assert.equal(escaped.success, false)
   assert.equal(fs.existsSync(outsideMeta), false)
@@ -136,6 +236,29 @@ try {
   const duplicateBook = createBookFromInsight(booksDir, { insight })
   assert.equal(duplicateBook.success, true)
   assert.equal(duplicateBook.bookName, '月港来电 2')
+
+  for (const [genre, expectedType] of [
+    ['仙侠修真', 'xuanhua'],
+    ['都市现实', 'dushi'],
+    ['科幻末世', 'kehuan'],
+    ['古言权谋', 'lishi']
+  ]) {
+    const result = createBookFromInsight(booksDir, {
+      selectedTitle: `${genre}测试`,
+      insight: {
+        ...insight,
+        id: `insight-${expectedType}`,
+        title: `${genre}测试`,
+        genre,
+        channel: 'male',
+        bookTitleIdeas: []
+      }
+    })
+    assert.equal(result.success, true)
+    const meta = JSON.parse(fs.readFileSync(join(booksDir, result.bookName, 'mazi.json'), 'utf8'))
+    assert.equal(meta.type, expectedType)
+    assert.equal(meta.targetCount, 800000)
+  }
 } finally {
   fs.rmSync(root, { recursive: true, force: true })
 }
