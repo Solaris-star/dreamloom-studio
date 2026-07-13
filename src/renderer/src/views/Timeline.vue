@@ -1,7 +1,10 @@
 <template>
   <LayoutTool :title="t('timeline.title')">
     <template #headrAction>
-      <el-button type="primary" @click="addTimeline">
+      <el-button
+        type="primary"
+        @click="addTimeline"
+      >
         <el-icon><Plus /></el-icon>
         <span>{{ t('timeline.addTimeline') }}</span>
       </el-button>
@@ -12,9 +15,16 @@
         :image-size="200"
         :description="t('timeline.empty')"
       />
-      <div v-else class="timeline-main">
+      <div
+        v-else
+        class="timeline-main"
+      >
         <div class="timeline-list">
-          <div v-for="(timeline, idx) in timelines" :key="timeline.id" class="timeline-column">
+          <div
+            v-for="(timeline, idx) in timelines"
+            :key="timeline.id"
+            class="timeline-column"
+          >
             <div class="timeline-title-wrap">
               <h3
                 v-show="editTitleIdx !== idx"
@@ -29,9 +39,12 @@
                 "
               >
                 {{ timeline.title }}
-                <el-icon v-show="hoverTitleIdx === idx" class="edit-title-icon"
-                  ><EditPen
-                /></el-icon>
+                <el-icon
+                  v-show="hoverTitleIdx === idx"
+                  class="edit-title-icon"
+                >
+                  <EditPen />
+                </el-icon>
               </h3>
               <el-input
                 v-show="editTitleIdx === idx"
@@ -54,17 +67,30 @@
                 <div class="timeline-node-content">
                   <p>{{ node.desc }}</p>
                   <div class="timeline-node-actions">
-                    <el-icon @click="addNode(idx, nidx)"><EditPen /></el-icon>
-                    <el-icon @click="removeNode(idx, nidx)"><Delete /></el-icon>
+                    <el-icon @click="addNode(idx, nidx)">
+                      <EditPen />
+                    </el-icon>
+                    <el-icon @click="removeNode(idx, nidx)">
+                      <Delete />
+                    </el-icon>
                   </div>
                 </div>
               </el-timeline-item>
             </el-timeline>
             <div class="timeline-actions">
-              <el-button class="add-node-btn" @click="addNode(idx)">{{
-                t('timeline.addNode')
-              }}</el-button>
-              <el-button class="remove-timeline-btn" type="danger" @click="removeTimeline(idx)">
+              <el-button
+                class="add-node-btn"
+                @click="addNode(idx)"
+              >
+                {{
+                  t('timeline.addNode')
+                }}
+              </el-button>
+              <el-button
+                class="remove-timeline-btn"
+                type="danger"
+                @click="removeTimeline(idx)"
+              >
                 {{ t('timeline.deleteTimeline') }}
               </el-button>
             </div>
@@ -79,7 +105,11 @@
     width="500px"
     @close="dialogVisible = false"
   >
-    <el-form :model="nodeInfo" label-width="80px" @submit.prevent="confirmAddNode">
+    <el-form
+      :model="nodeInfo"
+      label-width="80px"
+      @submit.prevent="confirmAddNode"
+    >
       <el-form-item :label="t('timeline.nodeTitle')">
         <el-input
           v-model="nodeInfo.title"
@@ -98,8 +128,15 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
-      <el-button type="primary" @click="confirmAddNode">{{ t('common.confirm') }}</el-button>
+      <el-button @click="dialogVisible = false">
+        {{ t('common.cancel') }}
+      </el-button>
+      <el-button
+        type="primary"
+        @click="confirmAddNode"
+      >
+        {{ t('common.confirm') }}
+      </el-button>
     </template>
   </el-dialog>
 </template>
