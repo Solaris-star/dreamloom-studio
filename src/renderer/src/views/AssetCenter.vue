@@ -1,7 +1,10 @@
 <template>
   <div class="asset-center-page">
     <div class="module-local-actions">
-      <el-button :loading="loading" @click="loadAssets">
+      <el-button
+        :loading="loading"
+        @click="loadAssets"
+      >
         <RefreshCw :size="16" />
         <span>刷新</span>
       </el-button>
@@ -15,20 +18,35 @@
         :class="{ active: filters.type === tab.key }"
         @click="setType(tab.key)"
       >
-        <component :is="tab.icon" :size="18" />
+        <component
+          :is="tab.icon"
+          :size="18"
+        />
         <span>{{ tab.label }}</span>
         <b>{{ typeCount(tab.key) }}</b>
       </button>
     </section>
 
     <section class="filters-row">
-      <el-input v-model="filters.keyword" clearable placeholder="搜索文件名、书名或路径">
+      <el-input
+        v-model="filters.keyword"
+        clearable
+        placeholder="搜索文件名、书名或路径"
+      >
         <template #prefix>
           <el-icon><Search /></el-icon>
         </template>
       </el-input>
-      <el-select v-model="filters.bookName" clearable filterable placeholder="所有书籍">
-        <el-option label="所有书籍" value="" />
+      <el-select
+        v-model="filters.bookName"
+        clearable
+        filterable
+        placeholder="所有书籍"
+      >
+        <el-option
+          label="所有书籍"
+          value=""
+        />
         <el-option
           v-for="book in books"
           :key="book.folderName || book.name"
@@ -45,15 +63,32 @@
             <h2>{{ activeTabLabel }}</h2>
             <p>{{ filteredAssets.length }} 个文件</p>
           </div>
-          <el-tag round>{{ summary.total || 0 }}</el-tag>
+          <el-tag round>
+            {{ summary.total || 0 }}
+          </el-tag>
         </div>
 
-        <div v-if="assetLoadError" class="asset-read-error">
+        <div
+          v-if="assetLoadError"
+          class="asset-read-error"
+        >
           <span>{{ assetLoadError }}</span>
-          <el-button size="small" :loading="loading" @click="loadAssets">重试</el-button>
+          <el-button
+            size="small"
+            :loading="loading"
+            @click="loadAssets"
+          >
+            重试
+          </el-button>
         </div>
-        <el-empty v-else-if="filteredAssets.length === 0" description="暂无素材" />
-        <div v-else class="asset-grid">
+        <el-empty
+          v-else-if="filteredAssets.length === 0"
+          description="暂无素材"
+        />
+        <div
+          v-else
+          class="asset-grid"
+        >
           <article
             v-for="asset in filteredAssets"
             :key="asset.id"
@@ -62,17 +97,23 @@
             @click="selectedAsset = asset"
           >
             <div class="asset-preview">
-              <img v-if="asset.isImage" :src="assetUrl(asset)" :alt="asset.name" loading="lazy" />
-              <FileText v-else :size="34" />
+              <img
+                v-if="asset.isImage"
+                :src="assetUrl(asset)"
+                :alt="asset.name"
+                loading="lazy"
+              >
+              <FileText
+                v-else
+                :size="34"
+              />
               <span class="asset-type">{{ assetTypeLabel(asset) }}</span>
             </div>
             <div class="asset-info">
               <h3>{{ asset.name }}</h3>
               <p>{{ asset.bookName || '书库' }}</p>
-              <small
-                >{{ formatSize(asset.size) }} ·
-                {{ formatDate(asset.mtime || asset.deletedAt) }}</small
-              >
+              <small>{{ formatSize(asset.size) }} ·
+                {{ formatDate(asset.mtime || asset.deletedAt) }}</small>
             </div>
           </article>
         </div>
@@ -85,8 +126,11 @@
               v-if="selectedAsset.isImage"
               :src="assetUrl(selectedAsset)"
               :alt="selectedAsset.name"
+            >
+            <FileText
+              v-else
+              :size="46"
             />
-            <FileText v-else :size="46" />
           </div>
           <h2>{{ selectedAsset.name }}</h2>
           <div class="detail-list">
@@ -108,31 +152,58 @@
             </div>
           </div>
 
-          <div v-if="selectedAsset.status !== 'trash'" class="action-stack">
-            <el-button type="primary" @click="openAttachDialog(selectedAsset)">
+          <div
+            v-if="selectedAsset.status !== 'trash'"
+            class="action-stack"
+          >
+            <el-button
+              type="primary"
+              @click="openAttachDialog(selectedAsset)"
+            >
               <Link2 :size="16" />
               <span>关联到书籍</span>
             </el-button>
-            <el-button type="danger" plain @click="handleDelete(selectedAsset)">
+            <el-button
+              type="danger"
+              plain
+              @click="handleDelete(selectedAsset)"
+            >
               <Trash2 :size="16" />
               <span>移入回收站</span>
             </el-button>
           </div>
-          <div v-else class="action-stack">
-            <el-button type="success" @click="handleRestore(selectedAsset)">
+          <div
+            v-else
+            class="action-stack"
+          >
+            <el-button
+              type="success"
+              @click="handleRestore(selectedAsset)"
+            >
               <RotateCcw :size="16" />
               <span>恢复</span>
             </el-button>
           </div>
         </template>
-        <el-empty v-else description="选择一个素材查看详情" />
+        <el-empty
+          v-else
+          description="选择一个素材查看详情"
+        />
       </aside>
     </main>
 
-    <el-dialog v-model="attachDialogVisible" title="关联到书籍" width="460px">
+    <el-dialog
+      v-model="attachDialogVisible"
+      title="关联到书籍"
+      width="460px"
+    >
       <el-form label-position="top">
         <el-form-item label="目标书籍">
-          <el-select v-model="attachForm.bookName" filterable placeholder="选择书籍">
+          <el-select
+            v-model="attachForm.bookName"
+            filterable
+            placeholder="选择书籍"
+          >
             <el-option
               v-for="book in books"
               :key="book.folderName || book.name"
@@ -143,16 +214,35 @@
         </el-form-item>
         <el-form-item label="作为">
           <el-select v-model="attachForm.type">
-            <el-option label="人物图" value="character" />
-            <el-option label="场景图" value="scene" />
-            <el-option label="地图素材" value="map" />
-            <el-option label="附件" value="attachment" />
+            <el-option
+              label="人物图"
+              value="character"
+            />
+            <el-option
+              label="场景图"
+              value="scene"
+            />
+            <el-option
+              label="地图素材"
+              value="map"
+            />
+            <el-option
+              label="附件"
+              value="attachment"
+            />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="attachDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleAttach">保存</el-button>
+        <el-button @click="attachDialogVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          @click="handleAttach"
+        >
+          保存
+        </el-button>
       </template>
     </el-dialog>
   </div>
