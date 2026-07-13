@@ -1,4 +1,4 @@
-import { resolve, relative, isAbsolute, join } from 'node:path'
+import { resolve, relative, join } from 'node:path'
 import fs from 'node:fs'
 import { runWebAiTextTask } from './src/main/services/webAiTextTaskService.js'
 import { createTextProvider } from './src/main/services/textGenerationRouter.js'
@@ -62,6 +62,10 @@ import { setWebBooksDirectory } from './src/main/services/webBooksDirectoryServi
 import { createWebAuthService } from './src/main/services/webAuthService.js'
 import { createWebServerStore } from './src/main/services/webServerStoreService.js'
 import {
+  createWebBooksPathService,
+  isPathInside
+} from './src/main/services/webBooksPathService.js'
+import {
   createJsonBodyReader,
   sendJson,
   sendTransparentImage
@@ -77,47 +81,15 @@ export function createWebServerPlugins() {
     createTextProvider
   })
   const webStore = createWebServerStore()
-
-  function getActiveBooksDir() {
-    const storedDir = webStore.get('booksDir')
-    const dir = String(configuredBooksDir || storedDir || booksDir).trim() || booksDir
-    fs.mkdirSync(dir, { recursive: true })
-    return dir
-  }
-
-  function resolvePromptPresetPath(payload = {}) {
-    const candidate = sanitizeText(payload.bookPath)
-    if (!candidate) return getActiveBooksDir()
-    const root = getActiveBooksDir()
-    const target = resolve(candidate)
-    return isPathInside(root, target) ? target : root
-  }
-
-  // Helper functions matching assertions
-  function resolveBookPathForWebPayload(payload = {}, booksDir = '', { ensure = false } = {}) {
-    const root = resolve(booksDir)
-    const candidate = sanitizeText(payload.bookPath || payload.bookName)
-    if (!candidate) {
-      throw Object.assign(new Error('缺少书籍目录'), { statusCode: 400 })
-    }
-    const bookPath = isAbsolute(candidate) ? resolve(candidate) : resolve(root, candidate)
-    if (!isPathInside(root, bookPath)) {
-      throw Object.assign(new Error('书籍目录不在当前书库内'), { statusCode: 403 })
-    }
-    if (ensure && (!fs.existsSync(bookPath) || !fs.statSync(bookPath).isDirectory())) {
-      throw Object.assign(new Error('书籍目录不存在'), { statusCode: 404 })
-    }
-    return bookPath
-  }
-
-  function inferWebBookNameFromPath(bookPath, booksDir) {
-    return relative(resolve(booksDir), resolve(bookPath))
-  }
-
-  function isPathInside(parent, child) {
-    const relation = relative(parent, child)
-    return relation === '' || (relation && !relation.startsWith('..') && !isAbsolute(relation))
-  }
+  const {
+    getActiveBooksDir,
+    resolveBookPathForWebPayload,
+    resolvePromptPresetPath
+  } = createWebBooksPathService({
+    configuredBooksDir,
+    defaultBooksDir: booksDir,
+    getStoredBooksDir: () => webStore.get('booksDir')
+  })
 
   const webAuth = createWebAuthService({
     storeGet: webStore.get,
