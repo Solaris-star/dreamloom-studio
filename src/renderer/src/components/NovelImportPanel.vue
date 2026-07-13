@@ -19,7 +19,10 @@
       @close="sourceErrors = []"
     />
 
-    <main class="import-body" :class="{ 'has-selected-book': selectedBook }">
+    <main
+      class="import-body"
+      :class="{ 'has-selected-book': selectedBook }"
+    >
       <section class="result-panel">
         <div class="panel-title">
           <div>
@@ -32,7 +35,10 @@
           </div>
         </div>
 
-        <div v-if="searchResult.length" class="result-list">
+        <div
+          v-if="searchResult.length"
+          class="result-list"
+        >
           <article
             v-for="book in searchResult"
             :key="`${book.sourceId}:${book.url}`"
@@ -58,28 +64,43 @@
           </article>
         </div>
 
-        <div v-else-if="!searching" class="soft-empty">
+        <div
+          v-else-if="!searching"
+          class="soft-empty"
+        >
           <strong>还没有搜索结果</strong>
           <span>输入书名或作者后，会在这里显示可导入的小说。</span>
         </div>
       </section>
 
-      <aside v-if="selectedBook" class="download-panel">
+      <aside
+        v-if="selectedBook"
+        class="download-panel"
+      >
         <span class="type-pill">{{
           selectedBook.sourceName || sourceName(selectedBook.sourceId)
         }}</span>
         <h3>《{{ selectedBook.title }}》</h3>
         <p>{{ selectedBook.author || '未知作者' }} · {{ chapterList.length || '正在读取' }} 章</p>
         <div class="chapter-preview">
-          <span v-for="chapter in chapterList.slice(0, 5)" :key="chapter.url">{{
+          <span
+            v-for="chapter in chapterList.slice(0, 5)"
+            :key="chapter.url"
+          >{{
             chapter.title
           }}</span>
         </div>
-        <div v-if="chapterList.length" class="chapter-range">
+        <div
+          v-if="chapterList.length"
+          class="chapter-range"
+        >
           <div class="range-head">
-            <el-checkbox v-model="limitChapterCount" @change="markLimitTouched"
-              >只导入前</el-checkbox
+            <el-checkbox
+              v-model="limitChapterCount"
+              @change="markLimitTouched"
             >
+              只导入前
+            </el-checkbox>
             <el-input-number
               v-model="chapterLimit"
               :disabled="!limitChapterCount"
@@ -93,7 +114,11 @@
           </div>
           <p>本次将处理 {{ selectedChapterCount }} / {{ chapterList.length }} 章。</p>
         </div>
-        <el-progress v-if="downloading" :percentage="progressPercent" :stroke-width="8" />
+        <el-progress
+          v-if="downloading"
+          :percentage="progressPercent"
+          :stroke-width="8"
+        />
         <div class="download-actions">
           <el-button
             type="primary"
@@ -107,10 +132,16 @@
                 : '下载并加入书架'
             }}
           </el-button>
-          <el-button :loading="downloading" :disabled="!chapterList.length" @click="handleExportTxt"
-            >导出 TXT</el-button
+          <el-button
+            :loading="downloading"
+            :disabled="!chapterList.length"
+            @click="handleExportTxt"
           >
-          <el-button @click="clearSelection">取消选择</el-button>
+            导出 TXT
+          </el-button>
+          <el-button @click="clearSelection">
+            取消选择
+          </el-button>
         </div>
       </aside>
     </main>
