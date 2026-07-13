@@ -31,6 +31,8 @@ import {
   setChapterTargetWords,
   setSortOrder,
   storeDelete,
+  storeGet,
+  storeSet,
   updateChapterFormat,
   upsertChapter
 } from '../src/main/services/webBooksApi.js'
@@ -41,9 +43,28 @@ const pngBytes = Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), Buffer.a
 const pngDataUrl = `data:image/png;base64,${pngBytes.toString('base64')}`
 
 try {
+  assert.equal(storeGet(''), null)
+  assert.equal(storeSet('', 'ignored'), false)
+  assert.equal(storeDelete(''), false)
   assert.deepEqual(await readBooksDir(''), [])
   await assert.rejects(() => readBooksDir(booksDir), /书籍目录不存在/)
   fs.mkdirSync(booksDir, { recursive: true })
+  assert.deepEqual(await loadChapters('', booksDir), {
+    success: false,
+    message: '书籍名称不能为空',
+    chapters: []
+  })
+  assert.deepEqual(await loadChapters('不存在作品', ''), {
+    success: false,
+    message: '请先选择书库目录',
+    bookName: '不存在作品',
+    chapters: []
+  })
+  assert.deepEqual(await loadChapters('不存在作品', booksDir), {
+    success: true,
+    bookName: '不存在作品',
+    chapters: []
+  })
 
   const created = await createBook(
     { id: 'lifecycle-book', name: '生命周期作品', coverImagePath: pngDataUrl },
@@ -103,6 +124,30 @@ try {
     3560
   )
   assert.equal(getChapterSettings('冲突作品').targetWords, 3560)
+  assert.equal((await createVolume('不存在作品', booksDir)).success, false)
+  assert.equal(
+    (
+      await createChapter(
+        { bookName: '冲突作品', volumeId: '不存在卷' },
+        booksDir
+      )
+    ).success,
+    false
+  )
+  assert.equal(
+    (
+      await upsertChapter(
+        {
+          bookName: '',
+          volumeName: '正文',
+          chapterName: '第1章',
+          content: '不会保存'
+        },
+        booksDir
+      )
+    ).success,
+    false
+  )
 
   const extraVolume = await createVolume('冲突作品', booksDir)
   assert.equal(extraVolume.success, true)
@@ -359,6 +404,57 @@ try {
   )
   assert.equal(chapter.success, true)
   assert.equal(chapter.content, '允许覆盖')
+  assert.equal(
+    (
+      await readChapter(
+        { bookName: '生命周期作品', volumeName: '正文', chapterName: '不存在章节' },
+        booksDir
+      )
+    ).success,
+    false
+  )
+  assert.equal(
+    (
+      await editNode(
+        {
+          bookName: '生命周期作品',
+          type: 'unknown',
+          volume: '正文',
+          chapter: '第1章',
+          newName: '新名称'
+        },
+        booksDir
+      )
+    ).message,
+    '类型错误'
+  )
+  assert.equal(
+    (
+      await editNode(
+        {
+          bookName: '生命周期作品',
+          type: 'volume',
+          volume: '不存在卷',
+          newName: '新卷'
+        },
+        booksDir
+      )
+    ).success,
+    false
+  )
+  assert.equal(
+    (
+      await deleteNode(
+        {
+          bookName: '生命周期作品',
+          type: 'unknown',
+          volume: '正文'
+        },
+        booksDir
+      )
+    ).message,
+    '类型错误'
+  )
 
   const renamedChapter = await editNode(
     {
@@ -463,6 +559,7 @@ try {
     ).success,
     false
   )
+  assert.equal((await createNotebook({ bookName: '不存在作品' }, booksDir)).success, false)
   const notebook = await createNotebook({ bookName: '生命周期作品' }, booksDir)
   assert.equal(notebook.success, true)
   const duplicateNotebook = await createNotebook({ bookName: '生命周期作品' }, booksDir)
@@ -533,6 +630,20 @@ try {
   )
   assert.equal(
     (
+      await editNote(
+        {
+          bookName: '生命周期作品',
+          notebookName: notebook.notebookName,
+          noteName: '不存在笔记',
+          content: '不会保存'
+        },
+        booksDir
+      )
+    ).success,
+    false
+  )
+  assert.equal(
+    (
       await deleteNote(
         {
           bookName: '生命周期作品',
@@ -573,6 +684,20 @@ try {
   )
   assert.equal(
     (
+      await editNote(
+        {
+          bookName: '生命周期作品',
+          notebookName: notebook.notebookName,
+          noteName: '伏笔记录',
+          content: null
+        },
+        booksDir
+      )
+    ).success,
+    true
+  )
+  assert.equal(
+    (
       await readNote(
         {
           bookName: '生命周期作品',
@@ -580,9 +705,9 @@ try {
           noteName: '伏笔记录'
         },
         booksDir
-      )
+    )
     ).content,
-    '主角在雨夜拾到旧钥匙。'
+    ''
   )
   assert.equal(
     (

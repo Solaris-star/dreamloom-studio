@@ -469,6 +469,11 @@ function getBookPath(booksDir, bookName) {
   return resolveBookChildPath(booksDir, safeAssetName(bookName))
 }
 
+function getExistingBookPath(booksDir, bookName) {
+  const bookPath = getBookPath(booksDir, bookName)
+  return fs.existsSync(join(bookPath, 'mazi.json')) ? bookPath : null
+}
+
 function ensureBookPath(booksDir, bookName) {
   const bookPath = getBookPath(booksDir, bookName)
   fs.mkdirSync(bookPath, { recursive: true })
@@ -1138,11 +1143,10 @@ export async function saveChapter(
 }
 
 export async function createChapter({ bookName, volumeId }, booksDir) {
-  const bookPath = resolveBookChildPath(booksDir, bookName)
+  const bookPath = getExistingBookPath(booksDir, bookName)
+  if (!bookPath) return { success: false, message: '书籍不存在' }
   const volumePath = resolveBookChildPath(booksDir, bookName, '正文', volumeId)
-  if (!fs.existsSync(volumePath)) {
-    fs.mkdirSync(volumePath, { recursive: true })
-  }
+  if (!fs.existsSync(volumePath)) return { success: false, message: '卷不存在' }
 
   const files = fs.readdirSync(volumePath, { withFileTypes: true })
   const chapters = files.filter((f) => f.isFile() && f.name.endsWith('.txt'))
@@ -1315,7 +1319,8 @@ export async function readChapter({ bookName, volumeName, chapterName }, booksDi
 }
 
 export async function createVolume(bookName, booksDir) {
-  const bookPath = resolveBookChildPath(booksDir, bookName)
+  const bookPath = getExistingBookPath(booksDir, bookName)
+  if (!bookPath) return { success: false, message: '书籍不存在' }
   const volumeRootPath = join(bookPath, '正文')
   if (!fs.existsSync(volumeRootPath)) {
     fs.mkdirSync(volumeRootPath, { recursive: true })
@@ -1642,7 +1647,9 @@ export async function loadNotes(bookName, booksDir) {
 }
 
 export async function createNotebook({ bookName }, booksDir) {
-  const notesPath = resolveBookChildPath(booksDir, bookName, '笔记')
+  const bookPath = getExistingBookPath(booksDir, bookName)
+  if (!bookPath) return { success: false, message: '书籍不存在' }
+  const notesPath = join(bookPath, '笔记')
   if (!fs.existsSync(notesPath)) {
     fs.mkdirSync(notesPath, { recursive: true })
   }
