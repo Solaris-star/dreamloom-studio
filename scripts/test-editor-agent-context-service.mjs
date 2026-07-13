@@ -98,12 +98,81 @@ try {
 
   const detected = detectEditorAgentBookContextSources(bookPath, context.block)
   assert.equal(detected.length, context.sources.length)
+  assert.deepEqual(detectEditorAgentBookContextSources('', context.block), [])
+  assert.deepEqual(detectEditorAgentBookContextSources(bookPath, ''), [])
+
+  const knowledgeSources = detectEditorAgentBookContextSources(
+    bookPath,
+    '【书籍信息】\n【拆书知识参考】'
+  )
+  assert.equal(knowledgeSources.length, 2)
+  assert.equal(knowledgeSources[1].type, 'knowledge')
+  assert.equal(knowledgeSources[1].path, '')
+  fs.mkdirSync(join(bookPath, 'knowledge'))
+  assert.equal(
+    detectEditorAgentBookContextSources(bookPath, '【拆书知识参考】')[0].path,
+    join(bookPath, 'knowledge')
+  )
+
+  assert.deepEqual(editorAgentBookContextRecord(), {
+    loaded: false,
+    sourceCount: 0,
+    contextChars: 0,
+    sources: [],
+    preview: '',
+    error: '',
+    loadedAt: ''
+  })
+  assert.equal(
+    editorAgentBookContextRecord({
+      loaded: 1,
+      sourceCount: '2',
+      contextChars: '3',
+      sources: [{ label: '人物' }],
+      block: ' x ',
+      error: 4,
+      loadedAt: ' now '
+    }).sourceCount,
+    2
+  )
+  assert.equal(
+    editorAgentBookContextRecord({ sourceCount: 'bad', contextChars: 'bad', sources: [{}] })
+      .sourceCount,
+    1
+  )
+  assert.equal(summarizeEditorAgentBookContext({ error: '文件损坏' }), '作品资料读取失败：文件损坏')
+  assert.equal(summarizeEditorAgentBookContext({ loaded: false }), '未读取到可用作品资料。')
+  assert.equal(
+    summarizeEditorAgentBookContext({
+      loaded: true,
+      sourceCount: 1,
+      contextChars: 8,
+      sources: [{}]
+    }),
+    '已读取 1 类作品资料，约 8 字。'
+  )
+  assert.equal(formatEditorAgentBookContext({ block: 123 }), '未读取到可用作品资料。')
 
   const directContext = await buildBookWritingContextBlock(bookPath, {
     outlineTitle: '第一章',
     outlineContent: '林青带着玉印和沈岚进入雪狐谷。'
   })
   assert.ok(directContext.includes('【人物设定】'))
+
+  const limitedContext = await loadEditorAgentBookContext(
+    bookPath,
+    { chapterId: 'chapter-1', selectedText: '雪狐谷' },
+    { maxTotalChars: 200 }
+  )
+  assert.equal(limitedContext.loaded, true)
+  assert.ok(limitedContext.contextChars < context.contextChars)
+
+  const defaultOptionsContext = await loadEditorAgentBookContext(
+    bookPath,
+    { currentChapterText: '林青继续前行。' },
+    { maxTotalChars: 0 }
+  )
+  assert.equal(defaultOptionsContext.loaded, true)
 
   const originalCharacters = JSON.parse(fs.readFileSync(join(bookPath, 'characters.json'), 'utf-8'))
   fs.writeFileSync(join(bookPath, 'characters.json'), '{ bad json', 'utf-8')

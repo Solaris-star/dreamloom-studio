@@ -141,6 +141,84 @@ try {
   assert.equal(record.sources.length, 1)
   assert.ok(record.preview.includes('林青在夜色里赶到山门'))
 
+  assert.equal(formatEditorAgentTaskMemory(), '暂无可用历史任务记录。')
+  assert.equal(
+    formatEditorAgentTaskMemory({ loaded: true, tasks: [] }),
+    '暂无可用历史任务记录。'
+  )
+  const fallbackBlock = formatEditorAgentTaskMemory({
+    loaded: true,
+    tasks: [
+      {
+        events: [
+          {},
+          {
+            type: 'note',
+            summary: '保留这一条说明',
+            startedAt: '2026-01-01T00:00:00.000Z'
+          }
+        ],
+        review: {
+          passed: false,
+          revisionInstruction: '补充冲突原因。'
+        },
+        error: '一次可恢复错误'
+      }
+    ]
+  })
+  assert.ok(fallbackBlock.includes('历史任务'))
+  assert.ok(fallbackBlock.includes('补充冲突原因'))
+  assert.ok(fallbackBlock.includes('一次可恢复错误'))
+  assert.ok(fallbackBlock.includes('保留这一条说明'))
+
+  assert.equal(summarizeEditorAgentTaskMemory(), '暂无可用历史任务记录。')
+  assert.equal(
+    summarizeEditorAgentTaskMemory({ error: '记录损坏' }),
+    '未读取到历史任务记录：记录损坏'
+  )
+  assert.deepEqual(editorAgentTaskMemoryRecord(), {
+    loaded: false,
+    taskCount: 0,
+    eventCount: 0,
+    contextChars: 0,
+    sources: [],
+    preview: '',
+    error: '',
+    loadedAt: ''
+  })
+  assert.equal(
+    editorAgentTaskMemoryRecord({
+      loaded: 1,
+      taskCount: '2',
+      eventCount: '3',
+      contextChars: '4',
+      sources: {},
+      block: 123,
+      error: 456,
+      loadedAt: 789
+    }).sources.length,
+    0
+  )
+
+  const defaultMemory = loadEditorAgentTaskMemory(bookPath)
+  assert.equal(defaultMemory.loaded, true)
+  const excludedByGeneration = loadEditorAgentTaskMemory(bookPath, {
+    generationId: 'gen_001'
+  })
+  assert.equal(excludedByGeneration.taskCount, 1)
+  assert.equal(excludedByGeneration.tasks[0].id, secondTask.id)
+  const excludedByRepairSource = loadEditorAgentTaskMemory(bookPath, {
+    sourceGenerationId: 'repair_001'
+  })
+  assert.equal(excludedByRepairSource.taskCount, 1)
+  assert.equal(excludedByRepairSource.tasks[0].id, secondTask.id)
+  const excludedByChapter = loadEditorAgentTaskMemory(bookPath, {
+    chapterId: '第二章',
+    limit: 'bad',
+    eventLimit: 0
+  })
+  assert.equal(excludedByChapter.taskCount, 0)
+
   const missing = loadEditorAgentTaskMemory(join(rootDir, '不存在的作品'), { chapterId: '第一章' })
   assert.equal(missing.loaded, false)
   assert.equal(missing.error, '作品目录不存在')
