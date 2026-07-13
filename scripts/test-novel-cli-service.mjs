@@ -586,6 +586,50 @@ try {
   assert.equal(finalText.includes('夜色'), true)
   assert.equal(finalText.includes('正午'), false)
 
+  const directRepairProvider = createOfflineProvider()
+  const directRepairChunks = []
+  const directRepairResult = await repairNovelChapter({
+    booksDir,
+    bookName,
+    volumeName: '第一卷',
+    chapterName: '第一章',
+    currentText: '林青在正午施展只能在夜间使用的月影术。',
+    issues: [
+      '月影术的使用时间与设定冲突',
+      {
+        level: 'high',
+        title: '术法规则冲突',
+        evidence: '正午施展月影术',
+        reference: '月影术只能在夜间施展',
+        fix: '把场景改为夜间'
+      },
+      null,
+      {}
+    ],
+    checkId: 'direct-repair-check',
+    checkSummary: '修正月影术的使用时间。',
+    sourceGenerationId: 'direct-source-generation',
+    targetWords: 120,
+    textProvider: directRepairProvider,
+    model: 'offline-model',
+    onChunk: ({ content }) => directRepairChunks.push(content)
+  })
+  assert.equal(directRepairResult.success, true)
+  assert.equal(directRepairResult.reviewPassed, true)
+  assert.equal(directRepairResult.issueCount, 2)
+  assert.equal(directRepairResult.checkId, 'direct-repair-check')
+  assert.equal(directRepairResult.sourceGenerationId, 'direct-source-generation')
+  assert.equal(directRepairResult.content.includes('夜色'), true)
+  assert.equal(directRepairChunks.join('').includes('林青'), true)
+  assert.equal(
+    directRepairProvider.calls.some((id) => id.includes('writer_repair')),
+    true
+  )
+  assert.equal(
+    directRepairProvider.calls.some((id) => id.includes('editor_repair_review')),
+    true
+  )
+
   const memoryProvider = createOfflineProvider()
   const memoryWriteResult = await writeNovelChapter({
     booksDir,
@@ -901,6 +945,36 @@ try {
     true
   )
   assert.equal(lifecycleProvider.calls.filter((id) => id.includes('cli_writer_')).length >= 2, true)
+
+  const noSourceLifecycleProvider = createOfflineProvider()
+  const noSourceLifecycleResult = await runNovelLifecycle({
+    booksDir,
+    bookName: '无来源试航',
+    idea: '少年在山城追查一封来历不明的旧信。',
+    sources: 'qidian',
+    count: 2,
+    chapters: 1,
+    targetWords: 100,
+    autoEdit: false,
+    exportResult: false,
+    textProvider: noSourceLifecycleProvider,
+    model: 'offline-model',
+    saveMode: 'append'
+  })
+  assert.equal(noSourceLifecycleResult.success, true)
+  assert.equal(
+    noSourceLifecycleResult.stages.find((item) => item.name === 'extraction')?.status,
+    'skipped'
+  )
+  assert.equal(
+    noSourceLifecycleResult.stages.some((item) => item.name === 'export'),
+    false
+  )
+  assert.equal(noSourceLifecycleResult.extraction, null)
+  assert.equal(noSourceLifecycleResult.export, null)
+  assert.equal(noSourceLifecycleResult.writing.count, 1)
+  assert.equal(noSourceLifecycleResult.writing.chapters[0].repaired, false)
+  assert.equal(fs.existsSync(noSourceLifecycleResult.writing.chapters[0].filePath), true)
 
   const exportResult = exportNovelBook({
     booksDir,
