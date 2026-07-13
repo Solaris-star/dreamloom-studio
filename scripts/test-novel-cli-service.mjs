@@ -642,6 +642,40 @@ try {
   )
   assert.ok(requestText(marketOutlineRequest).includes('寒门剑修登榜'))
 
+  const fencedOutlineProvider = createChatOnlyProvider(() => ({
+    content: `\`\`\`json
+{
+  "items": [
+    {
+      "chapterName": "雨夜来客",
+      "summary": "陌生人在雨夜送来旧案线索。",
+      "goals": "引出新的调查方向。",
+      "conflict": "线索真假难辨。",
+      "progression": "林青决定连夜核实。",
+      "resultHint": "送信人悄然失踪。"
+    },
+    {
+      "content": "林青循着信上的地址找到废弃驿站。"
+    }
+  ]
+}
+\`\`\``,
+    usage: { prompt_tokens: 12 }
+  }))
+  const fencedOutlineResult = await generateNovelOutline({
+    booksDir,
+    book: bookName,
+    prompt: '生成两段雨夜旧案大纲。',
+    count: 2,
+    useMarket: false,
+    textProvider: fencedOutlineProvider,
+    saveMode: 'append'
+  })
+  assert.equal(fencedOutlineResult.count, 2)
+  assert.equal(fencedOutlineResult.items[0].title, '第1段')
+  assert.equal(fencedOutlineResult.items[1].title, '第2段')
+  assert.equal(typeof fencedOutlineResult.items[0].content, 'string')
+
   fs.writeFileSync(
     join(booksDir, bookName, 'characters.json'),
     JSON.stringify([{ name: '林青', gender: '女', age: 18 }], null, 2),
@@ -866,6 +900,75 @@ try {
   assert.equal(plannedWriteResult.chapters[0].repaired, false)
   assert.equal(plannedWriteResult.providerId, 'chat-only-cli-provider')
   assert.ok(requestText(chatOnlyProvider.requests[0]).includes('她在书架后发现一页残卷'))
+
+  const reviewVariants = [
+    {
+      chapterName: '结构化审稿章',
+      review: `\`\`\`json
+{
+  "score": 70,
+  "issues": [
+    "节奏偏慢",
+    {"message": "开头缺少行动"},
+    {"issue": "对话目的不清"},
+    {"text": "场景转换生硬"},
+    {"reason": "章末缺少悬念"}
+  ],
+  "revision_instruction": "压缩开头并补充章末悬念。"
+}
+\`\`\``,
+      passed: false,
+      issueCount: 5
+    },
+    {
+      chapterName: '缺省评分章',
+      review: JSON.stringify({ score: 'unknown', issues: [], fix: '无需修改。' }),
+      passed: true,
+      issueCount: 0
+    },
+    {
+      chapterName: '缺省问题章',
+      review: JSON.stringify({ score: 88, issues: null }),
+      passed: true,
+      issueCount: 0
+    }
+  ]
+  for (const variant of reviewVariants) {
+    const reviewProvider = createChatOnlyProvider((options) => {
+      if (options.requestId.includes('editor_review')) {
+        return {
+          content: variant.review,
+          usage: { completion_tokens: 8 }
+        }
+      }
+      return {
+        result: '林青沿着山路追查旧案，在入夜前找到了一处新的剑痕。',
+        usage: { completion_tokens: 20 }
+      }
+    })
+    const reviewResult = await writeNovelChapter({
+      booksDir,
+      book: bookName,
+      volume: '审稿兼容卷',
+      chapter: variant.chapterName,
+      instruction: '写林青追查山路剑痕。',
+      targetWords: 80,
+      autoEdit: false,
+      stream: false,
+      textProvider: reviewProvider,
+      outputMode: 'chapter_write',
+      canWriteChapter: true,
+      inputScopes: ['chapter', '', null],
+      requiredContext: ['characters'],
+      references: ['settings'],
+      onTaskProgress() {
+        throw new Error('测试进度回调失败')
+      }
+    })
+    assert.equal(reviewResult.success, true)
+    assert.equal(reviewResult.review.passed, variant.passed)
+    assert.equal(reviewResult.review.issues.length, variant.issueCount)
+  }
 
   const resumeProvider = createOfflineProvider()
   const resumeWriteResult = await writeNovelChapters({
@@ -1155,6 +1258,32 @@ try {
   assert.equal(noSourceLifecycleResult.writing.count, 1)
   assert.equal(noSourceLifecycleResult.writing.chapters[0].repaired, false)
   assert.equal(fs.existsSync(noSourceLifecycleResult.writing.chapters[0].filePath), true)
+
+  const resumedLifecycleProvider = createOfflineProvider()
+  const resumedLifecycleResult = await runNovelLifecycle({
+    booksDir,
+    book: '无来源试航',
+    instruction: '继续少年在山城追查旧信的故事。',
+    source: ['qidian'],
+    selectedPlanId: 'idea-1',
+    outlineCount: 2,
+    writeChapters: 1,
+    targetWords: 100,
+    autoEdit: false,
+    resume: true,
+    export: false,
+    textProvider: resumedLifecycleProvider,
+    modelName: 'offline-model'
+  })
+  assert.equal(resumedLifecycleResult.success, true)
+  assert.equal(
+    resumedLifecycleResult.stages.find((item) => item.name === 'outline')?.status,
+    'skipped'
+  )
+  assert.equal(resumedLifecycleResult.outline.reused, true)
+  assert.equal(resumedLifecycleResult.writing.count, 0)
+  assert.equal(resumedLifecycleResult.writing.skippedCount, 1)
+  assert.equal(resumedLifecycleResult.export, null)
 
   const exportResult = exportNovelBook({
     booksDir,
