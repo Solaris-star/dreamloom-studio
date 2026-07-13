@@ -13,9 +13,15 @@
   >
     <div class="workbench-layout">
       <aside class="history-panel">
-        <div class="panel-heading">{{ t('outlineManager.workbenchHistory') }}</div>
+        <div class="panel-heading">
+          {{ t('outlineManager.workbenchHistory') }}
+        </div>
         <div class="history-toolbar">
-          <el-radio-group v-model="taskType" size="small" :disabled="loading">
+          <el-radio-group
+            v-model="taskType"
+            size="small"
+            :disabled="loading"
+          >
             <el-radio-button label="refine">
               {{ t('outlineManager.aiRefine') }}
             </el-radio-button>
@@ -55,7 +61,9 @@
 
       <div class="workbench-main">
         <div class="base-config-card">
-          <div class="panel-heading">{{ t('outlineManager.workbenchTaskConfig') }}</div>
+          <div class="panel-heading">
+            {{ t('outlineManager.workbenchTaskConfig') }}
+          </div>
           <div class="current-outline">
             <div class="current-outline-title">
               {{
@@ -64,23 +72,44 @@
                 })
               }}
             </div>
-            <el-input :model-value="currentOutlinePreview" type="textarea" :rows="4" readonly />
+            <el-input
+              :model-value="currentOutlinePreview"
+              type="textarea"
+              :rows="4"
+              readonly
+            />
           </div>
 
-          <el-form label-position="top" @submit.prevent="handleGenerate">
+          <el-form
+            label-position="top"
+            @submit.prevent="handleGenerate"
+          >
             <el-form-item :label="t('outlineManager.workbenchBaseSource')">
-              <el-radio-group v-model="baseStrategy" :disabled="loading">
+              <el-radio-group
+                v-model="baseStrategy"
+                :disabled="loading"
+              >
                 <el-radio-button label="original">
                   {{ t('outlineManager.workbenchBaseOriginal') }}
                 </el-radio-button>
-                <el-radio-button label="latest-draft" :disabled="!canUseLatestDraft">
+                <el-radio-button
+                  label="latest-draft"
+                  :disabled="!canUseLatestDraft"
+                >
                   {{ t('outlineManager.workbenchBaseLatest') }}
                 </el-radio-button>
               </el-radio-group>
             </el-form-item>
 
-            <el-form-item v-if="taskType === 'refine'" :label="t('outlineManager.refineDirection')">
-              <el-radio-group v-model="refineMode" class="ai-radio-group" :disabled="loading">
+            <el-form-item
+              v-if="taskType === 'refine'"
+              :label="t('outlineManager.refineDirection')"
+            >
+              <el-radio-group
+                v-model="refineMode"
+                class="ai-radio-group"
+                :disabled="loading"
+              >
                 <el-radio-button label="details">
                   {{ t('outlineManager.refineModes.details') }}
                 </el-radio-button>
@@ -101,7 +130,11 @@
 
             <template v-else>
               <el-form-item :label="t('outlineManager.splitStyle')">
-                <el-radio-group v-model="splitMode" class="ai-radio-group" :disabled="loading">
+                <el-radio-group
+                  v-model="splitMode"
+                  class="ai-radio-group"
+                  :disabled="loading"
+                >
                   <el-radio-button label="plot">
                     {{ t('outlineManager.splitModes.plot') }}
                   </el-radio-button>
@@ -118,7 +151,12 @@
               </el-form-item>
 
               <el-form-item :label="t('outlineManager.splitCount')">
-                <el-input-number v-model="splitCount" :min="2" :max="12" :disabled="loading" />
+                <el-input-number
+                  v-model="splitCount"
+                  :min="2"
+                  :max="12"
+                  :disabled="loading"
+                />
               </el-form-item>
             </template>
 
@@ -141,12 +179,21 @@
 
         <div class="draft-grid">
           <section class="draft-panel">
-            <div class="panel-heading">{{ t('outlineManager.workbenchBasePreview') }}</div>
-            <el-input :model-value="baseContentPreview" type="textarea" :rows="12" readonly />
+            <div class="panel-heading">
+              {{ t('outlineManager.workbenchBasePreview') }}
+            </div>
+            <el-input
+              :model-value="baseContentPreview"
+              type="textarea"
+              :rows="12"
+              readonly
+            />
           </section>
 
           <section class="draft-panel">
-            <div class="panel-heading">{{ t('outlineManager.workbenchDraftResult') }}</div>
+            <div class="panel-heading">
+              {{ t('outlineManager.workbenchDraftResult') }}
+            </div>
 
             <template v-if="taskType === 'refine'">
               <el-input
@@ -168,7 +215,10 @@
                 :title="splitParseError"
               />
 
-              <div v-if="splitItems.length" class="split-item-list">
+              <div
+                v-if="splitItems.length"
+                class="split-item-list"
+              >
                 <div
                   v-for="(item, index) in splitItems"
                   :key="`${selectedVersionId || 'draft'}-${index}`"
@@ -203,8 +253,13 @@
         </div>
 
         <div class="apply-config-card">
-          <div class="panel-heading">{{ t('outlineManager.workbenchApplyStrategy') }}</div>
-          <el-radio-group v-model="applyAction" :disabled="loading">
+          <div class="panel-heading">
+            {{ t('outlineManager.workbenchApplyStrategy') }}
+          </div>
+          <el-radio-group
+            v-model="applyAction"
+            :disabled="loading"
+          >
             <el-radio-button
               v-for="option in applyActionOptions"
               :key="option.value"
@@ -228,7 +283,10 @@
     <template #footer>
       <div class="workbench-footer">
         <div class="footer-left">
-          <el-button :disabled="loading || !selectedVersion" @click="saveCurrentDraftEdits">
+          <el-button
+            :disabled="loading || !selectedVersion"
+            @click="saveCurrentDraftEdits"
+          >
             {{ t('outlineManager.workbenchSaveDraft') }}
           </el-button>
           <el-button
@@ -238,19 +296,32 @@
           >
             {{ t('outlineManager.workbenchReparse') }}
           </el-button>
-          <el-button :disabled="loading || !canUndoLastApply" @click="handleUndoLastApply">
+          <el-button
+            :disabled="loading || !canUndoLastApply"
+            @click="handleUndoLastApply"
+          >
             {{ t('outlineManager.undoLastAiApply') }}
           </el-button>
         </div>
 
         <div class="footer-right">
-          <el-button :disabled="loading" @click="handleCopyDraft">
+          <el-button
+            :disabled="loading"
+            @click="handleCopyDraft"
+          >
             {{ t('outlineManager.copyContent') }}
           </el-button>
-          <el-button :disabled="loading" @click="visible = false">
+          <el-button
+            :disabled="loading"
+            @click="visible = false"
+          >
             {{ t('common.cancel') }}
           </el-button>
-          <el-button type="primary" :loading="loading" @click="handleGenerate">
+          <el-button
+            type="primary"
+            :loading="loading"
+            @click="handleGenerate"
+          >
             {{ generateButtonLabel }}
           </el-button>
           <el-button
