@@ -669,7 +669,7 @@
 </template>
 
 <script setup>
-import { computed, defineComponent, h, onMounted, reactive, ref, watch } from 'vue'
+import { computed, h, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Bookmark, Flame, RefreshCw } from 'lucide-vue-next'
@@ -689,6 +689,11 @@ import {
 import { createCreationStarterJob } from '@renderer/service/creationStarter'
 import { readBooksDir } from '@renderer/service/books'
 import { animateBounce } from '@renderer/composables/useMotion'
+import InfoRow from '@renderer/components/Market/InfoRow'
+import MarketActionBar from '@renderer/components/Market/MarketActionBar'
+import MarketEmptyState from '@renderer/components/Market/MarketEmptyState'
+import MarketLoadingSkeleton from '@renderer/components/Market/MarketLoadingSkeleton'
+import InsightDetailPanel from '@renderer/components/Market/InsightDetailPanel'
 
 const channelOptions = [
   { label: '全部', value: 'all' },
@@ -1532,136 +1537,6 @@ function keywordStyle(word, index) {
   }
 }
 
-const InfoRow = defineComponent({
-  props: {
-    label: { type: String, required: true },
-    items: { type: [Array, String], default: () => [] }
-  },
-  setup(props) {
-    return () => {
-      const values = Array.isArray(props.items)
-        ? props.items.filter(Boolean)
-        : [props.items].filter(Boolean)
-      return h('div', { class: 'info-row' }, [
-        h('span', props.label),
-        h('div', values.length ? values.map((item) => h('em', String(item))) : [h('em', '暂无')])
-      ])
-    }
-  }
-})
-
-const MarketActionBar = defineComponent({
-  props: {
-    loadingKey: { type: String, default: '' },
-    saveLabel: { type: String, default: '存入灵感库' },
-    outlineLabel: { type: String, default: '生成模板草案' },
-    applyLabel: { type: String, default: '带入目标作品' },
-    createLabel: { type: String, default: '新建作品使用' }
-  },
-  emits: ['save', 'outline', 'apply', 'create-book'],
-  setup(props, { emit }) {
-    const btn = (key, label, primary = false) =>
-      h(
-        'button',
-        {
-          type: 'button',
-          class: { primary, loading: props.loadingKey === key, 'motion-feedback-button': true },
-          disabled: Boolean(props.loadingKey),
-          onClick: (event) => {
-            animateBounce(event.currentTarget)
-            emit(key === 'create' ? 'create-book' : key)
-          }
-        },
-        props.loadingKey === key ? '处理中' : label
-      )
-    return () =>
-      h('div', { class: 'market-action-bar' }, [
-        btn('save', props.saveLabel, true),
-        btn('outline', props.outlineLabel),
-        btn('apply', props.applyLabel),
-        btn('create', props.createLabel, true)
-      ])
-  }
-})
-
-const InsightDetailPanel = defineComponent({
-  components: { InfoRow, MarketActionBar },
-  props: {
-    insight: { type: Object, default: null },
-    title: { type: String, default: '灵感详情' },
-    loadingKey: { type: String, default: '' }
-  },
-  emits: ['save', 'outline', 'apply', 'create-book'],
-  setup(props, { emit }) {
-    return () =>
-      h('aside', { class: 'paper-panel insight-detail-panel' }, [
-        h('div', { class: 'panel-title' }, [
-          h('div', [h('h2', props.title), h('p', '点击左侧方向查看详情')]),
-          props.insight
-            ? h('b', { class: 'heat-mark' }, [
-                h(Flame, { size: 15, strokeWidth: 2 }),
-                String(props.insight.heatScore || 0)
-              ])
-            : null
-        ]),
-        props.insight
-          ? h('div', { class: 'detail-body' }, [
-              h('h3', props.insight.title),
-              h(
-                'div',
-                { class: 'tag-line' },
-                (props.insight.tags || []).slice(0, 6).map((tag) => h('span', tag))
-              ),
-              h(InfoRow, {
-                label: '热点来源',
-                items: [props.insight.sourceSummary || props.insight.source]
-              }),
-              h(InfoRow, { label: '读者情绪', items: props.insight.readerEmotion || [] }),
-              h(InfoRow, { label: '核心冲突', items: [props.insight.conflict] }),
-              h(InfoRow, { label: '故事潜力', items: [props.insight.storyPotential] }),
-              h(InfoRow, { label: '书名方向', items: props.insight.bookTitleIdeas || [] }),
-              h(InfoRow, { label: '一句话简介', items: props.insight.loglineIdeas || [] }),
-              h(InfoRow, { label: '开篇切入点', items: props.insight.openingIdeas || [] }),
-              h(MarketActionBar, {
-                loadingKey: props.loadingKey,
-                onSave: () => emit('save', props.insight),
-                onOutline: () => emit('outline', props.insight),
-                onApply: () => emit('apply', props.insight),
-                onCreateBook: () => emit('create-book', props.insight)
-              })
-            ])
-          : h(MarketEmptyState, {
-              title: '请选择题材方向。',
-              description: '点击任意卡片后，这里会显示小说化转写结果。'
-            })
-      ])
-  }
-})
-
-const MarketEmptyState = defineComponent({
-  props: {
-    title: { type: String, default: '暂无数据。' },
-    description: { type: String, default: '' }
-  },
-  setup(props) {
-    return () =>
-      h('div', { class: 'market-empty' }, [
-        h('strong', props.title),
-        props.description ? h('p', props.description) : null
-      ])
-  }
-})
-
-const MarketLoadingSkeleton = defineComponent({
-  setup() {
-    return () =>
-      h(
-        'div',
-        { class: 'market-skeleton' },
-        Array.from({ length: 9 }).map((_, index) => h('i', { key: index }))
-      )
-  }
-})
 </script>
 
 <style lang="scss" scoped>
