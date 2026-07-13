@@ -35,6 +35,20 @@ const taskService = new WebExtractionTaskService({
   createJobId: () => 'job-1'
 })
 
+assert.throws(() => taskService.create({}, { bookPath: '   ' }), /书籍路径不能为空/)
+assert.equal(taskService.activeKey({ bookPath: 'book' }), 'book|append||||')
+assert.equal(
+  taskService.activeKey({
+    bookPath: 'book',
+    runMode: 'replace',
+    dimensions: ['timeline', 'characters'],
+    chapterStart: 1,
+    chapterEnd: 10,
+    chapterLimit: 5
+  }),
+  'book|replace|characters,timeline|1|10|5'
+)
+
 const created = taskService.create(
   {},
   {
@@ -114,6 +128,66 @@ const providerFailureCreated = providerFailureService.create({}, { bookPath: 'D:
 await new Promise((resolve) => setImmediate(resolve))
 assert.equal(providerFailureService.progress(providerFailureCreated.jobId).result.message, '请先配置文本 AI 服务')
 
+const fallbackService = new WebExtractionTaskService({
+  extractionService: {
+    async createExtraction({ onProgress }) {
+      onProgress({ status: 'running' })
+      return { success: false, extractionId: 'ext-fallback' }
+    }
+  },
+  createTextProvider: () => ({ service: {} }),
+  createJobId: () => 'job-fallback'
+})
+const fallbackCreated = fallbackService.create({}, { bookPath: 'D:\\books\\fallback' })
+await new Promise((resolve) => setImmediate(resolve))
+const fallback = fallbackService.progress(fallbackCreated.jobId)
+assert.equal(fallback.progress.extractionId, 'ext-fallback')
+assert.equal(fallback.progress.status, 'failed')
+assert.equal(fallback.progress.currentStep, '拆书失败')
+assert.equal(fallback.progress.overallPercent, 0)
+
+const emptyFailureService = new WebExtractionTaskService({
+  extractionService: {
+    async createExtraction() {
+      throw {}
+    }
+  },
+  createTextProvider: () => ({ service: {} }),
+  createJobId: () => 'job-empty-failure'
+})
+const emptyFailureCreated = emptyFailureService.create({}, { bookPath: 'D:\\books\\empty-failure' })
+await new Promise((resolve) => setImmediate(resolve))
+assert.equal(emptyFailureService.progress(emptyFailureCreated.jobId).result.message, '拆书失败')
+
+const finalStatusService = new WebExtractionTaskService({
+  extractionService,
+  createTextProvider: () => ({ service: {} }),
+  createJobId: () => 'job-final-status'
+})
+finalStatusService.jobs.set('manual-final', {
+  id: 'manual-final',
+  done: false,
+  progress: { status: 'cancelled' },
+  result: null
+})
+assert.equal(finalStatusService.progress('manual-final').done, true)
+assert.equal(finalStatusService.progress('manual-final').result, null)
+
+const trimmingService = new WebExtractionTaskService({
+  extractionService,
+  createTextProvider: () => ({ service: {} })
+})
+for (let index = 0; index < 101; index += 1) {
+  trimmingService.jobs.set(`job-${index}`, {
+    id: `job-${index}`,
+    done: index !== 0,
+    progress: { status: index === 0 ? 'running' : 'completed' }
+  })
+}
+trimmingService.trimJobs()
+assert.equal(trimmingService.jobs.size, 100)
+assert.equal(trimmingService.jobs.has('job-0'), true)
+
 assert.throws(() => taskService.progress(''), /缺少拆书任务 ID/)
 assert.throws(() => taskService.progress('missing'), /不存在或服务已重启/)
 assert.throws(
@@ -123,6 +197,14 @@ assert.throws(
       createTextProvider: () => ({})
     }),
   /缺少拆书服务/
+)
+assert.throws(
+  () =>
+    new WebExtractionTaskService({
+      extractionService,
+      createTextProvider: null
+    }),
+  /缺少文本 AI Provider 工厂/
 )
 
 console.log('web extraction task service tests passed')
