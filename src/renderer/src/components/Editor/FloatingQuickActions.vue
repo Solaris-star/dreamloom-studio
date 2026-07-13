@@ -1,18 +1,51 @@
 <template>
-  <div class="floating-quick-actions" aria-label="创作台快捷操作">
-    <button class="action-btn" type="button" title="返回首页" aria-label="返回首页" @click="emit('home')">
+  <div
+    class="floating-quick-actions"
+    aria-label="创作台快捷操作"
+  >
+    <button
+      class="action-btn"
+      type="button"
+      title="返回首页"
+      aria-label="返回首页"
+      @click="emit('home')"
+    >
       <House :size="18" />
     </button>
-    <button class="action-btn" type="button" title="章节目录" aria-label="章节目录" @click="emit('catalog')">
+    <button
+      class="action-btn"
+      type="button"
+      title="章节目录"
+      aria-label="章节目录"
+      @click="emit('catalog')"
+    >
       <ListTree :size="18" />
     </button>
-    <button class="action-btn" type="button" title="上一章" aria-label="上一章" @click="emit('prev-chapter')">
+    <button
+      class="action-btn"
+      type="button"
+      title="上一章"
+      aria-label="上一章"
+      @click="emit('prev-chapter')"
+    >
       <ChevronUp :size="18" />
     </button>
-    <button class="action-btn" type="button" title="下一章" aria-label="下一章" @click="emit('next-chapter')">
+    <button
+      class="action-btn"
+      type="button"
+      title="下一章"
+      aria-label="下一章"
+      @click="emit('next-chapter')"
+    >
       <ChevronDown :size="18" />
     </button>
-    <button class="action-btn" type="button" title="阅读设置" aria-label="阅读设置" @click="emit('reading-settings')">
+    <button
+      class="action-btn"
+      type="button"
+      title="阅读设置"
+      aria-label="阅读设置"
+      @click="emit('reading-settings')"
+    >
       <Type :size="18" />
     </button>
     <button
@@ -33,8 +66,14 @@
       :aria-pressed="focusMode"
       @click="emit('toggle-focus')"
     >
-      <Minimize2 v-if="focusMode" :size="18" />
-      <Maximize2 v-else :size="18" />
+      <Minimize2
+        v-if="focusMode"
+        :size="18"
+      />
+      <Maximize2
+        v-else
+        :size="18"
+      />
     </button>
   </div>
 </template>
