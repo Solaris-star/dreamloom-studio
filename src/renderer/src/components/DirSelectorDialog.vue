@@ -8,33 +8,80 @@
   >
     <div class="dir-selector">
       <div class="path-bar">
-        <el-input v-model="currentPath" placeholder="输入目录路径" @keyup.enter="navigateTo">
+        <el-input
+          v-model="currentPath"
+          placeholder="输入目录路径"
+          @keyup.enter="navigateTo"
+        >
           <template #prepend>
-            <el-button :disabled="!canGoUp" @click="goUp"> 上级 </el-button>
+            <el-button
+              :disabled="!canGoUp"
+              @click="goUp"
+            >
+              上级
+            </el-button>
           </template>
           <template #append>
-            <el-button @click="navigateTo"> 进入 </el-button>
+            <el-button @click="navigateTo">
+              进入
+            </el-button>
           </template>
         </el-input>
       </div>
 
       <div class="dir-list">
-        <div v-if="loading" class="dir-empty">加载中...</div>
-        <div v-else-if="error" class="dir-error">
-          <span>{{ error }}</span>
-          <el-button size="small" :loading="loading" @click="loadDir(currentPath)">重试</el-button>
+        <div
+          v-if="loading"
+          class="dir-empty"
+        >
+          加载中...
         </div>
-        <div v-else-if="dirs.length === 0" class="dir-empty">空目录</div>
-        <div v-for="dir in dirs" :key="dir.name" class="dir-item" @click="enterDir(dir.name)">
-          <FolderClosed class="dir-icon" :size="16" aria-hidden="true" />
+        <div
+          v-else-if="error"
+          class="dir-error"
+        >
+          <span>{{ error }}</span>
+          <el-button
+            size="small"
+            :loading="loading"
+            @click="loadDir(currentPath)"
+          >
+            重试
+          </el-button>
+        </div>
+        <div
+          v-else-if="dirs.length === 0"
+          class="dir-empty"
+        >
+          空目录
+        </div>
+        <div
+          v-for="dir in dirs"
+          :key="dir.name"
+          class="dir-item"
+          @click="enterDir(dir.name)"
+        >
+          <FolderClosed
+            class="dir-icon"
+            :size="16"
+            aria-hidden="true"
+          />
           <span class="dir-name">{{ dir.name }}</span>
         </div>
       </div>
     </div>
 
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :disabled="!!error" @click="confirm">确认</el-button>
+      <el-button @click="visible = false">
+        取消
+      </el-button>
+      <el-button
+        type="primary"
+        :disabled="!!error"
+        @click="confirm"
+      >
+        确认
+      </el-button>
     </template>
   </el-dialog>
 </template>
