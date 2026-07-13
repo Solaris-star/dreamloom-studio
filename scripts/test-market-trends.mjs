@@ -3,8 +3,16 @@ import os from 'node:os'
 import { join } from 'node:path'
 import assert from 'node:assert/strict'
 import marketService from '../src/main/services/marketService.js'
+import marketTrendService from '../src/main/services/marketTrendService.js'
 
 const booksDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-market-'))
+
+function writeMarketFile(root, fileName, value) {
+  const marketDir = join(root, 'market')
+  fs.mkdirSync(marketDir, { recursive: true })
+  const content = typeof value === 'string' ? value : JSON.stringify(value)
+  fs.writeFileSync(join(marketDir, fileName), content, 'utf8')
+}
 
 function response(data, ok = true, status = 200) {
   const text = JSON.stringify(data)
@@ -90,6 +98,16 @@ assert.equal(cached.results[0].topics.length, 1)
 assert.equal(calls.length, callCountAfterFirst)
 assert.deepEqual(waits, [])
 
+const memoryCached = await marketService.refreshMarketTrends(booksDir, {
+  sources: ['weibo'],
+  fetchImpl: async () => {
+    throw new Error('runtime cache was not used')
+  }
+})
+assert.equal(memoryCached.success, true)
+assert.equal(memoryCached.results[0].fromCache, true)
+assert.equal(memoryCached.results[0].cacheType, 'memory')
+
 const second = await marketService.refreshMarketTrends(booksDir, {
   sources: ['weibo', 'baidu'],
   force: true,
@@ -146,6 +164,43 @@ assert.equal(
 )
 assert.equal(waits.includes(5), true)
 
+const parseFailed = await marketService.refreshMarketTrends(booksDir, {
+  sources: ['baidu'],
+  force: true,
+  fetchImpl: async () => response({ data: [] })
+})
+assert.equal(parseFailed.success, false)
+assert.equal(parseFailed.results[0].failures[0].errorType, 'parse')
+assert.match(parseFailed.results[0].message, /未解析到热词/)
+
+const timeoutFailed = await marketService.refreshMarketTrends(booksDir, {
+  sources: ['baidu'],
+  force: true,
+  fetchImpl: async () => {
+    const error = new Error('request timed out')
+    error.name = 'AbortError'
+    throw error
+  }
+})
+assert.equal(timeoutFailed.success, false)
+assert.equal(timeoutFailed.results[0].failures[0].errorType, 'timeout')
+
+const skippedOptional = await marketService.refreshMarketTrends(booksDir, {
+  sources: ['dailyhot'],
+  force: true
+})
+assert.equal(skippedOptional.success, false)
+assert.equal(skippedOptional.results[0].skipped, true)
+assert.match(skippedOptional.results[0].message, /未配置/)
+
+const unknownSources = await marketService.refreshMarketTrends(booksDir, {
+  sources: ['missing', '', null],
+  force: true
+})
+assert.equal(unknownSources.success, false)
+assert.deepEqual(unknownSources.sources, [])
+assert.match(unknownSources.message, /刷新失败/)
+
 const cachePruneBooksDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-market-cache-'))
 const pruneSeed = await marketService.refreshMarketTrends(cachePruneBooksDir, {
   sources: ['weibo'],
@@ -160,6 +215,47 @@ assert.equal(pruneResult.checked, 1)
 assert.equal(pruneResult.removed, 1)
 assert.equal(pruneResult.kept, 0)
 fs.rmSync(cachePruneBooksDir, { recursive: true, force: true })
+
+const mixedCacheDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-market-cache-mixed-'))
+const now = Date.now()
+writeMarketFile(mixedCacheDir, 'source-cache.json', {
+  items: [
+    {
+      source: 'weibo',
+      createdAt: new Date(now - 1000).toISOString(),
+      expiresAt: new Date(now + 60_000).toISOString(),
+      result: { success: true }
+    },
+    {
+      source: 'weibo',
+      createdAt: new Date(now - 2000).toISOString(),
+      expiresAt: new Date(now + 60_000).toISOString(),
+      result: { success: true }
+    },
+    {
+      source: 'missing',
+      createdAt: new Date(now).toISOString(),
+      result: { success: true }
+    },
+    {
+      source: 'baidu',
+      createdAt: '',
+      result: { success: true }
+    },
+    null
+  ]
+})
+const mixedPrune = marketService.pruneMarketSourceCache(mixedCacheDir)
+assert.deepEqual(
+  { checked: mixedPrune.checked, kept: mixedPrune.kept, removed: mixedPrune.removed },
+  { checked: 4, kept: 1, removed: 3 }
+)
+assert.equal(marketService.pruneMarketSourceCache('', {}).checked, 0)
+assert.equal(
+  marketService.pruneMarketSourceCache(mixedCacheDir, { persistentCache: false }).checked,
+  0
+)
+fs.rmSync(mixedCacheDir, { recursive: true, force: true })
 
 const qidianHtml = `
   <script id="vite-plugin-ssr_pageContext" type="application/json">
@@ -453,5 +549,73 @@ assert.equal(missingProviderOpportunities.success, false)
 assert.equal(missingProviderOpportunities.fromLLM, false)
 assert.match(missingProviderOpportunities.message, /文本 AI 服务/)
 
+const legacyRowsDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-market-legacy-'))
+writeMarketFile(legacyRowsDir, 'hot-topics.json', [
+  null,
+  {
+    source: 'weibo',
+    keyword: '旧格式小说热词',
+    title: '旧格式小说热词',
+    heatIndex: '2.5万',
+    capturedAt: '2026-07-01T00:00:00.000Z'
+  },
+  {
+    source: 'weibo',
+    keyword: '登录',
+    title: '登录',
+    heatIndex: 20
+  },
+  {
+    source: 'weibo',
+    keyword: 'plain-ascii',
+    title: 'plain-ascii',
+    heatIndex: 20
+  }
+])
+assert.equal(marketService.listHotTopics(legacyRowsDir).length, 1)
+assert.equal(marketService.listHotTopics(legacyRowsDir)[0].heatIndex, 25_000)
+
+writeMarketFile(legacyRowsDir, 'source-status.json', {
+  items: [
+    {
+      source: 'weibo',
+      lastSuccessAt: '2020-01-01T00:00:00.000Z',
+      lastFailureAt: ''
+    },
+    {
+      source: 'baidu',
+      lastSuccessAt: '2026-07-01T00:00:00.000Z',
+      lastFailureAt: '2026-07-02T00:00:00.000Z'
+    },
+    { source: 'dailyhot', skipped: true }
+  ]
+})
+const legacyStatuses = marketService.listSourceStatus(legacyRowsDir)
+assert.equal(legacyStatuses.find((item) => item.source === 'weibo')?.status, 'stale')
+assert.equal(legacyStatuses.find((item) => item.source === 'baidu')?.status, 'error')
+assert.equal(legacyStatuses.find((item) => item.source === 'dailyhot')?.status, 'empty')
+
+writeMarketFile(legacyRowsDir, 'trend-records.json', {
+  items: [
+    {
+      keyword: '旧格式小说热词',
+      updatedAt: '2026-07-02T00:00:00.000Z',
+      trendSeries: [
+        { timestamp: 1, value: 20 },
+        { timestamp: 2, value: 80 }
+      ]
+    }
+  ]
+})
+assert.equal(marketService.listMarketOpportunities(legacyRowsDir)[0].trendScore > 50, true)
+
+writeMarketFile(legacyRowsDir, 'hot-topics.json', { invalid: true })
+assert.throws(() => marketService.listHotTopics(legacyRowsDir), /市场趋势数据格式异常/)
+writeMarketFile(legacyRowsDir, 'hot-topics.json', '{broken')
+assert.throws(() => marketService.listHotTopics(legacyRowsDir), /市场趋势数据读取失败/)
+assert.throws(() => marketService.listHotTopics(''), /请先设置书籍目录/)
+fs.rmSync(legacyRowsDir, { recursive: true, force: true })
+
+marketTrendService.stopScheduler()
 fs.rmSync(booksDir, { recursive: true, force: true })
 console.log('market trend tests passed')
