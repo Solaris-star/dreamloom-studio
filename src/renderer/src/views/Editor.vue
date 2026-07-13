@@ -16,7 +16,10 @@
         collapsible
       >
         <!-- 左侧面板：笔记章节 -->
-        <NoteChapter ref="noteChapterRef" :book-name="bookName" />
+        <NoteChapter
+          ref="noteChapterRef"
+          :book-name="bookName"
+        />
       </el-splitter-panel>
       <el-splitter-panel class="editor-main-panel">
         <!-- 中间编辑区 -->
@@ -65,8 +68,15 @@
       direction="rtl"
       :size="catalogDrawerSize"
     >
-      <div v-if="chapterOutline.length" class="catalog-list">
-        <section v-for="volume in chapterOutline" :key="volume.id" class="catalog-volume">
+      <div
+        v-if="chapterOutline.length"
+        class="catalog-list"
+      >
+        <section
+          v-for="volume in chapterOutline"
+          :key="volume.id"
+          class="catalog-volume"
+        >
           <h3>{{ volume.name }}</h3>
           <button
             v-for="chapter in volume.chapters"
@@ -81,7 +91,10 @@
           </button>
         </section>
       </div>
-      <el-empty v-else description="暂无章节" />
+      <el-empty
+        v-else
+        description="暂无章节"
+      />
     </el-drawer>
 
     <el-drawer
@@ -97,22 +110,51 @@
       />
     </el-drawer>
 
-    <el-dialog v-model="readingSettingsVisible" title="阅读设置" width="min(420px, 92vw)">
+    <el-dialog
+      v-model="readingSettingsVisible"
+      title="阅读设置"
+      width="min(420px, 92vw)"
+    >
       <div class="reading-setting">
         <span>正文字号</span>
-        <el-slider v-model="readingSettings.fontSize" :min="14" :max="24" :step="1" show-input />
+        <el-slider
+          v-model="readingSettings.fontSize"
+          :min="14"
+          :max="24"
+          :step="1"
+          show-input
+        />
       </div>
       <div class="reading-setting">
         <span>正文行高</span>
-        <el-slider v-model="readingSettings.lineHeight" :min="1.4" :max="2.2" :step="0.1" show-input />
+        <el-slider
+          v-model="readingSettings.lineHeight"
+          :min="1.4"
+          :max="2.2"
+          :step="0.1"
+          show-input
+        />
       </div>
       <div class="reading-setting">
         <span>纸面宽度</span>
-        <el-slider v-model="readingSettings.contentWidth" :min="640" :max="960" :step="20" show-input />
+        <el-slider
+          v-model="readingSettings.contentWidth"
+          :min="640"
+          :max="960"
+          :step="20"
+          show-input
+        />
       </div>
       <template #footer>
-        <el-button @click="resetReadingSettings">恢复默认</el-button>
-        <el-button type="primary" @click="readingSettingsVisible = false">完成</el-button>
+        <el-button @click="resetReadingSettings">
+          恢复默认
+        </el-button>
+        <el-button
+          type="primary"
+          @click="readingSettingsVisible = false"
+        >
+          完成
+        </el-button>
       </template>
     </el-dialog>
   </div>
