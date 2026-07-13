@@ -15,34 +15,22 @@ export function handleAuthRoute({
   req,
   res,
   sendJson,
-  getAuthenticatedSession,
-  getBookshelfPassword,
-  passwordsMatch,
-  storeAccessKey,
-  clearAccessKey,
-  normalizeStoredCredential,
-  isSecureAuthRequest,
-  checkLoginAllowed,
-  recordLoginFailure,
-  clearLoginFailures,
-  createSession,
-  setAuthCookie,
-  clearAuthCookie
+  auth
 }) {
   if (!isAuthRoute(path)) return false
 
   if (path === '/api/auth/status') {
-    const auth = getAuthenticatedSession(req)
-    sendJson(res, { success: true, ...auth })
+    const status = auth.getAuthenticatedSession(req)
+    sendJson(res, { success: true, ...status })
     return true
   }
 
   if (path === '/api/auth/login') {
-    if (!isSecureAuthRequest(req)) {
+    if (!auth.isSecureAuthRequest(req)) {
       sendJson(res, { success: false, message: '远程登录必须使用 HTTPS' }, 426)
       return true
     }
-    const loginLimit = checkLoginAllowed(req)
+    const loginLimit = auth.checkLoginAllowed(req)
     if (!loginLimit.allowed) {
       sendJson(
         res,
@@ -51,39 +39,39 @@ export function handleAuthRoute({
       )
       return true
     }
-    const password = getBookshelfPassword()
+    const password = auth.getBookshelfPassword()
     if (!password) {
       sendJson(res, { success: true, authenticated: true, passwordConfigured: false })
       return true
     }
-    if (!passwordsMatch(body?.password, password)) {
-      recordLoginFailure(req)
+    if (!auth.passwordsMatch(body?.password, password)) {
+      auth.recordLoginFailure(req)
       sendJson(res, { success: false, message: '密码错误' }, 401)
       return true
     }
-    clearLoginFailures(req)
-    const credential = normalizeStoredCredential(body?.password, password)
-    const token = createSession(credential)
-    setAuthCookie(req, res, token)
+    auth.clearLoginFailures(req)
+    const credential = auth.normalizeStoredCredential(body?.password, password)
+    const token = auth.createSession(credential)
+    auth.setAuthCookie(req, res, token)
     sendJson(res, { success: true, authenticated: true, passwordConfigured: true })
     return true
   }
 
   if (path === '/api/auth/access-key') {
-    const storedCredential = getBookshelfPassword()
-    const auth = getAuthenticatedSession(req)
-    if (storedCredential && !auth.authenticated) {
+    const storedCredential = auth.getBookshelfPassword()
+    const status = auth.getAuthenticatedSession(req)
+    if (storedCredential && !status.authenticated) {
       sendJson(res, { success: false, message: '需要先登录' }, 401)
       return true
     }
-    if (storedCredential && !passwordsMatch(body?.currentKey, storedCredential)) {
+    if (storedCredential && !auth.passwordsMatch(body?.currentKey, storedCredential)) {
       sendJson(res, { success: false, message: '原密钥错误' }, 401)
       return true
     }
     const newKey = String(body?.newKey || '')
     if (!newKey) {
-      clearAccessKey()
-      clearAuthCookie(req, res)
+      auth.clearAccessKey()
+      auth.clearAuthCookie(req, res)
       sendJson(res, { success: true, authenticated: true, passwordConfigured: false })
       return true
     }
@@ -91,14 +79,14 @@ export function handleAuthRoute({
       sendJson(res, { success: false, message: '密钥长度须为 8-128 位，且不可包含空格' }, 400)
       return true
     }
-    const credential = storeAccessKey(newKey)
-    const token = createSession(credential)
-    setAuthCookie(req, res, token)
+    const credential = auth.storeAccessKey(newKey)
+    const token = auth.createSession(credential)
+    auth.setAuthCookie(req, res, token)
     sendJson(res, { success: true, authenticated: true, passwordConfigured: true })
     return true
   }
 
-  clearAuthCookie(req, res)
+  auth.clearAuthCookie(req, res)
   sendJson(res, { success: true })
   return true
 }

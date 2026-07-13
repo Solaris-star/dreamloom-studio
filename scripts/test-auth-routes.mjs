@@ -7,10 +7,7 @@ const cleared = []
 let configuredPassword = ''
 let authenticated = false
 
-const common = {
-  req: { headers: {} },
-  res: {},
-  sendJson: (_res, payload, status) => responses.push([payload, status]),
+const auth = {
   getAuthenticatedSession: () => ({
     authenticated: !configuredPassword || authenticated,
     passwordConfigured: Boolean(configuredPassword)
@@ -33,6 +30,12 @@ const common = {
   setAuthCookie: (_req, _res, token) => cookies.push(token),
   clearAuthCookie: (req, res) => cleared.push([req, res])
 }
+const common = {
+  req: { headers: {} },
+  res: {},
+  sendJson: (_res, payload, status) => responses.push([payload, status]),
+  auth
+}
 
 for (const path of ['/api/auth/status', '/api/auth/login', '/api/auth/logout', '/api/auth/access-key']) {
   assert.equal(isAuthRoute(path), true)
@@ -50,7 +53,7 @@ assert.deepEqual(responses.at(-1)[0], {
 handleAuthRoute({
   ...common,
   path: '/api/auth/login',
-  isSecureAuthRequest: () => false,
+  auth: { ...auth, isSecureAuthRequest: () => false },
   body: { password: 'test1234' }
 })
 assert.deepEqual(responses.at(-1), [
@@ -62,7 +65,7 @@ handleAuthRoute({
   ...common,
   req: { headers: { 'x-forwarded-proto': 'https' }, socket: { remoteAddress: '203.0.113.8' } },
   path: '/api/auth/login',
-  isSecureAuthRequest: () => false,
+  auth: { ...auth, isSecureAuthRequest: () => false },
   body: { password: 'test1234' }
 })
 assert.equal(responses.at(-1)[1], 426)
