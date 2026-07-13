@@ -103,6 +103,16 @@ assert.equal(second.updated, 0)
 const topics = marketService.listHotTopics(booksDir, { limit: 10 })
 assert.equal(topics.length, 2)
 assert.equal(topics[0].keyword.length > 0, true)
+assert.equal(
+  marketService.listHotTopics(booksDir, {
+    source: 'all',
+    keyword: '短剧',
+    sortBy: 'capturedAt',
+    topN: 1
+  })[0].keyword,
+  'AI 短剧爆火'
+)
+assert.equal(marketService.listHotTopics(booksDir, { source: 'missing' }).length, 0)
 
 const hotspots = marketService.listHotspots(booksDir, { sortBy: 'heat' })
 assert.equal(hotspots.length, 2)
@@ -110,6 +120,9 @@ assert.equal(hotspots[0].tags.includes('自动采集'), true)
 
 const trend = marketService.getTrendRecord(booksDir, 'AI 短剧爆火')
 assert.equal(Boolean(trend?.trendSeries?.length), true)
+assert.equal(marketService.getTrendRecord(booksDir, ' '), null)
+assert.equal(marketService.listTrendRecords(booksDir, { limit: 1 }).length, 1)
+assert.equal(marketService.listSourceStatus(booksDir).length > 0, true)
 
 const failed = await marketService.refreshMarketTrends(booksDir, {
   sources: ['aggregated'],
@@ -301,6 +314,17 @@ assert.equal(
 
 const maleOverview = marketService.getMarketOverview(booksDir, { channel: 'male', limit: 10 })
 assert.equal(maleOverview.writableDirections.length > 0, true)
+const dashboard = marketService.getMarketDashboard(booksDir, {
+  channel: 'female',
+  source: 'all',
+  limit: 6,
+  opportunityLimit: 2
+})
+assert.equal(dashboard.success, true)
+assert.equal(dashboard.channel, 'female')
+assert.equal(Array.isArray(dashboard.insights), true)
+assert.equal(Array.isArray(dashboard.sourceStatus), true)
+assert.equal(typeof dashboard.keywordCloud, 'object')
 
 const emptyBooksDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-market-empty-'))
 const emptyOverview = marketService.getMarketOverview(emptyBooksDir, { channel: 'all' })
@@ -340,6 +364,41 @@ assert.equal(llmOpportunities.model, 'fake-market-model')
 assert.deepEqual(llmOpportunities.usage, { total_tokens: 88 })
 assert.equal(llmOpportunities.items[0].suggestion.includes('翻盘'), true)
 
+const fencedProvider = {
+  providerId: 'fenced-provider',
+  model: 'fenced-model',
+  async chat() {
+    return {
+      content: `\`\`\`json
+{"items":[{"keyword":"AI 短剧爆火","summary":"热度持续。","suggestion":"改写为虚构行业故事。"}]}
+\`\`\``
+    }
+  }
+}
+const fencedOpportunities = await marketService.generateMarketOpportunities(booksDir, {
+  provider: fencedProvider
+})
+assert.equal(fencedOpportunities.success, true)
+assert.equal(fencedOpportunities.items[0].keyword, 'AI 短剧爆火')
+
+const embeddedArrayProvider = {
+  providerId: 'embedded-provider',
+  async chat() {
+    return {
+      content:
+        '模型说明：以下为结果。\\n[{"keyword":"AI 短剧爆火","summary":"仍有讨论。","suggestion":"设计原创人物冲突。"}]\\n结束。'
+    }
+  }
+}
+assert.equal(
+  (
+    await marketService.generateMarketOpportunities(booksDir, {
+      provider: embeddedArrayProvider
+    })
+  ).success,
+  true
+)
+
 const badTextProvider = {
   id: 'bad-market-provider',
   providerId: 'bad-market-provider',
@@ -373,6 +432,19 @@ assert.equal(badLlmOpportunities.fromLLM, false)
 assert.match(badLlmOpportunities.message, /缺少可用机会建议/)
 assert.equal(badLlmOpportunities.providerId, 'bad-market-provider')
 assert.equal(badLlmOpportunities.items.length > 0, true)
+
+const throwingProvider = {
+  providerId: 'throwing-provider',
+  async chat() {
+    throw new Error('测试模型不可用')
+  }
+}
+const throwingOpportunities = await marketService.generateMarketOpportunities(booksDir, {
+  provider: throwingProvider
+})
+assert.equal(throwingOpportunities.success, false)
+assert.match(throwingOpportunities.message, /测试模型不可用/)
+assert.equal(throwingOpportunities.items.length > 0, true)
 
 const missingProviderOpportunities = await marketService.generateMarketOpportunities(booksDir, {
   limit: 5
