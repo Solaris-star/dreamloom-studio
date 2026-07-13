@@ -1,5 +1,8 @@
 <template>
-  <aside class="reference-panel" :class="{ pinned }">
+  <aside
+    class="reference-panel"
+    :class="{ pinned }"
+  >
     <header class="reference-header">
       <div>
         <p>作品资料板</p>
@@ -14,13 +17,20 @@
         >
           <Pin :size="15" />
         </button>
-        <button type="button" title="关闭资料板" @click="emit('close')">
+        <button
+          type="button"
+          title="关闭资料板"
+          @click="emit('close')"
+        >
           <X :size="16" />
         </button>
       </div>
     </header>
 
-    <nav class="reference-tabs" aria-label="资料板分类">
+    <nav
+      class="reference-tabs"
+      aria-label="资料板分类"
+    >
       <button
         v-for="tab in tabs"
         :key="tab.key"
@@ -28,14 +38,20 @@
         :class="{ active: activeTab === tab.key }"
         @click="activeTab = tab.key"
       >
-        <component :is="tab.icon" :size="15" />
+        <component
+          :is="tab.icon"
+          :size="15"
+        />
         <span>{{ tab.label }}</span>
       </button>
     </nav>
 
     <section class="reference-body">
       <template v-if="activeTab === 'chapter'">
-        <LockedNotice v-if="isLocked" @ask="askAgent" />
+        <LockedNotice
+          v-if="isLocked"
+          @ask="askAgent"
+        />
         <ReferenceCard
           :title="isLocked ? '本章临时提取信息' : '本章上下文'"
           type="chapter"
@@ -48,7 +64,10 @@
       </template>
 
       <template v-else-if="activeTab === 'characters'">
-        <LockedNotice v-if="isLocked" @ask="askAgent" />
+        <LockedNotice
+          v-if="isLocked"
+          @ask="askAgent"
+        />
         <ReferenceCard
           v-for="item in visibleCharacterCards"
           :key="item.id"
@@ -60,7 +79,10 @@
           @ask="askAgent"
           @open="openAsset"
         />
-        <article v-if="!visibleCharacterCards.length" class="empty-card">
+        <article
+          v-if="!visibleCharacterCards.length"
+          class="empty-card"
+        >
           <strong>暂无角色资料</strong>
           <p>
             {{
@@ -81,7 +103,10 @@
       </template>
 
       <template v-else-if="activeTab === 'world'">
-        <LockedNotice v-if="isLocked" @ask="askAgent" />
+        <LockedNotice
+          v-if="isLocked"
+          @ask="askAgent"
+        />
         <ReferenceCard
           :title="isLocked ? '本章临时设定线索' : '世界设定'"
           type="worldbuilding"
@@ -91,14 +116,23 @@
           @ask="askAgent"
           @open="openAsset"
         />
-        <article v-if="forbiddenNotes.length" class="warning-card">
+        <article
+          v-if="forbiddenNotes.length"
+          class="warning-card"
+        >
           <strong>不要写错</strong>
-          <span v-for="item in forbiddenNotes" :key="item">{{ item }}</span>
+          <span
+            v-for="item in forbiddenNotes"
+            :key="item"
+          >{{ item }}</span>
         </article>
       </template>
 
       <template v-else-if="activeTab === 'timeline'">
-        <LockedNotice v-if="isLocked" @ask="askAgent" />
+        <LockedNotice
+          v-if="isLocked"
+          @ask="askAgent"
+        />
         <ReferenceCard
           :title="isLocked ? '本章临时时间线' : '时间线'"
           type="timeline"
@@ -111,7 +145,10 @@
       </template>
 
       <template v-else-if="activeTab === 'images'">
-        <LockedNotice v-if="isLocked" @ask="askAgent" />
+        <LockedNotice
+          v-if="isLocked"
+          @ask="askAgent"
+        />
         <ReferenceCard
           v-for="item in isLocked ? [] : imageCards"
           :key="item.id"
@@ -123,7 +160,10 @@
           @ask="askAgent"
           @open="openAsset"
         />
-        <article v-if="isLocked || !imageCards.length" class="empty-card">
+        <article
+          v-if="isLocked || !imageCards.length"
+          class="empty-card"
+        >
           <strong>还没有立绘</strong>
           <p>
             {{
@@ -144,7 +184,10 @@
       </template>
 
       <template v-else>
-        <LockedNotice v-if="isLocked" @ask="askAgent" />
+        <LockedNotice
+          v-if="isLocked"
+          @ask="askAgent"
+        />
         <ReferenceCard
           :title="isLocked ? '本章临时线索' : '伏笔线索'"
           type="foreshadowing"
@@ -154,11 +197,20 @@
           @ask="askAgent"
           @open="openAsset"
         />
-        <article v-if="infoGapItems.length" class="warning-card">
+        <article
+          v-if="infoGapItems.length"
+          class="warning-card"
+        >
           <strong>信息差</strong>
-          <span v-for="item in infoGapItems" :key="item">{{ item }}</span>
+          <span
+            v-for="item in infoGapItems"
+            :key="item"
+          >{{ item }}</span>
         </article>
-        <article v-else class="empty-card">
+        <article
+          v-else
+          class="empty-card"
+        >
           <strong>暂无信息差资料</strong>
           <p>
             当前章还没有可用的信息差记录。可以先让 AI 从正文里提取读者、角色和作者分别知道的内容。
