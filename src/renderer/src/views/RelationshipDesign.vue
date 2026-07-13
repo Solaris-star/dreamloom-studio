@@ -1,7 +1,11 @@
 <template>
   <LayoutTool :title="relationshipName || t('relationshipDesign.titleFallback')">
     <template #headrAction>
-      <el-button type="primary" :loading="saving" @click="handleSave">
+      <el-button
+        type="primary"
+        :loading="saving"
+        @click="handleSave"
+      >
         <el-icon><Check /></el-icon>
         <span>{{ t('common.save') }}</span>
       </el-button>
@@ -9,7 +13,10 @@
     <template #default>
       <div class="relationship-design">
         <!-- 移除顶部工具栏 -->
-        <div ref="canvasRef" class="design-canvas">
+        <div
+          ref="canvasRef"
+          class="design-canvas"
+        >
           <RelationGraph
             ref="graphRef"
             :options="graphOptions"
@@ -34,7 +41,10 @@
               />
             </template>
             <template #node="{ node }">
-              <div class="custom-node" :style="getNodeStyle(node)">
+              <div
+                class="custom-node"
+                :style="getNodeStyle(node)"
+              >
                 <div class="node-text">
                   {{ node.text }}
                 </div>
@@ -52,7 +62,10 @@
     "
     width="500px"
   >
-    <el-form label-width="80px" @submit.prevent="saveNodeInfo">
+    <el-form
+      label-width="80px"
+      @submit.prevent="saveNodeInfo"
+    >
       <el-form-item :label="t('relationshipDesign.nodeText')">
         <el-select
           v-model="infoForm.characterId"
@@ -75,8 +88,12 @@
       </el-form-item>
       <el-form-item :label="t('relationshipDesign.gender')">
         <el-radio-group v-model="infoForm.gender">
-          <el-radio value="male">{{ t('characterProfile.genderMale') }}</el-radio>
-          <el-radio value="female">{{ t('characterProfile.genderFemale') }}</el-radio>
+          <el-radio value="male">
+            {{ t('characterProfile.genderMale') }}
+          </el-radio>
+          <el-radio value="female">
+            {{ t('characterProfile.genderFemale') }}
+          </el-radio>
         </el-radio-group>
       </el-form-item>
       <el-form-item :label="t('relationshipDesign.backgroundColor')">
@@ -89,9 +106,13 @@
               :class="{ 'color-square-selected': infoForm.color === c.value }"
               :style="{ background: c.value }"
               @click="selectPresetColor(c.value)"
-            ></div>
+            />
           </div>
-          <el-color-picker v-model="customColor" style="margin-left: 8px" @change="onCustomColor" />
+          <el-color-picker
+            v-model="customColor"
+            style="margin-left: 8px"
+            @change="onCustomColor"
+          />
         </div>
       </el-form-item>
       <el-form-item :label="t('relationshipDesign.avatar')">
@@ -100,10 +121,15 @@
             v-model="infoForm.avatar"
             :placeholder="t('relationshipDesign.avatarPlaceholder')"
           />
-          <el-button @click="selectLocalImage">{{
-            t('characterProfile.selectLocalImage')
-          }}</el-button>
-          <div v-if="infoForm.avatar" class="avatar-preview">
+          <el-button @click="selectLocalImage">
+            {{
+              t('characterProfile.selectLocalImage')
+            }}
+          </el-button>
+          <div
+            v-if="infoForm.avatar"
+            class="avatar-preview"
+          >
             <el-image
               :src="getAvatarSrc(infoForm.avatar)"
               alt="头像预览"
@@ -123,8 +149,15 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="closeDialog">{{ t('common.cancel') }}</el-button>
-      <el-button type="primary" @click="saveNodeInfo">{{ t('common.save') }}</el-button>
+      <el-button @click="closeDialog">
+        {{ t('common.cancel') }}
+      </el-button>
+      <el-button
+        type="primary"
+        @click="saveNodeInfo"
+      >
+        {{ t('common.save') }}
+      </el-button>
     </template>
   </el-dialog>
 
@@ -134,7 +167,10 @@
     :title="t('relationshipDesign.editEdgeTitle')"
     width="400px"
   >
-    <el-form label-width="80px" @submit.prevent="saveEdgeInfo">
+    <el-form
+      label-width="80px"
+      @submit.prevent="saveEdgeInfo"
+    >
       <el-form-item :label="t('relationshipDesign.edgeDescription')">
         <el-input
           v-model="edgeForm.text"
@@ -144,8 +180,15 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="closeEdgeDialog">{{ t('common.cancel') }}</el-button>
-      <el-button type="primary" @click="saveEdgeInfo">{{ t('common.save') }}</el-button>
+      <el-button @click="closeEdgeDialog">
+        {{ t('common.cancel') }}
+      </el-button>
+      <el-button
+        type="primary"
+        @click="saveEdgeInfo"
+      >
+        {{ t('common.save') }}
+      </el-button>
     </template>
   </el-dialog>
 </template>
