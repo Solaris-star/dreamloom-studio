@@ -25,6 +25,49 @@ function createBook(booksDir, name, id = name) {
   fs.writeFileSync(join(chapterDir, '第2章.txt'), '灯火沿街亮起。', 'utf8')
 }
 
+function createStoredZip(files) {
+  const localParts = []
+  const centralParts = []
+  let offset = 0
+
+  for (const [name, value] of Object.entries(files)) {
+    const nameBuffer = Buffer.from(name, 'utf8')
+    const data = Buffer.from(value)
+    const local = Buffer.alloc(30)
+    local.writeUInt32LE(0x04034b50, 0)
+    local.writeUInt16LE(20, 4)
+    local.writeUInt16LE(0x0800, 6)
+    local.writeUInt16LE(0, 8)
+    local.writeUInt32LE(data.length, 18)
+    local.writeUInt32LE(data.length, 22)
+    local.writeUInt16LE(nameBuffer.length, 26)
+    localParts.push(local, nameBuffer, data)
+
+    const central = Buffer.alloc(46)
+    central.writeUInt32LE(0x02014b50, 0)
+    central.writeUInt16LE(20, 4)
+    central.writeUInt16LE(20, 6)
+    central.writeUInt16LE(0x0800, 8)
+    central.writeUInt16LE(0, 10)
+    central.writeUInt32LE(data.length, 20)
+    central.writeUInt32LE(data.length, 24)
+    central.writeUInt16LE(nameBuffer.length, 28)
+    central.writeUInt32LE(offset, 42)
+    centralParts.push(central, nameBuffer)
+    offset += local.length + nameBuffer.length + data.length
+  }
+
+  const localData = Buffer.concat(localParts)
+  const centralData = Buffer.concat(centralParts)
+  const end = Buffer.alloc(22)
+  end.writeUInt32LE(0x06054b50, 0)
+  end.writeUInt16LE(Object.keys(files).length, 8)
+  end.writeUInt16LE(Object.keys(files).length, 10)
+  end.writeUInt32LE(centralData.length, 12)
+  end.writeUInt32LE(localData.length, 16)
+  return Buffer.concat([localData, centralData, end])
+}
+
 const root = fs.mkdtempSync(join(os.tmpdir(), 'dreamloom-import-export-'))
 const booksDir = join(root, 'books')
 
@@ -49,6 +92,28 @@ try {
   assert.equal(markdownPreview.preview.bookName, '远山')
   assert.equal(markdownPreview.preview.chapterCount, 1)
 
+  const plainPreview = previewImport(booksDir, {
+    fileName: '无标题正文.txt',
+    textContent: '雨停以后，街边的灯一盏接一盏亮起。'
+  })
+  assert.equal(plainPreview.preview.bookName, '雨停以后，街边的灯一盏接一盏亮起。')
+  assert.equal(plainPreview.preview.chapterCount, 1)
+  assert.equal(plainPreview.preview.chapters[0].title, '第1章')
+
+  const namedPreview = previewImport(booksDir, {
+    fileName: '草稿.txt',
+    textContent: '书名：远行者\n第1章 启程\n列车驶出站台。'
+  })
+  assert.equal(namedPreview.preview.bookName, '远行者')
+  assert.equal(namedPreview.preview.chapters[0].preview, '列车驶出站台。')
+
+  const bracketedPreview = previewImport(booksDir, {
+    fileName: '未命名.txt',
+    textContent: '《北风来信》\n第1章 来信\n信纸被风吹动。'
+  })
+  assert.equal(bracketedPreview.preview.bookName, '北风来信')
+  assert.equal(bracketedPreview.preview.chapters[0].preview, '信纸被风吹动。')
+
   const utf16 = Buffer.concat([
     Buffer.from([0xff, 0xfe]),
     Buffer.from('第1章 雨夜\n雨落在屋檐上。', 'utf16le')
@@ -59,6 +124,39 @@ try {
       base64: utf16.toString('base64')
     }).preview.chapterCount,
     1
+  )
+
+  const utf8Bom = Buffer.concat([
+    Buffer.from([0xef, 0xbb, 0xbf]),
+    Buffer.from('第1章 清晨\n晨光落在桌面。')
+  ])
+  assert.equal(
+    previewImport(booksDir, {
+      fileName: '清晨.txt',
+      dataUrl: `data:text/plain;base64,${utf8Bom.toString('base64')}`
+    }).preview.chapterCount,
+    1
+  )
+
+  const docx = createStoredZip({
+    'word/document.xml':
+      '<w:document><w:body><w:p><w:r><w:t>第1章 相逢</w:t></w:r></w:p><w:p><w:r><w:t>甲&lt;乙&gt;&amp;&quot;丙&quot;&apos;丁&apos;</w:t></w:r><w:tab/><w:br/></w:p></w:body></w:document>'
+  })
+  const docxPreview = previewImport(booksDir, {
+    fileName: '相逢.docx',
+    base64: docx.toString('base64')
+  })
+  assert.equal(docxPreview.preview.format, 'docx')
+  assert.equal(docxPreview.preview.chapterCount, 1)
+  assert.match(docxPreview.preview.chapters[0].preview, /甲<乙>&"丙"'丁'/)
+
+  assert.throws(
+    () =>
+      previewImport(booksDir, {
+        fileName: '缺正文.docx',
+        base64: createStoredZip({ '[Content_Types].xml': '<Types />' }).toString('base64')
+      }),
+    /word\/document\.xml/
   )
 
   const secretFile = join(root, 'server-secret.txt')
@@ -107,6 +205,47 @@ try {
       }),
     /不能超过 50 MB/
   )
+  assert.throws(
+    () => previewImport(booksDir, { fileName: '空文本.txt', textContent: '' }),
+    /内容为空/
+  )
+  assert.throws(
+    () =>
+      previewImport(booksDir, {
+        fileName: '未知.bin',
+        format: 'epub',
+        base64: Buffer.from('content').toString('base64')
+      }),
+    /仅支持 TXT、Markdown 和 DOCX/
+  )
+  assert.throws(
+    () => previewImport(booksDir, { chapters: [] }),
+    /导入章节不能为空/
+  )
+  assert.throws(
+    () => previewImport(booksDir, { chapters: [null] }),
+    /第 1 章格式无效/
+  )
+  assert.throws(
+    () => previewImport(booksDir, { chapters: [{ title: '第一章', content: 1 }] }),
+    /第 1 章正文格式无效/
+  )
+  const preparedPreview = previewImport(booksDir, {
+    fileName: '整理稿.markdown',
+    format: 'markdown',
+    bookName: '整理/稿',
+    chapters: [
+      { title: '', content: '中文 English 123' },
+      { title: '第二章:重逢', content: '' }
+    ]
+  })
+  assert.equal(preparedPreview.preview.format, 'md')
+  assert.equal(preparedPreview.preview.bookName, '整理_稿')
+  assert.deepEqual(
+    preparedPreview.preview.chapters.map((chapter) => chapter.title),
+    ['第1章', '第二章_重逢']
+  )
+  assert.equal(preparedPreview.preview.wordCount, 4)
 
   const txtExport = exportBook(booksDir, { bookName: '长夜灯火', format: 'txt' })
   assert.match(txtExport.content, /第1章/)
@@ -123,6 +262,13 @@ try {
   })
   assert.equal(projectExport.mimeType, 'application/zip')
   assert.equal(Buffer.from(projectExport.downloadBase64, 'base64').length > 0, true)
+  const duplicateExport = exportBook(booksDir, { bookName: '长夜灯火', format: 'txt' })
+  assert.notEqual(duplicateExport.filePath, txtExport.filePath)
+  assert.match(duplicateExport.fileName, /_1\.txt$/)
+  assert.throws(
+    () => exportBook(booksDir, { bookName: '不存在的书', format: 'txt' }),
+    /未找到书籍/
+  )
 
   const bookBackup = createBackup(booksDir, {
     scope: 'book',
@@ -159,6 +305,73 @@ try {
   })
   assert.equal(restoredArchive.mode, 'archive')
   assert.equal(fs.existsSync(join(archiveDir, '长夜灯火', 'mazi.json')), true)
+
+  const rootBookZip = createStoredZip({
+    'mazi.json': JSON.stringify({ id: 'root-book', name: '根目录作品' }),
+    '正文/第一卷/第1章.txt': '根目录正文'
+  })
+  const rootBookRestore = restoreBackup(booksDir, {
+    fileName: 'root-book.zip',
+    base64: rootBookZip.toString('base64'),
+    restoreMode: 'current'
+  })
+  assert.equal(rootBookRestore.restoredBooks[0].bookName, '根目录作品')
+
+  const invalidMetaZip = createStoredZip({
+    '损坏作品/mazi.json': '{broken',
+    '损坏作品/正文/第一卷/第1章.txt': '仍可恢复的正文'
+  })
+  const invalidMetaInspection = inspectBackup(booksDir, {
+    fileName: 'invalid-meta.zip',
+    base64: invalidMetaZip.toString('base64')
+  })
+  assert.equal(invalidMetaInspection.summary.books[0].name, '损坏作品')
+
+  const arrayMetaZip = createStoredZip({
+    '数组元数据/mazi.json': '[]',
+    '数组元数据/正文/第一卷/第1章.txt': '数组元数据正文'
+  })
+  const defaultRestore = restoreBackup(booksDir, {
+    fileName: 'array-meta.zip',
+    base64: arrayMetaZip.toString('base64')
+  })
+  assert.equal(defaultRestore.mode, 'library')
+  assert.equal(defaultRestore.restoredBooks[0].bookName, '数组元数据')
+
+  const bookshelfRestore = restoreBackup(booksDir, {
+    fileName: 'root-book-copy.zip',
+    base64: rootBookZip.toString('base64'),
+    mode: 'bookshelf'
+  })
+  assert.equal(bookshelfRestore.mode, 'library')
+  assert.equal(bookshelfRestore.restoredBooks[0].bookName, '根目录作品_1')
+
+  assert.throws(
+    () =>
+      inspectBackup(booksDir, {
+        fileName: 'empty.zip',
+        base64: createStoredZip({}).toString('base64')
+      }),
+    /备份包为空/
+  )
+  assert.throws(
+    () =>
+      inspectBackup(booksDir, {
+        fileName: 'no-meta.zip',
+        base64: createStoredZip({ 'readme.txt': '没有元数据' }).toString('base64')
+      }),
+    /未找到 mazi\.json/
+  )
+  assert.throws(
+    () =>
+      inspectBackup(booksDir, {
+        fileName: 'unsafe.zip',
+        base64: createStoredZip({
+          '../mazi.json': JSON.stringify({ name: '越界作品' })
+        }).toString('base64')
+      }),
+    /不安全路径/
+  )
 
   assert.throws(
     () =>
@@ -210,6 +423,10 @@ try {
   fs.writeFileSync(brokenTasksFile, '{broken', 'utf8')
   assert.throws(() => listTasks(brokenTasksDir), /任务记录读取失败/)
   assert.equal(fs.readFileSync(brokenTasksFile, 'utf8'), '{broken')
+  fs.writeFileSync(brokenTasksFile, JSON.stringify({ items: [] }), 'utf8')
+  assert.throws(() => listTasks(brokenTasksDir), /任务记录格式异常/)
+  fs.writeFileSync(brokenTasksFile, JSON.stringify([null, { id: 'task-1' }]), 'utf8')
+  assert.deepEqual(listTasks(brokenTasksDir).items, [{ id: 'task-1' }])
 
   const imported = importBook(booksDir, {
     fileName: '新书.txt',
@@ -218,6 +435,16 @@ try {
   })
   assert.equal(imported.success, true)
   assert.equal(fs.existsSync(join(booksDir, '新书', 'mazi.json')), true)
+  const duplicateImport = importBook(booksDir, {
+    fileName: '新书.txt',
+    bookName: '新书',
+    textContent: '第1章 再开始\n这是另一份正文。'
+  })
+  assert.equal(duplicateImport.bookName, '新书_1')
+
+  const emptyLibrary = join(root, 'empty-library')
+  fs.mkdirSync(emptyLibrary)
+  assert.throws(() => createBackup(emptyLibrary), /没有可备份的文件/)
 } finally {
   fs.rmSync(root, { recursive: true, force: true })
 }
