@@ -86,6 +86,103 @@ await statisticsService.recordAiUsage({ feature: 'chat', totalTokens: 12 })
 assert.equal(storedAiLogs[0].success, false)
 await statisticsService.recordAiUsage({ feature: 'chat', totalTokens: 8, success: true })
 assert.equal(storedAiLogs[1].success, true)
+await statisticsService.recordAiUsage({
+  feature: 'rewrite',
+  usage: {
+    prompt_tokens: 100,
+    output_tokens: 40,
+    image_requests: 2
+  },
+  inputPricePerMillionTokens: 10,
+  outputPricePerMillionTokens: 20,
+  imagePricePerRequest: 0.5,
+  error: new Error('模型失败')
+})
+assert.equal(storedAiLogs[2].promptTokens, 100)
+assert.equal(storedAiLogs[2].completionTokens, 40)
+assert.equal(storedAiLogs[2].totalTokens, 140)
+assert.equal(storedAiLogs[2].imageRequests, 2)
+assert.equal(storedAiLogs[2].estimatedCost, 1.0018)
+assert.equal(storedAiLogs[2].error, 'Error: 模型失败')
+
+responses.set('/api/analytics/daily-words', {
+  success: true,
+  items: [
+    { date: '2026-07-11', delta: -8 },
+    { date: '2026-07-12', count: 30 }
+  ]
+})
+assert.deepEqual(await statisticsService.getTrendData(2, 'all'), [
+  { date: '2026-07-11', delta: -8, words: -8 },
+  { date: '2026-07-12', delta: 30, words: 30 }
+])
+
+responses.set('/api/analytics/writing-habit', {
+  success: true,
+  data: {
+    heatmap: [
+      { date: '2026-07-11', words: 18 },
+      { date: '2026-07-12', count: 25 }
+    ]
+  }
+})
+assert.deepEqual(await statisticsService.getHeatmapData(2), [
+  { date: '2026-07-11', count: 18 },
+  { date: '2026-07-12', count: 25 }
+])
+
+const today = new Date()
+const todayKey = [
+  today.getFullYear(),
+  String(today.getMonth() + 1).padStart(2, '0'),
+  String(today.getDate()).padStart(2, '0')
+].join('-')
+responses.set('/api/analytics/daily-words', {
+  success: true,
+  items: [{ date: todayKey, addWords: 55, deleteWords: 5, totalWords: 500 }]
+})
+const bookDailyStats = await statisticsService.getBookDailyStats('作品名')
+assert.equal(bookDailyStats.todayAddWords, 55)
+assert.equal(bookDailyStats.data[todayKey].netWords, 0)
+
+responses.set('/api/goals/create', {
+  success: true,
+  item: { id: 'goal-save-new', title: '新目标' }
+})
+assert.equal((await statisticsService.saveGoal({ title: '新目标' })).id, 'goal-save-new')
+responses.set('/api/goals/update', {
+  success: true,
+  item: { id: 'goal-save-existing', targetValue: 3000 }
+})
+assert.equal(
+  (await statisticsService.saveGoal({ id: 'goal-save-existing', targetValue: 3000 })).targetValue,
+  3000
+)
+
+responses.set('/api/analytics/token-stats', {
+  success: true,
+  data: { byFeature: [{ feature: 'chat' }] }
+})
+assert.deepEqual(await statisticsService.getTokenStats(), {
+  byFeature: [{ feature: 'chat' }],
+  byModel: [],
+  daily: []
+})
+responses.set('/api/analytics/session-stats', {
+  success: true,
+  data: { sessions: [{ id: 'session-1' }] }
+})
+assert.equal((await statisticsService.getSessionStats()).sessions[0].id, 'session-1')
+responses.set('/api/analytics/weekly-report', {
+  success: true,
+  data: { period: { start: '2026-07-06', end: '2026-07-12' }, daily: [] }
+})
+assert.equal((await statisticsService.getWeeklyReport()).period.start, '2026-07-06')
+responses.set('/api/analytics/monthly-report', {
+  success: true,
+  data: { period: { start: '2026-07-01', end: '2026-07-31' }, daily: [] }
+})
+assert.equal((await statisticsService.getMonthlyReport()).period.end, '2026-07-31')
 
 responses.set('/api/analytics/overview', {
   success: true,
@@ -213,13 +310,24 @@ responses.set('/api/analytics/weekly-report', {
 await assert.rejects(() => statisticsService.getWeeklyReport(), /周报周期接口返回格式异常/)
 
 assert.deepEqual(statisticsService.calculateStreak([]), { current: 0, max: 0 })
-assert.deepEqual(
+assert.equal(
   statisticsService.calculateStreak([
     { date: '2026-07-09' },
     { date: '2026-07-10' },
     { date: '2026-07-12' }
-  ]),
-  { current: 1, max: 2 }
+  ]).max,
+  2
 )
+const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
+const yesterdayKey = [
+  yesterday.getFullYear(),
+  String(yesterday.getMonth() + 1).padStart(2, '0'),
+  String(yesterday.getDate()).padStart(2, '0')
+].join('-')
+assert.deepEqual(statisticsService.calculateStreak([{ date: todayKey }]), { current: 1, max: 1 })
+assert.deepEqual(statisticsService.calculateStreak([{ date: yesterdayKey }]), {
+  current: 1,
+  max: 1
+})
 
 console.log('Web 统计服务测试通过')
