@@ -61,8 +61,6 @@ for (const forbidden of [
 
 for (const expected of [
   "const starterLoadError = ref('')",
-  '<section v-if="loadingJob" class="state-panel">',
-  '<section v-else-if="starterLoadError" class="state-panel state-error">',
   '@click="retryLoadJob"',
   'const loadedJob = await loadJob()',
   'starterLoadError.value = error?.message',
@@ -97,6 +95,14 @@ for (const expected of [
 ]) {
   assertIncludes(resultView, expected, `CreationStarterResult missing ${expected}`)
 }
+assert(
+  /<section\s+v-if="loadingJob"\s+class="state-panel"\s*>/.test(resultView),
+  'CreationStarterResult missing loading state panel'
+)
+assert(
+  /<section\s+v-else-if="starterLoadError"\s+class="state-panel state-error"\s*>/.test(resultView),
+  'CreationStarterResult missing load error state panel'
+)
 for (const forbidden of [
   "if (result?.success === false) throw new Error(result.message || '生成失败')",
   "if (settingsResult?.success === false) throw new Error(settingsResult.message || '保存设定失败')",

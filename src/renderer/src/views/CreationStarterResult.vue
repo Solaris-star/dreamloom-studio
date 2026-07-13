@@ -2,27 +2,54 @@
   <div class="starter-result-page">
     <section class="hero-panel">
       <div>
-        <p class="eyebrow">创作起笔</p>
+        <p class="eyebrow">
+          创作起笔
+        </p>
         <h1>根据你的想法，生成设定树和开篇黄金三章。</h1>
       </div>
-      <el-tag :type="statusType" round>{{ statusText }}</el-tag>
+      <el-tag
+        :type="statusType"
+        round
+      >
+        {{ statusText }}
+      </el-tag>
     </section>
 
-    <section v-if="loadingJob" class="state-panel">
+    <section
+      v-if="loadingJob"
+      class="state-panel"
+    >
       <h2>正在读取起笔任务</h2>
       <p>正在从本地任务存储读取真实任务记录。</p>
     </section>
 
-    <section v-else-if="starterLoadError" class="state-panel state-error">
+    <section
+      v-else-if="starterLoadError"
+      class="state-panel state-error"
+    >
       <h2>读取起笔任务失败</h2>
       <p>{{ starterLoadError }}</p>
-      <el-button type="primary" :loading="loadingJob" @click="retryLoadJob">重试</el-button>
+      <el-button
+        type="primary"
+        :loading="loadingJob"
+        @click="retryLoadJob"
+      >
+        重试
+      </el-button>
     </section>
 
-    <section v-else-if="!job" class="state-panel">
+    <section
+      v-else-if="!job"
+      class="state-panel"
+    >
       <h2>没有找到起笔任务</h2>
       <p>可以回到首页重新输入想法，创建一次新的起笔任务。</p>
-      <el-button type="primary" @click="router.push('/dashboard')">去首页起笔</el-button>
+      <el-button
+        type="primary"
+        @click="router.push('/dashboard')"
+      >
+        去首页起笔
+      </el-button>
     </section>
 
     <template v-else>
@@ -47,7 +74,10 @@
       </section>
 
       <el-collapse class="context-collapse">
-        <el-collapse-item title="本次生成使用的上下文" name="context">
+        <el-collapse-item
+          title="本次生成使用的上下文"
+          name="context"
+        >
           <div class="context-grid">
             <article>
               <h3>用户输入</h3>
@@ -55,27 +85,42 @@
             </article>
             <article>
               <h3>手动引用素材</h3>
-              <p v-if="!job.references.length">未手动选择素材。</p>
+              <p v-if="!job.references.length">
+                未手动选择素材。
+              </p>
               <ul v-else>
-                <li v-for="item in job.references" :key="item.key || item.id">
+                <li
+                  v-for="item in job.references"
+                  :key="item.key || item.id"
+                >
                   {{ item.typeLabel || typeText(item.type) }}：{{ item.title }}
                 </li>
               </ul>
             </article>
             <article>
               <h3>自动参考素材</h3>
-              <p v-if="!job.autoReferences.length">当前没有自动参考素材。</p>
+              <p v-if="!job.autoReferences.length">
+                当前没有自动参考素材。
+              </p>
               <ul v-else>
-                <li v-for="item in job.autoReferences" :key="item.key || item.id">
+                <li
+                  v-for="item in job.autoReferences"
+                  :key="item.key || item.id"
+                >
                   {{ item.typeLabel || typeText(item.type) }}：{{ item.title }}
                 </li>
               </ul>
             </article>
             <article>
               <h3>高级要求</h3>
-              <p v-if="!filledAdvanced.length">未填写高级要求。</p>
+              <p v-if="!filledAdvanced.length">
+                未填写高级要求。
+              </p>
               <ul v-else>
-                <li v-for="item in filledAdvanced" :key="item.key">
+                <li
+                  v-for="item in filledAdvanced"
+                  :key="item.key"
+                >
                   {{ item.label }}：{{ item.value }}
                 </li>
               </ul>
@@ -100,7 +145,10 @@
                 <strong>{{ root.name || root.title || '未命名设定' }}</strong>
                 <p>{{ root.description || root.summary || '暂无描述。' }}</p>
                 <ul v-if="asArray(root.children).length">
-                  <li v-for="child in asArray(root.children)" :key="child.name || child.title">
+                  <li
+                    v-for="child in asArray(root.children)"
+                    :key="child.name || child.title"
+                  >
                     <b>{{ child.name || child.title || '未命名子项' }}</b>
                     <span>{{ child.description || child.summary || '' }}</span>
                   </li>
@@ -110,7 +158,11 @@
           </template>
           <template v-else-if="parsedResult">
             <div class="title-options">
-              <el-tag v-for="title in asArray(parsedResult.core?.titleOptions)" :key="title" round>
+              <el-tag
+                v-for="title in asArray(parsedResult.core?.titleOptions)"
+                :key="title"
+                round
+              >
                 {{ title }}
               </el-tag>
             </div>
@@ -137,7 +189,10 @@
               </div>
             </dl>
           </template>
-          <pre v-else class="raw-output">{{ job.rawOutput || '暂无输出。' }}</pre>
+          <pre
+            v-else
+            class="raw-output"
+          >{{ job.rawOutput || '暂无输出。' }}</pre>
           <el-alert
             v-if="job.rawOutput && !parsedResult && job.status === 'completed'"
             type="warning"
@@ -153,7 +208,10 @@
             <h2>故事发动机</h2>
           </div>
           <dl class="info-list">
-            <div v-for="item in engineItems" :key="item.label">
+            <div
+              v-for="item in engineItems"
+              :key="item.label"
+            >
               <dt>{{ item.label }}</dt>
               <dd>{{ item.value }}</dd>
             </div>
@@ -165,14 +223,25 @@
             <span>03</span>
             <h2>人物种子</h2>
           </div>
-          <div v-if="characters.length" class="stack-list">
-            <div v-for="item in characters" :key="`${item.name}-${item.role}`">
+          <div
+            v-if="characters.length"
+            class="stack-list"
+          >
+            <div
+              v-for="item in characters"
+              :key="`${item.name}-${item.role}`"
+            >
               <strong>{{ item.name || item.role || '未命名角色' }}</strong>
               <p>{{ [item.role, item.identity, item.personality].filter(Boolean).join(' · ') }}</p>
               <small>{{ item.growthArc || item.goal || item.flaw || '暂无人物补充。' }}</small>
             </div>
           </div>
-          <p v-else class="soft-empty">暂无人物内容。</p>
+          <p
+            v-else
+            class="soft-empty"
+          >
+            暂无人物内容。
+          </p>
         </article>
 
         <article class="result-panel">
@@ -213,24 +282,25 @@
             <span>05</span>
             <h2>黄金三章</h2>
           </div>
-          <div v-if="goldenThreeChapters.length" class="chapter-list">
+          <div
+            v-if="goldenThreeChapters.length"
+            class="chapter-list"
+          >
             <div
               v-for="(chapter, index) in goldenThreeChapters"
               :key="chapter.index || chapter.chapter || chapter.title"
             >
-              <strong
-                >第 {{ chapter.index || chapter.chapter || index + 1 }} 章：{{
-                  chapter.title || '未命名章节'
-                }}</strong
-              >
+              <strong>第 {{ chapter.index || chapter.chapter || index + 1 }} 章：{{
+                chapter.title || '未命名章节'
+              }}</strong>
               <p>
                 {{
                   chapter.summary ||
-                  chapter.hook ||
-                  chapter.progression ||
-                  chapter.explosionPoint ||
-                  chapter.conflict ||
-                  '暂无章节方向。'
+                    chapter.hook ||
+                    chapter.progression ||
+                    chapter.explosionPoint ||
+                    chapter.conflict ||
+                    '暂无章节方向。'
                 }}
               </p>
               <small>{{
@@ -245,7 +315,12 @@
               }}</small>
             </div>
           </div>
-          <p v-else class="soft-empty">暂无章节内容。</p>
+          <p
+            v-else
+            class="soft-empty"
+          >
+            暂无章节内容。
+          </p>
         </article>
 
         <article class="result-panel">
@@ -279,30 +354,57 @@
       </section>
 
       <section class="action-panel">
-        <el-button :disabled="!canUseResult" :loading="savingTopic" @click="saveAsTopicCard"
-          >保存为选题卡</el-button
+        <el-button
+          :disabled="!canUseResult"
+          :loading="savingTopic"
+          @click="saveAsTopicCard"
         >
-        <el-button :disabled="!canUseResult" :loading="refining" @click="refineSetting"
-          >继续完善设定</el-button
+          保存为选题卡
+        </el-button>
+        <el-button
+          :disabled="!canUseResult"
+          :loading="refining"
+          @click="refineSetting"
         >
-        <el-button :disabled="!canUseResult" :loading="outlining" @click="generateOutline"
-          >生成详细大纲</el-button
+          继续完善设定
+        </el-button>
+        <el-button
+          :disabled="!canUseResult"
+          :loading="outlining"
+          @click="generateOutline"
         >
+          生成详细大纲
+        </el-button>
         <el-button
           type="primary"
           :disabled="!canUseResult"
           :loading="creatingBook"
           @click="convertToBook"
-          >转为新书</el-button
         >
-        <el-button :disabled="!canUseResult" :loading="covering" @click="generateCoverPrompt"
-          >生成封面提示词</el-button
+          转为新书
+        </el-button>
+        <el-button
+          :disabled="!canUseResult"
+          :loading="covering"
+          @click="generateCoverPrompt"
         >
-        <el-button :disabled="!job.rawOutput" @click="copyMarkdown">复制 Markdown</el-button>
-        <el-button @click="router.push('/ai/text-tools')">打开 AI 工坊</el-button>
+          生成封面提示词
+        </el-button>
+        <el-button
+          :disabled="!job.rawOutput"
+          @click="copyMarkdown"
+        >
+          复制 Markdown
+        </el-button>
+        <el-button @click="router.push('/ai/text-tools')">
+          打开 AI 工坊
+        </el-button>
       </section>
 
-      <section v-if="derivedOutput" class="derived-panel">
+      <section
+        v-if="derivedOutput"
+        class="derived-panel"
+      >
         <div class="section-head">
           <span>{{
             derivedOutput.kind === 'outline'
