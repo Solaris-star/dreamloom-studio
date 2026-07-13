@@ -8,6 +8,7 @@ import {
   createNote,
   createNotebook,
   createVolume,
+  checkChapterExists,
   deleteBook,
   deleteNode,
   deleteNote,
@@ -15,6 +16,7 @@ import {
   editBook,
   editNode,
   editNote,
+  exportOrganizationToNote,
   getChapterSettings,
   getSortOrder,
   loadChapters,
@@ -48,9 +50,19 @@ try {
     booksDir
   )
   assert.equal(created.success, true)
+  assert.equal((await deleteBook('生命周期作品', '')).message, 'booksDir not set')
+  assert.equal((await editBook({ originalName: '生命周期作品' }, '')).message, 'booksDir not set')
+  assert.equal(
+    (await editBook({ originalName: '不存在作品', name: '新名称' }, booksDir)).message,
+    '书籍不存在'
+  )
 
   fs.mkdirSync(join(booksDir, '损坏作品'), { recursive: true })
   fs.writeFileSync(join(booksDir, '损坏作品', 'mazi.json'), '{broken', 'utf8')
+  assert.equal(
+    (await editBook({ originalName: '损坏作品', name: '损坏作品' }, booksDir)).message,
+    '书籍元数据损坏'
+  )
   fs.writeFileSync(
     join(booksDir, '生命周期作品', '正文', '正文', '第1章.txt'),
     '第一章正文',
@@ -213,6 +225,54 @@ try {
   )
   assert.equal(missingSave.success, false)
   assert.match(missingSave.message, /章节不存在/)
+  assert.equal(
+    (
+      await checkChapterExists(
+        { bookName: '生命周期作品', volumeName: '正文', chapterName: '' },
+        booksDir
+      )
+    ).success,
+    false
+  )
+  assert.deepEqual(
+    await checkChapterExists(
+      { bookName: '生命周期作品', volumeName: '正文', chapterName: '第1章' },
+      booksDir
+    ),
+    { success: true, exists: true }
+  )
+  assert.deepEqual(
+    await checkChapterExists(
+      { bookName: '生命周期作品', volumeName: '正文', chapterName: '不存在' },
+      booksDir
+    ),
+    { success: true, exists: false }
+  )
+  await assert.rejects(
+    () =>
+      saveChapter(
+        {
+          bookName: '生命周期作品',
+          volumeName: '正文',
+          chapterName: '../越界',
+          content: '内容'
+        },
+        booksDir
+      ),
+    /章节名称/
+  )
+  await assert.rejects(
+    () =>
+      readChapter(
+        {
+          bookName: '生命周期作品',
+          volumeName: '正文',
+          chapterName: '..\\越界'
+        },
+        booksDir
+      ),
+    /章节名称/
+  )
 
   const blockedEmptySave = await saveChapter(
     {
@@ -388,6 +448,21 @@ try {
     message: '书籍名称不能为空',
     notes: []
   })
+  assert.deepEqual(await loadNotes('生命周期作品', ''), {
+    success: false,
+    message: '请先选择书库目录',
+    bookName: '生命周期作品',
+    notes: []
+  })
+  assert.equal(
+    (
+      await deleteNotebook(
+        { bookName: '生命周期作品', notebookName: '不存在笔记本' },
+        booksDir
+      )
+    ).success,
+    false
+  )
   const notebook = await createNotebook({ bookName: '生命周期作品' }, booksDir)
   assert.equal(notebook.success, true)
   const duplicateNotebook = await createNotebook({ bookName: '生命周期作品' }, booksDir)
@@ -430,6 +505,57 @@ try {
     booksDir
   )
   assert.equal(duplicateNote.noteName, '人物线索1')
+  assert.equal(
+    (
+      await createNote(
+        {
+          bookName: '生命周期作品',
+          notebookName: '不存在笔记本',
+          noteName: '不会创建'
+        },
+        booksDir
+      )
+    ).success,
+    false
+  )
+  assert.equal(
+    (
+      await readNote(
+        {
+          bookName: '生命周期作品',
+          notebookName: notebook.notebookName,
+          noteName: '不存在笔记'
+        },
+        booksDir
+      )
+    ).success,
+    false
+  )
+  assert.equal(
+    (
+      await deleteNote(
+        {
+          bookName: '生命周期作品',
+          notebookName: notebook.notebookName,
+          noteName: '不存在笔记'
+        },
+        booksDir
+      )
+    ).success,
+    false
+  )
+  await assert.rejects(
+    () =>
+      createNote(
+        {
+          bookName: '生命周期作品',
+          notebookName: notebook.notebookName,
+          noteName: '../越界'
+        },
+        booksDir
+      ),
+    /笔记名称/
+  )
   assert.equal(
     (
       await editNote(
@@ -539,6 +665,32 @@ try {
     ).success,
     true
   )
+
+  assert.equal(
+    (await exportOrganizationToNote(
+      { bookName: '', organizationName: '山门', content: '内容' },
+      booksDir
+    )).message,
+    '参数不完整'
+  )
+  assert.equal(
+    (await exportOrganizationToNote(
+      { bookName: '不存在作品', organizationName: '山门', content: '内容' },
+      booksDir
+    )).message,
+    '书籍不存在'
+  )
+  const exportedOrganization = await exportOrganizationToNote(
+    {
+      bookName: '生命周期作品',
+      organizationName: '山门/外院',
+      content: '掌门与长老。'
+    },
+    booksDir
+  )
+  assert.equal(exportedOrganization.success, true)
+  assert.equal(exportedOrganization.noteName, '山门_外院')
+  assert.equal(fs.readFileSync(exportedOrganization.notePath, 'utf8'), '掌门与长老。')
 
   assert.equal((await deleteBook('', booksDir)).success, false)
   const missingDelete = await deleteBook('不存在作品', booksDir)

@@ -976,7 +976,12 @@ export async function editBook(bookInfo = {}, booksDir) {
     }
 
     const metaPath = join(bookPath, 'mazi.json')
-    const existingMeta = readJson(metaPath, null)
+    let existingMeta
+    try {
+      existingMeta = readJson(metaPath, null)
+    } catch {
+      return { success: false, message: '书籍元数据损坏' }
+    }
     if (!existingMeta || typeof existingMeta !== 'object') {
       return { success: false, message: '书籍元数据不存在' }
     }
