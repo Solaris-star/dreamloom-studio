@@ -23,7 +23,10 @@
         class="chapter-title-input"
         @blur="handleTitleBlur"
       />
-      <span class="save-state" :class="`is-${editorStore.saveStatus}`">
+      <span
+        class="save-state"
+        :class="`is-${editorStore.saveStatus}`"
+      >
         {{ saveStatusText }}
       </span>
       <el-button
@@ -58,7 +61,10 @@
     </div>
     <!-- 正文内容编辑区（含右上角 AI 润色按钮） -->
     <div class="editor-content-wrap">
-      <EditorContent class="editor-content" :editor="editor" />
+      <EditorContent
+        class="editor-content"
+        :editor="editor"
+      />
     </div>
     <!-- AI 润色结果确认弹框（段落 / 整章共用） -->
     <el-dialog
@@ -75,16 +81,29 @@
     >
       <div class="polish-dialog-body">
         <div class="polish-block">
-          <div class="polish-label">{{ t('editorPanel.originalText') }}</div>
-          <div class="polish-content original">{{ polishOriginalText }}</div>
+          <div class="polish-label">
+            {{ t('editorPanel.originalText') }}
+          </div>
+          <div class="polish-content original">
+            {{ polishOriginalText }}
+          </div>
         </div>
         <div class="polish-block">
-          <div class="polish-label">{{ t('editorPanel.polishedText') }}</div>
-          <div class="polish-content polished">{{ polishResultText }}</div>
+          <div class="polish-label">
+            {{ t('editorPanel.polishedText') }}
+          </div>
+          <div class="polish-content polished">
+            {{ polishResultText }}
+          </div>
         </div>
       </div>
-      <div v-if="cleanupDiff.length" class="cleanup-diff">
-        <div class="polish-label">逐段差异</div>
+      <div
+        v-if="cleanupDiff.length"
+        class="cleanup-diff"
+      >
+        <div class="polish-label">
+          逐段差异
+        </div>
         <div
           v-for="(change, index) in cleanupDiff"
           :key="`${change.type}-${index}`"
@@ -92,8 +111,18 @@
           :class="`is-${change.type}`"
         >
           <div class="cleanup-diff-content">
-            <div v-if="change.before" class="cleanup-before">原文：{{ change.before }}</div>
-            <div v-if="change.after" class="cleanup-after">结果：{{ change.after }}</div>
+            <div
+              v-if="change.before"
+              class="cleanup-before"
+            >
+              原文：{{ change.before }}
+            </div>
+            <div
+              v-if="change.after"
+              class="cleanup-after"
+            >
+              结果：{{ change.after }}
+            </div>
           </div>
           <el-radio-group
             v-if="change.type !== 'unchanged'"
@@ -101,17 +130,27 @@
             class="cleanup-diff-choice"
             @change="updateCleanupPreview"
           >
-            <el-radio-button :value="true">采用结果</el-radio-button>
-            <el-radio-button :value="false">保留原文</el-radio-button>
+            <el-radio-button :value="true">
+              采用结果
+            </el-radio-button>
+            <el-radio-button :value="false">
+              保留原文
+            </el-radio-button>
           </el-radio-group>
-          <span v-else class="cleanup-unchanged">未修改</span>
+          <span
+            v-else
+            class="cleanup-unchanged"
+          >未修改</span>
         </div>
       </div>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="polishDialogVisible = false">{{ t('common.cancel') }}</el-button>
           <el-button @click="copyPolishedText">{{ t('editorPanel.copyOneClick') }}</el-button>
-          <el-button type="primary" @click="confirmPolishReplace">
+          <el-button
+            type="primary"
+            @click="confirmPolishReplace"
+          >
             {{
               polishMode === 'chapter'
                 ? t('editorPanel.confirmReplaceChapter')
@@ -121,20 +160,53 @@
         </span>
       </template>
     </el-dialog>
-    <el-drawer v-model="versionDrawerVisible" title="正文历史版本" size="420px">
+    <el-drawer
+      v-model="versionDrawerVisible"
+      title="正文历史版本"
+      size="420px"
+    >
       <div class="version-toolbar">
-        <el-button type="primary" @click="createNamedVersion">保存命名版本</el-button>
+        <el-button
+          type="primary"
+          @click="createNamedVersion"
+        >
+          保存命名版本
+        </el-button>
       </div>
-      <el-empty v-if="!versionSnapshots.length" description="暂无历史版本" />
-      <div v-else class="version-list">
-        <div v-for="item in versionSnapshots" :key="item.id" class="version-item">
+      <el-empty
+        v-if="!versionSnapshots.length"
+        description="暂无历史版本"
+      />
+      <div
+        v-else
+        class="version-list"
+      >
+        <div
+          v-for="item in versionSnapshots"
+          :key="item.id"
+          class="version-item"
+        >
           <div>
             <strong>{{ item.name || versionReasonLabel(item.reason) }}</strong>
-            <div class="version-time">{{ formatVersionTime(item.createdAt) }}</div>
+            <div class="version-time">
+              {{ formatVersionTime(item.createdAt) }}
+            </div>
           </div>
           <div class="version-actions">
-            <el-button text type="primary" @click="restoreVersion(item)">恢复</el-button>
-            <el-button text type="danger" @click="removeVersion(item)">删除</el-button>
+            <el-button
+              text
+              type="primary"
+              @click="restoreVersion(item)"
+            >
+              恢复
+            </el-button>
+            <el-button
+              text
+              type="danger"
+              @click="removeVersion(item)"
+            >
+              删除
+            </el-button>
           </div>
         </div>
       </div>
@@ -150,7 +222,10 @@
       :close-on-click-modal="false"
       @close="continuePromptDialogVisible = false"
     >
-      <el-form label-width="80px" @submit.prevent="confirmContinuePrompt">
+      <el-form
+        label-width="80px"
+        @submit.prevent="confirmContinuePrompt"
+      >
         <el-form-item :label="t('editorPanel.continuePrompt')">
           <el-input
             v-model="continuePromptText"
@@ -169,10 +244,17 @@
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button :disabled="continueLoading" @click="continuePromptDialogVisible = false">
+          <el-button
+            :disabled="continueLoading"
+            @click="continuePromptDialogVisible = false"
+          >
             {{ t('common.cancel') }}
           </el-button>
-          <el-button type="primary" :loading="continueLoading" @click="confirmContinuePrompt">
+          <el-button
+            type="primary"
+            :loading="continueLoading"
+            @click="confirmContinuePrompt"
+          >
             {{ t('common.confirm') }}
           </el-button>
         </span>
@@ -190,8 +272,12 @@
     >
       <div class="continue-result-body">
         <div class="continue-block">
-          <div class="continue-label">{{ t('editorPanel.continueContent') }}</div>
-          <div class="continue-content">{{ continueResultText }}</div>
+          <div class="continue-label">
+            {{ t('editorPanel.continueContent') }}
+          </div>
+          <div class="continue-content">
+            {{ continueResultText }}
+          </div>
         </div>
       </div>
       <template #footer>
@@ -200,7 +286,10 @@
             {{ t('common.cancel') }}
           </el-button>
           <el-button @click="copyContinueText">{{ t('editorMenubar.copy') }}</el-button>
-          <el-button type="primary" @click="confirmContinueInsert">
+          <el-button
+            type="primary"
+            @click="confirmContinueInsert"
+          >
             {{ t('editorPanel.confirmInsertEnd') }}
           </el-button>
         </span>
@@ -246,7 +335,11 @@
     />
 
     <!-- 搜索面板 -->
-    <SearchPanel :visible="searchPanelVisible" :editor="editor" @close="closeSearchPanel" />
+    <SearchPanel
+      :visible="searchPanelVisible"
+      :editor="editor"
+      @close="closeSearchPanel"
+    />
   </div>
 </template>
 
