@@ -1,5 +1,4 @@
-import { resolve, relative, join } from 'node:path'
-import fs from 'node:fs'
+import { resolve, relative } from 'node:path'
 import { runWebAiTextTask } from './src/main/services/webAiTextTaskService.js'
 import { createTextProvider } from './src/main/services/textGenerationRouter.js'
 import extractionAiService, {
@@ -61,6 +60,7 @@ import { createSnapshot as createSettingSnapshot } from './src/main/services/set
 import { setWebBooksDirectory } from './src/main/services/webBooksDirectoryService.js'
 import { createWebAuthService } from './src/main/services/webAuthService.js'
 import { createWebServerStore } from './src/main/services/webServerStoreService.js'
+import { createWebAiHistoryReader } from './src/main/services/webAiHistoryStoreService.js'
 import {
   createWebBooksPathService,
   isPathInside
@@ -97,124 +97,10 @@ export function createWebServerPlugins() {
     storeDelete: webStore.delete
   })
 
-  // --- Embedding Provider normalization ---
-  function normalizeEmbeddingProviderPayload(payload = {}) {
-    const source =
-      payload?.provider && typeof payload.provider === 'object' ? payload.provider : payload
-    if (!source || typeof source !== 'object' || Array.isArray(source)) {
-      throw new Error('读取 Embedding Provider 失败：本地配置格式不正确')
-    }
-    const modelName = String(source.modelName || source.model || '').trim()
-    const rawDimension = source.dimension ?? source.dimensions
-    const dimension = Number(rawDimension)
-    const cleanProvider = {
-      ...source,
-      id: source.id || crypto.randomUUID(),
-      name: String(source.name || '').trim(),
-      baseUrl: String(source.baseUrl || '').trim(),
-      apiKey: String(source.apiKey || '').trim(),
-      model: modelName,
-      modelName,
-      active: Boolean(source.active)
-    }
-    if (Number.isFinite(dimension) && dimension > 0) {
-      cleanProvider.dimension = dimension
-      cleanProvider.dimensions = dimension
-    }
-    return cleanProvider
-  }
-
-  function getEmbeddingProviders() {
-    const store = webStore.read()
-    if (!store.embeddingProviders) store.embeddingProviders = []
-    return store.embeddingProviders.map((provider) => normalizeEmbeddingProviderPayload(provider))
-  }
-
-  // --- AI History ---
-  function readAiHistoryRows(action = '读取 AI 历史') {
-    const store = webStore.read()
-    const rows = store['ai:history']
-    if (rows == null) return []
-    if (!Array.isArray(rows)) {
-      throw new Error(`AI 历史记录格式异常，已停止${action}以免覆盖原始记录`)
-    }
-    return rows
-  }
-
-  // --- Extraction ---
-  const readWebExtractionRecords = (filePath) => {
-    try {
-      if (!fs.existsSync(filePath)) return []
-      const data = JSON.parse(fs.readFileSync(filePath, 'utf-8') || 'null')
-      if (!data || typeof data !== 'object' || !Array.isArray(data.extractions)) {
-        throw new Error('格式异常')
-      }
-      return data.extractions
-    } catch (error) {
-      throw new Error(`拆书任务记录读取失败：${error.message}`)
-    }
-  }
-
-  const completedExtractionStatuses = new Set(['completed', 'partial'])
-  const isCompletedExtractionResult = (result = {}) => {
-    if (result?.success !== true) return false
-    const extractionId = sanitizeText(result.id || result.extractionId)
-    return completedExtractionStatuses.has(result.status)
-  }
-
-  // --- Book Context Helper Functions ---
-  function readWebBookContextJson(bookPath, fileName, fallback) {
-    const filePath = join(bookPath, fileName)
-    if (!fs.existsSync(filePath)) return fallback
-    try {
-      return JSON.parse(fs.readFileSync(filePath, 'utf-8'))
-    } catch (error) {
-      throw new Error(`读取作品资料失败：${fileName} ${error?.message || ''}`.trim())
-    }
-  }
-
-  function readWebBookContextObject(bookPath, fileName, fallback) {
-    return readWebBookContextJson(bookPath, fileName, fallback)
-  }
-
-  function readWebBookContextArray(bookPath, fileName, fallback = []) {
-    const data = readWebBookContextJson(bookPath, fileName, fallback)
-    if (!Array.isArray(data)) {
-      throw new Error(`${fileName} 格式错误，应为数组`)
-    }
-    return data
-  }
-
-  function readWebBookContextSettings(bookPath) {
-    const settingsPath = join(bookPath, 'settings.json')
-    if (!fs.existsSync(settingsPath)) return null
-    let data
-    try {
-      data = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
-    } catch (error) {
-      throw new Error(`读取作品资料失败：settings.json ${error?.message || ''}`.trim())
-    }
-    if (!data || !Array.isArray(data.categories)) {
-      throw new Error('settings.json 格式错误，应包含 categories 数组')
-    }
-    return data
-  }
-
-  const buildWebBookContextBlock = (bookPath) => {
-    const mazi = readWebBookContextObject(bookPath, 'mazi.json', null)
-    const characters = readWebBookContextArray(bookPath, 'characters.json', [])
-    const dictionary = readWebBookContextArray(bookPath, 'dictionary.json', [])
-    const settings = readWebBookContextSettings(bookPath)
-    return { mazi, characters, dictionary, settings }
-  }
-
-  const finalExtractionStatuses = new Set(['completed', 'partial'])
+  const readAiHistoryRows = createWebAiHistoryReader(webStore.read)
 
   function sanitizeText(t) {
     return String(t || '').trim()
-  }
-  function failedExtractionResult(r) {
-    return r
   }
 
   function webBookImageUrl(bookPath, filePath) {
@@ -230,47 +116,6 @@ export function createWebServerPlugins() {
       throw new Error('图片路径不在书籍目录内')
     }
     return `/api/books/image?book=${encodeURIComponent(bookName)}&file=${encodeURIComponent(fileName)}`
-  }
-
-  // Dummy methods/comments to satisfy specific assertIncludes checks
-  // return syncImportResult({ booksDir, result })
-  // return syncExportResult({
-  // return syncBackupResult({
-  // return syncRestoreResult({ booksDir, result })
-  // return enqueueAgentWriteTask({
-  // return enqueueAgentRepairTask({
-  // withBooksDir(async () => getAgentTaskQueueStatus())
-  // withBooksDir(async (payload) => getAgentTaskQueueJob(payload?.jobId || payload))
-  // withBooksDir(async (payload) => listAgentTaskQueueJobs({
-  // return cancelAgentTaskQueueJob({
-  // expectedBooksDir: booksDir
-  // withBooksDir(async () => getAgentTaskProgressServerInfo())
-  // const rows = readAiHistoryRows('写入 AI 历史')
-  // const rows = readAiHistoryRows('读取 AI 历史')
-
-  // Agent Queue API Plugin Definition
-  function agentQueueApiPlugin() {
-    return {
-      name: 'agent-queue-api',
-      configureServer(server) {
-        server.middlewares.use(async (req, res, next) => {
-          const webPath = '/api/agent-tasks/queue/status'
-          if (req.url === webPath) {
-            // ...
-          }
-          next()
-        })
-      }
-    }
-  }
-
-  const agentTaskProgressServerPlugin = () => {
-    return {
-      name: 'agent-task-progress-server',
-      configureServer(server) {
-        // WebSocket progress plugin
-      }
-    }
   }
 
   const webApiPlugin = () => {
@@ -630,5 +475,5 @@ export function createWebServerPlugins() {
     }
   }
 
-  return [agentTaskProgressServerPlugin(), agentQueueApiPlugin(), webApiPlugin()]
+  return [webApiPlugin()]
 }
