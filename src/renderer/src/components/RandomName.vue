@@ -8,14 +8,25 @@
   >
     <div class="random-name-dialog">
       <!-- 左侧类型 -->
-      <el-menu class="type-menu" :default-active="type" @select="type = $event">
-        <el-menu-item v-for="item in types" :key="item.value" :index="item.value">
+      <el-menu
+        class="type-menu"
+        :default-active="type"
+        @select="type = $event"
+      >
+        <el-menu-item
+          v-for="item in types"
+          :key="item.value"
+          :index="item.value"
+        >
           {{ item.label }}
         </el-menu-item>
       </el-menu>
       <!-- 中间规格 -->
       <div class="spec-panel">
-        <el-form label-width="60px" @submit.prevent>
+        <el-form
+          label-width="60px"
+          @submit.prevent
+        >
           <template v-if="showChineseOptions || showJapaneseOptions || showWesternOptions">
             <el-form-item :label="t('randomName.surname')">
               <el-input
@@ -26,24 +37,42 @@
               <div
                 style="margin-top: 8px; width: 100%; display: flex; justify-content: space-between"
               >
-                <el-button size="small" @click="randomSurname">
+                <el-button
+                  size="small"
+                  @click="randomSurname"
+                >
                   {{ t('randomName.randomSurname') }}
                 </el-button>
-                <el-button v-if="showChineseOptions" size="small" @click="randomCompoundSurname">
+                <el-button
+                  v-if="showChineseOptions"
+                  size="small"
+                  @click="randomCompoundSurname"
+                >
                   {{ t('randomName.randomCompoundSurname') }}
                 </el-button>
               </div>
             </el-form-item>
             <el-form-item :label="t('randomName.gender')">
               <el-radio-group v-model="gender">
-                <el-radio value="男">{{ t('randomName.male') }}</el-radio>
-                <el-radio value="女">{{ t('randomName.female') }}</el-radio>
+                <el-radio value="男">
+                  {{ t('randomName.male') }}
+                </el-radio>
+                <el-radio value="女">
+                  {{ t('randomName.female') }}
+                </el-radio>
               </el-radio-group>
             </el-form-item>
-            <el-form-item v-if="showChineseOptions" :label="t('randomName.nameLength')">
+            <el-form-item
+              v-if="showChineseOptions"
+              :label="t('randomName.nameLength')"
+            >
               <el-radio-group v-model="nameLength">
-                <el-radio :value="2">{{ t('randomName.twoChars') }}</el-radio>
-                <el-radio :value="3">{{ t('randomName.threeChars') }}</el-radio>
+                <el-radio :value="2">
+                  {{ t('randomName.twoChars') }}
+                </el-radio>
+                <el-radio :value="3">
+                  {{ t('randomName.threeChars') }}
+                </el-radio>
               </el-radio-group>
             </el-form-item>
             <el-form-item
@@ -66,7 +95,10 @@
                 style="width: 100%"
               />
               <div style="margin-top: 8px; width: 100%">
-                <el-button size="small" @click="randomSuffix">
+                <el-button
+                  size="small"
+                  @click="randomSuffix"
+                >
                   {{ t('randomName.randomSuffix') }}
                 </el-button>
               </div>
@@ -82,19 +114,29 @@
         >
           {{ useAI ? t('randomName.generateWithAI') : t('randomName.generate') }}
         </el-button>
-        <el-checkbox v-model="useAI" :disabled="generating">
+        <el-checkbox
+          v-model="useAI"
+          :disabled="generating"
+        >
           {{ t('randomName.useAI') }}
         </el-checkbox>
       </div>
       <!-- 右侧名字列表 -->
       <div class="name-list">
-        <div v-for="name in names" :key="name" class="name-item" @click="copyName(name)">
+        <div
+          v-for="name in names"
+          :key="name"
+          class="name-item"
+          @click="copyName(name)"
+        >
           {{ name }}
         </div>
       </div>
     </div>
     <template #footer>
-      <el-button @click="visible = false">{{ t('common.close') }}</el-button>
+      <el-button @click="visible = false">
+        {{ t('common.close') }}
+      </el-button>
     </template>
   </el-dialog>
 </template>
