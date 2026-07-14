@@ -7,29 +7,57 @@
     @contextmenu.prevent="showMenu($event)"
   >
     <!-- 书脊：只在没有封面图片时显示 -->
-    <div v-if="!hasCoverImage" class="spine">
-      <div v-for="i in 4" :key="i" class="stitch"></div>
+    <div
+      v-if="!hasCoverImage"
+      class="spine"
+    >
+      <div
+        v-for="i in 4"
+        :key="i"
+        class="stitch"
+      />
     </div>
-    <div class="cover-bg" :style="coverBgStyle">
+    <div
+      class="cover-bg"
+      :style="coverBgStyle"
+    >
       <!-- 标题块：只在没有封面图片时显示 -->
-      <div v-if="!hasCoverImage" class="title-block">
-        <div class="vertical-title" :style="{ fontSize: getTitleFontSize() + 'px' }">
+      <div
+        v-if="!hasCoverImage"
+        class="title-block"
+      >
+        <div
+          class="vertical-title"
+          :style="{ fontSize: getTitleFontSize() + 'px' }"
+        >
           {{ name }}
         </div>
       </div>
       <!-- 插画区域：只在没有封面图片时显示 -->
-      <div v-if="!hasCoverImage" class="cover-illustration">
+      <div
+        v-if="!hasCoverImage"
+        class="cover-illustration"
+      >
         <slot name="cover-illustration">
           <!-- 可插入插画SVG或图片 -->
         </slot>
       </div>
     </div>
     <!-- 信息区域：有封面图片时默认隐藏，悬停时显示 -->
-    <div class="info" :class="{ 'show-on-hover': hasCoverImage }">
-      <div class="type">{{ typeName }}</div>
+    <div
+      class="info"
+      :class="{ 'show-on-hover': hasCoverImage }"
+    >
+      <div class="type">
+        {{ typeName }}
+      </div>
       <div class="stats">
-        <div class="word-count">{{ t('book.wordCount', { count: totalWords }) }}</div>
-        <div class="update-time">{{ t('book.updatedAt', { time: formattedUpdatedAt }) }}</div>
+        <div class="word-count">
+          {{ t('book.wordCount', { count: totalWords }) }}
+        </div>
+        <div class="update-time">
+          {{ t('book.updatedAt', { time: formattedUpdatedAt }) }}
+        </div>
       </div>
     </div>
     <Teleport to="body">
@@ -40,10 +68,16 @@
         :style="{ left: menuX + 'px', top: menuY + 'px' }"
         @click.stop
       >
-        <div class="menu-item" @click="handleEdit">
+        <div
+          class="menu-item"
+          @click="handleEdit"
+        >
           <el-icon><Edit /></el-icon> {{ t('common.edit') }}
         </div>
-        <div class="menu-item delete" @click="handleDelete">
+        <div
+          class="menu-item delete"
+          @click="handleDelete"
+        >
           <el-icon><Delete /></el-icon> {{ t('common.delete') }}
         </div>
       </div>
