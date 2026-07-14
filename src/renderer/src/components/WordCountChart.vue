@@ -1,12 +1,23 @@
 <template>
   <div class="chart-area">
-    <div v-if="chartError" class="chart-error" role="alert">
+    <div
+      v-if="chartError"
+      class="chart-error"
+      role="alert"
+    >
       <span>{{ chartError }}</span>
-      <button type="button" :disabled="chartLoading" @click="updateChartData">
+      <button
+        type="button"
+        :disabled="chartLoading"
+        @click="updateChartData"
+      >
         {{ t('common.retry') }}
       </button>
     </div>
-    <div ref="chartRef" class="chart-container"></div>
+    <div
+      ref="chartRef"
+      class="chart-container"
+    />
   </div>
 </template>
 

@@ -1,10 +1,17 @@
 <template>
   <main class="not-found">
     <div>
-      <p class="status">404</p>
+      <p class="status">
+        404
+      </p>
       <h1>页面不存在</h1>
       <p>这个地址可能已经改变，或对应功能已被移除。</p>
-      <el-button type="primary" @click="router.replace('/dashboard')">返回首页</el-button>
+      <el-button
+        type="primary"
+        @click="router.replace('/dashboard')"
+      >
+        返回首页
+      </el-button>
     </div>
   </main>
 </template>

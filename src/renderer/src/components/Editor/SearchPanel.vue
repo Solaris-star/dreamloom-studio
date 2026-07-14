@@ -1,5 +1,8 @@
 <template>
-  <div v-if="visible" class="search-panel">
+  <div
+    v-if="visible"
+    class="search-panel"
+  >
     <!-- 左侧展开/收起按钮 -->
     <div class="toggle-button-wrapper">
       <el-button
@@ -8,7 +11,10 @@
         :title="showReplace ? t('searchPanel.collapseReplace') : t('searchPanel.expandReplace')"
         @click="toggleReplace"
       >
-        <el-icon class="toggle-icon" :class="{ expanded: showReplace }">
+        <el-icon
+          class="toggle-icon"
+          :class="{ expanded: showReplace }"
+        >
           <ArrowRight />
         </el-icon>
       </el-button>
@@ -17,7 +23,10 @@
     <!-- 右侧内容区域 -->
     <div class="content-wrapper">
       <!-- 搜索区域 -->
-      <div class="search-section" :class="{ 'has-replace': showReplace }">
+      <div
+        class="search-section"
+        :class="{ 'has-replace': showReplace }"
+      >
         <div class="search-input-wrapper">
           <el-input
             ref="searchInputRef"
@@ -44,10 +53,16 @@
         </div>
 
         <div class="search-results">
-          <span v-if="totalMatches > 0" class="results-text">
+          <span
+            v-if="totalMatches > 0"
+            class="results-text"
+          >
             {{ currentMatchIndex + 1 }}/{{ totalMatches }}
           </span>
-          <span v-else class="results-text no-results">{{ t('searchPanel.noResults') }}</span>
+          <span
+            v-else
+            class="results-text no-results"
+          >{{ t('searchPanel.noResults') }}</span>
         </div>
 
         <div class="search-navigation">
@@ -82,7 +97,10 @@
 
       <!-- 替换区域 -->
       <transition name="replace-slide">
-        <div v-if="showReplace" class="replace-section">
+        <div
+          v-if="showReplace"
+          class="replace-section"
+        >
           <div class="replace-input-wrapper">
             <el-input
               v-model="replaceText"

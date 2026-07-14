@@ -2,14 +2,25 @@
   <div class="stat-card">
     <div class="card-content">
       <div class="info">
-        <div class="title">{{ title }}</div>
+        <div class="title">
+          {{ title }}
+        </div>
         <div class="value-row">
-          <span class="value" :style="{ color: color }">{{ formattedValue }}</span>
+          <span
+            class="value"
+            :style="{ color: color }"
+          >{{ formattedValue }}</span>
           <span class="unit">{{ unit }}</span>
         </div>
       </div>
-      <div class="icon-box" :style="{ backgroundColor: `${color}15`, color: color }">
-        <component :is="lucideIcon" :size="24" />
+      <div
+        class="icon-box"
+        :style="{ backgroundColor: `${color}15`, color: color }"
+      >
+        <component
+          :is="lucideIcon"
+          :size="24"
+        />
       </div>
     </div>
   </div>

@@ -2,7 +2,12 @@
   <div class="map-design">
     <!-- 返回按钮 -->
     <div class="back-button-container">
-      <el-button text class="back-button" :icon="ArrowLeftBold" @click="handleBack">
+      <el-button
+        text
+        class="back-button"
+        :icon="ArrowLeftBold"
+        @click="handleBack"
+      >
         {{ t('mapDesign.back') }}
       </el-button>
     </div>
@@ -21,7 +26,10 @@
 
     <!-- 颜色选择器 -->
     <Transition name="color-picker-fade">
-      <div v-if="showColorPicker" class="color-picker-container">
+      <div
+        v-if="showColorPicker"
+        class="color-picker-container"
+      >
         <el-color-picker
           v-model="currentColor"
           :predefine="colorPresets"
@@ -70,7 +78,10 @@
       @mouseup="handleContainerMouseUp"
       @mouseleave="handleContainerMouseUp"
     >
-      <div class="canvas-wrap" :style="canvasWrapStyle">
+      <div
+        class="canvas-wrap"
+        :style="canvasWrapStyle"
+      >
         <!-- 绘制画布 -->
         <canvas
           ref="canvasRef"
@@ -86,7 +97,7 @@
           @touchstart.prevent="handleCanvasMouseDown"
           @touchmove.prevent="handleCanvasMouseMove"
           @touchend.prevent="handleCanvasMouseUp"
-        ></canvas>
+        />
 
         <!-- 文字输入框 -->
         <div

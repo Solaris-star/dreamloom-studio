@@ -4,16 +4,26 @@
       <div>
         <h1>{{ title }}</h1>
       </div>
-      <details v-if="description" class="module-description">
-        <summary :aria-label="`${title}说明`" title="说明">
+      <details
+        v-if="description"
+        class="module-description"
+      >
+        <summary
+          :aria-label="`${title}说明`"
+          title="说明"
+        >
           <Info :size="16" />
         </summary>
         <p>{{ description }}</p>
       </details>
-      <slot name="actions"></slot>
+      <slot name="actions" />
     </header>
 
-    <nav v-if="tabs.length" class="module-tabs" aria-label="模块导航">
+    <nav
+      v-if="tabs.length"
+      class="module-tabs"
+      aria-label="模块导航"
+    >
       <button
         v-for="tab in tabs"
         :key="tab.path"
