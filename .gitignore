@@ -50,7 +50,6 @@ tmp
 
 # Local verification captures and backups
 zhimeng-*.png
-electron.vite.config.*.mjs
 
 docs
 others

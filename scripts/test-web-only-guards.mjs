@@ -33,6 +33,14 @@ for (const [name, command] of Object.entries(packageJson.scripts || {})) {
   )
 }
 
+for (const relativePath of ['.gitignore', '.dockerignore', 'vite.web.config.mjs']) {
+  assert.doesNotMatch(
+    read(relativePath),
+    /\belectron(?:-builder|-vite)?\b|BrowserWindow|ipcMain|ipcRenderer|contextBridge/i,
+    `纯 Web 根配置不能包含桌面项目残留：${relativePath}`
+  )
+}
+
 const preloadDir = path.join(root, 'src/preload')
 const preloadFiles = fs.existsSync(preloadDir)
   ? fs
