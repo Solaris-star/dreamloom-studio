@@ -8,7 +8,11 @@
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <div class="embedding-content">
-      <el-button type="primary" style="margin-bottom: 12px" @click="openEditDialog(null)">
+      <el-button
+        type="primary"
+        style="margin-bottom: 12px"
+        @click="openEditDialog(null)"
+      >
         {{ t('embeddingProvider.add') }}
       </el-button>
 
@@ -41,7 +45,12 @@
             </div>
           </div>
           <div class="provider-card-actions">
-            <el-button link type="primary" size="small" @click="openEditDialog(provider)">
+            <el-button
+              link
+              type="primary"
+              size="small"
+              @click="openEditDialog(provider)"
+            >
               {{ t('embeddingProvider.edit') }}
             </el-button>
             <el-button
@@ -53,7 +62,12 @@
             >
               {{ t('embeddingProvider.validate') }}
             </el-button>
-            <el-button link type="danger" size="small" @click="handleDelete(provider)">
+            <el-button
+              link
+              type="danger"
+              size="small"
+              @click="handleDelete(provider)"
+            >
               {{ t('embeddingProvider.delete') }}
             </el-button>
           </div>
@@ -85,7 +99,11 @@
           <el-input v-model="editingProvider.baseUrl" />
         </el-form-item>
         <el-form-item label="API Key">
-          <el-input v-model="editingProvider.apiKey" type="password" show-password />
+          <el-input
+            v-model="editingProvider.apiKey"
+            type="password"
+            show-password
+          />
         </el-form-item>
         <el-form-item :label="t('embeddingProvider.modelName')">
           <div class="model-picker">
@@ -105,18 +123,35 @@
                 :value="model"
               />
             </el-select>
-            <el-button :loading="loadingModels" @click="handleLoadModels">读取列表</el-button>
+            <el-button
+              :loading="loadingModels"
+              @click="handleLoadModels"
+            >
+              读取列表
+            </el-button>
           </div>
         </el-form-item>
         <el-form-item :label="t('embeddingProvider.dimension')">
-          <el-input-number v-model="editingProvider.dimension" :min="1" :max="65536" />
+          <el-input-number
+            v-model="editingProvider.dimension"
+            :min="1"
+            :max="65536"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="editVisible = false">{{ t('embeddingProvider.cancel') }}</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSave">{{
-          t('embeddingProvider.save')
-        }}</el-button>
+        <el-button @click="editVisible = false">
+          {{ t('embeddingProvider.cancel') }}
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="saving"
+          @click="handleSave"
+        >
+          {{
+            t('embeddingProvider.save')
+          }}
+        </el-button>
       </template>
     </el-dialog>
   </el-dialog>
