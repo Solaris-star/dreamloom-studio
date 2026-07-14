@@ -32,7 +32,12 @@
           placeholder="选择 Provider"
           @change="handleProviderChange"
         >
-          <el-option v-for="p in textProviders" :key="p.id" :label="p.name" :value="p.id" />
+          <el-option
+            v-for="p in textProviders"
+            :key="p.id"
+            :label="p.name"
+            :value="p.id"
+          />
         </el-select>
         <el-select
           v-model="selectedModel"
@@ -40,7 +45,12 @@
           placeholder="选择模型"
           :disabled="!selectedProviderId"
         >
-          <el-option v-for="model in modelOptions" :key="model" :label="model" :value="model" />
+          <el-option
+            v-for="model in modelOptions"
+            :key="model"
+            :label="model"
+            :value="model"
+          />
         </el-select>
         <el-cascader
           v-model="selectedType"
@@ -74,7 +84,10 @@
       </div>
     </div>
 
-    <div v-if="plans.length" class="plans-panel">
+    <div
+      v-if="plans.length"
+      class="plans-panel"
+    >
       <article
         v-for="(plan, index) in plans"
         :key="plan.id || index"
@@ -87,9 +100,15 @@
             <h3>{{ plan.title }}</h3>
             <span>{{ plan.typeName }}</span>
           </div>
-          <el-radio :model-value="selectedIndex" :value="index" @change="selectedIndex = index" />
+          <el-radio
+            :model-value="selectedIndex"
+            :value="index"
+            @change="selectedIndex = index"
+          />
         </div>
-        <p class="plan-intro">{{ plan.intro }}</p>
+        <p class="plan-intro">
+          {{ plan.intro }}
+        </p>
         <dl class="plan-meta">
           <div v-if="plan.protagonist">
             <dt>主角</dt>
@@ -100,10 +119,18 @@
             <dd>{{ plan.coreHook }}</dd>
           </div>
         </dl>
-        <div v-if="plan.firstChapters?.length" class="chapter-preview">
-          <div class="preview-title">前三章</div>
+        <div
+          v-if="plan.firstChapters?.length"
+          class="chapter-preview"
+        >
+          <div class="preview-title">
+            前三章
+          </div>
           <ol>
-            <li v-for="chapter in plan.firstChapters.slice(0, 3)" :key="chapter">
+            <li
+              v-for="chapter in plan.firstChapters.slice(0, 3)"
+              :key="chapter"
+            >
               {{ chapter }}
             </li>
           </ol>
@@ -111,9 +138,18 @@
       </article>
     </div>
 
-    <div v-if="plans.length" class="assistant-footer">
-      <el-button @click="handleGenerate">再换一批</el-button>
-      <el-button type="success" :loading="creating" @click="handleCreateSelected">
+    <div
+      v-if="plans.length"
+      class="assistant-footer"
+    >
+      <el-button @click="handleGenerate">
+        再换一批
+      </el-button>
+      <el-button
+        type="success"
+        :loading="creating"
+        @click="handleCreateSelected"
+      >
         用选中方案创建书籍
       </el-button>
     </div>
