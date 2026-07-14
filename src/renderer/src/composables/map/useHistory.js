@@ -185,7 +185,7 @@ export class HistoryManager {
   }
 }
 
-// eslint-disable-next-line no-unused-vars
+
 export function useHistory(canvasRef) {
   const history = ref(null)
 

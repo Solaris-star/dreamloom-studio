@@ -9,7 +9,7 @@
       @mousedown="handleWrapperMouseDown"
       @touchstart.prevent="handleWrapperMouseDown"
     >
-      <slot :dragging-disabled="draggingComponent"></slot>
+      <slot :dragging-disabled="draggingComponent" />
     </div>
   </Transition>
 </template>

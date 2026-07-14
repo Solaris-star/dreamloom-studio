@@ -4,7 +4,7 @@
     :style="{ width: size + 'px', height: size + 'px' }"
     @click="handleClick"
   >
-    <use :xlink:href="`#icon-${name}`"></use>
+    <use :xlink:href="`#icon-${name}`" />
   </svg>
 </template>
 

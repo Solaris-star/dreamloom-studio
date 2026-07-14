@@ -1,12 +1,18 @@
 <template>
   <LayoutTool :title="t('outlineManager.title')">
     <template #headrAction>
-      <el-button type="primary" @click="handleCreateOutline">
+      <el-button
+        type="primary"
+        @click="handleCreateOutline"
+      >
         {{ t('outlineManager.addOutline') }}
       </el-button>
     </template>
     <div class="outline-manager-page">
-      <OutlineManagerPanel ref="outlineManagerPanelRef" :book-name="bookName" />
+      <OutlineManagerPanel
+        ref="outlineManagerPanelRef"
+        :book-name="bookName"
+      />
     </div>
   </LayoutTool>
 </template>

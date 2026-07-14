@@ -12,8 +12,14 @@ const { elementLocale } = useElementLocale()
   <el-config-provider :locale="elementLocale">
     <!-- 仅缓存编辑器页：避免写作助手子页往返时整页卸载导致侧栏/编辑区状态丢失；:key 按 fullPath 区分不同书籍 -->
     <router-view v-slot="{ Component, route }">
-      <keep-alive :include="cachedRouteNames" :max="5">
-        <component :is="Component" :key="route.fullPath" />
+      <keep-alive
+        :include="cachedRouteNames"
+        :max="5"
+      >
+        <component
+          :is="Component"
+          :key="route.fullPath"
+        />
       </keep-alive>
     </router-view>
   </el-config-provider>

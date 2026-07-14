@@ -1,8 +1,13 @@
 <template>
   <div class="auth-page">
     <div class="auth-container">
-      <h2 class="auth-title">{{ t('auth.title') }}</h2>
-      <el-form class="auth-form" @submit.prevent="handleAuthSubmit">
+      <h2 class="auth-title">
+        {{ t('auth.title') }}
+      </h2>
+      <el-form
+        class="auth-form"
+        @submit.prevent="handleAuthSubmit"
+      >
         <el-form-item>
           <el-input
             v-model="authPassword"

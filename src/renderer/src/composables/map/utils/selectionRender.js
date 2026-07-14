@@ -346,7 +346,7 @@ export function renderSelection(
   originalBounds = null, // 可选的原始边界框，用于旋转时保持选框宽高不变（单选时使用）
   rotationAngle = null // 可选的旋转角度，用于多选旋转时选框同步旋转（单选时使用，多选时忽略，保留参数以保持兼容性）
 ) {
-  // eslint-disable-next-line no-unused-vars
+
   const _ = rotationAngle // 多选时不再使用此参数，但保留以保持函数签名兼容性
   if (selectedElements.length === 0) return
 

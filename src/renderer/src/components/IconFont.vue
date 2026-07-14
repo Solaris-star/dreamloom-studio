@@ -3,7 +3,7 @@
     :class="['iconfont', `icon-${name}`, className]"
     :style="{ fontSize: size + 'px', color: color }"
     @click="handleClick"
-  ></i>
+  />
 </template>
 
 <script setup>

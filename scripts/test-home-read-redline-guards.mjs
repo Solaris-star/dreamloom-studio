@@ -61,11 +61,15 @@ for (const expected of [
   'const chartLoading = ref(false)',
   'const stats = await statisticsService.getAllBooksDailyStats()',
   "chartError.value = error?.message || t('wordCountChart.fetchFailed')",
-  '<div v-if="chartError" class="chart-error" role="alert">',
   '@click="updateChartData"'
 ]) {
   assertIncludes(wordCountChart, expected, `WordCountChart missing ${expected}`)
 }
+
+assert(
+  /<div\s+v-if="chartError"\s+class="chart-error"\s+role="alert"\s*>/.test(wordCountChart),
+  'WordCountChart missing chart error alert structure'
+)
 
 for (const forbidden of [
   'window.electron.getAllBooksDailyStats',

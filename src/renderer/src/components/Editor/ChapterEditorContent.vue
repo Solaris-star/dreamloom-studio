@@ -152,7 +152,7 @@ defineExpose({
 </script>
 
 <template>
-  <span style="display: none"></span>
+  <span style="display: none" />
 </template>
 
 <style scoped>

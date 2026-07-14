@@ -6,7 +6,11 @@
     - 5s 自动关闭/可手动关闭
     - 之后随机间隔 2-7 天再次弹出
   -->
-  <EncourageToast v-model="visible" :message="message" :duration="duration" />
+  <EncourageToast
+    v-model="visible"
+    :message="message"
+    :duration="duration"
+  />
 </template>
 
 <script setup>
