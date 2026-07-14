@@ -1,7 +1,10 @@
 <template>
   <LayoutTool :title="t('dictionary.title')">
     <template #headrAction>
-      <el-button type="primary" @click="handleCreateEntry">
+      <el-button
+        type="primary"
+        @click="handleCreateEntry"
+      >
         <el-icon><Plus /></el-icon>
         <span>{{ t('dictionary.createEntry') }}</span>
       </el-button>
@@ -18,20 +21,43 @@
         style="width: 100%"
         :empty-text="t('dictionary.empty')"
       >
-        <el-table-column prop="name" :label="t('dictionary.name')" min-width="100">
+        <el-table-column
+          prop="name"
+          :label="t('dictionary.name')"
+          min-width="100"
+        >
           <template #default="{ row }">
             <span class="entry-name">{{ row.name }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="introduction" :label="t('dictionary.introduction')" min-width="250">
+        <el-table-column
+          prop="introduction"
+          :label="t('dictionary.introduction')"
+          min-width="250"
+        >
           <template #default="{ row }">
-            <div class="entry-intro">{{ row.introduction }}</div>
+            <div class="entry-intro">
+              {{ row.introduction }}
+            </div>
           </template>
         </el-table-column>
-        <el-table-column :label="t('dictionary.actions')" width="150" fixed="right">
+        <el-table-column
+          :label="t('dictionary.actions')"
+          width="150"
+          fixed="right"
+        >
           <template #default="{ row }">
-            <el-button size="small" @click="handleEditEntry(row)">{{ t('common.edit') }}</el-button>
-            <el-button size="small" type="danger" @click="handleDeleteEntry(row)">
+            <el-button
+              size="small"
+              @click="handleEditEntry(row)"
+            >
+              {{ t('common.edit') }}
+            </el-button>
+            <el-button
+              size="small"
+              type="danger"
+              @click="handleDeleteEntry(row)"
+            >
               {{ t('common.delete') }}
             </el-button>
           </template>
@@ -54,14 +80,20 @@
       label-width="80px"
       @submit.prevent="confirmSave"
     >
-      <el-form-item :label="t('dictionary.name')" prop="name">
+      <el-form-item
+        :label="t('dictionary.name')"
+        prop="name"
+      >
         <el-input
           v-model="entryForm.name"
           :placeholder="t('dictionary.namePlaceholder')"
           clearable
         />
       </el-form-item>
-      <el-form-item :label="t('dictionary.parent')" prop="parentId">
+      <el-form-item
+        :label="t('dictionary.parent')"
+        prop="parentId"
+      >
         <el-tree-select
           v-model="entryForm.parentId"
           :data="treeSelectData"
@@ -78,7 +110,10 @@
           :render-after-expand="false"
         />
       </el-form-item>
-      <el-form-item :label="t('dictionary.introduction')" prop="introduction">
+      <el-form-item
+        :label="t('dictionary.introduction')"
+        prop="introduction"
+      >
         <el-input
           v-model="entryForm.introduction"
           :placeholder="t('dictionary.introductionPlaceholder')"
@@ -89,8 +124,15 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
-      <el-button type="primary" @click="confirmSave">{{ t('common.confirm') }}</el-button>
+      <el-button @click="dialogVisible = false">
+        {{ t('common.cancel') }}
+      </el-button>
+      <el-button
+        type="primary"
+        @click="confirmSave"
+      >
+        {{ t('common.confirm') }}
+      </el-button>
     </template>
   </el-dialog>
 </template>
