@@ -19,7 +19,10 @@
         class="ai-character-drawer-form"
         @submit.prevent="handleGenerate"
       >
-        <el-form-item v-if="characterName" :label="resolvedSubjectLabel">
+        <el-form-item
+          v-if="characterName"
+          :label="resolvedSubjectLabel"
+        >
           <span class="character-name-tip">{{ characterName }}</span>
         </el-form-item>
 
@@ -33,8 +36,14 @@
           >
             {{ t('imageAi.noProviderHint') }}
           </el-alert>
-          <el-form-item v-else :label="t('imageAi.serviceLabel')">
-            <el-select v-model="selectedProvider" style="width: 100%">
+          <el-form-item
+            v-else
+            :label="t('imageAi.serviceLabel')"
+          >
+            <el-select
+              v-model="selectedProvider"
+              style="width: 100%"
+            >
               <el-option
                 v-for="p in imageProviders"
                 :key="p"
@@ -45,7 +54,10 @@
           </el-form-item>
         </template>
 
-        <el-form-item prop="style" :label="t('aiCharacter.style')">
+        <el-form-item
+          prop="style"
+          :label="t('aiCharacter.style')"
+        >
           <el-select
             v-model="form.style"
             :placeholder="t('aiCharacter.selectStyle')"
@@ -66,7 +78,10 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item prop="prompt" :label="t('aiCharacter.prompt')">
+        <el-form-item
+          prop="prompt"
+          :label="t('aiCharacter.prompt')"
+        >
           <el-input
             v-model="form.prompt"
             type="textarea"
@@ -104,11 +119,16 @@
           />
         </el-form-item>
 
-        <div class="form-tip">{{ resolvedOutputTip }}</div>
+        <div class="form-tip">
+          {{ resolvedOutputTip }}
+        </div>
       </el-form>
 
       <!-- 已生成的图片列表 -->
-      <div v-if="generatedList.length > 0" class="generated-section">
+      <div
+        v-if="generatedList.length > 0"
+        class="generated-section"
+      >
         <div class="section-title">
           {{
             t('aiCharacter.generatedTitle', {
@@ -133,16 +153,24 @@
                   index: index + 1
                 })
               "
-            />
+            >
           </div>
         </div>
       </div>
 
-      <el-alert v-if="generating" type="info" :closable="false" show-icon class="generating-hint">
+      <el-alert
+        v-if="generating"
+        type="info"
+        :closable="false"
+        show-icon
+        class="generating-hint"
+      >
         {{ resolvedGeneratingHint }}
       </el-alert>
       <div class="ai-character-drawer-footer">
-        <el-button @click="handleCancel">{{ t('common.cancel') }}</el-button>
+        <el-button @click="handleCancel">
+          {{ t('common.cancel') }}
+        </el-button>
         <el-button
           type="primary"
           :loading="generating"
