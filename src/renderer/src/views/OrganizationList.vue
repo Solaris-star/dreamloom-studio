@@ -1,7 +1,10 @@
 <template>
   <LayoutTool :title="t('organizationList.title')">
     <template #headrAction>
-      <el-button type="primary" @click="showCreateDialog = true">
+      <el-button
+        type="primary"
+        @click="showCreateDialog = true"
+      >
         <el-icon><Plus /></el-icon>
         <span>{{ t('organizationList.create') }}</span>
       </el-button>
@@ -15,11 +18,14 @@
           @command="handleCommand($event, organization)"
         >
           <div class="organization-item">
-            <div class="organization-image" @click="handleEditOrganization(organization)">
+            <div
+              class="organization-image"
+              @click="handleEditOrganization(organization)"
+            >
               <img
                 :src="organizationImages[organization.id] || getDefaultImage()"
                 :alt="organization.name"
-              />
+              >
             </div>
             <div class="organization-info">
               <span class="organization-name">{{ organization.name }}</span>
@@ -28,8 +34,15 @@
           </div>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="edit">{{ t('common.edit') }}</el-dropdown-item>
-              <el-dropdown-item command="delete" divided>{{ t('common.delete') }}</el-dropdown-item>
+              <el-dropdown-item command="edit">
+                {{ t('common.edit') }}
+              </el-dropdown-item>
+              <el-dropdown-item
+                command="delete"
+                divided
+              >
+                {{ t('common.delete') }}
+              </el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -56,7 +69,10 @@
       label-width="80px"
       @submit.prevent="handleCreateOrganization"
     >
-      <el-form-item :label="t('organizationList.name')" prop="name">
+      <el-form-item
+        :label="t('organizationList.name')"
+        prop="name"
+      >
         <el-input
           v-model="createForm.name"
           clearable
@@ -64,7 +80,10 @@
           :placeholder="t('organizationList.namePlaceholder')"
         />
       </el-form-item>
-      <el-form-item :label="t('organizationList.description')" prop="description">
+      <el-form-item
+        :label="t('organizationList.description')"
+        prop="description"
+      >
         <el-input
           v-model="createForm.description"
           type="textarea"
@@ -78,7 +97,11 @@
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="showCreateDialog = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" :loading="creating" @click="handleCreateOrganization">
+        <el-button
+          type="primary"
+          :loading="creating"
+          @click="handleCreateOrganization"
+        >
           {{ t('organizationList.createBtn') }}
         </el-button>
       </span>
@@ -98,7 +121,10 @@
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="deleteDialogVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="danger" @click="confirmDelete">{{
+        <el-button
+          type="danger"
+          @click="confirmDelete"
+        >{{
           t('organizationList.deleteConfirmBtn')
         }}</el-button>
       </span>
