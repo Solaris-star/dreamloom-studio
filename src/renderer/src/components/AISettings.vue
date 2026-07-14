@@ -10,11 +10,18 @@
   >
     <div class="ai-settings-drawer-inner">
       <div class="ai-settings-drawer-body">
-        <el-form label-width="120px" @submit.prevent="handleSave">
+        <el-form
+          label-width="120px"
+          @submit.prevent="handleSave"
+        >
           <!-- 文本 AI -->
-          <div class="section-heading">{{ t('aiSettings.sectionTextAi') }}</div>
+          <div class="section-heading">
+            {{ t('aiSettings.sectionTextAi') }}
+          </div>
           <div class="config-block">
-            <div class="block-title">{{ t('aiSettings.deepseek') }}</div>
+            <div class="block-title">
+              {{ t('aiSettings.deepseek') }}
+            </div>
             <el-form-item :label="t('aiSettings.apiKey')">
               <div class="input-with-btn">
                 <el-input
@@ -63,7 +70,9 @@
 
           <!-- 通义万相 -->
           <div class="config-block">
-            <div class="block-title">{{ t('aiSettings.tongyi') }}</div>
+            <div class="block-title">
+              {{ t('aiSettings.tongyi') }}
+            </div>
             <el-form-item :label="t('aiSettings.apiKey')">
               <div class="input-with-btn">
                 <el-input
@@ -109,8 +118,12 @@
 
           <!-- Gemini Imagen -->
           <div class="config-block">
-            <div class="block-title">{{ t('aiSettings.gemini') }}</div>
-            <div class="form-tip gemini-tip">{{ t('aiSettings.geminiTip') }}</div>
+            <div class="block-title">
+              {{ t('aiSettings.gemini') }}
+            </div>
+            <div class="form-tip gemini-tip">
+              {{ t('aiSettings.geminiTip') }}
+            </div>
             <el-form-item :label="t('aiSettings.apiKey')">
               <div class="input-with-btn">
                 <el-input
@@ -156,7 +169,9 @@
 
           <!-- 豆包（火山方舟） -->
           <div class="config-block">
-            <div class="block-title">{{ t('aiSettings.doubao') }}</div>
+            <div class="block-title">
+              {{ t('aiSettings.doubao') }}
+            </div>
             <el-form-item :label="t('aiSettings.apiKey')">
               <el-input
                 v-model="doubaoApiKey"
@@ -217,8 +232,18 @@
         </el-form>
       </div>
       <div class="ai-settings-drawer-footer">
-        <el-button :disabled="anyLoading" @click="handleClose">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" :loading="saving" :disabled="anyLoading" @click="handleSave">
+        <el-button
+          :disabled="anyLoading"
+          @click="handleClose"
+        >
+          {{ t('common.cancel') }}
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="saving"
+          :disabled="anyLoading"
+          @click="handleSave"
+        >
           {{ t('common.save') }}
         </el-button>
       </div>
