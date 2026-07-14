@@ -3,7 +3,11 @@
     <!-- 顶部操作栏 -->
     <div class="top-bar">
       <div>
-        <el-button type="primary" class="new-book-btn" @click="handleNewBook">
+        <el-button
+          type="primary"
+          class="new-book-btn"
+          @click="handleNewBook"
+        >
           <el-icon><Plus /></el-icon>
           {{ t('bookshelf.newBook') }}
         </el-button>
@@ -54,7 +58,11 @@
     />
 
     <!-- 密码验证弹框 -->
-    <el-dialog v-model="passwordDialogVisible" :title="t('bookshelf.passwordVerify')" width="400px">
+    <el-dialog
+      v-model="passwordDialogVisible"
+      :title="t('bookshelf.passwordVerify')"
+      width="400px"
+    >
       <el-form
         ref="passwordFormRef"
         :model="passwordForm"
@@ -62,7 +70,10 @@
         label-width="80px"
         @submit.prevent="handlePasswordConfirm"
       >
-        <el-form-item prop="password" :label="t('bookForm.password')">
+        <el-form-item
+          prop="password"
+          :label="t('bookForm.password')"
+        >
           <el-input
             v-model="passwordForm.password"
             type="password"
@@ -74,16 +85,26 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="passwordDialogVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handlePasswordConfirm">{{
-          t('common.confirm')
-        }}</el-button>
+        <el-button @click="passwordDialogVisible = false">
+          {{ t('common.cancel') }}
+        </el-button>
+        <el-button
+          type="primary"
+          @click="handlePasswordConfirm"
+        >
+          {{
+            t('common.confirm')
+          }}
+        </el-button>
       </template>
     </el-dialog>
 
     <!-- 书籍列表 -->
     <div class="books-box">
-      <div v-if="books.length === 0" class="books-box-empty">
+      <div
+        v-if="books.length === 0"
+        class="books-box-empty"
+      >
         <el-empty :description="t('bookshelf.noBooks')" />
       </div>
       <Book
@@ -105,7 +126,10 @@
     </div>
 
     <!-- 图表区域占位 -->
-    <WordCountChart ref="chartRef" height="200px" />
+    <WordCountChart
+      ref="chartRef"
+      height="200px"
+    />
   </div>
 </template>
 
