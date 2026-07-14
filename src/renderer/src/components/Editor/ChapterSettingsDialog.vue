@@ -15,8 +15,12 @@
         <h4>{{ t('chapterSettings.chapterNumberFormat') }}</h4>
         <div class="format-options">
           <el-radio-group v-model="settings.chapterFormat">
-            <el-radio value="number">{{ t('chapterSettings.numberMode') }}</el-radio>
-            <el-radio value="hanzi">{{ t('chapterSettings.hanziMode') }}</el-radio>
+            <el-radio value="number">
+              {{ t('chapterSettings.numberMode') }}
+            </el-radio>
+            <el-radio value="hanzi">
+              {{ t('chapterSettings.hanziMode') }}
+            </el-radio>
           </el-radio-group>
         </div>
       </div>
@@ -26,12 +30,24 @@
         <h4>{{ t('chapterSettings.suffixType') }}</h4>
         <div class="suffix-options">
           <el-radio-group v-model="settings.suffixType">
-            <el-radio value="章">章</el-radio>
-            <el-radio value="集">集</el-radio>
-            <el-radio value="回">回</el-radio>
-            <el-radio value="节">节</el-radio>
-            <el-radio value="部">部</el-radio>
-            <el-radio value="卷">卷</el-radio>
+            <el-radio value="章">
+              章
+            </el-radio>
+            <el-radio value="集">
+              集
+            </el-radio>
+            <el-radio value="回">
+              回
+            </el-radio>
+            <el-radio value="节">
+              节
+            </el-radio>
+            <el-radio value="部">
+              部
+            </el-radio>
+            <el-radio value="卷">
+              卷
+            </el-radio>
           </el-radio-group>
         </div>
       </div>
@@ -85,11 +101,21 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">{{ t('common.cancel') }}</el-button>
-        <el-button type="warning" :loading="reformatLoading" @click="handleReformat">
+        <el-button @click="handleClose">
+          {{ t('common.cancel') }}
+        </el-button>
+        <el-button
+          type="warning"
+          :loading="reformatLoading"
+          @click="handleReformat"
+        >
           {{ t('chapterSettings.reformatChapterNumber') }}
         </el-button>
-        <el-button type="primary" :loading="loading" @click="handleConfirm">
+        <el-button
+          type="primary"
+          :loading="loading"
+          @click="handleConfirm"
+        >
           {{ t('chapterSettings.confirmModify') }}
         </el-button>
       </div>
