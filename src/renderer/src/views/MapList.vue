@@ -1,7 +1,10 @@
 <template>
   <LayoutTool :title="t('mapList.title')">
     <template #headrAction>
-      <el-button type="primary" @click="showCreateDialog = true">
+      <el-button
+        type="primary"
+        @click="showCreateDialog = true"
+      >
         <el-icon><Plus /></el-icon>
         <span>{{ t('mapList.create') }}</span>
       </el-button>
@@ -15,8 +18,14 @@
           @command="handleCommand($event, map)"
         >
           <div class="map-item">
-            <div class="map-image" @click="handleEditMap(map)">
-              <img :src="map.thumbnail" :alt="map.name" />
+            <div
+              class="map-image"
+              @click="handleEditMap(map)"
+            >
+              <img
+                :src="map.thumbnail"
+                :alt="map.name"
+              >
             </div>
             <div class="map-info">
               <span class="map-name">{{ map.name }}</span>
@@ -24,13 +33,24 @@
           </div>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="edit">{{ t('common.edit') }}</el-dropdown-item>
-              <el-dropdown-item command="delete" divided>{{ t('common.delete') }}</el-dropdown-item>
+              <el-dropdown-item command="edit">
+                {{ t('common.edit') }}
+              </el-dropdown-item>
+              <el-dropdown-item
+                command="delete"
+                divided
+              >
+                {{ t('common.delete') }}
+              </el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
       </div>
-      <el-empty v-if="maps.length === 0" :image-size="200" :description="t('mapList.empty')" />
+      <el-empty
+        v-if="maps.length === 0"
+        :image-size="200"
+        :description="t('mapList.empty')"
+      />
     </template>
   </LayoutTool>
 
@@ -48,7 +68,10 @@
       label-width="80px"
       @submit.prevent="handleCreateMap"
     >
-      <el-form-item :label="t('mapList.name')" prop="name">
+      <el-form-item
+        :label="t('mapList.name')"
+        prop="name"
+      >
         <el-input
           v-model="createForm.name"
           clearable
@@ -56,7 +79,10 @@
           :placeholder="t('mapList.namePlaceholder')"
         />
       </el-form-item>
-      <el-form-item :label="t('mapList.description')" prop="description">
+      <el-form-item
+        :label="t('mapList.description')"
+        prop="description"
+      >
         <el-input
           v-model="createForm.description"
           type="textarea"
@@ -70,7 +96,11 @@
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="showCreateDialog = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" :loading="creating" @click="handleCreateMap">
+        <el-button
+          type="primary"
+          :loading="creating"
+          @click="handleCreateMap"
+        >
           {{ t('mapList.create') }}
         </el-button>
       </span>
@@ -88,7 +118,10 @@
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="deleteDialogVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="danger" @click="confirmDelete">{{
+        <el-button
+          type="danger"
+          @click="confirmDelete"
+        >{{
           t('mapList.deleteConfirmBtn')
         }}</el-button>
       </span>
