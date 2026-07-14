@@ -1,17 +1,32 @@
 <template>
   <div class="layout-tool">
-    <div :class="{ 'layout-tool-header-fixed': headerFixed }" class="layout-tool-header">
-      <el-button class="back-btn" :icon="ArrowLeftBold" text @click="handleBack">
+    <div
+      :class="{ 'layout-tool-header-fixed': headerFixed }"
+      class="layout-tool-header"
+    >
+      <el-button
+        class="back-btn"
+        :icon="ArrowLeftBold"
+        text
+        @click="handleBack"
+      >
         <span>{{ t('layoutTool.back') }}</span>
       </el-button>
-      <h2 class="header-title">{{ title }}</h2>
+      <h2 class="header-title">
+        {{ title }}
+      </h2>
       <div class="header-action">
-        <el-button class="refresh-btn" :icon="Refresh" circle @click="handleRefresh" />
-        <slot name="headrAction"></slot>
+        <el-button
+          class="refresh-btn"
+          :icon="Refresh"
+          circle
+          @click="handleRefresh"
+        />
+        <slot name="headrAction" />
       </div>
     </div>
     <div class="layout-tool-main">
-      <slot></slot>
+      <slot />
     </div>
   </div>
 </template>
