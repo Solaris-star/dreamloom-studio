@@ -1,6 +1,11 @@
 <template>
   <Transition name="fade">
-    <div v-if="visible" ref="panelRef" class="resource-tool-panel-wrapper" @click.stop>
+    <div
+      v-if="visible"
+      ref="panelRef"
+      class="resource-tool-panel-wrapper"
+      @click.stop
+    >
       <div class="resource-tool-panel">
         <div class="resource-grid">
           <div
@@ -10,11 +15,16 @@
             @click="handleResourceSelect(resource)"
             @mousedown="handleResourceMouseDown(resource, $event)"
           >
-            <SvgIcon :name="resource.icon" :size="32" />
+            <SvgIcon
+              :name="resource.icon"
+              :size="32"
+            />
             <span class="resource-name">{{ resource.label }}</span>
           </div>
         </div>
-        <div class="resource-tip">{{ t('resourceToolPanel.tip') }}</div>
+        <div class="resource-tip">
+          {{ t('resourceToolPanel.tip') }}
+        </div>
       </div>
     </div>
   </Transition>
