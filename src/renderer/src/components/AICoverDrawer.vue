@@ -19,7 +19,10 @@
       >
         <el-row :gutter="16">
           <el-col :span="10">
-            <el-form-item prop="penName" :label="t('aiCover.penName')">
+            <el-form-item
+              prop="penName"
+              :label="t('aiCover.penName')"
+            >
               <el-input
                 v-model="form.penName"
                 :placeholder="t('aiCover.penNamePlaceholder')"
@@ -29,7 +32,10 @@
             </el-form-item>
           </el-col>
           <el-col :span="14">
-            <el-form-item prop="coverSize" :label="t('aiCover.coverSize')">
+            <el-form-item
+              prop="coverSize"
+              :label="t('aiCover.coverSize')"
+            >
               <el-select
                 v-model="form.coverSize"
                 :placeholder="t('aiCover.selectCoverSize')"
@@ -60,8 +66,14 @@
           >
             {{ t('imageAi.noProviderHint') }}
           </el-alert>
-          <el-form-item v-else :label="t('imageAi.serviceLabel')">
-            <el-select v-model="selectedProvider" style="width: 100%">
+          <el-form-item
+            v-else
+            :label="t('imageAi.serviceLabel')"
+          >
+            <el-select
+              v-model="selectedProvider"
+              style="width: 100%"
+            >
               <el-option
                 v-for="p in imageProviders"
                 :key="p"
@@ -72,11 +84,20 @@
           </el-form-item>
         </template>
         <el-collapse class="ai-cover-history-collapse">
-          <el-collapse-item :title="t('aiCover.historyTitle')" name="history">
-            <div v-if="historyList.length === 0" class="history-empty">
+          <el-collapse-item
+            :title="t('aiCover.historyTitle')"
+            name="history"
+          >
+            <div
+              v-if="historyList.length === 0"
+              class="history-empty"
+            >
               {{ t('aiCover.historyEmpty') }}
             </div>
-            <ul v-else class="history-list">
+            <ul
+              v-else
+              class="history-list"
+            >
               <li
                 v-for="(item, index) in historyList"
                 :key="String(item.createdAt || '') + index"
@@ -90,7 +111,10 @@
           </el-collapse-item>
         </el-collapse>
         <!-- 封面要求：拆分为三部分，让提示词更明确 -->
-        <el-form-item prop="titlePrompt" :label="t('aiCover.titlePrompt')">
+        <el-form-item
+          prop="titlePrompt"
+          :label="t('aiCover.titlePrompt')"
+        >
           <el-input
             v-model="form.titlePrompt"
             type="textarea"
@@ -100,7 +124,10 @@
             show-word-limit
           />
         </el-form-item>
-        <el-form-item prop="authorPrompt" :label="t('aiCover.authorPrompt')">
+        <el-form-item
+          prop="authorPrompt"
+          :label="t('aiCover.authorPrompt')"
+        >
           <el-input
             v-model="form.authorPrompt"
             type="textarea"
@@ -110,8 +137,14 @@
             show-word-limit
           />
         </el-form-item>
-        <el-form-item prop="backgroundPrompt" :label="t('aiCover.backgroundPrompt')">
-          <div v-if="selectedPromptTags.length > 0" class="selected-tags">
+        <el-form-item
+          prop="backgroundPrompt"
+          :label="t('aiCover.backgroundPrompt')"
+        >
+          <div
+            v-if="selectedPromptTags.length > 0"
+            class="selected-tags"
+          >
             <el-tag
               v-for="(tag, index) in selectedPromptTags"
               :key="index"
@@ -166,7 +199,10 @@
       </el-form>
 
       <!-- 已生成的封面：多图排列，点击选择一张后确认使用 -->
-      <div v-if="generatedList.length > 0" class="generated-section">
+      <div
+        v-if="generatedList.length > 0"
+        class="generated-section"
+      >
         <div class="section-title">
           {{ t('aiCover.generatedTitle', { count: generatedList.length }) }}
         </div>
@@ -178,16 +214,27 @@
             :class="{ selected: selectedPath === item.localPath }"
             @click="selectedPath = item.localPath"
           >
-            <img :src="item.previewUrl" :alt="t('aiCover.generatedAlt', { index: index + 1 })" />
+            <img
+              :src="item.previewUrl"
+              :alt="t('aiCover.generatedAlt', { index: index + 1 })"
+            >
           </div>
         </div>
       </div>
 
-      <el-alert v-if="generating" type="info" :closable="false" show-icon class="generating-hint">
+      <el-alert
+        v-if="generating"
+        type="info"
+        :closable="false"
+        show-icon
+        class="generating-hint"
+      >
         {{ t('aiCover.generatingHint') }}
       </el-alert>
       <div class="ai-cover-drawer-footer">
-        <el-button @click="handleCancel">{{ t('common.cancel') }}</el-button>
+        <el-button @click="handleCancel">
+          {{ t('common.cancel') }}
+        </el-button>
         <el-button
           type="primary"
           :loading="generating"
