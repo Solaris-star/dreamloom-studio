@@ -11,21 +11,39 @@
   >
     <div class="plot-evolution-content">
       <div class="plot-evolution-body">
-        <el-form label-width="80px" class="plot-evolution-form">
+        <el-form
+          label-width="80px"
+          class="plot-evolution-form"
+        >
           <el-form-item :label="t('plotEvolution.modelSelect')">
             <el-checkbox-group
               v-model="selectedProviders"
               :disabled="providerLoading || !!providerLoadError"
             >
-              <el-checkbox v-for="p in textProviders" :key="p.id" :label="p.name" :value="p.id" />
+              <el-checkbox
+                v-for="p in textProviders"
+                :key="p.id"
+                :label="p.name"
+                :value="p.id"
+              />
             </el-checkbox-group>
-            <div v-if="providerLoadError" class="provider-read-error">
+            <div
+              v-if="providerLoadError"
+              class="provider-read-error"
+            >
               <span>{{ providerLoadError }}</span>
-              <button type="button" :disabled="providerLoading" @click="loadProviders">
+              <button
+                type="button"
+                :disabled="providerLoading"
+                @click="loadProviders"
+              >
                 {{ t('common.retry') }}
               </button>
             </div>
-            <div v-else-if="textProviders.length === 0" class="no-provider-hint">
+            <div
+              v-else-if="textProviders.length === 0"
+              class="no-provider-hint"
+            >
               {{ t('plotEvolution.noProviderHint') }}
             </div>
           </el-form-item>
@@ -42,9 +60,18 @@
           </el-button>
         </div>
 
-        <div v-if="resultGroups.length > 0" class="result-section">
-          <div v-for="group in resultGroups" :key="group.providerId" class="result-group">
-            <div class="group-header">{{ group.providerName }}</div>
+        <div
+          v-if="resultGroups.length > 0"
+          class="result-section"
+        >
+          <div
+            v-for="group in resultGroups"
+            :key="group.providerId"
+            class="result-group"
+          >
+            <div class="group-header">
+              {{ group.providerName }}
+            </div>
             <el-card
               v-for="(proposal, pIdx) in group.proposals"
               :key="pIdx"
@@ -52,14 +79,24 @@
               shadow="hover"
             >
               <div class="proposal-title">
-                <el-tag type="primary">{{ proposal.title }}</el-tag>
+                <el-tag type="primary">
+                  {{ proposal.title }}
+                </el-tag>
               </div>
-              <div class="proposal-summary">{{ proposal.summary }}</div>
-              <div v-if="proposal.conflict" class="proposal-conflict">
+              <div class="proposal-summary">
+                {{ proposal.summary }}
+              </div>
+              <div
+                v-if="proposal.conflict"
+                class="proposal-conflict"
+              >
                 <span class="label">{{ t('plotEvolution.conflict') }}</span>
                 {{ proposal.conflict }}
               </div>
-              <div v-if="proposal.emotion" class="proposal-emotion">
+              <div
+                v-if="proposal.emotion"
+                class="proposal-emotion"
+              >
                 <span class="label">{{ t('plotEvolution.emotion') }}</span>
                 {{ proposal.emotion }}
               </div>
@@ -78,7 +115,11 @@
                 </el-tag>
               </div>
               <div class="proposal-actions">
-                <el-button type="success" size="small" @click="handleApply(proposal)">
+                <el-button
+                  type="success"
+                  size="small"
+                  @click="handleApply(proposal)"
+                >
                   {{ t('plotEvolution.apply') }}
                 </el-button>
                 <el-button
