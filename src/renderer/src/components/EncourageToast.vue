@@ -1,10 +1,19 @@
 <template>
   <Teleport to="body">
     <Transition name="encourage-fade">
-      <div v-if="modelValue" class="encourage-toast" role="status" aria-live="polite">
+      <div
+        v-if="modelValue"
+        class="encourage-toast"
+        role="status"
+        aria-live="polite"
+      >
         <div class="encourage-toast__content">
-          <div class="encourage-toast__title">{{ t('encourageToast.title') }}</div>
-          <div class="encourage-toast__message">{{ message }}</div>
+          <div class="encourage-toast__title">
+            {{ t('encourageToast.title') }}
+          </div>
+          <div class="encourage-toast__message">
+            {{ message }}
+          </div>
         </div>
         <button
           class="encourage-toast__close"
