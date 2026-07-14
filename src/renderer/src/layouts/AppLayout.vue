@@ -7,8 +7,14 @@
       gridTemplateColumns: 'var(--sidebar-width) minmax(0, 1fr)'
     }"
   >
-    <a class="skip-link" href="#app-main">跳到主要内容</a>
-    <aside class="app-sidebar" :class="{ collapsed: sidebarWidth < 100 }">
+    <a
+      class="skip-link"
+      href="#app-main"
+    >跳到主要内容</a>
+    <aside
+      class="app-sidebar"
+      :class="{ collapsed: sidebarWidth < 100 }"
+    >
       <div class="sidebar-content-wrapper">
         <button
           v-motion-feedback
@@ -17,11 +23,21 @@
           aria-label="首页"
           @click="router.push('/dashboard')"
         >
-          <img :src="brandLogoUrl" alt="织梦工坊" />
+          <img
+            :src="brandLogoUrl"
+            alt="织梦工坊"
+          >
         </button>
 
-        <nav class="app-menu" aria-label="主导航">
-          <div v-for="item in navigationItems" :key="item.key" class="app-menu-group">
+        <nav
+          class="app-menu"
+          aria-label="主导航"
+        >
+          <div
+            v-for="item in navigationItems"
+            :key="item.key"
+            class="app-menu-group"
+          >
             <button
               v-motion-feedback
               class="app-menu-item"
@@ -30,8 +46,14 @@
               type="button"
               @click="handleNavigate(item)"
             >
-              <span class="app-menu-icon" aria-hidden="true">
-                <component :is="item.icon" v-bind="iconProps" />
+              <span
+                class="app-menu-icon"
+                aria-hidden="true"
+              >
+                <component
+                  :is="item.icon"
+                  v-bind="iconProps"
+                />
               </span>
               <span class="app-menu-label">{{ item.label }}</span>
             </button>
@@ -66,8 +88,14 @@
             :aria-label="sidebarWidth < 100 ? '展开侧栏' : '收起侧栏'"
             @click="toggleSidebarCollapse"
           >
-            <span class="app-menu-icon" aria-hidden="true">
-              <component :is="sidebarWidth < 100 ? ChevronRight : ChevronLeft" v-bind="iconProps" />
+            <span
+              class="app-menu-icon"
+              aria-hidden="true"
+            >
+              <component
+                :is="sidebarWidth < 100 ? ChevronRight : ChevronLeft"
+                v-bind="iconProps"
+              />
             </span>
             <span class="app-menu-label">{{ sidebarWidth < 100 ? '展开' : '收起' }}</span>
           </button>
@@ -78,7 +106,10 @@
         </div>
       </div>
       <!-- Sidebar Resizer -->
-      <div class="sidebar-resizer" @mousedown="startSidebarResize"></div>
+      <div
+        class="sidebar-resizer"
+        @mousedown="startSidebarResize"
+      />
     </aside>
 
     <main
@@ -99,8 +130,14 @@
           @enter="handlePageEnter"
           @leave="handlePageLeave"
         >
-          <keep-alive :include="cachedRouteNames" :max="5">
-            <component :is="Component" :key="routeViewKey(viewRoute)" />
+          <keep-alive
+            :include="cachedRouteNames"
+            :max="5"
+          >
+            <component
+              :is="Component"
+              :key="routeViewKey(viewRoute)"
+            />
           </keep-alive>
         </transition>
       </router-view>
