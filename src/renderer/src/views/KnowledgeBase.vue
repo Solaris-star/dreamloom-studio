@@ -1107,6 +1107,8 @@ import {
 
 const router = useRouter()
 
+// 局部渲染组件只服务当前详情面板，并依赖本页面的 scoped 样式。
+// eslint-disable-next-line vue/one-component-per-file
 const ScoreBar = defineComponent({
   props: {
     label: { type: String, default: '' },
@@ -1124,6 +1126,7 @@ const ScoreBar = defineComponent({
   }
 })
 
+// eslint-disable-next-line vue/one-component-per-file
 const DetailBlock = defineComponent({
   props: {
     title: { type: String, default: '' },

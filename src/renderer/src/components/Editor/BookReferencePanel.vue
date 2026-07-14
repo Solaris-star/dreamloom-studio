@@ -447,6 +447,8 @@ function isParsed(meta = {}) {
   return meta?.analysisStatus === 'split_done'
 }
 
+// 局部渲染组件与本面板的 scoped 样式和事件协议紧密关联。
+// eslint-disable-next-line vue/one-component-per-file
 const LockedNotice = defineComponent({
   name: 'LockedNotice',
   emits: ['ask'],
@@ -487,6 +489,7 @@ const LockedNotice = defineComponent({
   }
 })
 
+// eslint-disable-next-line vue/one-component-per-file
 const ReferenceCard = defineComponent({
   name: 'ReferenceCard',
   props: {
