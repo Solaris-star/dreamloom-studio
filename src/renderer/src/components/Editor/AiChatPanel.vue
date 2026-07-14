@@ -1,11 +1,22 @@
 <template>
-  <div class="ai-chat-panel" :class="{ collapsed }">
-    <div class="chat-panel-header" @click="collapsed = !collapsed">
+  <div
+    class="ai-chat-panel"
+    :class="{ collapsed }"
+  >
+    <div
+      class="chat-panel-header"
+      @click="collapsed = !collapsed"
+    >
       <span class="header-title">{{ t('aiChat.title') }}</span>
-      <el-icon class="header-toggle"><ArrowRight v-if="collapsed" /><ArrowLeft v-else /></el-icon>
+      <el-icon class="header-toggle">
+        <ArrowRight v-if="collapsed" /><ArrowLeft v-else />
+      </el-icon>
     </div>
 
-    <div v-show="!collapsed" class="chat-panel-body">
+    <div
+      v-show="!collapsed"
+      class="chat-panel-body"
+    >
       <div class="chat-preset-row">
         <el-select
           v-model="selectedPresetId"
@@ -15,21 +26,46 @@
           clearable
           style="width: 100%"
         >
-          <el-option v-for="p in chatPresets" :key="p.id" :label="p.name" :value="p.id" />
+          <el-option
+            v-for="p in chatPresets"
+            :key="p.id"
+            :label="p.name"
+            :value="p.id"
+          />
         </el-select>
-        <div v-if="chatPresetLoadError" class="chat-preset-error">
+        <div
+          v-if="chatPresetLoadError"
+          class="chat-preset-error"
+        >
           <span>{{ chatPresetLoadError }}</span>
-          <el-button size="small" :loading="presetLoading" @click="loadPresets">
+          <el-button
+            size="small"
+            :loading="presetLoading"
+            @click="loadPresets"
+          >
             {{ t('aiChat.retry') }}
           </el-button>
         </div>
       </div>
 
-      <div ref="messageListRef" class="chat-messages">
-        <div v-for="(msg, idx) in messages" :key="idx" class="chat-message" :class="msg.role">
-          <div class="message-bubble">{{ msg.content }}</div>
+      <div
+        ref="messageListRef"
+        class="chat-messages"
+      >
+        <div
+          v-for="(msg, idx) in messages"
+          :key="idx"
+          class="chat-message"
+          :class="msg.role"
+        >
+          <div class="message-bubble">
+            {{ msg.content }}
+          </div>
         </div>
-        <div v-if="messages.length === 0" class="chat-empty">
+        <div
+          v-if="messages.length === 0"
+          class="chat-empty"
+        >
           {{ t('aiChat.emptyHint') }}
         </div>
       </div>
@@ -57,7 +93,10 @@
           >
             {{ t('aiChat.insert') }}
           </el-button>
-          <el-button :disabled="messages.length === 0" @click="handleClear">
+          <el-button
+            :disabled="messages.length === 0"
+            @click="handleClear"
+          >
             {{ t('aiChat.clear') }}
           </el-button>
         </div>
