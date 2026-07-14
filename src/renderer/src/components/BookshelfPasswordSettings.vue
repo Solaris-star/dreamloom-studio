@@ -15,7 +15,10 @@
         label-width="100px"
         @submit.prevent="handleSetPassword"
       >
-        <el-form-item :label="t('bookshelfPassword.inputPassword')" prop="password">
+        <el-form-item
+          :label="t('bookshelfPassword.inputPassword')"
+          prop="password"
+        >
           <el-input
             v-model="passwordForm.password"
             type="password"
@@ -23,7 +26,10 @@
             show-password
           />
         </el-form-item>
-        <el-form-item :label="t('bookshelfPassword.confirmPassword')" prop="confirmPassword">
+        <el-form-item
+          :label="t('bookshelfPassword.confirmPassword')"
+          prop="confirmPassword"
+        >
           <el-input
             v-model="passwordForm.confirmPassword"
             type="password"
@@ -35,7 +41,10 @@
     </div>
     <div v-else>
       <!-- 已设置密码：显示缩略密码和操作按钮 -->
-      <div v-if="!isModifyingPassword" class="password-display">
+      <div
+        v-if="!isModifyingPassword"
+        class="password-display"
+      >
         <div>{{ t('bookshelfPassword.configured') }}</div>
       </div>
       <!-- 修改密码表单 -->
@@ -47,7 +56,10 @@
         label-width="100px"
         @submit.prevent="handleModifyPassword"
       >
-        <el-form-item :label="t('bookshelfPassword.oldPassword')" prop="oldPassword">
+        <el-form-item
+          :label="t('bookshelfPassword.oldPassword')"
+          prop="oldPassword"
+        >
           <el-input
             v-model="modifyPasswordForm.oldPassword"
             type="password"
@@ -55,7 +67,10 @@
             show-password
           />
         </el-form-item>
-        <el-form-item :label="t('bookshelfPassword.newPassword')" prop="newPassword">
+        <el-form-item
+          :label="t('bookshelfPassword.newPassword')"
+          prop="newPassword"
+        >
           <el-input
             v-model="modifyPasswordForm.newPassword"
             type="password"
@@ -63,7 +78,10 @@
             show-password
           />
         </el-form-item>
-        <el-form-item :label="t('bookshelfPassword.confirmPassword')" prop="confirmNewPassword">
+        <el-form-item
+          :label="t('bookshelfPassword.confirmPassword')"
+          prop="confirmNewPassword"
+        >
           <el-input
             v-model="modifyPasswordForm.confirmNewPassword"
             type="password"
@@ -75,20 +93,43 @@
     </div>
     <template #footer>
       <template v-if="!hasPassword">
-        <el-button @click="handleClose">{{ t('common.cancel') }}</el-button>
-        <el-button :loading="passwordLoading" type="primary" @click="handleSetPassword">
+        <el-button @click="handleClose">
+          {{ t('common.cancel') }}
+        </el-button>
+        <el-button
+          :loading="passwordLoading"
+          type="primary"
+          @click="handleSetPassword"
+        >
           {{ t('common.confirm') }}
         </el-button>
       </template>
       <template v-else>
-        <el-button v-if="!isModifyingPassword" @click="handleClose">
+        <el-button
+          v-if="!isModifyingPassword"
+          @click="handleClose"
+        >
           {{ t('bookshelfPassword.close') }}
         </el-button>
-        <el-button v-else @click="handleCancelModify">{{ t('common.cancel') }}</el-button>
-        <el-button v-if="!isModifyingPassword" type="primary" @click="isModifyingPassword = true">
+        <el-button
+          v-else
+          @click="handleCancelModify"
+        >
+          {{ t('common.cancel') }}
+        </el-button>
+        <el-button
+          v-if="!isModifyingPassword"
+          type="primary"
+          @click="isModifyingPassword = true"
+        >
           {{ t('bookshelfPassword.modify') }}
         </el-button>
-        <el-button v-else :loading="passwordLoading" type="primary" @click="handleModifyPassword">
+        <el-button
+          v-else
+          :loading="passwordLoading"
+          type="primary"
+          @click="handleModifyPassword"
+        >
           {{ t('common.confirm') }}
         </el-button>
       </template>
