@@ -2,7 +2,9 @@
   <div class="outline-manager-panel">
     <div class="outline-layout">
       <div class="outline-tree-panel">
-        <div class="panel-title">{{ t('outlineManager.outlineDirectory') }}</div>
+        <div class="panel-title">
+          {{ t('outlineManager.outlineDirectory') }}
+        </div>
         <el-tree
           ref="treeRef"
           class="outline-tree"
@@ -19,7 +21,9 @@
 
       <div class="outline-content-panel">
         <div class="content-panel-header">
-          <div class="panel-title">{{ t('outlineManager.outlineContent') }}</div>
+          <div class="panel-title">
+            {{ t('outlineManager.outlineContent') }}
+          </div>
           <div class="header-right-actions">
             <el-button
               type="success"
@@ -44,7 +48,11 @@
             >
               {{ t('outlineManager.aiGenerateChapter') }}
             </el-button>
-            <el-button type="primary" :loading="isSaving" @click="handleConfirmSave">
+            <el-button
+              type="primary"
+              :loading="isSaving"
+              @click="handleConfirmSave"
+            >
               {{ t('common.save') }}
             </el-button>
           </div>
@@ -59,10 +67,17 @@
             {{ t('common.delete') }}
           </el-button>
         </div>
-        <div v-if="autoSaveError" class="footer-save-warning">
+        <div
+          v-if="autoSaveError"
+          class="footer-save-warning"
+        >
           {{ autoSaveError }}
         </div>
-        <el-form class="outline-form" label-position="top" @submit.prevent>
+        <el-form
+          class="outline-form"
+          label-position="top"
+          @submit.prevent
+        >
           <el-form-item>
             <el-input
               v-model="selectedNode.title"
@@ -81,10 +96,20 @@
       </div>
     </div>
 
-    <el-dialog v-model="createDialogVisible" :title="t('outlineManager.addOutline')" width="420px">
-      <el-form label-position="top" @submit.prevent="handleCreateOutline">
+    <el-dialog
+      v-model="createDialogVisible"
+      :title="t('outlineManager.addOutline')"
+      width="420px"
+    >
+      <el-form
+        label-position="top"
+        @submit.prevent="handleCreateOutline"
+      >
         <el-form-item :label="t('outlineManager.parentOutlineCategoryLabel')">
-          <el-input :model-value="createOutlineParentCategoryDisplay" disabled />
+          <el-input
+            :model-value="createOutlineParentCategoryDisplay"
+            disabled
+          />
         </el-form-item>
         <el-form-item :label="t('outlineManager.outlineName')">
           <el-input
@@ -99,7 +124,10 @@
         <el-button @click="createDialogVisible = false">
           {{ t('common.cancel') }}
         </el-button>
-        <el-button type="primary" @click="handleCreateOutline">
+        <el-button
+          type="primary"
+          @click="handleCreateOutline"
+        >
           {{ t('common.confirm') }}
         </el-button>
       </template>
@@ -122,7 +150,10 @@
       :close-on-press-escape="!generateChapterLoading"
       :show-close="!generateChapterLoading"
     >
-      <el-form label-position="top" @submit.prevent="handleGenerateChapterPreview">
+      <el-form
+        label-position="top"
+        @submit.prevent="handleGenerateChapterPreview"
+      >
         <el-form-item :label="t('outlineManager.targetVolumeLabel')">
           <el-select
             v-model="targetVolumeName"
@@ -156,7 +187,10 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button :disabled="generateChapterLoading" @click="generateChapterDialogVisible = false">
+        <el-button
+          :disabled="generateChapterLoading"
+          @click="generateChapterDialogVisible = false"
+        >
           {{ t('common.cancel') }}
         </el-button>
         <el-button
@@ -185,7 +219,10 @@
         :placeholder="t('outlineManager.generateChapterResultPlaceholder')"
       />
       <template #footer>
-        <el-button :disabled="chapterUpsertLoading" @click="copyGeneratedChapterContent">
+        <el-button
+          :disabled="chapterUpsertLoading"
+          @click="copyGeneratedChapterContent"
+        >
           {{ t('outlineManager.copyContent') }}
         </el-button>
         <el-button
