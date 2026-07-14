@@ -69,12 +69,12 @@
           @ask="askAgent"
         />
         <ReferenceCard
-          v-for="item in visibleCharacterCards"
-          :key="item.id"
+          v-for="characterCard in visibleCharacterCards"
+          :key="characterCard.id"
           type="character"
-          :title="item.title"
-          :summary="item.summary"
-          :items="item.items"
+          :title="characterCard.title"
+          :summary="characterCard.summary"
+          :items="characterCard.items"
           @add="addToAgentContext"
           @ask="askAgent"
           @open="openAsset"
@@ -122,9 +122,9 @@
         >
           <strong>不要写错</strong>
           <span
-            v-for="item in forbiddenNotes"
-            :key="item"
-          >{{ item }}</span>
+            v-for="forbiddenNote in forbiddenNotes"
+            :key="forbiddenNote"
+          >{{ forbiddenNote }}</span>
         </article>
       </template>
 
@@ -150,12 +150,12 @@
           @ask="askAgent"
         />
         <ReferenceCard
-          v-for="item in isLocked ? [] : imageCards"
-          :key="item.id"
+          v-for="imageCard in isLocked ? [] : imageCards"
+          :key="imageCard.id"
           type="image"
-          :title="item.title"
-          :summary="item.summary"
-          :items="item.items"
+          :title="imageCard.title"
+          :summary="imageCard.summary"
+          :items="imageCard.items"
           @add="addToAgentContext"
           @ask="askAgent"
           @open="openAsset"
@@ -203,9 +203,9 @@
         >
           <strong>信息差</strong>
           <span
-            v-for="item in infoGapItems"
-            :key="item"
-          >{{ item }}</span>
+            v-for="infoGapItem in infoGapItems"
+            :key="infoGapItem"
+          >{{ infoGapItem }}</span>
         </article>
         <article
           v-else

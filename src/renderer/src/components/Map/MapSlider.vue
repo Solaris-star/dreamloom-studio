@@ -21,17 +21,23 @@
         :style="thumbStyle"
         @mousedown.stop="handleThumbMouseDown"
         @touchstart.prevent.stop="handleThumbMouseDown"
-      ></div>
+      />
     </div>
     <!-- 预览区 -->
     <Transition name="preview-fade">
-      <div v-if="showPreview" class="slider-preview">
+      <div
+        v-if="showPreview"
+        class="slider-preview"
+      >
         <div class="preview-info">
           <span class="preview-info-label">{{ label || t('mapSlider.size') }}</span>
           <span class="preview-info-value">{{ displayValue }}</span>
         </div>
         <div class="preview-main">
-          <div class="preview-main-circle" :style="circleStyle"></div>
+          <div
+            class="preview-main-circle"
+            :style="circleStyle"
+          />
         </div>
       </div>
     </Transition>

@@ -1,6 +1,11 @@
 <template>
   <Transition name="fade">
-    <div v-if="visible" ref="panelRef" class="shape-tool-panel-wrapper" @click.stop>
+    <div
+      v-if="visible"
+      ref="panelRef"
+      class="shape-tool-panel-wrapper"
+      @click.stop
+    >
       <div class="shape-tool-panel">
         <!-- 形状选择 -->
         <div class="shape-selector">
@@ -10,7 +15,10 @@
             :class="['shape-item', { active: selectedShape === shape.type }]"
             @click="handleShapeSelect(shape.type)"
           >
-            <SvgIcon :name="shape.icon" :size="20" />
+            <SvgIcon
+              :name="shape.icon"
+              :size="20"
+            />
           </div>
         </div>
       </div>

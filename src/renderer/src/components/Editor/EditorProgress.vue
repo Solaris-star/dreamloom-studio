@@ -9,8 +9,15 @@
         :color="getProgressColor"
       />
       <div class="target-selector">
-        <el-dropdown trigger="click" size="small" @command="handleTargetSelect">
-          <span class="dropdown-trigger" :class="{ 'is-disabled': isUpdating }">
+        <el-dropdown
+          trigger="click"
+          size="small"
+          @command="handleTargetSelect"
+        >
+          <span
+            class="dropdown-trigger"
+            :class="{ 'is-disabled': isUpdating }"
+          >
             {{ t('editorProgress.targetWords', { count: currentTargetWords }) }}
             <el-icon class="dropdown-icon"><ArrowDown /></el-icon>
           </span>
@@ -23,7 +30,10 @@
                 :disabled="isUpdating"
               >
                 <span>{{ t('editorProgress.wordUnit', { count: option }) }}</span>
-                <el-icon v-if="option === currentTargetWords" class="check-icon">
+                <el-icon
+                  v-if="option === currentTargetWords"
+                  class="check-icon"
+                >
                   <Check />
                 </el-icon>
               </el-dropdown-item>

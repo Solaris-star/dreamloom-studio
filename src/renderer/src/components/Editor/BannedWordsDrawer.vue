@@ -15,7 +15,12 @@
         clearable
         @keyup.enter.prevent="handleAddWord"
       />
-      <el-button type="primary" @click="handleAddWord">{{ t('bannedWords.add') }}</el-button>
+      <el-button
+        type="primary"
+        @click="handleAddWord"
+      >
+        {{ t('bannedWords.add') }}
+      </el-button>
     </div>
 
     <el-empty
@@ -24,7 +29,10 @@
       :description="t('bannedWords.empty')"
     />
     <!-- 禁词标签列表 -->
-    <div v-else class="words-list">
+    <div
+      v-else
+      class="words-list"
+    >
       <el-tag
         v-for="word in bannedWords"
         :key="word"
