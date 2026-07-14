@@ -10,7 +10,12 @@
       >
         <el-icon><Minus /></el-icon>
       </el-button>
-      <div class="zoom-value" @click="handleResetZoom">{{ zoomPercentage }}%</div>
+      <div
+        class="zoom-value"
+        @click="handleResetZoom"
+      >
+        {{ zoomPercentage }}%
+      </div>
       <el-button
         :class="['zoom-btn', { disabled: isMaxZoom }]"
         text
@@ -23,14 +28,32 @@
 
     <!-- 撤销和回退按钮 -->
     <div class="action-buttons">
-      <el-tooltip :content="t('mapZoom.undo')" placement="top">
-        <div :class="['action-btn', { disabled: !canUndo }]" @click="handleUndo">
-          <SvgIcon name="undo" :size="14" />
+      <el-tooltip
+        :content="t('mapZoom.undo')"
+        placement="top"
+      >
+        <div
+          :class="['action-btn', { disabled: !canUndo }]"
+          @click="handleUndo"
+        >
+          <SvgIcon
+            name="undo"
+            :size="14"
+          />
         </div>
       </el-tooltip>
-      <el-tooltip :content="t('mapZoom.redo')" placement="top">
-        <div :class="['action-btn', { disabled: !canRedo }]" @click="handleRedo">
-          <SvgIcon name="redo" :size="14" />
+      <el-tooltip
+        :content="t('mapZoom.redo')"
+        placement="top"
+      >
+        <div
+          :class="['action-btn', { disabled: !canRedo }]"
+          @click="handleRedo"
+        >
+          <SvgIcon
+            name="redo"
+            :size="14"
+          />
         </div>
       </el-tooltip>
     </div>
