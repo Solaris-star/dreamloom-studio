@@ -16,7 +16,10 @@
         class="drawer-form"
         @submit.prevent="handleConfirm"
       >
-        <el-form-item prop="name" :label="t('bookForm.name')">
+        <el-form-item
+          prop="name"
+          :label="t('bookForm.name')"
+        >
           <el-input
             v-model="localForm.name"
             :placeholder="t('bookForm.namePlaceholder')"
@@ -24,7 +27,10 @@
             show-word-limit
           />
         </el-form-item>
-        <el-form-item prop="type" :label="t('bookForm.type')">
+        <el-form-item
+          prop="type"
+          :label="t('bookForm.type')"
+        >
           <el-cascader
             v-model="localForm.type"
             :options="bookTypeCascaderOptions"
@@ -34,7 +40,10 @@
             clearable
           />
         </el-form-item>
-        <el-form-item prop="targetCount" :label="t('bookForm.targetWords')">
+        <el-form-item
+          prop="targetCount"
+          :label="t('bookForm.targetWords')"
+        >
           <el-input
             v-model="localForm.targetCount"
             :placeholder="t('bookForm.targetWordsPlaceholder')"
@@ -44,7 +53,10 @@
             :step="100000"
           />
         </el-form-item>
-        <el-form-item prop="intro" :label="t('bookForm.intro')">
+        <el-form-item
+          prop="intro"
+          :label="t('bookForm.intro')"
+        >
           <el-input
             v-model="localForm.intro"
             type="textarea"
@@ -52,7 +64,10 @@
             :placeholder="t('bookForm.introPlaceholder')"
           />
         </el-form-item>
-        <el-form-item prop="password" :label="t('bookForm.password')">
+        <el-form-item
+          prop="password"
+          :label="t('bookForm.password')"
+        >
           <el-input
             v-model="localForm.password"
             type="password"
@@ -61,7 +76,10 @@
             show-password
           />
         </el-form-item>
-        <el-form-item prop="confirmPassword" :label="t('bookForm.confirmPassword')">
+        <el-form-item
+          prop="confirmPassword"
+          :label="t('bookForm.confirmPassword')"
+        >
           <el-input
             v-model="localForm.confirmPassword"
             type="password"
@@ -88,8 +106,14 @@
         </el-form-item>
         <el-form-item :label="t('bookForm.coverImage')">
           <div class="cover-image-selector">
-            <div v-if="localForm.coverImagePreview" class="cover-preview">
-              <img :src="localForm.coverImagePreview" :alt="t('bookForm.coverPreview')" />
+            <div
+              v-if="localForm.coverImagePreview"
+              class="cover-preview"
+            >
+              <img
+                :src="localForm.coverImagePreview"
+                :alt="t('bookForm.coverPreview')"
+              >
               <el-button
                 type="danger"
                 size="small"
@@ -100,8 +124,15 @@
                 <el-icon><Delete /></el-icon>
               </el-button>
             </div>
-            <div v-else class="cover-buttons">
-              <el-button type="primary" :icon="Plus" @click="$emit('select-cover')">
+            <div
+              v-else
+              class="cover-buttons"
+            >
+              <el-button
+                type="primary"
+                :icon="Plus"
+                @click="$emit('select-cover')"
+              >
                 {{ t('bookForm.selectCoverImage') }}
               </el-button>
               <el-button
@@ -116,15 +147,23 @@
                 {{ t('bookForm.aiGenerateCover') }}
               </el-button>
             </div>
-            <div v-if="localForm.coverImagePath" class="cover-path">
+            <div
+              v-if="localForm.coverImagePath"
+              class="cover-path"
+            >
               {{ localForm.coverImagePath }}
             </div>
           </div>
         </el-form-item>
       </el-form>
       <div class="drawer-footer">
-        <el-button @click="$emit('update:modelValue', false)">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="handleConfirm">
+        <el-button @click="$emit('update:modelValue', false)">
+          {{ t('common.cancel') }}
+        </el-button>
+        <el-button
+          type="primary"
+          @click="handleConfirm"
+        >
           {{ isEdit ? t('common.save') : t('bookForm.create') }}
         </el-button>
       </div>
