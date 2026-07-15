@@ -24,10 +24,22 @@ assertIncludes(
 )
 assertIncludes(dockerfile, 'FROM deps AS dev', 'Dockerfile must provide a dev target')
 assertIncludes(dockerfile, 'FROM deps AS build', 'Dockerfile must provide a build target')
+assertIncludes(dockerfile, 'AS prod', 'Dockerfile must provide a production runtime target')
 assertIncludes(dockerfile, 'npm ci', 'Dockerfile must install locked dependencies')
 assertIncludes(dockerfile, '"dev"', 'Dockerfile dev target must start the web entry')
-assertIncludes(dockerfile, 'npm run build', 'Dockerfile must verify the web build target')
+assertIncludes(
+  dockerfile,
+  'npx vite --config vite.web.config.mjs build',
+  'Dockerfile build stage must produce the web assets'
+)
 assertIncludes(dockerfile, 'EXPOSE 5174', 'Dockerfile must expose the Vite web port')
+assertIncludes(dockerfile, 'scripts/start-web.mjs', 'Production image must start the web entry')
+assertIncludes(dockerfile, 'dreamloom', 'Production image must use a non-root user')
+assertIncludes(
+  dockerfile,
+  'NODE_ENV=production',
+  'Production image must set NODE_ENV=production'
+)
 
 assertIncludes(compose, 'app:', 'Compose must define the app service')
 assertIncludes(compose, 'worker:', 'Compose must define the worker service')
@@ -43,6 +55,65 @@ assertIncludes(
   'Compose app service must not run BullMQ workers'
 )
 assertIncludes(compose, 'target: dev', 'Compose app service must use the dev target')
+
+let prodCompose = ''
+try {
+  prodCompose = readFile('docker-compose.prod.yml')
+} catch {
+  assert.fail('docker-compose.prod.yml must exist for production deployment')
+}
+assertIncludes(prodCompose, 'web:', 'Production compose must define the web service')
+assertIncludes(prodCompose, 'worker:', 'Production compose must define the worker service')
+assertIncludes(prodCompose, 'caddy:', 'Production compose must define the reverse proxy service')
+assertIncludes(prodCompose, 'target: prod', 'Production compose must build the prod target')
+assertIncludes(prodCompose, 'scripts/start-worker.mjs', 'Production worker must use start-worker')
+assertIncludes(prodCompose, 'restart: unless-stopped', 'Production services need restart policy')
+assertIncludes(prodCompose, 'healthcheck:', 'Production services need healthchecks')
+assertIncludes(prodCompose, 'read_only: true', 'Production app services should use read-only rootfs')
+assert.equal(
+  /redis:[\s\S]*?ports:\s*\n\s*-\s*['"]?\$\{?REDIS_PORT/.test(prodCompose),
+  false,
+  'Production redis must not publish host ports'
+)
+const redisServiceBlock =
+  prodCompose
+    .split('\n')
+    .reduce(
+      (acc, line) => {
+        if (/^  [a-z]/.test(line)) acc.push(line)
+        else if (acc.length) acc[acc.length - 1] += `\n${line}`
+        return acc
+      },
+      []
+    )
+    .find((block) => block.startsWith('  redis:')) || ''
+assert.equal(
+  redisServiceBlock.includes('\n    ports:'),
+  false,
+  'Redis service block must not declare ports'
+)
+assertIncludes(
+  prodCompose,
+  'no-new-privileges:true',
+  'Production containers should disable privilege escalation'
+)
+assertIncludes(prodCompose, 'cap_drop:', 'Production containers should drop capabilities')
+assertIncludes(prodCompose, 'stop_grace_period:', 'Production services need graceful stop')
+assertIncludes(prodCompose, 'max-size: "10m"', 'Production logging must be size-limited')
+assertIncludes(prodCompose, 'memory: 1536M', 'Production compose should document memory limits')
+
+const caddyfile = readFile('deploy/Caddyfile')
+assertIncludes(caddyfile, 'reverse_proxy web:5174', 'Caddy must proxy HTTP to web')
+assertIncludes(caddyfile, 'reverse_proxy web:8787', 'Caddy must proxy agent WebSocket')
+assertIncludes(caddyfile, 'X-Content-Type-Options', 'Caddy must set security headers')
+assertIncludes(caddyfile, 'request_body', 'Caddy must limit request body size')
+assertIncludes(caddyfile, 'tls internal', 'Caddy default TLS mode must be documented')
+
+assertIncludes(readFile('scripts/start-web.mjs'), 'startAgentTaskProgressServer', 'Web entry starts progress WS')
+assertIncludes(readFile('scripts/start-worker.mjs'), 'startAgentTaskWorker', 'Worker entry starts BullMQ worker')
+assertIncludes(readFile('deploy/entrypoint.sh'), '/data/store/.store.json', 'Entrypoint must prepare persistent store')
+assertIncludes(prodCompose, 'volume-init:', 'Production compose must init volume ownership for non-root')
+assertIncludes(prodCompose, '10001:10001', 'Production compose must run app as non-root uid')
 assertIncludes(
   compose,
   '${WEB_PORT:-5174}:5174',

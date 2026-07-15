@@ -1,0 +1,49 @@
+# Production reverse proxy for Dreamloom Studio
+# - static + /api  -> web:5174
+# - /agent-tasks   -> web:8787 (progress WebSocket)
+# - HTTP + HTTPS (internal TLS by default)
+# - body size limit + security headers
+
+{
+	# Keep HTTP available for healthchecks / local reverse proxies.
+	auto_https disable_redirects
+	admin off
+}
+
+:80, :443 {
+	tls internal
+
+	encode zstd gzip
+
+	request_body {
+		max_size 32MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	@agent_ws path /agent-tasks /agent-tasks/*
+	handle @agent_ws {
+		reverse_proxy web:8787
+	}
+
+	handle {
+		reverse_proxy web:5174 {
+			transport http {
+				read_timeout 3600s
+				write_timeout 3600s
+			}
+		}
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

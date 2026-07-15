@@ -8,6 +8,8 @@
     "format": "prettier --write .",
     "lint": "eslint --cache .",
     "start": "vite preview --config vite.web.config.mjs",
+    "start:web": "node scripts/start-web.mjs",
+    "start:worker": "node scripts/start-worker.mjs",
     "dev": "vite --config vite.web.config.mjs",
     "prebuild": "npm run test:web",
     "build": "vite --config vite.web.config.mjs build",
