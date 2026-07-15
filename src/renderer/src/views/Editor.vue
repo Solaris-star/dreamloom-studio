@@ -443,9 +443,12 @@ onBeforeUnmount(detachWindowListeners)
 .editor-quick-actions {
   position: absolute;
   right: 20px;
-  bottom: 24px;
+  /* 中上部更顺手：避开底栏字数条，也离顶栏更近一点 */
+  top: 42%;
+  bottom: auto;
+  transform: translateY(-50%);
   z-index: 120;
-  transition: right 180ms ease;
+  transition: right 180ms ease, top 180ms ease;
 }
 
 .editor-container.are-side-panels-hidden {
@@ -540,6 +543,8 @@ onBeforeUnmount(detachWindowListeners)
     right: 0;
     bottom: 0;
     left: 0;
+    top: auto;
+    transform: none;
   }
 
   :deep(.editor-left-panel),
