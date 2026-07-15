@@ -76,8 +76,10 @@ import {
   sendTransparentImage
 } from './src/main/services/webHttpServerService.js'
 import { sanitizePublicErrorMessage } from './src/main/services/safeRemoteUrl.js'
+import { loadEnvFile } from './src/main/services/envConfig.js'
 
 export function createWebServerPlugins() {
+  loadEnvFile(process.cwd())
   const configuredBooksDir = String(process.env.NOVEL_BOOKS_DIR || '').trim()
   const booksDir = configuredBooksDir || resolve('.booksDir')
   const maxRequestBodyBytes = Number(process.env.NOVEL_MAX_REQUEST_BODY_BYTES) || 16 * 1024 * 1024

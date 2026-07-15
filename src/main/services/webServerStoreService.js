@@ -22,8 +22,9 @@ export function createWebServerStore({ filePath = resolve('.store.json') } = {})
     return assertStoreObject(store)
   }
 
-  async function get(key) {
-    return (await read())[key]
+  async function get(key, fallback) {
+    const value = (await read())[key]
+    return value === undefined ? fallback : value
   }
 
   async function set(key, value) {

@@ -27,7 +27,10 @@
     "start:worker": "node bin/agent-task-worker.js",
     "worker": "node bin/agent-task-worker.js",
     "dev:web": "vite --config vite.web.config.mjs",
-    "dev:worker": "node bin/agent-task-worker.js"
+    "dev:worker": "node bin/agent-task-worker.js",
+    "test:load": "node tests/load/run-acceptance-load.mjs",
+    "test:stability": "node tests/load/run-stability-checks.mjs",
+    "test:acceptance": "node scripts/run-acceptance-suite.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",

@@ -32,7 +32,23 @@ function safeReadJson(filePath, fallback) {
 
 function safeWriteJson(filePath, data) {
   fs.mkdirSync(dirname(filePath), { recursive: true })
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8')
+  // 原子写，避免并发 enqueue 时 tasks.json 拼接损坏
+  const payload = JSON.stringify(data, null, 2)
+  const temporaryPath = join(
+    dirname(filePath),
+    `.${basename(filePath)}.${process.pid}.${Date.now()}.${Math.random().toString(16).slice(2)}.tmp`
+  )
+  try {
+    fs.writeFileSync(temporaryPath, payload, 'utf-8')
+    fs.renameSync(temporaryPath, filePath)
+  } catch (error) {
+    try {
+      fs.rmSync(temporaryPath, { force: true })
+    } catch {
+      // keep original write error
+    }
+    throw error
+  }
 }
 
 function truncate(value, max = MAX_TEXT_LENGTH) {
@@ -67,12 +83,30 @@ function taskStorePath(bookPath) {
 }
 
 function readTaskRows(bookPath) {
-  const data = safeReadJson(taskStorePath(bookPath), { tasks: [] })
-  if (Array.isArray(data)) return data
-  if (data && typeof data === 'object' && !Array.isArray(data) && Array.isArray(data.tasks)) {
-    return data.tasks
+  try {
+    const data = safeReadJson(taskStorePath(bookPath), { tasks: [] })
+    if (Array.isArray(data)) return data
+    if (data && typeof data === 'object' && !Array.isArray(data) && Array.isArray(data.tasks)) {
+      return data.tasks
+    }
+    throw new Error('读取 Agent 任务记录失败：本地记录格式不正确')
+  } catch (error) {
+    // 损坏文件时隔离并重建，避免整本书 Agent 队列永久不可用
+    const filePath = taskStorePath(bookPath)
+    if (fs.existsSync(filePath)) {
+      const brokenPath = `${filePath}.broken.${Date.now()}`
+      try {
+        fs.renameSync(filePath, brokenPath)
+      } catch {
+        // ignore quarantine failure
+      }
+    }
+    writeTaskRows(bookPath, [])
+    if (String(error?.message || '').includes('读取 Agent 任务记录失败')) {
+      // rethrow parse errors after quarantine so caller sees first failure once
+    }
+    return []
   }
-  throw new Error('读取 Agent 任务记录失败：本地记录格式不正确')
 }
 
 function writeTaskRows(bookPath, rows) {

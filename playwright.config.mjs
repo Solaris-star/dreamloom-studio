@@ -72,7 +72,15 @@ export default defineConfig({
       ...process.env,
       NOVEL_BOOKS_DIR: e2eBooksDir,
       NOVEL_OPEN_BROWSER: 'false',
-      PLAYWRIGHT_TEST: 'true'
+      PLAYWRIGHT_TEST: 'true',
+      // 与页面 auth mock 对齐：本机无密码时允许 loopback 访问 API，
+      // 否则前端 mock 为已登录，但 /api/chapters/* 仍 401 → 章节树空白、无 ProseMirror。
+      // 强制开放本机无密码认证；不要继承外层 shell 的 false，否则页面 mock 登录后 API 仍 401
+      NOVEL_ALLOW_OPEN_AUTH: 'true',
+      NOVEL_AUTH_REDIS: 'false',
+      NOVEL_AUTH_STRICT: 'false',
+      MARKET_TREND_SCHEDULER: '0',
+      AGENT_TASK_WS_ENABLED: process.env.AGENT_TASK_WS_ENABLED || 'false'
     }
   }
 })

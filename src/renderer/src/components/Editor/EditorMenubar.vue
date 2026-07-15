@@ -71,8 +71,6 @@
           aria-label="字体"
           size="small"
           style="width: 82px"
-          data-testid="editor-font-family"
-          aria-label="字体"
         >
           <el-option
             label="宋体"
@@ -155,8 +153,6 @@
           aria-label="字号"
           size="small"
           style="width: 62px"
-          data-testid="editor-font-size"
-          aria-label="字号"
         >
           <el-option
             label="12px"
@@ -233,8 +229,6 @@
           aria-label="行距"
           size="small"
           style="width: 50px"
-          data-testid="editor-line-height"
-          aria-label="行高"
         >
           <el-option
             label="1.4"
@@ -275,8 +269,6 @@
           aria-label="段落间距"
           size="small"
           style="width: 60px"
-          data-testid="editor-paragraph-spacing"
-          aria-label="段落间距"
         >
           <el-option
             :label="t('editorMenubar.none')"
@@ -317,8 +309,6 @@
           aria-label="页宽"
           size="small"
           style="width: 105px"
-          data-testid="editor-page-width"
-          aria-label="页边距/页宽"
         >
           <el-option
             label="自适应 (极宽)"
@@ -723,6 +713,25 @@ const emit = defineEmits([
 ])
 
 const editorStore = useEditorStore()
+const themeStore = useThemeStore()
+
+const availableThemes = computed(() => {
+  // 主题预览色取 bgSoft，保证下拉有色块
+  return Object.entries(themeStore.themeConfigs || {}).map(([key, config]) => ({
+    key,
+    name: config?.name || key,
+    preview: config?.bgSoft || config?.bgPrimary || '#F8F9FA'
+  }))
+})
+
+const currentThemeName = computed(() => {
+  return themeStore.getThemeName?.(themeStore.currentTheme) || '白色'
+})
+
+async function handleThemeChange(themeKey) {
+  if (!themeKey) return
+  await themeStore.setTheme(themeKey)
+}
 
 // 判断是否为笔记编辑器
 const isNoteEditor = computed(() => editorStore.file?.type === 'note')

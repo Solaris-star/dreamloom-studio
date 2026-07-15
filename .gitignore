@@ -51,5 +51,13 @@ tmp
 # Local verification captures and backups
 zhimeng-*.png
 
+# Acceptance raw logs can be large; keep markdown/json summaries tracked
+reports/acceptance/**/*.log
+
 docs
 others
+
+# local secrets
+.env
+.env.*
+!.env.example
