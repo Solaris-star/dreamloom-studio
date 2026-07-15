@@ -1,0 +1,276 @@
+# Production compose for server deployment.
+# Development stack remains docker-compose.yml (Vite dev + optional Redis port).
+#
+#   cp .env.example .env
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Only Caddy publishes host ports. Redis stays internal.
+
+name: dreamloom-prod
+
+x-app-env: &app-env
+  NODE_ENV: production
+  NOVEL_BOOKS_DIR: /data/books
+  NOVEL_TRUST_PROXY: ${NOVEL_TRUST_PROXY:-true}
+  NOVEL_AUTH_STRICT: ${NOVEL_AUTH_STRICT:-true}
+  NOVEL_AUTH_REDIS_CONNECT_TIMEOUT_MS: ${NOVEL_AUTH_REDIS_CONNECT_TIMEOUT_MS:-3000}
+  NOVEL_AUTH_REQUIRE_REDIS: ${NOVEL_AUTH_REQUIRE_REDIS:-true}
+  NOVEL_AUTH_REDIS: ${NOVEL_AUTH_REDIS:-true}
+  NOVEL_ALLOW_OPEN_AUTH: ${NOVEL_ALLOW_OPEN_AUTH:-false}
+  NOVEL_MAX_REQUEST_BODY_BYTES: ${NOVEL_MAX_REQUEST_BODY_BYTES:-16777216}
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+  AGENT_TASK_QUEUE_ENABLED: ${AGENT_TASK_QUEUE_ENABLED:-true}
+  AGENT_TASK_QUEUE_NAME: ${AGENT_TASK_QUEUE_NAME:-novel-agent-writing}
+  AGENT_TASK_QUEUE_CONCURRENCY: ${AGENT_TASK_QUEUE_CONCURRENCY:-1}
+  AGENT_TASK_QUEUE_ATTEMPTS: ${AGENT_TASK_QUEUE_ATTEMPTS:-1}
+  AGENT_TASK_QUEUE_BACKOFF_MS: ${AGENT_TASK_QUEUE_BACKOFF_MS:-3000}
+  AGENT_TASK_QUEUE_REDIS_CONNECT_TIMEOUT_MS: ${AGENT_TASK_QUEUE_REDIS_CONNECT_TIMEOUT_MS:-3000}
+  AGENT_TASK_QUEUE_JOB_TIMEOUT_MS: ${AGENT_TASK_QUEUE_JOB_TIMEOUT_MS:-900000}
+  AGENT_TASK_QUEUE_LOCK_DURATION_MS: ${AGENT_TASK_QUEUE_LOCK_DURATION_MS:-300000}
+  AGENT_TASK_QUEUE_DEFAULT_PROVIDER_CONCURRENCY: ${AGENT_TASK_QUEUE_DEFAULT_PROVIDER_CONCURRENCY:-1}
+  AGENT_TASK_QUEUE_PROVIDER_CONCURRENCY: ${AGENT_TASK_QUEUE_PROVIDER_CONCURRENCY:-}
+  AGENT_TASK_QUEUE_PROVIDER_TIMEOUT_MS: ${AGENT_TASK_QUEUE_PROVIDER_TIMEOUT_MS:-}
+  AGENT_TASK_WS_HOST: 0.0.0.0
+  AGENT_TASK_WS_PORT: ${AGENT_TASK_WS_PORT:-8787}
+  AGENT_TASK_WS_ENABLED: ${AGENT_TASK_WS_ENABLED:-true}
+  AGENT_TASK_WS_PATH: ${AGENT_TASK_WS_PATH:-/agent-tasks}
+  WEB_HOST: 0.0.0.0
+  WEB_PORT: 5174
+  NOVEL_BOOKSHELF_PASSWORD: ${NOVEL_BOOKSHELF_PASSWORD:-}
+  NOVEL_AUTH_SECRET: ${NOVEL_AUTH_SECRET:-}
+  NOVEL_ALLOW_INSECURE_LOCAL_AUTH: ${NOVEL_ALLOW_INSECURE_LOCAL_AUTH:-false}
+  DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+  DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-}
+  DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-}
+  CUSTOM_TEXT_API_KEY: ${CUSTOM_TEXT_API_KEY:-}
+  CUSTOM_TEXT_BASE_URL: ${CUSTOM_TEXT_BASE_URL:-}
+  CUSTOM_TEXT_MODEL: ${CUSTOM_TEXT_MODEL:-}
+  CUSTOM_TEXT_MODELS: ${CUSTOM_TEXT_MODELS:-}
+  CUSTOM_TEXT_API_TYPE: ${CUSTOM_TEXT_API_TYPE:-}
+  TONGYI_API_KEY: ${TONGYI_API_KEY:-}
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  DOUBAO_IMAGE_API_KEY: ${DOUBAO_IMAGE_API_KEY:-}
+  DOUBAO_IMAGE_BASE_URL: ${DOUBAO_IMAGE_BASE_URL:-}
+  DOUBAO_IMAGE_MODEL: ${DOUBAO_IMAGE_MODEL:-}
+  CUSTOM_IMAGE_API_KEY: ${CUSTOM_IMAGE_API_KEY:-}
+  CUSTOM_IMAGE_BASE_URL: ${CUSTOM_IMAGE_BASE_URL:-}
+  CUSTOM_IMAGE_MODEL: ${CUSTOM_IMAGE_MODEL:-}
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-app-security: &app-security
+  read_only: true
+  tmpfs:
+    - /tmp:size=128M,mode=1777
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --save
+      - "60"
+      - "1000"
+      # BullMQ requires noeviction so jobs are never dropped under memory pressure.
+      - --maxmemory-policy
+      - noeviction
+    # Intentionally no host port publish — Redis must not be public.
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
+    networks:
+      - internal
+
+  # One-shot root job: make named volumes writable for non-root app user (uid 10001).
+  # Keeps web/worker free of CAP_CHOWN while still supporting fresh empty volumes.
+  volume-init:
+    image: busybox:1.37
+    user: "0:0"
+    restart: "no"
+    command:
+      - sh
+      - -c
+      - |
+        mkdir -p /data/books /data/store
+        chown -R 10001:10001 /data/books /data/store
+        chmod 775 /data/books /data/store
+    volumes:
+      - books_data:/data/books
+      - store_data:/data/store
+    networks:
+      - internal
+
+  web:
+    build:
+      context: .
+      target: prod
+    image: ${DREAMLOOM_IMAGE:-dreamloom-studio:prod}
+    restart: unless-stopped
+    user: "10001:10001"
+    depends_on:
+      redis:
+        condition: service_healthy
+      volume-init:
+        condition: service_completed_successfully
+    environment:
+      <<: *app-env
+    expose:
+      - "5174"
+      - "8787"
+    volumes:
+      - books_data:/data/books
+      - store_data:/data/store
+    <<: *app-security
+    stop_grace_period: 30s
+    stop_signal: SIGTERM
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:5174/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1536M
+        reservations:
+          cpus: "0.10"
+          memory: 256M
+    networks:
+      - internal
+
+  worker:
+    build:
+      context: .
+      target: prod
+    image: ${DREAMLOOM_IMAGE:-dreamloom-studio:prod}
+    restart: unless-stopped
+    user: "10001:10001"
+    depends_on:
+      redis:
+        condition: service_healthy
+      volume-init:
+        condition: service_completed_successfully
+      web:
+        condition: service_started
+    environment:
+      <<: *app-env
+      AGENT_TASK_QUEUE_ENABLED: ${AGENT_TASK_QUEUE_ENABLED:-true}
+    command: ["node", "scripts/start-worker.mjs"]
+    volumes:
+      - books_data:/data/books
+      - store_data:/data/store
+    <<: *app-security
+    stop_grace_period: 45s
+    stop_signal: SIGTERM
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "const u=new URL(process.env.REDIS_URL||'redis://redis:6379/0');const n=require('net');const s=n.connect(Number(u.port||6379),u.hostname,()=>{s.end();process.exit(0)});s.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),3000)"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1536M
+        reservations:
+          cpus: "0.10"
+          memory: 256M
+    networks:
+      - internal
+
+  caddy:
+    image: caddy:2.9-alpine
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    environment:
+      DREAMLOOM_DOMAIN: ${DREAMLOOM_DOMAIN:-localhost}
+      # Never send internal reverse-proxy traffic through host HTTP proxies.
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+      ALL_PROXY: ""
+      http_proxy: ""
+      https_proxy: ""
+      all_proxy: ""
+      NO_PROXY: "*"
+      no_proxy: "*"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  books_data:
+  store_data:
+  redis_data:
+  caddy_data:
+  caddy_config:

@@ -35,3 +35,21 @@ npm run dev
 npm run build
 npm run start
 ```
+
+## Docker
+
+开发（Vite dev + Redis，见 `docker-compose.yml`）：
+
+```bash
+docker compose up --build
+```
+
+生产（web + worker + Redis + Caddy，见 `docker-compose.prod.yml`）：
+
+```bash
+cp .env.example .env
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+生产镜像不使用 Vite 开发服务器；Web 与 BullMQ worker 分服务运行；Redis 默认不对公网暴露。  
+完整步骤、备份恢复与回滚见 [DEPLOY.md](DEPLOY.md)。

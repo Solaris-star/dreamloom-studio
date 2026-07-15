@@ -49,12 +49,21 @@ export default defineConfig({
     ...createWebServerPlugins()
   ],
   server: {
+    host: true,
     port: 5173,
-    open: process.env.NOVEL_OPEN_BROWSER !== 'false',
+    open: process.env.NOVEL_OPEN_BROWSER === 'true',
     hmr: process.env.PLAYWRIGHT_TEST === 'true' ? false : undefined,
     watch: {
       ignored: ['**/.booksDir/**', '**/.store.json', '**/assets-trash/**']
-    }
+    },
+    allowedHosts: true
+  },
+  preview: {
+    host: true,
+    port: Number(process.env.WEB_PORT || 5174) || 5174,
+    open: false,
+    // Allow reverse-proxy Host headers (Caddy / Cloudflare / custom domains)
+    allowedHosts: true
   },
   build: {
     outDir: resolve(projectRoot, 'dist-web'),
