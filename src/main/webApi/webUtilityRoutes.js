@@ -58,7 +58,7 @@ export function isWebUtilityRoute(path) {
   return ROUTES.has(path)
 }
 
-export function handleWebUtilityRoute({
+export async function handleWebUtilityRoute({
   path,
   body,
   res,
@@ -79,12 +79,12 @@ export function handleWebUtilityRoute({
 
   const key = requireStoreKey(payload.key)
   if (path === '/api/store/get') {
-    sendJson(res, { success: true, key, value: storeGet(key) })
+    sendJson(res, { success: true, key, value: await storeGet(key) })
   } else if (path === '/api/store/set') {
-    if (storeSet(key, payload.value) !== true) throw new Error('保存本地设置失败')
+    if ((await storeSet(key, payload.value)) !== true) throw new Error('保存本地设置失败')
     sendJson(res, { success: true, key })
   } else {
-    if (storeDelete(key) !== true) throw new Error('删除本地设置失败')
+    if ((await storeDelete(key)) !== true) throw new Error('删除本地设置失败')
     sendJson(res, { success: true, key })
   }
   return true

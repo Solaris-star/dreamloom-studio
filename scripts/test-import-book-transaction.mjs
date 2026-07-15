@@ -18,7 +18,7 @@ function importPayload(bookName = '长夜灯火') {
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dreamloom-import-'))
 
 try {
-  const first = importBook(root, importPayload())
+  const first = await importBook(root, importPayload())
   assert.equal(first.success, true)
   assert.equal(first.bookName, '长夜灯火')
   assert.equal(first.chapterCount, 2)
@@ -28,11 +28,11 @@ try {
     ['第1章 初见.txt', '第2章 再会.txt']
   )
 
-  const duplicate = importBook(root, importPayload())
+  const duplicate = await importBook(root, importPayload())
   assert.equal(duplicate.bookName, '长夜灯火_1')
   assert.equal(fs.existsSync(path.join(root, '长夜灯火_1', 'mazi.json')), true)
 
-  const prepared = importBook(root, {
+  const prepared = await importBook(root, {
     fileName: '自定义标题.docx',
     format: 'docx',
     bookName: '自定义标题',
@@ -46,18 +46,16 @@ try {
     fs.readdirSync(path.join(root, '自定义标题', '正文', '正文')).sort(),
     ['楔子.txt', '雨停以后.txt']
   )
-  assert.throws(
-    () => importBook(root, { bookName: '空书', chapters: [] }),
+  await assert.rejects(() => importBook(root, { bookName: '空书', chapters: [] }),
     /导入章节不能为空/
   )
-  assert.throws(
-    () => importBook(root, { bookName: '坏正文', chapters: [{ title: '第一章', content: 1 }] }),
+  await assert.rejects(() => importBook(root, { bookName: '坏正文', chapters: [{ title: '第一章', content: 1 }] }),
     /正文格式无效/
   )
 
   const failedRoot = path.join(root, 'failed-library')
   fs.mkdirSync(path.join(failedRoot, '.import-export', 'tasks.json'), { recursive: true })
-  assert.throws(() => importBook(failedRoot, importPayload('回滚测试')), /EISDIR|EPERM|directory/i)
+  await assert.rejects(() => importBook(failedRoot, importPayload('回滚测试')), /EISDIR|EPERM|directory/i)
   assert.equal(fs.existsSync(path.join(failedRoot, '回滚测试')), false)
   assert.deepEqual(
     fs

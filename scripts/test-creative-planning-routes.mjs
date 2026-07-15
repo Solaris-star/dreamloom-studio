@@ -192,8 +192,7 @@ for (const body of [
   { bookName: '作品', mode: 'replace', tree: [] },
   { bookName: '作品', mode: 'unknown', tree: [{ name: '世界' }] }
 ]) {
-  await assert.rejects(
-    handleCreativePlanningRoute({
+  await assert.rejects(() => handleCreativePlanningRoute({
       ...common,
       path: '/api/setting-tree/apply',
       body
@@ -202,8 +201,7 @@ for (const body of [
   )
 }
 
-await assert.rejects(
-  handleCreativePlanningRoute({
+await assert.rejects(() => handleCreativePlanningRoute({
     ...common,
     path: '/api/setting-tree/apply',
     body: { bookName: '作品', mode: 'replace', tree: [{ name: '世界' }] },

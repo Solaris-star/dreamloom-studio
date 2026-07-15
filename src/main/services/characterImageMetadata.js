@@ -80,22 +80,22 @@ export function buildCharacterImageMetadata(input = {}) {
   return metadata
 }
 
-export function writeCharacterImageMetadata(imagePath, input = {}) {
+export async function writeCharacterImageMetadata(imagePath, input = {}) {
   const metadata = buildCharacterImageMetadata({
     ...input,
     localPath: imagePath
   })
-  writeJson(metadataPathForImage(imagePath), metadata)
+  await writeJson(metadataPathForImage(imagePath), metadata)
   return metadata
 }
 
-export function readCharacterImageMetadata(imagePath) {
-  const metadata = readJson(metadataPathForImage(imagePath), null)
+export async function readCharacterImageMetadata(imagePath) {
+  const metadata = await readJson(metadataPathForImage(imagePath), null)
   return metadata && typeof metadata === 'object' ? metadata : null
 }
 
-export function confirmCharacterImageMetadata(chosenPath, finalPath, input = {}) {
-  const existing = readCharacterImageMetadata(chosenPath)
+export async function confirmCharacterImageMetadata(chosenPath, finalPath, input = {}) {
+  const existing = await readCharacterImageMetadata(chosenPath)
   const metadata = buildCharacterImageMetadata({
     ...(existing || {}),
     ...input,
@@ -104,13 +104,13 @@ export function confirmCharacterImageMetadata(chosenPath, finalPath, input = {})
     confirmedAt: nowIso(),
     createdAt: existing?.createdAt || input.createdAt
   })
-  metadata.visualCheck = buildCharacterImageVisualCheck({
+  metadata.visualCheck = await buildCharacterImageVisualCheck({
     candidatePath: finalPath,
     imagesDir: input.imagesDir || dirname(finalPath),
     metadata,
     passScore: input.visualPassScore
   })
-  writeJson(metadataPathForImage(finalPath), metadata)
+  await writeJson(metadataPathForImage(finalPath), metadata)
   return metadata
 }
 

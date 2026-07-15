@@ -24,7 +24,7 @@ const imageResult = {
 }
 
 try {
-  const cover = saveGeneratedWebImage(
+  const cover = await saveGeneratedWebImage(
     bookPath,
     { feature: 'ai_cover', prompt: '封面' },
     imageResult
@@ -34,20 +34,20 @@ try {
   assert.equal(cover.providerId, 'test-image-provider')
   assert.equal(cover.model, 'test-image-model')
 
-  assert.throws(
+  await assert.rejects(
     () => saveGeneratedWebImage(bookPath, { feature: 'invalid' }, imageResult),
     /不支持的 AI 图片类型/
   )
-  assert.throws(
+  await assert.rejects(
     () => saveGeneratedWebImage(bookPath, { feature: 'ai_cover' }, { buffer: Buffer.alloc(0) }),
     /没有返回有效图片/
   )
-  assert.throws(
+  await assert.rejects(
     () => saveGeneratedWebImage(bookPath, { feature: 'ai_cover' }, { buffer: 'invalid' }),
     /没有返回有效图片/
   )
 
-  assert.throws(
+  await assert.rejects(
     () =>
       confirmWebAiImage(bookPath, {
         feature: 'ai_cover',
@@ -55,7 +55,7 @@ try {
       }),
     /临时图片路径无效/
   )
-  assert.throws(
+  await assert.rejects(
     () =>
       confirmWebAiImage(bookPath, {
         feature: 'ai_cover',
@@ -65,7 +65,7 @@ try {
   )
   const invalidExtensionPath = join(bookPath, '.ai-temp', 'covers', 'image.jpg')
   fs.writeFileSync(invalidExtensionPath, buffer)
-  assert.throws(
+  await assert.rejects(
     () =>
       confirmWebAiImage(bookPath, {
         feature: 'ai_cover',
@@ -74,7 +74,7 @@ try {
     /临时图片路径无效/
   )
 
-  const confirmedCover = confirmWebAiImage(bookPath, {
+  const confirmedCover = await confirmWebAiImage(bookPath, {
     feature: 'ai_cover',
     chosenPath: cover.localPath
   })
@@ -82,7 +82,7 @@ try {
   assert.equal(fs.existsSync(confirmedCover.localPath), true)
   assert.equal(fs.existsSync(cover.localPath), false)
 
-  const character = saveGeneratedWebImage(
+  const character = await saveGeneratedWebImage(
     bookPath,
     {
       feature: 'ai_character_image',
@@ -92,7 +92,7 @@ try {
     },
     imageResult
   )
-  const confirmedCharacter = confirmWebAiImage(bookPath, {
+  const confirmedCharacter = await confirmWebAiImage(bookPath, {
     feature: 'ai_character_image',
     chosenPath: character.localPath,
     bookName: '测试书',
@@ -102,7 +102,7 @@ try {
   assert.equal(confirmedCharacter.metadata.subjectName, '林舟')
   assert.equal(fs.existsSync(confirmedCharacter.metadata.metadataPath), true)
 
-  const unnamedCharacter = saveGeneratedWebImage(
+  const unnamedCharacter = await saveGeneratedWebImage(
     bookPath,
     {
       feature: 'ai_character_image',
@@ -115,25 +115,25 @@ try {
   )
   assert.equal(unnamedCharacter.providerId, '')
   assert.equal(unnamedCharacter.model, '')
-  const confirmedUnnamedCharacter = confirmWebAiImage(bookPath, {
+  const confirmedUnnamedCharacter = await confirmWebAiImage(bookPath, {
     feature: 'ai_character_image',
     chosenPath: unnamedCharacter.localPath,
     subjectName: '角色<>:"/\\|?*'
   })
   assert.match(webAiImagePublicName(confirmedUnnamedCharacter.localPath), /^角色_+/)
 
-  const scene = saveGeneratedWebImage(
+  const scene = await saveGeneratedWebImage(
     bookPath,
     { feature: 'ai_scene_image' },
     imageResult
   )
   assert.equal(scene.localPath.startsWith(join(bookPath, 'scene_images')), true)
-  const map = saveGeneratedWebImage(bookPath, { feature: 'ai_map_concept' }, imageResult)
+  const map = await saveGeneratedWebImage(bookPath, { feature: 'ai_map_concept' }, imageResult)
   assert.equal(map.localPath.startsWith(join(bookPath, 'map_images')), true)
-  const prop = saveGeneratedWebImage(bookPath, { feature: 'ai_prop_image' }, imageResult)
+  const prop = await saveGeneratedWebImage(bookPath, { feature: 'ai_prop_image' }, imageResult)
   assert.equal(prop.localPath.startsWith(join(bookPath, 'prop_images')), true)
 
-  const disposableCover = saveGeneratedWebImage(
+  const disposableCover = await saveGeneratedWebImage(
     bookPath,
     { feature: 'ai_cover' },
     imageResult
@@ -141,13 +141,13 @@ try {
   const coverTempDir = join(bookPath, '.ai-temp', 'covers')
   fs.writeFileSync(join(coverTempDir, 'note.txt'), 'temporary', 'utf-8')
   fs.mkdirSync(join(coverTempDir, 'nested'), { recursive: true })
-  const discardedFiles = discardWebAiImages(bookPath, {
+  const discardedFiles = await discardWebAiImages(bookPath, {
     feature: 'ai_cover'
   })
   assert.equal(discardedFiles.deletedFiles, 2)
   assert.equal(fs.existsSync(disposableCover.localPath), false)
 
-  const discarded = discardWebAiImages(bookPath, {
+  const discarded = await discardWebAiImages(bookPath, {
     feature: 'ai_cover'
   })
   assert.equal(discarded.success, true)

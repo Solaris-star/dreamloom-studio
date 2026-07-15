@@ -1,4 +1,4 @@
-import { relative, resolve } from 'node:path'
+import { basename, relative, resolve } from 'node:path'
 
 const ROUTES = new Set([
   '/api/setting-tree/apply',
@@ -10,6 +10,19 @@ const ROUTES = new Set([
 
 function cleanText(value) {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function resolveBookName(payload = {}, booksDir = '', bookPath = '') {
+  const fromPayload = cleanText(payload.bookName)
+  if (fromPayload) return fromPayload
+  if (!bookPath) return ''
+  try {
+    const rel = relative(resolve(booksDir), resolve(bookPath))
+    if (rel && !rel.startsWith('..')) return rel.split(/[\\/]/)[0] || basename(bookPath)
+  } catch {
+    // fall through
+  }
+  return basename(bookPath)
 }
 
 function toSettingTreeNode(node = {}) {
@@ -100,10 +113,10 @@ export async function handleCreativePlanningRoute({
     if (!['merge', 'replace'].includes(payload.mode)) {
       throw Object.assign(new Error('设定应用方式无效'), { statusCode: 400 })
     }
-    const bookName = relative(resolve(booksDir), bookPath)
-    const current = booksApi.readSettings(bookName, booksDir)
+    const bookName = resolveBookName(payload, booksDir, bookPath)
+    const current = await booksApi.readSettings(bookName, booksDir)
     if (current?.success !== true) throw new Error(current?.message || '读取现有设定失败')
-    const snapshot = createSettingSnapshot(bookPath, {
+    const snapshot = await createSettingSnapshot(bookPath, {
       name: '应用设定树前自动快照',
       trigger: 'auto_before_apply'
     })
@@ -111,7 +124,7 @@ export async function handleCreativePlanningRoute({
       payload.mode === 'replace'
         ? tree
         : mergeCategories(current.data?.categories, tree)
-    const written = booksApi.writeSettings({ bookName, data: { categories } }, booksDir)
+    const written = await booksApi.writeSettings({ bookName, data: { categories } }, booksDir)
     if (written?.success !== true) throw new Error(written?.message || '写入设定失败')
     sendJson(res, {
       ...written,

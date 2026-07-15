@@ -1,5 +1,32 @@
+const __localStorageStore = new Map()
+const __localStorageMock = {
+  getItem(key) {
+    return __localStorageStore.has(String(key)) ? __localStorageStore.get(String(key)) : null
+  },
+  setItem(key, value) {
+    __localStorageStore.set(String(key), String(value))
+  },
+  removeItem(key) {
+    __localStorageStore.delete(String(key))
+  },
+  clear() {
+    __localStorageStore.clear()
+  },
+  key(index) {
+    return [...__localStorageStore.keys()][index] ?? null
+  },
+  get length() {
+    return __localStorageStore.size
+  }
+}
+Object.defineProperty(globalThis, 'localStorage', {
+  value: __localStorageMock,
+  configurable: true,
+  writable: true,
+  enumerable: true
+})
+
 import assert from 'node:assert/strict'
-import { createPinia, setActivePinia } from 'pinia'
 
 const values = new Map()
 const responses = new Map()
@@ -21,6 +48,7 @@ globalThis.fetch = async (url, options = {}) => {
   })
 }
 
+const { createPinia, setActivePinia } = await import('pinia')
 setActivePinia(createPinia())
 const { useEditorStore } = await import('../src/renderer/src/stores/editor.js')
 const store = useEditorStore()

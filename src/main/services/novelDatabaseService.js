@@ -10,6 +10,10 @@ const DATABASE_FILE = 'workbench.sqlite'
 
 let sqliteModule = null
 
+/** @type {Map<string, { db: any, repository: any, refCount: number, closed: boolean }>} */
+const databaseConnections = new Map()
+const DEFAULT_BUSY_TIMEOUT_MS = 5000
+
 function nowIso() {
   return new Date().toISOString()
 }
@@ -1872,14 +1876,53 @@ export function getNovelDatabasePath(booksDir) {
   return resolveDatabasePath(booksDir)
 }
 
+function configureSqliteConnection(db) {
+  db.exec('PRAGMA foreign_keys = ON')
+  db.exec('PRAGMA journal_mode = WAL')
+  db.exec(`PRAGMA busy_timeout = ${DEFAULT_BUSY_TIMEOUT_MS}`)
+  db.exec('PRAGMA synchronous = NORMAL')
+}
+
 export function openNovelDatabase(booksDir) {
   const dbPath = resolveDatabasePath(booksDir)
+  const existing = databaseConnections.get(dbPath)
+  if (existing && !existing.closed) {
+    existing.refCount += 1
+    return existing.repository
+  }
+
   fs.mkdirSync(dirname(dbPath), { recursive: true })
   const { DatabaseSync } = loadSqliteModule()
   const db = new DatabaseSync(dbPath)
-  db.exec('PRAGMA foreign_keys = ON')
+  configureSqliteConnection(db)
   applyMigrations(db)
-  return createRepository(db, dbPath, resolveBooksDir(booksDir))
+
+  const baseRepository = createRepository(db, dbPath, resolveBooksDir(booksDir))
+  const entry = {
+    db,
+    repository: null,
+    refCount: 1,
+    closed: false
+  }
+
+  const repository = {
+    ...baseRepository,
+    close: () => {
+      if (entry.closed) return
+      entry.refCount = Math.max(0, entry.refCount - 1)
+      if (entry.refCount > 0) return
+      entry.closed = true
+      databaseConnections.delete(dbPath)
+      try {
+        baseRepository.close()
+      } catch {
+        // ignore double-close
+      }
+    }
+  }
+  entry.repository = repository
+  databaseConnections.set(dbPath, entry)
+  return repository
 }
 
 export function withNovelDatabase(booksDir, callback) {
@@ -1888,6 +1931,19 @@ export function withNovelDatabase(booksDir, callback) {
     return callback(repository)
   } finally {
     repository.close()
+  }
+}
+
+export function closeAllNovelDatabases() {
+  for (const [dbPath, entry] of [...databaseConnections.entries()]) {
+    entry.closed = true
+    entry.refCount = 0
+    databaseConnections.delete(dbPath)
+    try {
+      entry.db.close()
+    } catch {
+      // ignore
+    }
   }
 }
 

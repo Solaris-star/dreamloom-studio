@@ -119,29 +119,29 @@ assert.equal(second.success, true)
 assert.equal(second.inserted, 2)
 assert.equal(second.updated, 0)
 
-const topics = marketService.listHotTopics(booksDir, { limit: 10 })
+const topics = await marketService.listHotTopics(booksDir, { limit: 10 })
 assert.equal(topics.length, 2)
 assert.equal(topics[0].keyword.length > 0, true)
 assert.equal(
-  marketService.listHotTopics(booksDir, {
+  (await marketService.listHotTopics(booksDir, {
     source: 'all',
     keyword: '短剧',
     sortBy: 'capturedAt',
     topN: 1
-  })[0].keyword,
+  }))[0].keyword,
   'AI 短剧爆火'
 )
-assert.equal(marketService.listHotTopics(booksDir, { source: 'missing' }).length, 0)
+assert.equal(((((await marketService.listHotTopics(booksDir, { source: 'missing' }))))).length, 0)
 
-const hotspots = marketService.listHotspots(booksDir, { sortBy: 'heat' })
+const hotspots = await marketService.listHotspots(booksDir, { sortBy: 'heat' })
 assert.equal(hotspots.length, 2)
 assert.equal(hotspots[0].tags.includes('自动采集'), true)
 
-const trend = marketService.getTrendRecord(booksDir, 'AI 短剧爆火')
+const trend = await marketService.getTrendRecord(booksDir, 'AI 短剧爆火')
 assert.equal(Boolean(trend?.trendSeries?.length), true)
-assert.equal(marketService.getTrendRecord(booksDir, ' '), null)
-assert.equal(marketService.listTrendRecords(booksDir, { limit: 1 }).length, 1)
-assert.equal(marketService.listSourceStatus(booksDir).length > 0, true)
+assert.equal(await marketService.getTrendRecord(booksDir, ' '), null)
+assert.equal(((((await marketService.listTrendRecords(booksDir, { limit: 1 }))))).length, 1)
+assert.equal(((((await marketService.listSourceStatus(booksDir))))).length > 0, true)
 
 const failed = await marketService.refreshMarketTrends(booksDir, {
   sources: ['aggregated'],
@@ -256,7 +256,7 @@ const pruneSeed = await marketService.refreshMarketTrends(cachePruneBooksDir, {
 })
 assert.equal(pruneSeed.success, true)
 await new Promise((resolve) => setTimeout(resolve, 10))
-const pruneResult = marketService.pruneMarketSourceCache(cachePruneBooksDir, { cacheTtlMs: 1 })
+const pruneResult = await marketService.pruneMarketSourceCache(cachePruneBooksDir, { cacheTtlMs: 1 })
 assert.equal(pruneResult.checked, 1)
 assert.equal(pruneResult.removed, 1)
 assert.equal(pruneResult.kept, 0)
@@ -291,14 +291,14 @@ writeMarketFile(mixedCacheDir, 'source-cache.json', {
     null
   ]
 })
-const mixedPrune = marketService.pruneMarketSourceCache(mixedCacheDir)
+const mixedPrune = await marketService.pruneMarketSourceCache(mixedCacheDir)
 assert.deepEqual(
   { checked: mixedPrune.checked, kept: mixedPrune.kept, removed: mixedPrune.removed },
   { checked: 4, kept: 1, removed: 3 }
 )
-assert.equal(marketService.pruneMarketSourceCache('', {}).checked, 0)
+assert.equal((await marketService.pruneMarketSourceCache('', {})).checked, 0)
 assert.equal(
-  marketService.pruneMarketSourceCache(mixedCacheDir, { persistentCache: false }).checked,
+  (await marketService.pruneMarketSourceCache(mixedCacheDir, { persistentCache: false })).checked,
   0
 )
 fs.rmSync(mixedCacheDir, { recursive: true, force: true })
@@ -336,7 +336,7 @@ const htmlResult = await marketService.refreshMarketTrends(booksDir, {
 assert.equal(htmlResult.success, true)
 assert.equal(htmlResult.results[0].topics.length, 2)
 
-const qidianTopics = marketService.listHotTopics(booksDir, { source: 'qidian', limit: 10 })
+const qidianTopics = await marketService.listHotTopics(booksDir, { source: 'qidian', limit: 10 })
 assert.equal(qidianTopics.length, 2)
 assert.equal(qidianTopics[0].extra.category.length > 0, true)
 
@@ -369,7 +369,7 @@ assert.equal(jjwxcResult.success, true)
 assert.equal(jjwxcResult.results[0].topics.length, 2)
 assert.equal(jjwxcResult.results[0].topics[0].extra.sourceType, 'novel_rank')
 assert.equal(
-  marketService.listHotTopics(sourceFormatsDir, { source: 'jjwxc' }).some(
+  ((await marketService.listHotTopics(sourceFormatsDir, { source: 'jjwxc' }))).some(
     (topic) => topic.keyword === '春山来信'
   ),
   true
@@ -473,14 +473,14 @@ assert.equal(
   true
 )
 
-const fanqieTopics = marketService.listHotTopics(booksDir, { source: 'fanqie', limit: 10 })
+const fanqieTopics = await marketService.listHotTopics(booksDir, { source: 'fanqie', limit: 10 })
 assert.equal(
   fanqieTopics.some((topic) => topic.keyword === '逆光短剧师'),
   true
 )
 assert.equal(fanqieTopics.find((topic) => topic.keyword === '逆光短剧师')?.extra.author, '云灯')
 
-const qimaoTopics = marketService.listHotTopics(booksDir, { source: 'qimao', limit: 10 })
+const qimaoTopics = await marketService.listHotTopics(booksDir, { source: 'qimao', limit: 10 })
 assert.equal(
   qimaoTopics.some((topic) => topic.keyword === '七猫惊雷榜'),
   true
@@ -490,9 +490,9 @@ assert.equal(
   '东方玄幻'
 )
 
-const maleOverview = marketService.getMarketOverview(booksDir, { channel: 'male', limit: 10 })
+const maleOverview = await marketService.getMarketOverview(booksDir, { channel: 'male', limit: 10 })
 assert.equal(maleOverview.writableDirections.length > 0, true)
-const dashboard = marketService.getMarketDashboard(booksDir, {
+const dashboard = await marketService.getMarketDashboard(booksDir, {
   channel: 'female',
   source: 'all',
   limit: 6,
@@ -505,22 +505,22 @@ assert.equal(Array.isArray(dashboard.sourceStatus), true)
 assert.equal(typeof dashboard.keywordCloud, 'object')
 
 const emptyBooksDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-market-empty-'))
-const emptyOverview = marketService.getMarketOverview(emptyBooksDir, { channel: 'all' })
-const emptyCloud = marketService.getMarketKeywordCloud(emptyBooksDir, { channel: 'all' })
+const emptyOverview = await marketService.getMarketOverview(emptyBooksDir, { channel: 'all' })
+const emptyCloud = await marketService.getMarketKeywordCloud(emptyBooksDir, { channel: 'all' })
 assert.equal(emptyOverview.writableDirections.length, 0)
 assert.equal(emptyCloud.popularCombinations.length, 0)
-assert.equal(marketTrendService.listHotTopics(emptyBooksDir).length, 0)
-assert.equal(marketTrendService.listTrendRecords(emptyBooksDir).length, 0)
-assert.equal(marketTrendService.getTrendRecord(emptyBooksDir, '不存在'), null)
-assert.equal(marketTrendService.listSourceStatus(emptyBooksDir).length, 10)
-assert.equal(marketTrendService.buildRuleOpportunities(emptyBooksDir).length, 0)
-const emptyRank = marketTrendService.buildHotRank(emptyBooksDir, {
+assert.equal(((((await marketTrendService.listHotTopics(emptyBooksDir))))).length, 0)
+assert.equal(((((await marketTrendService.listTrendRecords(emptyBooksDir))))).length, 0)
+assert.equal(await marketTrendService.getTrendRecord(emptyBooksDir, '不存在'), null)
+assert.equal(((((await marketTrendService.listSourceStatus(emptyBooksDir))))).length, 10)
+assert.equal(((await marketTrendService.buildRuleOpportunities(emptyBooksDir))).length, 0)
+const emptyRank = await marketTrendService.buildHotRank(emptyBooksDir, {
   channel: 'invalid-channel'
 })
 assert.equal(emptyRank.channel, 'all')
 assert.equal(emptyRank.items.length, 0)
 assert.equal(emptyRank.selectedItem, null)
-const emptyCombination = marketTrendService.combinationDetailFromKeywords(
+const emptyCombination = await marketTrendService.combinationDetailFromKeywords(
   emptyBooksDir,
   ['悬疑'],
   'male'
@@ -528,12 +528,12 @@ const emptyCombination = marketTrendService.combinationDetailFromKeywords(
 assert.equal(emptyCombination.title, '悬疑')
 assert.equal(emptyCombination.writableDirections.length, 0)
 assert.equal(emptyCombination.sourceInsightId, '')
-const emptyActivities = marketTrendService.buildActivities(emptyBooksDir, {
+const emptyActivities = await marketTrendService.buildActivities(emptyBooksDir, {
   channel: 'female'
 })
 assert.equal(emptyActivities.activities.length, 0)
 assert.equal(emptyActivities.selectedActivityDetail, null)
-const emptyDashboard = marketTrendService.getMarketDashboard(emptyBooksDir, {
+const emptyDashboard = await marketTrendService.getMarketDashboard(emptyBooksDir, {
   channel: 'invalid-channel'
 })
 assert.equal(emptyDashboard.channel, 'all')
@@ -668,7 +668,7 @@ writeMarketFile(scenarioDir, 'source-status.json', {
   ]
 })
 
-const allInsights = marketTrendService.listMarketInsights(scenarioDir, {
+const allInsights = await marketTrendService.listMarketInsights(scenarioDir, {
   channel: 'all',
   limit: 50
 })
@@ -682,11 +682,11 @@ assert.equal(
   'novel_rank'
 )
 
-const maleScenario = marketTrendService.buildMarketOverview(scenarioDir, {
+const maleScenario = await marketTrendService.buildMarketOverview(scenarioDir, {
   channel: 'male',
   limit: 50
 })
-const femaleScenario = marketTrendService.buildMarketOverview(scenarioDir, {
+const femaleScenario = await marketTrendService.buildMarketOverview(scenarioDir, {
   channel: 'female',
   limit: 50
 })
@@ -694,7 +694,7 @@ assert.equal(maleScenario.writableDirections.some((item) => item.channel === 'ma
 assert.equal(femaleScenario.writableDirections.some((item) => item.channel === 'female'), true)
 assert.equal(maleScenario.opportunityIndex.score > 0, true)
 
-const sourceRank = marketTrendService.buildHotRank(scenarioDir, {
+const sourceRank = await marketTrendService.buildHotRank(scenarioDir, {
   channel: 'all',
   source: 'qidian'
 })
@@ -703,23 +703,23 @@ assert.equal(sourceRank.items.every((item) => item.rawPayload.source === 'qidian
 assert.equal(sourceRank.sources.some((item) => item.status === 'stale'), true)
 assert.equal(sourceRank.sources.some((item) => item.status === 'error'), true)
 
-const scenarioCloud = marketTrendService.buildKeywordCloud(scenarioDir, { channel: 'female' })
+const scenarioCloud = await marketTrendService.buildKeywordCloud(scenarioDir, { channel: 'female' })
 assert.equal(scenarioCloud.keywordClusters.length > 0, true)
 assert.equal(scenarioCloud.popularCombinations.length > 0, true)
-const blankCombination = marketTrendService.combinationDetailFromKeywords(
+const blankCombination = await marketTrendService.combinationDetailFromKeywords(
   scenarioDir,
   [],
   'female'
 )
 assert.equal(blankCombination.writableDirections.length > 0, true)
-const knownCombination = marketTrendService.combinationDetailFromKeywords(
+const knownCombination = await marketTrendService.combinationDetailFromKeywords(
   scenarioDir,
   ['古言', '反转'],
   'female'
 )
 assert.equal(knownCombination.title, '古言 + 反转')
 
-const scenarioActivities = marketTrendService.buildActivities(scenarioDir, { channel: 'all' })
+const scenarioActivities = await marketTrendService.buildActivities(scenarioDir, { channel: 'all' })
 assert.equal(scenarioActivities.activities.length, 3)
 assert.equal(scenarioActivities.activities.some((item) => item.status === 'ended'), true)
 assert.equal(scenarioActivities.activities.some((item) => item.status === 'ending_soon'), true)
@@ -729,7 +729,7 @@ assert.equal(scenarioActivities.activities.some((item) => item.channel === 'male
 assert.equal(scenarioActivities.activities.some((item) => item.wordCountRequirement), true)
 assert.equal(scenarioActivities.activities.some((item) => item.reward), true)
 
-const scenarioDashboard = marketTrendService.getMarketDashboard(scenarioDir, {
+const scenarioDashboard = await marketTrendService.getMarketDashboard(scenarioDir, {
   channel: 'male',
   source: 'all',
   limit: 50
@@ -1017,8 +1017,8 @@ writeMarketFile(legacyRowsDir, 'hot-topics.json', [
     heatIndex: 20
   }
 ])
-assert.equal(marketService.listHotTopics(legacyRowsDir).length, 1)
-assert.equal(marketService.listHotTopics(legacyRowsDir)[0].heatIndex, 25_000)
+assert.equal(((((await marketService.listHotTopics(legacyRowsDir))))).length, 1)
+assert.equal((await marketService.listHotTopics(legacyRowsDir))[0].heatIndex, 25_000)
 
 writeMarketFile(legacyRowsDir, 'source-status.json', {
   items: [
@@ -1035,7 +1035,7 @@ writeMarketFile(legacyRowsDir, 'source-status.json', {
     { source: 'dailyhot', skipped: true }
   ]
 })
-const legacyStatuses = marketService.listSourceStatus(legacyRowsDir)
+const legacyStatuses = await marketService.listSourceStatus(legacyRowsDir)
 assert.equal(legacyStatuses.find((item) => item.source === 'weibo')?.status, 'stale')
 assert.equal(legacyStatuses.find((item) => item.source === 'baidu')?.status, 'error')
 assert.equal(legacyStatuses.find((item) => item.source === 'dailyhot')?.status, 'empty')
@@ -1052,13 +1052,13 @@ writeMarketFile(legacyRowsDir, 'trend-records.json', {
     }
   ]
 })
-assert.equal(marketService.listMarketOpportunities(legacyRowsDir)[0].trendScore > 50, true)
+assert.equal((await marketService.listMarketOpportunities(legacyRowsDir))[0].trendScore > 50, true)
 
 writeMarketFile(legacyRowsDir, 'hot-topics.json', { invalid: true })
-assert.throws(() => marketService.listHotTopics(legacyRowsDir), /市场趋势数据格式异常/)
+await assert.rejects(() => marketService.listHotTopics(legacyRowsDir), /市场趋势数据格式异常/)
 writeMarketFile(legacyRowsDir, 'hot-topics.json', '{broken')
-assert.throws(() => marketService.listHotTopics(legacyRowsDir), /市场趋势数据读取失败/)
-assert.throws(() => marketService.listHotTopics(''), /请先设置书籍目录/)
+await assert.rejects(() => marketService.listHotTopics(legacyRowsDir), /市场趋势数据读取失败/)
+await assert.rejects(() => marketService.listHotTopics(''), /请先设置书籍目录/)
 fs.rmSync(legacyRowsDir, { recursive: true, force: true })
 
 const schedulerDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-market-scheduler-'))
@@ -1088,7 +1088,7 @@ try {
     schedulerWarnings.push(args.join(' '))
   }
 
-  const emptyDirectoryTimer = marketTrendService.startScheduler(null, { intervalMs: 1 })
+  const emptyDirectoryTimer = await marketTrendService.startScheduler(null, { intervalMs: 1 })
   assert.deepEqual(emptyDirectoryTimer, { kind: 'market-interval' })
   assert.equal(scheduledTicks[0].delay, 60_000)
   assert.equal(scheduledTicks[1].delay, 5000)
@@ -1096,7 +1096,7 @@ try {
   marketTrendService.stopScheduler()
 
   scheduledTicks.length = 0
-  marketTrendService.startScheduler(() => schedulerDir, { intervalMs: 90_000 })
+  await marketTrendService.startScheduler(() => schedulerDir, { intervalMs: 90_000 })
   const schedulerTick = scheduledTicks.find((item) => item.type === 'timeout')
   assert.equal(schedulerTick.delay, 5000)
   await schedulerTick.callback()

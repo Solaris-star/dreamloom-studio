@@ -43,9 +43,9 @@ const pngBytes = Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), Buffer.a
 const pngDataUrl = `data:image/png;base64,${pngBytes.toString('base64')}`
 
 try {
-  assert.equal(storeGet(''), null)
-  assert.equal(storeSet('', 'ignored'), false)
-  assert.equal(storeDelete(''), false)
+  assert.equal(await storeGet(''), null)
+  assert.equal(await storeSet('', 'ignored'), false)
+  assert.equal(await storeDelete(''), false)
   assert.deepEqual(await readBooksDir(''), [])
   await assert.rejects(() => readBooksDir(booksDir), /书籍目录不存在/)
   fs.mkdirSync(booksDir, { recursive: true })
@@ -176,32 +176,32 @@ try {
 
   const conflict = await createBook({ id: 'conflict-book', name: '冲突作品' }, booksDir)
   assert.equal(conflict.success, true)
-  storeDelete('sortOrder:冲突作品')
-  storeDelete('chapterSettings:冲突作品')
-  assert.equal(getSortOrder('冲突作品'), 'desc')
-  assert.deepEqual(setSortOrder({ bookName: '', order: 'asc' }), {
+  await storeDelete('sortOrder:冲突作品')
+  await storeDelete('chapterSettings:冲突作品')
+  assert.equal(await getSortOrder('冲突作品'), 'desc')
+  assert.deepEqual(await setSortOrder({ bookName: '', order: 'asc' }), {
     success: false,
     message: '排序参数无效'
   })
-  assert.deepEqual(setSortOrder({ bookName: '冲突作品', order: 'invalid' }), {
+  assert.deepEqual(await setSortOrder({ bookName: '冲突作品', order: 'invalid' }), {
     success: false,
     message: '排序参数无效'
   })
-  assert.deepEqual(setSortOrder({ bookName: '冲突作品', order: 'asc' }), {
+  assert.deepEqual(await setSortOrder({ bookName: '冲突作品', order: 'asc' }), {
     success: true,
     order: 'asc'
   })
-  assert.equal(getSortOrder('冲突作品'), 'asc')
-  assert.equal(setChapterTargetWords({ bookName: '', targetWords: 3000 }).success, false)
+  assert.equal(await getSortOrder('冲突作品'), 'asc')
+  assert.equal((await setChapterTargetWords({ bookName: '', targetWords: 3000 })).success, false)
   assert.equal(
-    setChapterTargetWords({ bookName: '冲突作品', targetWords: 'invalid' }).settings.targetWords,
+    (await setChapterTargetWords({ bookName: '冲突作品', targetWords: 'invalid' })).settings.targetWords,
     2000
   )
   assert.equal(
-    setChapterTargetWords({ bookName: '冲突作品', targetWords: 3560.4 }).settings.targetWords,
+    (await setChapterTargetWords({ bookName: '冲突作品', targetWords: 3560.4 })).settings.targetWords,
     3560
   )
-  assert.equal(getChapterSettings('冲突作品').targetWords, 3560)
+  assert.equal((await getChapterSettings('冲突作品')).targetWords, 3560)
   assert.equal((await createVolume('不存在作品', booksDir)).success, false)
   assert.equal(
     (
@@ -295,10 +295,17 @@ try {
   )
   assert.equal(reformatted.success, true)
   assert.equal(reformatted.totalRenamed, 4)
-  assert.equal(
-    fs.existsSync(join(booksDir, '冲突作品', '正文', extraVolume.volumeName, '第1章 尾声.txt')),
-    true
-  )
+  const reformattedFiles = fs
+    .readdirSync(join(booksDir, '冲突作品', '正文', extraVolume.volumeName))
+    .filter((name) => name.endsWith('.txt'))
+    .sort()
+  // 序章无编号，排序后会被重排为第1章；原“第10章 尾声”等顺延。
+  assert.deepEqual(reformattedFiles, [
+    '第1章.txt',
+    '第2章 尾声.txt',
+    '第3章 转折.txt',
+    '第4章 终局.txt'
+  ])
   assert.equal(
     (await reformatChapterNumbers(
       {

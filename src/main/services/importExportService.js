@@ -82,21 +82,21 @@ function readTasks(booksDir) {
   return rows.filter((row) => row != null)
 }
 
-function writeTasks(booksDir, rows) {
+async function writeTasks(booksDir, rows) {
   if (!Array.isArray(rows)) {
     throw new Error('导入导出任务记录格式异常，已停止写入以免覆盖原始记录')
   }
-  writeJson(getTaskFile(booksDir), rows.slice(0, 120))
+  await writeJson(getTaskFile(booksDir), rows.slice(0, 120))
 }
 
-function recordTask(booksDir, task) {
+async function recordTask(booksDir, task) {
   const row = {
     id: task.id || randomUUID(),
     createdAt: nowIso(),
     status: task.status || 'success',
     ...task
   }
-  writeTasks(booksDir, [row, ...readTasks(booksDir)])
+  await writeTasks(booksDir, [row, ...readTasks(booksDir)])
   return row
 }
 
@@ -107,24 +107,25 @@ function getBookPath(booksDir, bookName) {
   return target
 }
 
-function readBooks(booksDir) {
+async function readBooks(booksDir) {
   if (!booksDir || !fs.existsSync(booksDir)) return []
-  return fs
+  const entries = fs
     .readdirSync(booksDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && entry.name !== IMPORT_EXPORT_DIR)
-    .map((entry) => {
-      const bookPath = join(booksDir, entry.name)
-      const meta = readJson(join(bookPath, 'mazi.json'), null)
-      if (!meta || typeof meta !== 'object') return null
-      return {
-        id: String(meta.id || entry.name),
-        name: String(meta.name || entry.name),
-        folderName: entry.name,
-        path: bookPath,
-        meta
-      }
+  const books = []
+  for (const entry of entries) {
+    const bookPath = join(booksDir, entry.name)
+    const meta = await readJson(join(bookPath, 'mazi.json'), null)
+    if (!meta || typeof meta !== 'object') continue
+    books.push({
+      id: String(meta.id || entry.name),
+      name: String(meta.name || entry.name),
+      folderName: entry.name,
+      path: bookPath,
+      meta
     })
-    .filter(Boolean)
+  }
+  return books
 }
 
 function uniqueBookName(booksDir, preferredName) {
@@ -600,7 +601,7 @@ export function previewImport(_booksDir, input = {}) {
   }
 }
 
-export function importBook(booksDir, input = {}) {
+export async function importBook(booksDir, input = {}) {
   const preview = buildImportPreview(input)
   const bookName = uniqueBookName(booksDir, input.bookName || preview.bookName || '导入书籍')
   const bookPath = getBookPath(booksDir, bookName)
@@ -634,7 +635,7 @@ export function importBook(booksDir, input = {}) {
       createdAt: new Date().toLocaleString(),
       updatedAt: new Date().toLocaleString()
     }
-    writeJson(join(tempBookPath, 'mazi.json'), meta)
+    await writeJson(join(tempBookPath, 'mazi.json'), meta)
 
     preview.rawChapters.forEach((chapter, index) => {
       const title = chapter.title || `第${index + 1}章`
@@ -649,7 +650,7 @@ export function importBook(booksDir, input = {}) {
     moveDirectory(tempBookPath, bookPath)
     moved = true
 
-    const task = recordTask(booksDir, {
+    const task = await recordTask(booksDir, {
       type: 'import',
       title: `导入 ${bookName}`,
       sourceName: preview.fileName,
@@ -700,8 +701,8 @@ function listBookChapters(book) {
   })
 }
 
-function getBook(booksDir, bookName) {
-  const book = readBooks(booksDir).find(
+async function getBook(booksDir, bookName) {
+  const book = (await readBooks(booksDir)).find(
     (item) => item.name === bookName || item.folderName === bookName || item.id === bookName
   )
   if (!book) throw new Error('未找到书籍')
@@ -754,9 +755,9 @@ function collectFiles(rootDir, prefix = '') {
   return rows
 }
 
-export function exportBook(booksDir, input = {}) {
+export async function exportBook(booksDir, input = {}) {
   const format = String(input.format || 'txt').toLowerCase()
-  const book = getBook(booksDir, input.bookName)
+  const book = await getBook(booksDir, input.bookName)
   const exportDir = getExportDir(booksDir)
   let filePath
   let content = ''
@@ -782,7 +783,7 @@ export function exportBook(booksDir, input = {}) {
   }
 
   const stat = fs.statSync(filePath)
-  const task = recordTask(booksDir, {
+  const task = await recordTask(booksDir, {
     type: 'export',
     title: `导出 ${book.name}`,
     bookName: book.name,
@@ -803,13 +804,13 @@ export function exportBook(booksDir, input = {}) {
   }
 }
 
-export function createBackup(booksDir, input = {}) {
+export async function createBackup(booksDir, input = {}) {
   const scope = input.scope === 'book' ? 'book' : 'library'
   let rootDir = booksDir
   let prefix = ''
   let label = '书库备份'
   if (scope === 'book') {
-    const book = getBook(booksDir, input.bookName)
+    const book = await getBook(booksDir, input.bookName)
     rootDir = book.path
     prefix = book.folderName
     label = `${book.name}备份`
@@ -819,7 +820,7 @@ export function createBackup(booksDir, input = {}) {
   const zip = createZip(files)
   const filePath = uniqueFilePath(getBackupDir(booksDir), `${safeName(label)}_${Date.now()}.zip`)
   fs.writeFileSync(filePath, zip)
-  const task = recordTask(booksDir, {
+  const task = await recordTask(booksDir, {
     type: 'backup',
     title: label,
     scope,
@@ -927,7 +928,7 @@ export function inspectBackup(booksDir, input = {}) {
   }
 }
 
-export function restoreBackup(booksDir, input = {}) {
+export async function restoreBackup(booksDir, input = {}) {
   const { buffer, fileName } = decodeZipInput(input)
   const entries = readZipEntries(buffer)
   const summary = validateRestoreEntries(entries)
@@ -935,7 +936,7 @@ export function restoreBackup(booksDir, input = {}) {
     input.restoreMode || input.mode || (input.targetDir ? 'archive' : 'library')
   ).toLowerCase()
   if (restoreMode === 'library' || restoreMode === 'bookshelf' || restoreMode === 'current') {
-    return restoreBackupToLibrary(booksDir, entries, summary, fileName)
+    return await restoreBackupToLibrary(booksDir, entries, summary, fileName)
   }
   const targetDir = resolve(
     String(
@@ -972,7 +973,7 @@ export function restoreBackup(booksDir, input = {}) {
     throw error
   }
 
-  const task = recordTask(booksDir, {
+  const task = await recordTask(booksDir, {
     type: 'restore',
     title: `恢复 ${fileName}`,
     sourceName: fileName,
@@ -989,12 +990,12 @@ export function restoreBackup(booksDir, input = {}) {
   }
 }
 
-function restoreBackupToLibrary(booksDir, entries, summary, fileName) {
+async function restoreBackupToLibrary(booksDir, entries, summary, fileName) {
   const groups = buildRestoreBookGroups(entries)
   if (!groups.length) throw new Error('备份包中未找到可加入书库的书籍')
 
   const existingIds = new Set(
-    readBooks(booksDir)
+    (await readBooks(booksDir))
       .map((book) => String(book.id || ''))
       .filter(Boolean)
   )
@@ -1021,11 +1022,11 @@ function restoreBackupToLibrary(booksDir, entries, summary, fileName) {
       }
 
       const metaPath = join(tempBookPath, 'mazi.json')
-      const meta = readJson(metaPath, {})
+      const meta = await readJson(metaPath, {})
       const metaId = String(meta.id || '')
       const id = metaId && !usedIds.has(metaId) ? metaId : randomUUID()
       usedIds.add(id)
-      writeJson(metaPath, {
+      await writeJson(metaPath, {
         ...meta,
         id,
         name: folderName,
@@ -1059,7 +1060,7 @@ function restoreBackupToLibrary(booksDir, entries, summary, fileName) {
     throw error
   }
 
-  const task = recordTask(booksDir, {
+  const task = await recordTask(booksDir, {
     type: 'restore',
     title: `恢复到当前书库 ${fileName}`,
     sourceName: fileName,

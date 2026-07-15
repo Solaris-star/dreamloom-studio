@@ -586,7 +586,13 @@ try {
     assert.equal(restoredTypes.has('outlines'), true)
     const restoredChapters = repository.listChapters(restoredProject.id)
     assert.equal(restoredChapters.length, 2)
-    assert.equal(restoredChapters[0].content, restoredChapterContent)
+    assert.equal(
+      restoredChapters.some(
+        (chapter) =>
+          chapter.chapterName === '第一章' && chapter.content === restoredChapterContent
+      ),
+      true
+    )
   } finally {
     repository.close()
   }

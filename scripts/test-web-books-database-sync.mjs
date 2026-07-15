@@ -159,14 +159,14 @@ try {
   assert.equal(fs.existsSync(getNovelDatabasePath(booksDir)), true)
 
   assertDocumentWriteResult(
-    writeCharacters(
+    await writeCharacters(
       { bookName: originalBookName, data: [{ name: '林青', gender: '女' }] },
       booksDir
     ),
     { fileName: 'characters.json', documentType: 'characters', itemCount: 1 }
   )
   assertDocumentWriteResult(
-    writeSettings(
+    await writeSettings(
       {
         bookName: originalBookName,
         data: {
@@ -180,14 +180,14 @@ try {
     { fileName: 'settings.json', documentType: 'settings' }
   )
   assertDocumentWriteResult(
-    writeTimeline(
+    await writeTimeline(
       { bookName: originalBookName, data: [{ title: '入山', time: '第一夜' }] },
       booksDir
     ),
     { fileName: 'timelines.json', documentType: 'timeline', itemCount: 1 }
   )
   assertDocumentWriteResult(
-    writeOutlines(
+    await writeOutlines(
       {
         bookName: originalBookName,
         data: { children: [{ id: 'outline_root', title: '全书大纲', children: [] }] }
@@ -197,14 +197,14 @@ try {
     { fileName: 'outlines.json', documentType: 'outlines' }
   )
   assertDocumentWriteResult(
-    writeDictionary(
+    await writeDictionary(
       { bookName: originalBookName, data: [{ term: '雪岭', description: '北境山脉。' }] },
       booksDir
     ),
     { fileName: 'dictionary.json', documentType: 'dictionary', itemCount: 1 }
   )
   assertDocumentWriteResult(
-    writeEntityProfileCategory(
+    await writeEntityProfileCategory(
       {
         bookName: originalBookName,
         category: 'artifact',
@@ -215,7 +215,7 @@ try {
     { fileName: 'entity_profiles.json', documentType: 'entity_profiles' }
   )
   assertDocumentWriteResult(
-    writeOutlineAiSessions(
+    await writeOutlineAiSessions(
       {
         bookName: originalBookName,
         data: {
@@ -228,14 +228,14 @@ try {
     { fileName: 'outline-ai-sessions.json', documentType: 'outline_ai_sessions' }
   )
   assertDocumentWriteResult(
-    writeSequenceCharts(
+    await writeSequenceCharts(
       { bookName: originalBookName, data: [{ id: 'seq_1', title: '追兵入山' }] },
       booksDir
     ),
     { fileName: 'sequence-charts.json', documentType: 'sequence_charts', itemCount: 1 }
   )
   assertGraphWriteResult(
-    createRelationship(
+    await createRelationship(
       {
         bookName: originalBookName,
         relationshipName: '主关系图',
@@ -255,7 +255,7 @@ try {
     }
   )
   assertGraphWriteResult(
-    createOrganization(
+    await createOrganization(
       {
         bookName: originalBookName,
         organizationName: '主势力图',
@@ -275,7 +275,7 @@ try {
     }
   )
   assertMapWriteResult(
-    createMap(
+    await createMap(
       {
         bookName: originalBookName,
         mapName: '雪岭地图',
@@ -290,7 +290,7 @@ try {
     }
   )
   assertMapWriteResult(
-    updateMap(
+    await updateMap(
       {
         bookName: originalBookName,
         mapName: '雪岭地图',
@@ -418,8 +418,8 @@ try {
     '寒月剑'
   )
 
-  assert.equal(readMaps(renamedBookName, booksDir).data[0].name, '雪岭地图')
-  const savedMapData = saveMapData(
+  assert.equal((await readMaps(renamedBookName, booksDir)).data[0].name, '雪岭地图')
+  const savedMapData = await saveMapData(
     {
       bookName: renamedBookName,
       mapName: '雪岭地图',
@@ -428,32 +428,32 @@ try {
     booksDir
   )
   assert.equal(savedMapData.success, true)
-  assert.equal(loadMapData({ bookName: renamedBookName, mapName: '雪岭地图' }, booksDir).elements.length, 1)
+  assert.equal((await loadMapData({ bookName: renamedBookName, mapName: '雪岭地图' }, booksDir)).elements.length, 1)
   assert.match(
     readMapImage({ bookName: renamedBookName, mapName: '雪岭地图' }, booksDir),
     /^data:image\/png;base64,/
   )
 
-  assert.equal(readRelationships(renamedBookName, booksDir).data.length, 1)
+  assert.equal((await readRelationships(renamedBookName, booksDir)).data.length, 1)
   assert.equal(
-    readRelationshipData(
+    (await readRelationshipData(
       { bookName: renamedBookName, relationshipName: '主关系图' },
       booksDir
-    ).data.nodes.length,
+    )).data.nodes.length,
     1
   )
   assert.equal(
-    createRelationship(
+    (await createRelationship(
       {
         bookName: renamedBookName,
         relationshipName: '主关系图',
         relationshipData: {}
       },
       booksDir
-    ).success,
+    )).success,
     false
   )
-  const savedRelationship = saveRelationshipData(
+  const savedRelationship = await saveRelationshipData(
     {
       bookName: renamedBookName,
       relationshipName: '主关系图',
@@ -485,15 +485,15 @@ try {
     /^data:image\/png;base64,/
   )
 
-  assert.equal(readOrganizations(renamedBookName, booksDir).data.length, 1)
+  assert.equal((await readOrganizations(renamedBookName, booksDir)).data.length, 1)
   assert.equal(
-    readOrganization(
+    (await readOrganization(
       { bookName: renamedBookName, organizationName: '主势力图' },
       booksDir
-    ).data.nodes.length,
+    )).data.nodes.length,
     1
   )
-  const writtenOrganization = writeOrganization(
+  const writtenOrganization = await writeOrganization(
     {
       bookName: renamedBookName,
       organizationName: '主势力图',
@@ -538,10 +538,10 @@ try {
     true
   )
   assert.equal(
-    readRelationshipData(
+    (await readRelationshipData(
       { bookName: renamedBookName, relationshipName: '主关系图' },
       booksDir
-    ).success,
+    )).success,
     false
   )
   assert.equal(
@@ -552,10 +552,10 @@ try {
     true
   )
   assert.equal(
-    readOrganization(
+    (await readOrganization(
       { bookName: renamedBookName, organizationName: '主势力图' },
       booksDir
-    ).success,
+    )).success,
     false
   )
 } finally {

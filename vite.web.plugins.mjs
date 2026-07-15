@@ -94,7 +94,7 @@ export function createWebServerPlugins() {
   } = createWebBooksPathService({
     configuredBooksDir,
     defaultBooksDir: booksDir,
-    getStoredBooksDir: () => webStore.get('booksDir')
+    getStoredBooksDir: async () => webStore.get('booksDir')
   })
 
   const authStateStorePromise = createAuthStateStoreFromEnv({
@@ -394,7 +394,7 @@ export function createWebServerPlugins() {
           ) {
             return
           } else if (
-            handleWebUtilityRoute({
+            (await handleWebUtilityRoute({
               path,
               body,
               res,
@@ -403,7 +403,7 @@ export function createWebServerPlugins() {
               storeGet: webStore.get,
               storeSet: webStore.set,
               storeDelete: webStore.delete
-            })
+            }))
           ) {
             return
           } else if (

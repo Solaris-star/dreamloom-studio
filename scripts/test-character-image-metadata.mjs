@@ -49,14 +49,14 @@ try {
   assert.equal(built.localPath, tempImage)
   assert.ok(built.id)
 
-  const written = writeCharacterImageMetadata(tempImage, built)
+  const written = await writeCharacterImageMetadata(tempImage, built)
   const tempMetadataPath = metadataPathForImage(tempImage)
   assert.equal(fs.existsSync(tempMetadataPath), true)
-  assert.deepEqual(readCharacterImageMetadata(tempImage), written)
+  assert.deepEqual(await readCharacterImageMetadata(tempImage), written)
 
   const finalImage = join(finalDir, 'img_1.png')
   fs.copyFileSync(tempImage, finalImage)
-  const confirmed = confirmCharacterImageMetadata(tempImage, finalImage, {
+  const confirmed = await confirmCharacterImageMetadata(tempImage, finalImage, {
     bookName: '测试作品'
   })
   assert.equal(confirmed.localPath, finalImage)

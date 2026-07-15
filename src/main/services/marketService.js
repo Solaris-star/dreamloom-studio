@@ -235,11 +235,11 @@ function readRows(booksDir, fileName) {
   throw new Error(`市场数据格式异常：${fileName}，已停止读取`)
 }
 
-function writeRows(booksDir, fileName, items) {
+async function writeRows(booksDir, fileName, items) {
   if (!Array.isArray(items)) {
     throw new Error(`市场数据格式异常：${fileName}，已停止写入以免覆盖原始记录`)
   }
-  writeJson(getMarketPath(booksDir, fileName), {
+  await writeJson(getMarketPath(booksDir, fileName), {
     version: 1,
     updatedAt: nowIso(),
     items
@@ -402,8 +402,8 @@ function trendTopicToHotspot(topic = {}) {
   }
 }
 
-export function upsertHotspotsFromTrends(booksDir, topics = []) {
-  const rows = readRows(booksDir, HOTSPOTS_FILE).map(normalizeHotspot)
+export async function upsertHotspotsFromTrends(booksDir, topics = []) {
+  const rows = (await readRows(booksDir, HOTSPOTS_FILE)).map(normalizeHotspot)
   const nextRows = [...rows]
   const now = nowIso()
   let inserted = 0
@@ -439,7 +439,7 @@ export function upsertHotspotsFromTrends(booksDir, topics = []) {
     }
   }
 
-  writeRows(booksDir, HOTSPOTS_FILE, sortRows(nextRows, 'updatedAt').slice(0, 500))
+  await writeRows(booksDir, HOTSPOTS_FILE, sortRows(nextRows, 'updatedAt').slice(0, 500))
   return { success: true, inserted, updated, items: nextRows }
 }
 
@@ -594,24 +594,24 @@ function activityToTopicCard(activity) {
   }
 }
 
-export function listHotspots(booksDir, filter = {}) {
+export async function listHotspots(booksDir, filter = {}) {
   return sortRows(
-    readRows(booksDir, HOTSPOTS_FILE)
+    (await readRows(booksDir, HOTSPOTS_FILE))
       .map(normalizeHotspot)
       .filter((row) => matchesFilter(row, filter)),
     filter.sortBy
   )
 }
 
-export function createHotspot(booksDir, input = {}) {
-  const rows = readRows(booksDir, HOTSPOTS_FILE).map(normalizeHotspot)
+export async function createHotspot(booksDir, input = {}) {
+  const rows = (await readRows(booksDir, HOTSPOTS_FILE)).map(normalizeHotspot)
   const item = normalizeHotspot(input)
-  writeRows(booksDir, HOTSPOTS_FILE, [item, ...rows])
+  await writeRows(booksDir, HOTSPOTS_FILE, [item, ...rows])
   return { success: true, item }
 }
 
-export function updateHotspot(booksDir, id, patch = {}) {
-  const rows = readRows(booksDir, HOTSPOTS_FILE).map(normalizeHotspot)
+export async function updateHotspot(booksDir, id, patch = {}) {
+  const rows = (await readRows(booksDir, HOTSPOTS_FILE)).map(normalizeHotspot)
   const existing = rows.find((row) => row.id === id)
   if (!existing) return { success: false, message: '热点不存在' }
   const item = normalizeHotspot({
@@ -621,12 +621,12 @@ export function updateHotspot(booksDir, id, patch = {}) {
     createdAt: existing.createdAt,
     updatedAt: nowIso()
   })
-  writeRows(booksDir, HOTSPOTS_FILE, mergeRows(rows, item))
+  await writeRows(booksDir, HOTSPOTS_FILE, mergeRows(rows, item))
   return { success: true, item }
 }
 
-export function saveHotspotToKnowledge(booksDir, id) {
-  const rows = readRows(booksDir, HOTSPOTS_FILE).map(normalizeHotspot)
+export async function saveHotspotToKnowledge(booksDir, id) {
+  const rows = (await readRows(booksDir, HOTSPOTS_FILE)).map(normalizeHotspot)
   const hotspot = rows.find((row) => row.id === id)
   if (!hotspot) return { success: false, message: '热点不存在' }
   const result = knowledgeBaseService.createKnowledgeItem(booksDir, hotspotToKnowledgeItem(hotspot))
@@ -635,12 +635,12 @@ export function saveHotspotToKnowledge(booksDir, id) {
     knowledgeItemId: result.item?.id || hotspot.knowledgeItemId,
     updatedAt: nowIso()
   })
-  writeRows(booksDir, HOTSPOTS_FILE, mergeRows(rows, item))
+  await writeRows(booksDir, HOTSPOTS_FILE, mergeRows(rows, item))
   return { success: true, item, knowledgeItem: result.item, duplicate: result.duplicate }
 }
 
-export function createTopicCardFromHotspot(booksDir, id) {
-  const rows = readRows(booksDir, HOTSPOTS_FILE).map(normalizeHotspot)
+export async function createTopicCardFromHotspot(booksDir, id) {
+  const rows = (await readRows(booksDir, HOTSPOTS_FILE)).map(normalizeHotspot)
   const hotspot = rows.find((row) => row.id === id)
   if (!hotspot) return { success: false, message: '热点不存在' }
   const result = knowledgeBaseService.createKnowledgeItem(booksDir, hotspotToTopicCard(hotspot))
@@ -649,28 +649,28 @@ export function createTopicCardFromHotspot(booksDir, id) {
     topicCardId: result.item?.id || hotspot.topicCardId,
     updatedAt: nowIso()
   })
-  writeRows(booksDir, HOTSPOTS_FILE, mergeRows(rows, item))
+  await writeRows(booksDir, HOTSPOTS_FILE, mergeRows(rows, item))
   return { success: true, item, topicCard: result.item, duplicate: result.duplicate }
 }
 
-export function listActivities(booksDir, filter = {}) {
+export async function listActivities(booksDir, filter = {}) {
   return sortRows(
-    readRows(booksDir, ACTIVITIES_FILE)
+    (await readRows(booksDir, ACTIVITIES_FILE))
       .map(normalizeActivity)
       .filter((row) => matchesFilter(row, filter)),
     filter.sortBy
   )
 }
 
-export function createActivity(booksDir, input = {}) {
-  const rows = readRows(booksDir, ACTIVITIES_FILE).map(normalizeActivity)
+export async function createActivity(booksDir, input = {}) {
+  const rows = (await readRows(booksDir, ACTIVITIES_FILE)).map(normalizeActivity)
   const item = normalizeActivity(input)
-  writeRows(booksDir, ACTIVITIES_FILE, [item, ...rows])
+  await writeRows(booksDir, ACTIVITIES_FILE, [item, ...rows])
   return { success: true, item }
 }
 
-export function updateActivity(booksDir, id, patch = {}) {
-  const rows = readRows(booksDir, ACTIVITIES_FILE).map(normalizeActivity)
+export async function updateActivity(booksDir, id, patch = {}) {
+  const rows = (await readRows(booksDir, ACTIVITIES_FILE)).map(normalizeActivity)
   const existing = rows.find((row) => row.id === id)
   if (!existing) return { success: false, message: '活动不存在' }
   const item = normalizeActivity({
@@ -680,12 +680,12 @@ export function updateActivity(booksDir, id, patch = {}) {
     createdAt: existing.createdAt,
     updatedAt: nowIso()
   })
-  writeRows(booksDir, ACTIVITIES_FILE, mergeRows(rows, item))
+  await writeRows(booksDir, ACTIVITIES_FILE, mergeRows(rows, item))
   return { success: true, item }
 }
 
-export function saveActivityToKnowledge(booksDir, id) {
-  const rows = readRows(booksDir, ACTIVITIES_FILE).map(normalizeActivity)
+export async function saveActivityToKnowledge(booksDir, id) {
+  const rows = (await readRows(booksDir, ACTIVITIES_FILE)).map(normalizeActivity)
   const activity = rows.find((row) => row.id === id)
   if (!activity) return { success: false, message: '活动不存在' }
   const result = knowledgeBaseService.createKnowledgeItem(
@@ -697,12 +697,12 @@ export function saveActivityToKnowledge(booksDir, id) {
     knowledgeItemId: result.item?.id || activity.knowledgeItemId,
     updatedAt: nowIso()
   })
-  writeRows(booksDir, ACTIVITIES_FILE, mergeRows(rows, item))
+  await writeRows(booksDir, ACTIVITIES_FILE, mergeRows(rows, item))
   return { success: true, item, knowledgeItem: result.item, duplicate: result.duplicate }
 }
 
-export function createTopicCardFromActivity(booksDir, id) {
-  const rows = readRows(booksDir, ACTIVITIES_FILE).map(normalizeActivity)
+export async function createTopicCardFromActivity(booksDir, id) {
+  const rows = (await readRows(booksDir, ACTIVITIES_FILE)).map(normalizeActivity)
   const activity = rows.find((row) => row.id === id)
   if (!activity) return { success: false, message: '活动不存在' }
   const result = knowledgeBaseService.createKnowledgeItem(booksDir, activityToTopicCard(activity))
@@ -711,13 +711,13 @@ export function createTopicCardFromActivity(booksDir, id) {
     topicCardId: result.item?.id || activity.topicCardId,
     updatedAt: nowIso()
   })
-  writeRows(booksDir, ACTIVITIES_FILE, mergeRows(rows, item))
+  await writeRows(booksDir, ACTIVITIES_FILE, mergeRows(rows, item))
   return { success: true, item, topicCard: result.item, duplicate: result.duplicate }
 }
 
 export async function refreshMarketTrends(booksDir, options = {}) {
   const result = await marketTrendService.refreshHotTopics(booksDir, options)
-  const syncResult = upsertHotspotsFromTrends(booksDir, result.topics || [])
+  const syncResult = await upsertHotspotsFromTrends(booksDir, result.topics || [])
   return {
     ...result,
     hotspotSync: {
@@ -727,46 +727,46 @@ export async function refreshMarketTrends(booksDir, options = {}) {
   }
 }
 
-export function listHotTopics(booksDir, filter = {}) {
-  return marketTrendService.listHotTopics(booksDir, filter)
+export async function listHotTopics(booksDir, filter = {}) {
+  return await marketTrendService.listHotTopics(booksDir, filter)
 }
 
-export function getTrendRecord(booksDir, keyword) {
-  return marketTrendService.getTrendRecord(booksDir, keyword)
+export async function getTrendRecord(booksDir, keyword) {
+  return await marketTrendService.getTrendRecord(booksDir, keyword)
 }
 
-export function listTrendRecords(booksDir, filter = {}) {
-  return marketTrendService.listTrendRecords(booksDir, filter)
+export async function listTrendRecords(booksDir, filter = {}) {
+  return await marketTrendService.listTrendRecords(booksDir, filter)
 }
 
-export function listSourceStatus(booksDir) {
-  return marketTrendService.listSourceStatus(booksDir)
+export async function listSourceStatus(booksDir) {
+  return await marketTrendService.listSourceStatus(booksDir)
 }
 
-export function pruneMarketSourceCache(booksDir, options = {}) {
-  return marketTrendService.pruneSourceCache(booksDir, options)
+export async function pruneMarketSourceCache(booksDir, options = {}) {
+  return await marketTrendService.pruneSourceCache(booksDir, options)
 }
 
-export function getMarketDashboard(booksDir, filter = {}) {
-  return marketTrendService.getMarketDashboard(booksDir, filter)
+export async function getMarketDashboard(booksDir, filter = {}) {
+  return await marketTrendService.getMarketDashboard(booksDir, filter)
 }
 
-export function getMarketOverview(booksDir, filter = {}) {
-  return marketTrendService.buildMarketOverview(booksDir, filter)
+export async function getMarketOverview(booksDir, filter = {}) {
+  return await marketTrendService.buildMarketOverview(booksDir, filter)
 }
 
-export function getMarketHotRank(booksDir, filter = {}) {
-  return marketTrendService.buildHotRank(booksDir, filter)
+export async function getMarketHotRank(booksDir, filter = {}) {
+  return await marketTrendService.buildHotRank(booksDir, filter)
 }
 
-export function getMarketKeywordCloud(booksDir, filter = {}) {
-  return marketTrendService.buildKeywordCloud(booksDir, filter)
+export async function getMarketKeywordCloud(booksDir, filter = {}) {
+  return await marketTrendService.buildKeywordCloud(booksDir, filter)
 }
 
-export function getMarketKeywordCombination(booksDir, input = {}) {
+export async function getMarketKeywordCombination(booksDir, input = {}) {
   return {
     success: true,
-    detail: marketTrendService.combinationDetailFromKeywords(
+    detail: await marketTrendService.combinationDetailFromKeywords(
       booksDir,
       asStringArray(input.keywords),
       input.channel || 'all'
@@ -774,8 +774,8 @@ export function getMarketKeywordCombination(booksDir, input = {}) {
   }
 }
 
-export function getMarketActivities(booksDir, filter = {}) {
-  return marketTrendService.buildActivities(booksDir, filter)
+export async function getMarketActivities(booksDir, filter = {}) {
+  return await marketTrendService.buildActivities(booksDir, filter)
 }
 
 export function saveInsightToKnowledge(booksDir, input = {}) {
@@ -784,12 +784,12 @@ export function saveInsightToKnowledge(booksDir, input = {}) {
   return knowledgeBaseService.createKnowledgeItem(booksDir, insightToKnowledgeItem(insight))
 }
 
-export function generateOutlineFromInsight(booksDir, input = {}) {
+export async function generateOutlineFromInsight(booksDir, input = {}) {
   const insight = input.insight || findInsight(booksDir, input.insightId, input.channel || 'all')
   if (!insight) return { success: false, message: '灵感不存在' }
   const outline = buildOutlineDraft(insight)
   if (input.mode === 'save_only') {
-    const rows = readRows(booksDir, WRITING_PLANS_FILE)
+    const rows = await readRows(booksDir, WRITING_PLANS_FILE)
     const item = {
       id: `writing_plan_${randomUUID()}`,
       insightId: input.insightId || insight.id,
@@ -798,7 +798,7 @@ export function generateOutlineFromInsight(booksDir, input = {}) {
       createdAt: nowIso(),
       updatedAt: nowIso()
     }
-    writeRows(booksDir, WRITING_PLANS_FILE, [item, ...rows].slice(0, 100))
+    await writeRows(booksDir, WRITING_PLANS_FILE, [item, ...rows].slice(0, 100))
     return { success: true, outline, item }
   }
   return { success: true, outline }
@@ -848,7 +848,7 @@ export function applyInsightToBook(booksDir, input = {}) {
   return { ...result, bookName }
 }
 
-export function createBookFromInsight(booksDir, input = {}) {
+export async function createBookFromInsight(booksDir, input = {}) {
   if (!booksDir || typeof booksDir !== 'string') {
     return { success: false, message: '请先设置书籍目录' }
   }
@@ -875,7 +875,7 @@ export function createBookFromInsight(booksDir, input = {}) {
   }
   const typeInfo = typeFromGenre(insight.genre)
   const outline = buildOutlineDraft({ ...insight, title: bookName })
-  writeMarketBookFiles(
+  await writeMarketBookFiles(
     bookPath,
     {
       id: String(Date.now()) + Math.floor(Math.random() * 10000).toString(),
@@ -918,14 +918,14 @@ function uniqueMarketBookName(booksDir, baseName) {
   return candidate
 }
 
-function writeMarketBookFiles(bookPath, meta, outline, insight) {
+async function writeMarketBookFiles(bookPath, meta, outline, insight) {
   fs.mkdirSync(join(bookPath, '正文', '正文'), { recursive: true })
   fs.mkdirSync(join(bookPath, '笔记', '大纲'), { recursive: true })
   fs.mkdirSync(join(bookPath, '笔记', '设定'), { recursive: true })
   fs.mkdirSync(join(bookPath, '笔记', '人物'), { recursive: true })
-  writeJson(join(bookPath, 'mazi.json'), meta)
-  writeJson(join(bookPath, 'outlines.json'), outline)
-  writeJson(join(bookPath, 'settings.json'), {
+  await writeJson(join(bookPath, 'mazi.json'), meta)
+  await writeJson(join(bookPath, 'outlines.json'), outline)
+  await writeJson(join(bookPath, 'settings.json'), {
     worldview: outline.worldview,
     mainConflict: outline.mainConflict,
     source: {
@@ -934,7 +934,7 @@ function writeMarketBookFiles(bookPath, meta, outline, insight) {
       generatedAt: nowIso()
     }
   })
-  writeJson(join(bookPath, 'characters.json'), [
+  await writeJson(join(bookPath, 'characters.json'), [
     {
       id: randomUUID(),
       name: insight.channel === 'female' ? '女主' : '主角',
@@ -947,12 +947,12 @@ function writeMarketBookFiles(bookPath, meta, outline, insight) {
   fs.writeFileSync(join(bookPath, '正文', '正文', '第1章.txt'), firstChapter, 'utf-8')
 }
 
-export function listMarketOpportunities(booksDir, filter = {}) {
-  return marketTrendService.buildRuleOpportunities(booksDir, filter)
+export async function listMarketOpportunities(booksDir, filter = {}) {
+  return await marketTrendService.buildRuleOpportunities(booksDir, filter)
 }
 
 export async function generateMarketOpportunities(booksDir, options = {}) {
-  return marketTrendService.generateOpportunitiesWithLLM(booksDir, options)
+  return await marketTrendService.generateOpportunitiesWithLLM(booksDir, options)
 }
 
 export function startMarketTrendScheduler(getBooksDir, options = {}) {

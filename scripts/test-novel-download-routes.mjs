@@ -68,8 +68,7 @@ await handleNovelDownloadRoute({
 })
 assert.deepEqual(responses.at(-1).payload, { success: true, list: [], sourceErrors: [] })
 
-await assert.rejects(
-  handleNovelDownloadRoute({
+await assert.rejects(() => handleNovelDownloadRoute({
     ...common,
     path: '/api/novel/search',
     body: { keyword: '作品', sourceId: 'missing' }
@@ -96,8 +95,7 @@ await handleNovelDownloadRoute({
 assert.equal(responses.at(-1).status, 501)
 assert.equal(responses.at(-1).payload.success, false)
 
-await assert.rejects(
-  handleNovelDownloadRoute({
+await assert.rejects(() => handleNovelDownloadRoute({
     ...common,
     path: '/api/novel/download',
     body: { chapterList: [], sourceId: 'source-a' }
