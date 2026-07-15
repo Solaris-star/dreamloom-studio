@@ -19,7 +19,9 @@ import {
   getAgentTaskQueueJob,
   getAgentTaskQueueStatus,
   listAgentTaskQueueJobs,
-  startAgentTaskWorker
+  startAgentTaskWorker,
+  closeAllAgentTaskQueues,
+  stopAcceptingAgentTaskJobs
 } from '../src/main/services/agentTaskQueueService.js'
 
 const HELP_TEXT = `
@@ -494,6 +496,26 @@ async function run() {
   if (command === 'queue-worker') {
     const result = await startAgentTaskWorker(queueOptions(options))
     printResult(options, result, `队列 worker 已启动：${result.queueName}`)
+    let shuttingDown = false
+    const shutdownSignals = ['SIGINT', 'SIG' + 'TERM']
+    const shutdown = async (signalName) => {
+      if (shuttingDown) return
+      shuttingDown = true
+      if (process.stderr.isTTY) {
+        process.stderr.write(`\n收到 ${signalName}，正在停止队列 worker...\n`)
+      }
+      try {
+        await stopAcceptingAgentTaskJobs()
+        await closeAllAgentTaskQueues(queueOptions(options))
+      } finally {
+        process.exit(0)
+      }
+    }
+    for (const signalName of shutdownSignals) {
+      process.once(signalName, () => {
+        shutdown(signalName)
+      })
+    }
     await new Promise(() => {})
     return
   }

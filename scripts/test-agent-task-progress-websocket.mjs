@@ -190,6 +190,13 @@ try {
   assert.match(
     await rejectedWebSocket({
       port: server.port,
+      path: `${server.path}?token=${serverUrl.searchParams.get('token')}`
+    }),
+    /403 Forbidden/
+  )
+  assert.match(
+    await rejectedWebSocket({
+      port: server.port,
       path: `/wrong-path?token=${serverUrl.searchParams.get('token')}`
     }),
     /404 Not Found/
@@ -197,7 +204,7 @@ try {
   assert.match(
     await rawUpgradeResponse({
       port: server.port,
-      path: `${serverUrl.pathname}${serverUrl.search}`
+      path: `${server.path}?token=${serverUrl.searchParams.get('token')}&bookName=${encodeURIComponent('寒灯写剑')}`
     }),
     /400 Bad Request/
   )

@@ -20,10 +20,17 @@ const DEFAULT_ATTEMPTS = 1
 const DEFAULT_BACKOFF_DELAY_MS = 3000
 const DEFAULT_CANCEL_POLL_INTERVAL_MS = 1000
 const DEFAULT_REDIS_CONNECT_TIMEOUT_MS = 3000
+const DEFAULT_JOB_TIMEOUT_MS = 15 * 60 * 1000
+const DEFAULT_LOCK_DURATION_MS = 5 * 60 * 1000
+const DEFAULT_PROVIDER_CONCURRENCY = 1
 const QUEUE_CANCEL_MESSAGE = '队列任务已请求停止'
+const REDIS_UNAVAILABLE_MESSAGE = 'Redis 不可用或连接超时，请检查 REDIS_URL 与网络'
 const activeQueues = new Map()
 const activeWorkers = new Map()
 const activeJobControllers = new Map()
+const providerSemaphores = new Map()
+let acceptingNewJobs = true
+let shuttingDown = false
 
 function cleanText(value) {
   return typeof value === 'string' ? value.trim() : ''
@@ -126,6 +133,162 @@ function redisConnectionOptions(options = {}, { blocking = false } = {}) {
 function activeJobKey(queueName, jobId, redisUrl = '') {
   return `${queueName || DEFAULT_QUEUE_NAME}|${redisUrl || DEFAULT_REDIS_URL}|${jobId || ''}`
 }
+
+function providerKeyFromInput(input = {}) {
+  return cleanText(input.providerId || input.modelId || input.model || input.modelName) || 'default'
+}
+
+function parseProviderLimitMap(rawValue = '') {
+  const textValue = cleanText(rawValue)
+  if (!textValue) return {}
+  const map = {}
+  for (const part of textValue.split(',')) {
+    const [key, value] = part.split('=').map((item) => cleanText(item))
+    if (!key) continue
+    const number = Math.floor(Number(value))
+    if (Number.isFinite(number) && number > 0) map[key] = number
+  }
+  return map
+}
+
+export function resolveProviderConcurrency(providerKey = '', options = {}) {
+  const key = cleanText(providerKey) || 'default'
+  const map = {
+    ...parseProviderLimitMap(process.env.AGENT_TASK_QUEUE_PROVIDER_CONCURRENCY),
+    ...(options.providerConcurrency && typeof options.providerConcurrency === 'object'
+      ? options.providerConcurrency
+      : {})
+  }
+  if (map[key]) return integerFromInput(map[key], DEFAULT_PROVIDER_CONCURRENCY)
+  return integerFromInput(
+    options.defaultProviderConcurrency ||
+      process.env.AGENT_TASK_QUEUE_DEFAULT_PROVIDER_CONCURRENCY ||
+      options.concurrency ||
+      process.env.AGENT_TASK_QUEUE_CONCURRENCY,
+    DEFAULT_PROVIDER_CONCURRENCY
+  )
+}
+
+export function resolveProviderTimeoutMs(providerKey = '', options = {}, input = {}) {
+  const key = cleanText(providerKey) || 'default'
+  const map = {
+    ...parseProviderLimitMap(process.env.AGENT_TASK_QUEUE_PROVIDER_TIMEOUT_MS),
+    ...(options.providerTimeoutMs && typeof options.providerTimeoutMs === 'object'
+      ? options.providerTimeoutMs
+      : {})
+  }
+  if (map[key]) return integerFromInput(map[key], DEFAULT_JOB_TIMEOUT_MS)
+  return integerFromInput(
+    input.timeoutMs ||
+      options.jobTimeoutMs ||
+      process.env.AGENT_TASK_QUEUE_JOB_TIMEOUT_MS ||
+      process.env.AGENT_TASK_QUEUE_TIMEOUT_MS,
+    DEFAULT_JOB_TIMEOUT_MS
+  )
+}
+
+function createSemaphore(limit = 1) {
+  const max = Math.max(1, integerFromInput(limit, 1))
+  let active = 0
+  const waiters = []
+  return {
+    async acquire() {
+      if (active < max) {
+        active += 1
+        return () => {
+          active = Math.max(0, active - 1)
+          const next = waiters.shift()
+          if (next) next()
+        }
+      }
+      await new Promise((resolve) => waiters.push(resolve))
+      active += 1
+      return () => {
+        active = Math.max(0, active - 1)
+        const next = waiters.shift()
+        if (next) next()
+      }
+    }
+  }
+}
+
+function providerSemaphore(providerKey, options = {}) {
+  const key = cleanText(providerKey) || 'default'
+  const limit = resolveProviderConcurrency(key, options)
+  const cacheKey = `${key}|${limit}`
+  let semaphore = providerSemaphores.get(cacheKey)
+  if (!semaphore) {
+    semaphore = createSemaphore(limit)
+    providerSemaphores.set(cacheKey, semaphore)
+  }
+  return semaphore
+}
+
+async function withProviderLimit(input = {}, options = {}, run) {
+  const providerKey = providerKeyFromInput(input)
+  const release = await providerSemaphore(providerKey, options).acquire()
+  try {
+    return await run(providerKey)
+  } finally {
+    release()
+  }
+}
+
+function createJobTimeoutError(timeoutMs) {
+  const error = new Error(`队列任务超时（${Math.max(1, Math.round(timeoutMs / 1000))} 秒）`)
+  error.name = 'TimeoutError'
+  error.timedOut = true
+  return error
+}
+
+export function isAcceptingAgentTaskJobs() {
+  return acceptingNewJobs && !shuttingDown
+}
+
+function assertAcceptingJobs() {
+  if (!isAcceptingAgentTaskJobs()) {
+    throw new Error('任务队列已停止接收新任务（服务正在退出）')
+  }
+}
+
+export async function assertRedisAvailable(options = {}) {
+  const connectTimeout = integerFromInput(
+    options.redisConnectTimeoutMs || process.env.AGENT_TASK_QUEUE_REDIS_CONNECT_TIMEOUT_MS,
+    DEFAULT_REDIS_CONNECT_TIMEOUT_MS
+  )
+  const redisUrl = redisUrlFromInput(options)
+  const queueName = queueNameFromInput(options)
+  const probe = new Queue(queueName, queueOptions({ ...options, redisUrl, queueName }))
+  let timer = null
+  try {
+    await Promise.race([
+      probe.waitUntilReady(),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error(`${REDIS_UNAVAILABLE_MESSAGE}（${connectTimeout}ms）`))
+        }, connectTimeout)
+        timer.unref?.()
+      })
+    ])
+    await probe.client.then((client) => client.ping())
+    return { success: true, redisUrl, queueName }
+  } catch (error) {
+    const message = error?.message || REDIS_UNAVAILABLE_MESSAGE
+    const wrapped = new Error(
+      /redis|ECONNREFUSED|ENOTFOUND|timeout|连接|Redis/i.test(message)
+        ? message.includes('Redis')
+          ? message
+          : `${REDIS_UNAVAILABLE_MESSAGE}：${message}`
+        : `${REDIS_UNAVAILABLE_MESSAGE}：${message}`
+    )
+    wrapped.code = 'REDIS_UNAVAILABLE'
+    throw wrapped
+  } finally {
+    if (timer) clearTimeout(timer)
+    await probe.close().catch(() => {})
+  }
+}
+
 
 export function normalizeAgentTaskQueueProgress(progress = {}) {
   if (!progress || typeof progress !== 'object') return null
@@ -638,6 +801,15 @@ async function runWriteJob(job, options = {}) {
   const data = job.data || {}
   const bookPath = bookPathFromJobData(data)
   const controller = new AbortController()
+  const onExternalAbort = () => {
+    if (!controller.signal.aborted) {
+      controller.abort(signalCancelReason(options.signal, QUEUE_CANCEL_MESSAGE))
+    }
+  }
+  if (options.signal) {
+    if (options.signal.aborted) onExternalAbort()
+    else options.signal.addEventListener('abort', onExternalAbort, { once: true })
+  }
   const unregisterActiveJob = registerActiveJob(job, controller, options)
   const stopCancelWatcher = startCancelWatcher(
     job,
@@ -712,6 +884,7 @@ async function runWriteJob(job, options = {}) {
     }
     throw error
   } finally {
+    if (options.signal) options.signal.removeEventListener?.('abort', onExternalAbort)
     stopCancelWatcher()
     unregisterActiveJob()
   }
@@ -722,6 +895,15 @@ async function runCheckJob(job, options = {}) {
   const data = job.data || {}
   const bookPath = bookPathFromJobData(data)
   const controller = new AbortController()
+  const onExternalAbort = () => {
+    if (!controller.signal.aborted) {
+      controller.abort(signalCancelReason(options.signal, QUEUE_CANCEL_MESSAGE))
+    }
+  }
+  if (options.signal) {
+    if (options.signal.aborted) onExternalAbort()
+    else options.signal.addEventListener('abort', onExternalAbort, { once: true })
+  }
   const unregisterActiveJob = registerActiveJob(job, controller, options)
   const stopCancelWatcher = startCancelWatcher(
     job,
@@ -800,6 +982,7 @@ async function runCheckJob(job, options = {}) {
     }
     throw error
   } finally {
+    if (options.signal) options.signal.removeEventListener?.('abort', onExternalAbort)
     stopCancelWatcher()
     unregisterActiveJob()
   }
@@ -810,6 +993,15 @@ async function runRepairJob(job, options = {}) {
   const data = job.data || {}
   const bookPath = bookPathFromJobData(data)
   const controller = new AbortController()
+  const onExternalAbort = () => {
+    if (!controller.signal.aborted) {
+      controller.abort(signalCancelReason(options.signal, QUEUE_CANCEL_MESSAGE))
+    }
+  }
+  if (options.signal) {
+    if (options.signal.aborted) onExternalAbort()
+    else options.signal.addEventListener('abort', onExternalAbort, { once: true })
+  }
   const unregisterActiveJob = registerActiveJob(job, controller, options)
   const stopCancelWatcher = startCancelWatcher(
     job,
@@ -886,6 +1078,7 @@ async function runRepairJob(job, options = {}) {
     }
     throw error
   } finally {
+    if (options.signal) options.signal.removeEventListener?.('abort', onExternalAbort)
     stopCancelWatcher()
     unregisterActiveJob()
   }
@@ -893,7 +1086,9 @@ async function runRepairJob(job, options = {}) {
 
 export async function enqueueAgentWriteTask(input = {}, options = {}) {
   requireQueueEnabled(options)
+  assertAcceptingJobs()
   const queueInput = cleanQueueInput(input)
+  await assertRedisAvailable(options)
   const queue = createQueue(options)
   const requestedJobId = cleanText(input.jobId)
   await ensureQueueJobIdAvailable(queue, requestedJobId)
@@ -914,7 +1109,7 @@ export async function enqueueAgentWriteTask(input = {}, options = {}) {
     executionMode: 'replace_chapter',
     instruction: queueInput.prompt
   })
-  const jobId = requestedJobId || `write:${task.id}`
+  const jobId = requestedJobId || `write-${task.id}`
   const job = await queue.add(
     'write-chapter',
     {
@@ -945,7 +1140,9 @@ export async function enqueueAgentWriteTask(input = {}, options = {}) {
 
 export async function enqueueAgentCheckTask(input = {}, options = {}) {
   requireQueueEnabled(options)
+  assertAcceptingJobs()
   const queueInput = cleanCheckQueueInput(input)
+  await assertRedisAvailable(options)
   const queue = createQueue(options)
   const requestedJobId = cleanText(input.jobId)
   await ensureQueueJobIdAvailable(queue, requestedJobId)
@@ -967,7 +1164,7 @@ export async function enqueueAgentCheckTask(input = {}, options = {}) {
     executionMode: 'consistency_check',
     instruction: queueInput.text || `${queueInput.volumeName} ${queueInput.chapterName}`
   })
-  const jobId = requestedJobId || `check:${task.id}`
+  const jobId = requestedJobId || `check-${task.id}`
   const job = await queue.add(
     'check-chapter',
     {
@@ -998,7 +1195,9 @@ export async function enqueueAgentCheckTask(input = {}, options = {}) {
 
 export async function enqueueAgentRepairTask(input = {}, options = {}) {
   requireQueueEnabled(options)
+  assertAcceptingJobs()
   const queueInput = cleanRepairQueueInput(input)
+  await assertRedisAvailable(options)
   const queue = createQueue(options)
   const requestedJobId = cleanText(input.jobId)
   await ensureQueueJobIdAvailable(queue, requestedJobId)
@@ -1021,7 +1220,7 @@ export async function enqueueAgentRepairTask(input = {}, options = {}) {
     executionMode: 'preview',
     instruction: queueInput.prompt
   })
-  const jobId = requestedJobId || `repair:${task.id}`
+  const jobId = requestedJobId || `repair-${task.id}`
   const job = await queue.add(
     'repair-chapter',
     {
@@ -1052,26 +1251,59 @@ export async function enqueueAgentRepairTask(input = {}, options = {}) {
 
 export async function startAgentTaskWorker(options = {}) {
   requireQueueEnabled(options)
+  await assertRedisAvailable(options)
+  acceptingNewJobs = true
+  shuttingDown = false
   const redisUrl = redisUrlFromInput(options)
   const queueName = queueNameFromInput(options)
   const key = queueKey(queueName, redisUrl)
   const existing = activeWorkers.get(key)
   if (existing) return { success: true, queueName, reused: true }
   const queue = createQueue({ ...options, redisUrl, queueName })
+  const lockDuration = integerFromInput(
+    options.lockDurationMs || process.env.AGENT_TASK_QUEUE_LOCK_DURATION_MS,
+    DEFAULT_LOCK_DURATION_MS
+  )
   const worker = new Worker(
     queueName,
     async (job) => {
-      if (job.name === 'write-chapter') return runWriteJob(job, { ...options, queue })
-      if (job.name === 'check-chapter') return runCheckJob(job, { ...options, queue })
-      if (job.name === 'repair-chapter') return runRepairJob(job, { ...options, queue })
-      throw new Error(`未知队列任务：${job.name}`)
+      const data = job.data || {}
+      const providerKey = providerKeyFromInput(data)
+      const timeoutMs = resolveProviderTimeoutMs(providerKey, options, data)
+      return withProviderLimit(data, options, async () => {
+        const timeoutController = new AbortController()
+        let timedOut = false
+        const timer = setTimeout(() => {
+          timedOut = true
+          timeoutController.abort(createJobTimeoutError(timeoutMs).message)
+        }, timeoutMs)
+        timer.unref?.()
+        try {
+          const runnerOptions = {
+            ...options,
+            queue,
+            signal: timeoutController.signal
+          }
+          if (job.name === 'write-chapter') return await runWriteJob(job, runnerOptions)
+          if (job.name === 'check-chapter') return await runCheckJob(job, runnerOptions)
+          if (job.name === 'repair-chapter') return await runRepairJob(job, runnerOptions)
+          throw new Error(`未知队列任务：${job.name}`)
+        } catch (error) {
+          if (timedOut || error?.timedOut) throw createJobTimeoutError(timeoutMs)
+          throw error
+        } finally {
+          clearTimeout(timer)
+        }
+      })
     },
     {
       connection: redisConnectionOptions({ ...options, redisUrl }, { blocking: true }),
       concurrency: numberFromInput(
         options.concurrency || process.env.AGENT_TASK_QUEUE_CONCURRENCY,
         1
-      )
+      ),
+      lockDuration,
+      stalledInterval: Math.max(30000, Math.floor(lockDuration / 2))
     }
   )
   worker.on('failed', (job, error) => {
@@ -1095,10 +1327,12 @@ export async function startAgentTaskWorker(options = {}) {
           await recordQueueEventForJob(bookPath, job, status, event)
           return
         }
+        const failedReason = error?.message || String(error || '队列执行失败')
         await recordQueueEventForJob(bookPath, job, 'queue_failed', {
           eventType: 'queue_failed',
           eventTitle: '队列执行失败',
-          content: error?.message || String(error || '队列执行失败')
+          content: failedReason,
+          failedReason
         })
         failAgentTask(bookPath, data.taskId, error, {
           bookName: data.bookName,
@@ -1119,11 +1353,21 @@ export async function startAgentTaskWorker(options = {}) {
   worker.on('error', (error) => console.error(error))
   activeWorkers.set(key, worker)
   await worker.waitUntilReady()
-  return { success: true, queueName, reused: false }
+  return {
+    success: true,
+    queueName,
+    reused: false,
+    concurrency: numberFromInput(
+      options.concurrency || process.env.AGENT_TASK_QUEUE_CONCURRENCY,
+      1
+    ),
+    lockDurationMs: lockDuration
+  }
 }
 
 export async function getAgentTaskQueueStatus(options = {}) {
   requireQueueEnabled(options)
+  await assertRedisAvailable(options)
   const queue = createQueue(options)
   const counts = await queue.getJobCounts(
     'waiting',
@@ -1152,7 +1396,9 @@ export async function getAgentTaskQueueStatus(options = {}) {
     localWorkerRunning,
     workerCount,
     workers,
-    workerStatusError
+    workerStatusError,
+    acceptingNewJobs: isAcceptingAgentTaskJobs(),
+    shuttingDown
   }
 }
 
@@ -1160,6 +1406,7 @@ export async function getAgentTaskQueueJob(jobId, options = {}) {
   requireQueueEnabled(options)
   const id = cleanText(jobId)
   if (!id) throw new Error('缺少队列任务 ID')
+  await assertRedisAvailable(options)
   const queue = createQueue(options)
   const job = await queue.getJob(id)
   if (!job) return { success: true, job: null }
@@ -1171,6 +1418,7 @@ export async function getAgentTaskQueueJob(jobId, options = {}) {
 
 export async function listAgentTaskQueueJobs(options = {}) {
   requireQueueEnabled(options)
+  await assertRedisAvailable(options)
   const queue = createQueue(options)
   const limit = Math.min(100, Math.max(1, integerFromInput(options.limit, 20)))
   const types = normalizeQueueJobTypes(options.types)
@@ -1192,6 +1440,7 @@ export async function cancelAgentTaskQueueJob(input = {}, options = {}) {
   requireQueueEnabled(options)
   const jobId = cleanText(typeof input === 'string' ? input : input.jobId)
   if (!jobId) throw new Error('缺少队列任务 ID')
+  await assertRedisAvailable(options)
   const queue = createQueue(options)
   const job = await queue.getJob(jobId)
   if (!job) throw new Error('未找到队列任务')
@@ -1251,8 +1500,10 @@ export async function cancelAgentTaskQueueJob(input = {}, options = {}) {
 
 export async function retryAgentTaskQueueJob(input = {}, options = {}) {
   requireQueueEnabled(options)
+  assertAcceptingJobs()
   const jobId = cleanText(typeof input === 'string' ? input : input.jobId)
   if (!jobId) throw new Error('缺少队列任务 ID')
+  await assertRedisAvailable(options)
   const queue = createQueue(options)
   const job = await queue.getJob(jobId)
   if (!job) throw new Error('未找到队列任务')
@@ -1284,7 +1535,14 @@ export async function retryAgentTaskQueueJob(input = {}, options = {}) {
   }
 }
 
+export async function stopAcceptingAgentTaskJobs() {
+  acceptingNewJobs = false
+  return { success: true, acceptingNewJobs }
+}
+
 export async function closeAgentTaskQueue(options = {}) {
+  shuttingDown = true
+  acceptingNewJobs = false
   const redisUrl = redisUrlFromInput(options)
   const queueName = queueNameFromInput(options)
   const key = queueKey(queueName, redisUrl)
@@ -1298,7 +1556,7 @@ export async function closeAgentTaskQueue(options = {}) {
   }
   let closedWorker = false
   if (worker) {
-    await worker.close()
+    await worker.close(true)
     activeWorkers.delete(key)
     closedWorker = true
   }
@@ -1315,7 +1573,30 @@ export async function closeAgentTaskQueue(options = {}) {
     redisUrl,
     closedWorker,
     closedQueue,
-    abortedActiveJobs
+    abortedActiveJobs,
+    acceptingNewJobs
+  }
+}
+
+export async function closeAllAgentTaskQueues(options = {}) {
+  shuttingDown = true
+  acceptingNewJobs = false
+  const keys = new Set([...activeWorkers.keys(), ...activeQueues.keys()])
+  if (options.queueName || options.redisUrl) {
+    keys.add(queueKey(queueNameFromInput(options), redisUrlFromInput(options)))
+  }
+  const results = []
+  for (const key of keys) {
+    const [queueName, redisUrl] = key.split('|')
+    results.push(await closeAgentTaskQueue({ queueName, redisUrl }))
+  }
+  if (!results.length) {
+    results.push(await closeAgentTaskQueue(options))
+  }
+  return {
+    success: true,
+    closed: results,
+    acceptingNewJobs
   }
 }
 
@@ -1329,5 +1610,11 @@ export default {
   listAgentTaskQueueJobs,
   cancelAgentTaskQueueJob,
   retryAgentTaskQueueJob,
-  closeAgentTaskQueue
+  stopAcceptingAgentTaskJobs,
+  closeAgentTaskQueue,
+  closeAllAgentTaskQueues,
+  assertRedisAvailable,
+  isAcceptingAgentTaskJobs,
+  resolveProviderConcurrency,
+  resolveProviderTimeoutMs
 }

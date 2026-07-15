@@ -168,6 +168,31 @@ function filterFromUrl(url) {
   }
 }
 
+function hasBookScope(filter = {}) {
+  return Boolean(
+    cleanText(filter.bookName) ||
+      cleanText(filter.bookPath) ||
+      cleanText(filter.bookId) ||
+      cleanText(filter.taskId)
+  )
+}
+
+function readCookieToken(req) {
+  const cookieHeader = cleanText(req.headers?.cookie)
+  if (!cookieHeader) return ''
+  for (const part of cookieHeader.split(';')) {
+    const [rawKey, ...rest] = part.trim().split('=')
+    if (rawKey === 'dreamloom_session') {
+      try {
+        return decodeURIComponent(rest.join('=') || '')
+      } catch {
+        return rest.join('=') || ''
+      }
+    }
+  }
+  return ''
+}
+
 function eventMatchesFilter(payload = {}, filter = {}) {
   const task = payload.task || {}
   for (const key of Object.keys(filter)) {
@@ -185,11 +210,13 @@ function sendSocketJson(socket, payload) {
   return true
 }
 
-function registerSocket(controller, socket, filter) {
+function registerSocket(controller, socket, filter, auth = null) {
   const client = {
     id: randomBytes(8).toString('hex'),
     socket,
     filter,
+    auth,
+    lastPongAt: Date.now(),
     connectedAt: new Date().toISOString(),
     pending: Buffer.alloc(0)
   }
@@ -209,12 +236,55 @@ function registerSocket(controller, socket, filter) {
           socket.end(CLOSE_NORMAL)
         } else if (opcode === 0x9 && socket.writable) {
           socket.write(encodePongFrame(payload))
+        } else if (opcode === 0xa) {
+          client.lastPongAt = Date.now()
         }
       }
     )
   })
   socket.on('close', () => controller.clients.delete(client))
   socket.on('error', () => controller.clients.delete(client))
+}
+
+
+function authorizeUpgrade(controller, req, url, filter) {
+  const queryToken = cleanText(url.searchParams.get('token'))
+  const cookieToken = readCookieToken(req)
+  const headerAuth = cleanText(req.headers.authorization)
+  const bearer = headerAuth.toLowerCase().startsWith('bearer ')
+    ? cleanText(headerAuth.slice(7))
+    : ''
+
+  if (tokensMatch(queryToken, controller.accessToken) || tokensMatch(bearer, controller.accessToken)) {
+    if (!hasBookScope(filter)) {
+      return { ok: false, status: 403, message: '必须指定 bookName/bookId/bookPath/taskId 才能订阅任务进度' }
+    }
+    return { ok: true, auth: { mode: 'accessToken', role: 'admin' } }
+  }
+
+  if (typeof controller.authorizeClient === 'function') {
+    const result = controller.authorizeClient({
+      req,
+      url,
+      filter,
+      queryToken,
+      cookieToken,
+      bearer
+    })
+    if (result?.ok) {
+      if (!hasBookScope(filter)) {
+        return { ok: false, status: 403, message: '必须指定 bookName/bookId/bookPath/taskId 才能订阅任务进度' }
+      }
+      return { ok: true, auth: result.auth || { mode: 'session' } }
+    }
+    return {
+      ok: false,
+      status: result?.status || 401,
+      message: result?.message || 'Unauthorized'
+    }
+  }
+
+  return { ok: false, status: 401, message: 'Unauthorized' }
 }
 
 function attachUpgradeHandler(controller, req, socket) {
@@ -225,8 +295,12 @@ function attachUpgradeHandler(controller, req, socket) {
     return
   }
 
-  if (!tokensMatch(url.searchParams.get('token'), controller.accessToken)) {
-    socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n')
+  const filter = filterFromUrl(url)
+  const authResult = authorizeUpgrade(controller, req, url, filter)
+  if (!authResult.ok) {
+    const status = authResult.status || 401
+    const label = status === 403 ? 'Forbidden' : 'Unauthorized'
+    socket.write(`HTTP/1.1 ${status} ${label}\r\nConnection: close\r\n\r\n`)
     socket.destroy()
     return
   }
@@ -248,7 +322,7 @@ function attachUpgradeHandler(controller, req, socket) {
     ].join('\r\n')
   )
   socket.setNoDelay(true)
-  registerSocket(controller, socket, filterFromUrl(url))
+  registerSocket(controller, socket, filter, authResult.auth)
 }
 
 function createController(options = {}) {
@@ -271,7 +345,8 @@ function createController(options = {}) {
     port,
     actualPort: port,
     path,
-    accessToken: randomBytes(32).toString('hex'),
+    accessToken: cleanText(options.accessToken) || randomBytes(32).toString('hex'),
+    authorizeClient: typeof options.authorizeClient === 'function' ? options.authorizeClient : null,
     server,
     clients: new Set(),
     unsubscribe: null,
@@ -344,8 +419,18 @@ export async function startAgentTaskProgressServer(options = {}) {
     activeServers.set(key, controller)
     controller.unsubscribe = onAgentTaskProgress((payload) => broadcastAgentTaskProgress(payload))
     controller.pingTimer = setInterval(() => {
+      const now = Date.now()
       for (const client of controller.clients) {
         if (client.socket.destroyed || !client.socket.writable) {
+          controller.clients.delete(client)
+          continue
+        }
+        if (now - (client.lastPongAt || now) > PING_INTERVAL_MS * 3) {
+          try {
+            client.socket.end(CLOSE_NORMAL)
+          } catch {
+            // ignore close errors
+          }
           controller.clients.delete(client)
           continue
         }

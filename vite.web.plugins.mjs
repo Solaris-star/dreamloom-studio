@@ -19,7 +19,8 @@ import plotEvolutionAiService from './src/main/services/plotEvolutionAi.js'
 import settingTreeAiService from './src/main/services/settingTreeAi.js'
 import { sendChatMessage } from './src/main/services/aiChatService.js'
 import { requestWebAiProxy } from './src/main/services/webAiProxyService.js'
-import { getAgentTaskProgressServerInfo } from './src/main/services/agentTaskProgressWebSocket.js'
+import { getAgentTaskProgressServerInfo, startAgentTaskProgressServer } from './src/main/services/agentTaskProgressWebSocket.js'
+import { registerWebRuntimeLifecycle } from './src/main/services/webRuntimeLifecycle.js'
 import {
   listInstalledWritingSkills,
   runWritingSkill
@@ -122,6 +123,56 @@ export function createWebServerPlugins() {
     })
 
   const readAiHistoryRows = createWebAiHistoryReader(webStore.read)
+
+  // Web process only hosts API + progress websocket. BullMQ workers run separately.
+  registerWebRuntimeLifecycle()
+  const shouldStartProgressServer = !['0', 'false', 'no', 'off'].includes(
+    String(process.env.AGENT_TASK_WS_ENABLED || 'true').trim().toLowerCase()
+  )
+  if (shouldStartProgressServer) {
+    startAgentTaskProgressServer({
+      authorizeClient: ({ req, filter, cookieToken }) => {
+        const session = webAuth.getAuthenticatedSession({
+          headers: {
+            cookie: cookieToken
+              ? `dreamloom_session=${encodeURIComponent(cookieToken)}`
+              : req.headers?.cookie || ''
+          },
+          socket: req.socket
+        })
+        if (!session?.authenticated) {
+          return { ok: false, status: 401, message: '需要书架密码认证' }
+        }
+        if (
+          !String(filter.bookName || '').trim() &&
+          !String(filter.bookId || '').trim() &&
+          !String(filter.bookPath || '').trim() &&
+          !String(filter.taskId || '').trim()
+        ) {
+          return { ok: false, status: 403, message: '必须指定书籍或任务范围' }
+        }
+        return {
+          ok: true,
+          auth: {
+            mode: 'session',
+            role: session.role,
+            keyId: session.keyId,
+            ownerId: session.ownerId || null
+          }
+        }
+      }
+    })
+      .then((info) => {
+        console.log('[web-api] agent task progress websocket ready', {
+          port: info.port,
+          path: info.path,
+          fallbackUsed: info.fallbackUsed === true
+        })
+      })
+      .catch((error) => {
+        console.warn('[web-api] agent task progress websocket failed:', error?.message || error)
+      })
+  }
 
   function sanitizeText(t) {
     return String(t || '').trim()
