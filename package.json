@@ -30,7 +30,8 @@
     "dev:worker": "node bin/agent-task-worker.js",
     "test:load": "node tests/load/run-acceptance-load.mjs",
     "test:stability": "node tests/load/run-stability-checks.mjs",
-    "test:acceptance": "node scripts/run-acceptance-suite.mjs"
+    "test:acceptance": "node scripts/run-acceptance-suite.mjs",
+    "check:zh-ui-english": "node scripts/check-zh-ui-english.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",

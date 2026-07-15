@@ -19,31 +19,31 @@
       <article
         ref="starterCardRef"
         class="dashboard-card creation-card"
-        aria-label="创作起笔"
+        :aria-label="t('homeAi.starterTitle')"
       >
         <div class="card-title">
           <div>
-            <h2>创作起笔</h2>
+            <h2>{{ t('homeAi.starterTitle') }}</h2>
             <p class="starter-kicker">
-              设定生成，黄金三章
+              {{ t('homeAi.starterKicker') }}
             </p>
           </div>
         </div>
         <p class="starter-desc">
-          输入创意想法，选择提示词策略，织梦会先生成设定树，再给出开篇黄金三章。
+          {{ t('homeAi.starterDesc') }}
         </p>
         <textarea
           v-model="ideaInput"
           class="creation-textarea"
-          placeholder="请输入您的小说创意想法，例如：一个现代都市的年轻程序员意外获得了穿越时空的能力..."
+          :placeholder="t('homeAi.ideaPlaceholder')"
         />
         <div class="starter-control-row">
           <label>
-            <span>AI 服务</span>
+            <span>{{ t('homeAi.aiService') }}</span>
             <el-select
               v-model="selectedProviderId"
               filterable
-              placeholder="选择文本 AI 服务"
+              :placeholder="t('homeAi.selectAiService')"
               :loading="loadingProviders"
               @change="handleProviderChange"
             >
@@ -56,13 +56,13 @@
             </el-select>
           </label>
           <label>
-            <span>模型</span>
+            <span>{{ t('homeAi.model') }}</span>
             <el-select
               v-model="selectedModel"
               filterable
               allow-create
               default-first-option
-              placeholder="选择或输入模型"
+              :placeholder="t('homeAi.selectModel')"
               :disabled="!selectedProviderId"
             >
               <el-option
@@ -74,11 +74,11 @@
             </el-select>
           </label>
           <label class="strategy-field">
-            <span>提示词</span>
+            <span>{{ t('homeAi.prompt') }}</span>
             <el-select
               v-model="selectedStarterPresetId"
               filterable
-              placeholder="选择提示词"
+              :placeholder="t('homeAi.selectPrompt')"
             >
               <el-option
                 v-for="preset in starterPresetOptions"
@@ -91,11 +91,11 @@
           <button
             class="prompt-market-button"
             type="button"
-            title="提示词市场"
+            :title="t('homeAi.promptMarket')"
             @click="router.push('/ai/prompts')"
           >
             <span class="market-icon">▣</span>
-            市场
+            {{ t('homeAi.market') }}
           </button>
         </div>
         <div class="starter-actions">
@@ -106,7 +106,7 @@
             :disabled="!canCreateStarterJob"
             @click="handleCreateStarterJob"
           >
-            生成设定
+            {{ t('homeAi.generateSetting') }}
           </el-button>
         </div>
       </article>
@@ -426,13 +426,13 @@
           v-else
           class="compact-empty"
         >
-          <strong>暂无可引用资料</strong>
-          <span>去创作库添加资料，或在 AI 工坊保存 Prompt 模板。</span>
+          <strong>{{ t('homeAi.emptyMaterials') }}</strong>
+          <span>{{ t('homeAi.emptyMaterialsHint') }}</span>
           <button
             type="button"
             @click="router.push('/knowledge-library/all')"
           >
-            添加资料
+            {{ t('homeAi.addMaterial') }}
           </button>
         </div>
       </article>
@@ -602,9 +602,9 @@ const referenceOptions = computed(() => {
     key: `prompt:${preset.id}`,
     type: 'prompt_template',
     category: 'prompt',
-    typeLabel: preset.isBuiltin ? '内置 Prompt' : 'Prompt',
-    shortLabel: `Prompt：${preset.name || '未命名模板'}`,
-    title: preset.name || '未命名模板',
+    typeLabel: preset.isBuiltin ? t('homeAi.builtinPrompt') : t('homeAi.promptTemplate'),
+    shortLabel: `${t('homeAi.promptTemplate')}：${preset.name || t('homeAi.unnamedTemplate')}`,
+    title: preset.name || t('homeAi.unnamedTemplate'),
     summary: [preset.systemPrompt, preset.userPromptTemplate].filter(Boolean).join('\n\n'),
     updatedAt: preset.updatedAt || preset.createdAt,
     raw: preset
@@ -836,7 +836,7 @@ async function handleCreateStarterJob() {
   const prompt = ideaInput.value.trim()
   if (!prompt) return
   if (!selectedProviderId.value || !selectedModel.value) {
-    ElMessage.warning('请先选择文本 AI 服务和模型')
+    ElMessage.warning(t('homeAi.needProviderAndModel'))
     return
   }
   creatingJob.value = true
@@ -857,7 +857,7 @@ async function handleCreateStarterJob() {
     })
     router.push({ path: '/ai/creation-starter', query: { jobId: job.id } })
   } catch (error) {
-    ElMessage.error(error?.message || '创建起笔任务失败')
+    ElMessage.error(error?.message || t('homeAi.createStarterFailed'))
   } finally {
     creatingJob.value = false
   }
@@ -886,8 +886,8 @@ function buildAutoReferences() {
     ...promptPresets.value.slice(0, 3).map((preset) => ({
       key: `auto-prompt:${preset.id}`,
       type: 'prompt_template',
-      typeLabel: preset.isBuiltin ? '内置 Prompt' : 'Prompt',
-      title: preset.name || '未命名模板',
+      typeLabel: preset.isBuiltin ? t('homeAi.builtinPrompt') : t('homeAi.promptTemplate'),
+      title: preset.name || t('homeAi.unnamedTemplate'),
       summary: [preset.systemPrompt, preset.userPromptTemplate].filter(Boolean).join('\n\n'),
       raw: preset
     }))
@@ -1030,7 +1030,7 @@ function assetTypeText(type) {
     character_setting: '人物',
     world_setting: '世界观',
     plot_fragment: '桥段',
-    prompt_template: 'Prompt'
+    prompt_template: t('homeAi.promptTemplate')
   }
   return map[type] || '素材'
 }

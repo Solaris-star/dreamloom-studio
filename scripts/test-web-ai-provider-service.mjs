@@ -62,13 +62,13 @@ assert.equal((await service.getActiveImageProvider()).providerId, 'image-a')
 
 await service.setActiveTextProvider('text-a')
 assert.equal(store.get('aiProviders.activeTextId'), 'text-a')
-await assert.rejects(() => service.setActiveTextProvider('missing'), /文本 Provider 不存在/)
+await assert.rejects(() => service.setActiveTextProvider('missing'), /文本 AI 服务不存在/)
 assert.equal((await service.setActiveTextProvider('')).providerId, '')
 assert.equal(store.get('aiProviders.activeTextId'), '')
 
 await service.setActiveImageProvider('image-a')
 assert.equal(store.get('aiProviders.activeImageId'), 'image-a')
-await assert.rejects(() => service.setActiveImageProvider('missing'), /图像 Provider 不存在/)
+await assert.rejects(() => service.setActiveImageProvider('missing'), /图像 AI 服务不存在/)
 assert.equal((await service.setActiveImageProvider('')).providerId, '')
 
 store.set('aiProviders.activeTextId', 'image-a')
@@ -89,7 +89,7 @@ assert.deepEqual(
 )
 await assert.rejects(
   () => service.listAiProviderModels({ category: 'image' }),
-  /请先填写 API 地址和 Key/
+  /请先填写接口地址和密钥/
 )
 
 proxyResponses.push({ body: { success: true, data: { data: [{ id: '' }, {}] } } })
@@ -135,7 +135,7 @@ await assert.rejects(
     }),
   /key two failed/
 )
-await assert.rejects(() => service.listAiProviderModels({}), /请先填写 API 地址和 Key/)
+await assert.rejects(() => service.listAiProviderModels({}), /请先填写接口地址和密钥/)
 
 await service.testAiProviderModel(providers[0], 'model-a')
 assert.equal(requests.at(-1).payload.targetUrl, 'https://example.com/v1/chat/completions')
@@ -163,10 +163,10 @@ assert.equal(updated.provider.name, '更新后的服务')
 assert.equal(typeof updated.provider.updatedAt, 'number')
 await assert.rejects(
   () => service.updateAiProvider({ id: 'missing' }),
-  /Provider not found/
+  /未找到该 AI 服务/
 )
 await service.deleteAiProvider('text-b')
-await assert.rejects(() => service.deleteAiProvider('missing'), /Provider not found/)
+await assert.rejects(() => service.deleteAiProvider('missing'), /未找到该 AI 服务/)
 
 await service.addEmbeddingProvider({
   id: 'embedding-a',
@@ -242,21 +242,21 @@ assert.deepEqual(
 )
 await assert.rejects(
   () => service.listEmbeddingProviderModels({}),
-  /请先填写 API 地址和 Key/
+  /请先填写接口地址和密钥/
 )
 
 await service.deleteEmbeddingProvider('embedding-a')
 await assert.rejects(
   () => service.deleteEmbeddingProvider('missing'),
-  /未找到 Embedding Provider/
+  /未找到向量服务/
 )
 await assert.rejects(
   () => service.setActiveEmbeddingProvider('embedding-a', true),
-  /未找到 Embedding Provider/
+  /未找到向量服务/
 )
 await assert.rejects(
   () => service.addEmbeddingProvider({ name: '配置不完整' }),
-  /Embedding API 地址/
+  /向量接口地址/
 )
 await assert.rejects(
   () =>
@@ -265,7 +265,7 @@ await assert.rejects(
       baseUrl: 'https://embedding.example.com',
       model: 'embedding-model'
     }),
-  /Embedding API Key/
+  /向量密钥/
 )
 await assert.rejects(
   () =>
@@ -274,7 +274,7 @@ await assert.rejects(
       baseUrl: 'https://embedding.example.com',
       apiKey: 'embedding-secret'
     }),
-  /Embedding 模型名称/
+  /向量模型名称/
 )
 await assert.rejects(
   () =>
@@ -283,7 +283,7 @@ await assert.rejects(
       apiKey: 'embedding-secret',
       model: 'embedding-model'
     }),
-  /Provider 名称/
+  /服务名称/
 )
 storeGetOverrides.set('embeddingProviders', {})
 await assert.rejects(() => service.listEmbeddingProviders(), /接口返回格式不正确/)
