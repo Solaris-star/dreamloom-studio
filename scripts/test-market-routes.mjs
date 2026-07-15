@@ -109,8 +109,7 @@ assert.equal(
 )
 
 const expectedError = new Error('刷新失败')
-await assert.rejects(
-  handleMarketRoute({
+await assert.rejects(() => handleMarketRoute({
     ...common,
     path: '/api/market/refresh',
     body: payload,

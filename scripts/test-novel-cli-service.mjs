@@ -303,62 +303,47 @@ try {
 
   await assert.rejects(() => initNovelProject({ booksDir }), /缺少书籍名称/)
   await assert.rejects(() => initNovelProject({ bookName: '缺少书库' }), /缺少书库目录/)
-  await assert.rejects(
-    () => generateNovelOutline({ booksDir, idea: '生成大纲' }),
+  await assert.rejects(() => generateNovelOutline({ booksDir, idea: '生成大纲' }),
     /缺少书籍名称/
   )
-  await assert.rejects(
-    () => generateNovelOutline({ booksDir, bookName }),
+  await assert.rejects(() => generateNovelOutline({ booksDir, bookName }),
     /缺少大纲方向/
   )
-  await assert.rejects(
-    () => generateNovelOutline({ booksDir, bookName, idea: '生成大纲', count: 1 }),
+  await assert.rejects(() => generateNovelOutline({ booksDir, bookName, idea: '生成大纲', count: 1 }),
     /大纲段数无效/
   )
-  await assert.rejects(
-    () => generateNovelOutline({ booksDir, bookName, idea: '生成大纲', count: 'invalid' }),
+  await assert.rejects(() => generateNovelOutline({ booksDir, bookName, idea: '生成大纲', count: 'invalid' }),
     /大纲段数无效/
   )
-  await assert.rejects(
-    () => writeNovelChapters({ booksDir, targetWords: 100 }),
+  await assert.rejects(() => writeNovelChapters({ booksDir, targetWords: 100 }),
     /缺少书籍名称/
   )
-  await assert.rejects(
-    () => writeNovelChapters({ booksDir, bookName, targetWords: -1 }),
+  await assert.rejects(() => writeNovelChapters({ booksDir, bookName, targetWords: -1 }),
     /目标字数无效/
   )
-  await assert.rejects(
-    () => writeNovelChapter({ booksDir, prompt: '写一章' }),
+  await assert.rejects(() => writeNovelChapter({ booksDir, prompt: '写一章' }),
     /缺少书籍名称/
   )
-  await assert.rejects(
-    () => writeNovelChapter({ booksDir, bookName }),
+  await assert.rejects(() => writeNovelChapter({ booksDir, bookName }),
     /缺少写作要求/
   )
-  await assert.rejects(
-    () => writeNovelChapter({ booksDir, bookName, prompt: '写一章', targetWords: -1 }),
+  await assert.rejects(() => writeNovelChapter({ booksDir, bookName, prompt: '写一章', targetWords: -1 }),
     /目标字数无效/
   )
-  await assert.rejects(
-    () => repairNovelChapter({ booksDir }),
+  await assert.rejects(() => repairNovelChapter({ booksDir }),
     /缺少书籍名称/
   )
-  await assert.rejects(
-    () => repairNovelChapter({ booksDir, bookName }),
+  await assert.rejects(() => repairNovelChapter({ booksDir, bookName }),
     /缺少要返修的正文/
   )
-  await assert.rejects(
-    () =>
-      repairNovelChapter({
+  await assert.rejects(() => repairNovelChapter({
         booksDir,
         bookName,
         currentText: '待返修正文'
       }),
     /缺少一致性检查问题/
   )
-  await assert.rejects(
-    () =>
-      repairNovelChapter({
+  await assert.rejects(() => repairNovelChapter({
         booksDir,
         bookName,
         currentText: '待返修正文',
@@ -367,30 +352,24 @@ try {
       }),
     /目标字数无效/
   )
-  await assert.rejects(
-    () => runNovelLifecycle({ booksDir, idea: '创作一本书' }),
+  await assert.rejects(() => runNovelLifecycle({ booksDir, idea: '创作一本书' }),
     /缺少书籍名称/
   )
-  await assert.rejects(
-    () => runNovelLifecycle({ booksDir, bookName }),
+  await assert.rejects(() => runNovelLifecycle({ booksDir, bookName }),
     /缺少创作方向/
   )
-  assert.throws(() => exportNovelBook({ booksDir }), /缺少书籍名称/)
+  await assert.rejects(() => exportNovelBook({ booksDir }), /缺少书籍名称/)
   assert.throws(() => listNovelTasks({ booksDir }), /缺少书籍名称/)
-  assert.throws(
-    () => exportNovelBook({ booksDir, bookName: '不存在的作品' }),
+  await assert.rejects(() => exportNovelBook({ booksDir, bookName: '不存在的作品' }),
     /书籍不存在/
   )
-  assert.throws(
-    () => listNovelTasks({ booksDir, bookName: '不存在的作品' }),
+  assert.throws(() => listNovelTasks({ booksDir, bookName: '不存在的作品' }),
     /书籍不存在/
   )
 
   const preAborted = new AbortController()
   preAborted.abort('用户主动停止')
-  await assert.rejects(
-    () =>
-      writeNovelChapter({
+  await assert.rejects(() => writeNovelChapter({
         booksDir,
         bookName,
         prompt: '不应开始写作。',
@@ -400,9 +379,7 @@ try {
   )
   const errorAborted = new AbortController()
   errorAborted.abort(new Error('外部任务已取消'))
-  await assert.rejects(
-    () =>
-      runNovelLifecycle({
+  await assert.rejects(() => runNovelLifecycle({
         booksDir,
         bookName,
         idea: '不应开始创作。',
@@ -430,8 +407,7 @@ try {
   assert.equal(reusedInitResult.existed, true)
 
   fs.mkdirSync(join(booksDir, '无效已有目录'), { recursive: true })
-  await assert.rejects(
-    () => initNovelProject({ booksDir, bookName: '无效已有目录' }),
+  await assert.rejects(() => initNovelProject({ booksDir, bookName: '无效已有目录' }),
     /目标目录已存在，但不是有效书籍/
   )
 
@@ -493,9 +469,7 @@ try {
   const originalGetMarketDashboard = marketService.getMarketDashboard
   try {
     marketService.refreshMarketTrends = async () => ({})
-    await assert.rejects(
-      () =>
-        researchNovelMarket({
+    await assert.rejects(() => researchNovelMarket({
           booksDir,
           sources: 'qidian',
           limit: 5
@@ -512,9 +486,7 @@ try {
       inserted: 0,
       updated: 0
     })
-    await assert.rejects(
-      () =>
-        researchNovelMarket({
+    await assert.rejects(() => researchNovelMarket({
           booksDir,
           sources: 'qidian',
           limit: 5
@@ -535,27 +507,23 @@ try {
       ...validRefreshResult,
       sourceStatus: undefined
     })
-    await assert.rejects(
-      () => researchNovelMarket({ booksDir, sources: 'qidian' }),
+    await assert.rejects(() => researchNovelMarket({ booksDir, sources: 'qidian' }),
       /缺少来源状态或采集记录/
     )
     marketService.refreshMarketTrends = async () => ({
       ...validRefreshResult,
       inserted: undefined
     })
-    await assert.rejects(
-      () => researchNovelMarket({ booksDir, sources: 'qidian' }),
+    await assert.rejects(() => researchNovelMarket({ booksDir, sources: 'qidian' }),
       /缺少写入统计/
     )
     marketService.refreshMarketTrends = async () => validRefreshResult
     marketService.getMarketDashboard = () => ({ success: false, message: '看板读取被拒绝' })
-    await assert.rejects(
-      () => researchNovelMarket({ booksDir, sources: 'qidian' }),
+    await assert.rejects(() => researchNovelMarket({ booksDir, sources: 'qidian' }),
       /看板读取被拒绝/
     )
     marketService.getMarketDashboard = () => ({ success: true })
-    await assert.rejects(
-      () => researchNovelMarket({ booksDir, sources: 'qidian' }),
+    await assert.rejects(() => researchNovelMarket({ booksDir, sources: 'qidian' }),
       /返回数据结构不完整/
     )
   } finally {
@@ -591,9 +559,7 @@ try {
     content: '这不是可解析的大纲',
     providerId: 'invalid-outline-provider'
   }))
-  await assert.rejects(
-    () =>
-      generateNovelOutline({
+  await assert.rejects(() => generateNovelOutline({
         booksDir,
         bookName,
         idea: '返回无法解析的内容。',
@@ -608,9 +574,7 @@ try {
     content: JSON.stringify({ items: [] }),
     providerId: 'empty-outline-provider'
   }))
-  await assert.rejects(
-    () =>
-      generateNovelOutline({
+  await assert.rejects(() => generateNovelOutline({
         booksDir,
         bookName,
         idea: '返回空大纲。',
@@ -1093,7 +1057,7 @@ try {
   )
   assert.equal(memoryTask.usage.calls, 4)
 
-  const taskList = listNovelTasks({
+  const taskList = await listNovelTasks({
     booksDir,
     bookName,
     limit: 3
@@ -1103,7 +1067,7 @@ try {
   assert.equal(taskList.count, 3)
   assert.equal(taskList.tasks.length, 3)
 
-  const exactTaskList = listNovelTasks({
+  const exactTaskList = await listNovelTasks({
     booksDir,
     bookName,
     id: writeResult.taskId
@@ -1111,7 +1075,7 @@ try {
   assert.equal(exactTaskList.count, 1)
   assert.equal(exactTaskList.tasks[0].id, writeResult.taskId)
 
-  const checkedTaskList = listNovelTasks({
+  const checkedTaskList = await listNovelTasks({
     booksDir,
     bookName,
     status: 'checked'
@@ -1123,9 +1087,7 @@ try {
 
   const abortController = new AbortController()
   const abortProvider = createAbortableProvider(abortController)
-  await assert.rejects(
-    () =>
-      writeNovelChapter({
+  await assert.rejects(() => writeNovelChapter({
         booksDir,
         bookName,
         volumeName: '第一卷',
@@ -1140,7 +1102,7 @@ try {
     /CLI 写作已停止/
   )
   assert.equal(fs.existsSync(join(booksDir, bookName, '正文', '第一卷', '中止章.txt')), false)
-  const cancelledTasks = listNovelTasks({
+  const cancelledTasks = await listNovelTasks({
     booksDir,
     bookName,
     status: 'cancelled',
@@ -1285,7 +1247,7 @@ try {
   assert.equal(resumedLifecycleResult.writing.skippedCount, 1)
   assert.equal(resumedLifecycleResult.export, null)
 
-  const exportResult = exportNovelBook({
+  const exportResult = await exportNovelBook({
     booksDir,
     bookName,
     format: 'md'
@@ -1405,9 +1367,7 @@ try {
 
   restoreEnv()
   for (const key of ENV_KEYS) delete process.env[key]
-  await assert.rejects(
-    () =>
-      writeNovelChapter({
+  await assert.rejects(() => writeNovelChapter({
         booksDir,
         bookName,
         volumeName: '第一卷',
@@ -1421,9 +1381,7 @@ try {
   assert.equal(fs.existsSync(join(booksDir, bookName, '正文', '第一卷', '第二章.txt')), false)
 
   const beforeOutline = fs.readFileSync(join(booksDir, bookName, 'outlines.json'), 'utf-8')
-  await assert.rejects(
-    () =>
-      generateNovelOutline({
+  await assert.rejects(() => generateNovelOutline({
         booksDir,
         bookName,
         idea: '没有 Provider 时不能保存 AI 大纲。',
@@ -1436,9 +1394,7 @@ try {
   assert.equal(fs.readFileSync(join(booksDir, bookName, 'outlines.json'), 'utf-8'), beforeOutline)
 
   fs.writeFileSync(join(booksDir, bookName, 'outlines.json'), '{"children":', 'utf-8')
-  await assert.rejects(
-    () =>
-      writeNovelChapters({
+  await assert.rejects(() => writeNovelChapters({
         booksDir,
         bookName,
         volumeName: '坏大纲卷',
@@ -1452,9 +1408,7 @@ try {
   assert.equal(fs.existsSync(join(booksDir, bookName, '正文', '坏大纲卷', '第一章.txt')), false)
   fs.writeFileSync(join(booksDir, bookName, 'outlines.json'), beforeOutline, 'utf-8')
 
-  await assert.rejects(
-    () =>
-      writeNovelChapters({
+  await assert.rejects(() => writeNovelChapters({
         booksDir,
         bookName,
         volumeName: '缺模型卷',

@@ -43,7 +43,7 @@ function requireTempImage(bookPath, type, chosenPath) {
   return candidate
 }
 
-export function saveGeneratedWebImage(bookPath, payload = {}, imageResult = {}) {
+export async function saveGeneratedWebImage(bookPath, payload = {}, imageResult = {}) {
   const type = imageTypeOf(payload.feature)
   if (!Buffer.isBuffer(imageResult.buffer) || imageResult.buffer.length === 0) {
     throw new Error('图像服务没有返回有效图片')
@@ -57,7 +57,7 @@ export function saveGeneratedWebImage(bookPath, payload = {}, imageResult = {}) 
   fs.writeFileSync(localPath, imageResult.buffer)
 
   if (type === 'ai_character_image') {
-    writeCharacterImageMetadata(localPath, {
+    await writeCharacterImageMetadata(localPath, {
       ...payload,
       localPath,
       providerId: imageResult.providerId,
@@ -76,7 +76,7 @@ export function saveGeneratedWebImage(bookPath, payload = {}, imageResult = {}) 
   }
 }
 
-export function confirmWebAiImage(bookPath, payload = {}) {
+export async function confirmWebAiImage(bookPath, payload = {}) {
   const type = imageTypeOf(payload.feature)
   const chosenPath = requireTempImage(bookPath, type, payload.chosenPath)
   const config = IMAGE_TYPES[type]
@@ -92,7 +92,7 @@ export function confirmWebAiImage(bookPath, payload = {}) {
 
   let metadata = null
   if (type === 'ai_character_image') {
-    metadata = confirmCharacterImageMetadata(chosenPath, finalPath, {
+    metadata = await confirmCharacterImageMetadata(chosenPath, finalPath, {
       ...payload,
       imagesDir: finalDir
     })

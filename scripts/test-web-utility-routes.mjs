@@ -1,14 +1,27 @@
 import assert from 'node:assert/strict'
+import { isAbsolute } from 'node:path'
 import { handleWebUtilityRoute, isWebUtilityRoute } from '../src/main/webApi/webUtilityRoutes.js'
 
 const responses = []
 const values = new Map([['theme', 'dark']])
+
+// Use platform-native absolute paths so isAbsolute() matches the runtime path module.
+const isWin = process.platform === 'win32'
+const library = isWin ? 'D:\\library' : '/library'
+const books = isWin ? 'D:\\library\\books' : '/library/books'
+const work = isWin ? 'D:\\library\\books\\作品' : '/library/books/作品'
+const file = isWin ? 'D:\\library\\books\\文件.txt' : '/library/books/文件.txt'
+const outside = isWin ? 'D:\\outside' : '/outside'
+const missing = isWin ? 'D:\\missing' : '/missing'
+
+assert.equal(isAbsolute(books), true)
+
 const entries = new Map([
-  ['D:\\library', 'directory'],
-  ['D:\\library\\books', 'directory'],
-  ['D:\\library\\books\\作品', 'directory'],
-  ['D:\\library\\books\\文件.txt', 'file'],
-  ['D:\\outside', 'directory']
+  [library, 'directory'],
+  [books, 'directory'],
+  [work, 'directory'],
+  [file, 'file'],
+  [outside, 'directory']
 ])
 const fileSystem = {
   realpathSync(path) {
@@ -40,7 +53,7 @@ const fileSystem = {
 }
 const common = {
   res: {},
-  booksDir: 'D:\\library\\books',
+  booksDir: books,
   sendJson: (_res, payload, status) => responses.push([payload, status]),
   storeGet: (key) => values.get(key),
   storeSet: (key, value) => {
@@ -57,27 +70,27 @@ const common = {
 for (const path of ['/api/fs/list', '/api/store/get', '/api/store/set', '/api/store/delete']) {
   assert.equal(isWebUtilityRoute(path), true)
 }
-assert.equal(handleWebUtilityRoute({ ...common, path: '/api/books/list' }), false)
+assert.equal(await handleWebUtilityRoute({ ...common, path: '/api/books/list' }), false)
 
-handleWebUtilityRoute({
+await handleWebUtilityRoute({
   ...common,
   path: '/api/fs/list',
-  body: { dir: 'D:\\library\\books' }
+  body: { dir: books }
 })
 assert.deepEqual(responses.at(-1)[0], {
   success: true,
-  path: 'D:\\library\\books',
-  root: 'D:\\library',
+  path: books,
+  root: library,
   dirs: [{ name: '作品' }]
 })
 
 for (const [dir, statusCode] of [
   ['books', 400],
-  ['D:\\missing', 404],
-  ['D:\\outside', 403],
-  ['D:\\library\\books\\文件.txt', 400]
+  [missing, 404],
+  [outside, 403],
+  [file, 400]
 ]) {
-  assert.throws(
+  await assert.rejects(
     () =>
       handleWebUtilityRoute({
         ...common,
@@ -88,27 +101,27 @@ for (const [dir, statusCode] of [
   )
 }
 
-handleWebUtilityRoute({ ...common, path: '/api/store/get', body: { key: 'theme' } })
+await handleWebUtilityRoute({ ...common, path: '/api/store/get', body: { key: 'theme' } })
 assert.deepEqual(responses.at(-1)[0], { success: true, key: 'theme', value: 'dark' })
 
-handleWebUtilityRoute({
+await handleWebUtilityRoute({
   ...common,
   path: '/api/store/set',
   body: { key: 'language', value: 'zh-CN' }
 })
 assert.equal(values.get('language'), 'zh-CN')
 
-handleWebUtilityRoute({ ...common, path: '/api/store/delete', body: { key: 'language' } })
+await handleWebUtilityRoute({ ...common, path: '/api/store/delete', body: { key: 'language' } })
 assert.equal(values.has('language'), false)
 
 for (const key of ['', ' ', '__proto__', 'prototype', 'constructor', 'x'.repeat(129)]) {
-  assert.throws(
+  await assert.rejects(
     () => handleWebUtilityRoute({ ...common, path: '/api/store/get', body: { key } }),
     (error) => error.statusCode === 400
   )
 }
 
-assert.throws(
+await assert.rejects(
   () =>
     handleWebUtilityRoute({
       ...common,

@@ -438,7 +438,7 @@ function isFreshSourceCacheRow(row = {}, now = Date.now(), options = {}) {
   return now - createdAt < sourceCacheTtlMs(row.source, options)
 }
 
-export function pruneSourceCache(booksDir, options = {}) {
+export async function pruneSourceCache(booksDir, options = {}) {
   if (!booksDir || options.persistentCache === false) {
     return { checked: 0, kept: 0, removed: 0, updatedAt: nowIso() }
   }
@@ -461,7 +461,7 @@ export function pruneSourceCache(booksDir, options = {}) {
     kept.length !== rows.length ||
     kept.some((row, index) => row !== rows[index])
   ) {
-    writeRows(booksDir, SOURCE_CACHE_FILE, kept)
+    await writeRows(booksDir, SOURCE_CACHE_FILE, kept)
   }
   return { checked: rows.length, kept: kept.length, removed, updatedAt: nowIso() }
 }
@@ -495,11 +495,11 @@ function strongerSourceStatus(current = 'empty', next = 'empty') {
   return (weight[next] || 0) > (weight[current] || 0) ? next : current
 }
 
-function writeRows(booksDir, fileName, items, extra = {}) {
+async function writeRows(booksDir, fileName, items, extra = {}) {
   if (!Array.isArray(items)) {
     throw new Error(`市场趋势数据格式异常：${fileName}，已停止写入以免覆盖原始记录`)
   }
-  writeJson(getMarketPath(booksDir, fileName), {
+  await writeJson(getMarketPath(booksDir, fileName), {
     version: 1,
     updatedAt: nowIso(),
     ...extra,
@@ -525,7 +525,7 @@ function readSourceCache(booksDir, source, options = {}) {
   }
 }
 
-function writeSourceCache(booksDir, source, result, options = {}) {
+async function writeSourceCache(booksDir, source, result, options = {}) {
   if (!booksDir || options.persistentCache === false || !result?.success) return
   const now = Date.now()
   const createdAt = new Date(now).toISOString()
@@ -547,7 +547,7 @@ function writeSourceCache(booksDir, source, result, options = {}) {
     }
   })
   const knownSources = new Set(Object.keys(SOURCE_CONFIG))
-  writeRows(
+  await writeRows(
     booksDir,
     SOURCE_CACHE_FILE,
     rows.filter((item) => knownSources.has(item.source)).slice(0, knownSources.size)
@@ -1514,7 +1514,7 @@ async function fetchSource(source, options = {}, booksDir = '') {
     latencyMs: Date.now() - startedAt
   }
   runtimeCache.set(cacheKey, { createdAt: Date.now(), result })
-  writeSourceCache(booksDir, source, result, options)
+  await writeSourceCache(booksDir, source, result, options)
   return result
 }
 
@@ -1540,7 +1540,7 @@ function normalizeStoredTopic(raw = {}) {
   }
 }
 
-function upsertHotTopics(booksDir, incoming = [], options = {}) {
+async function upsertHotTopics(booksDir, incoming = [], options = {}) {
   const now = nowIso()
   const replaceSources = new Set(
     Array.isArray(options.replaceSources) ? options.replaceSources : []
@@ -1582,8 +1582,8 @@ function upsertHotTopics(booksDir, incoming = [], options = {}) {
         new Date(b.capturedAt || b.updatedAt || 0) - new Date(a.capturedAt || a.updatedAt || 0)
     )
     .slice(0, MAX_TOPIC_ROWS)
-  writeRows(booksDir, HOT_TOPICS_FILE, items)
-  updateTrendRecords(booksDir, incoming)
+  await writeRows(booksDir, HOT_TOPICS_FILE, items)
+  await updateTrendRecords(booksDir, incoming)
   return { inserted, updated, items }
 }
 
@@ -1602,7 +1602,7 @@ function isValidTopic(row = {}) {
   return true
 }
 
-function updateTrendRecords(booksDir, topics = []) {
+async function updateTrendRecords(booksDir, topics = []) {
   const rows = readRows(booksDir, TREND_RECORDS_FILE)
   const map = new Map(rows.map((row) => [String(row.keyword || '').toLowerCase(), row]))
   for (const topic of topics) {
@@ -1632,10 +1632,10 @@ function updateTrendRecords(booksDir, topics = []) {
       updatedAt: nowIso()
     })
   }
-  writeRows(booksDir, TREND_RECORDS_FILE, Array.from(map.values()).slice(-MAX_TOPIC_ROWS))
+  await writeRows(booksDir, TREND_RECORDS_FILE, Array.from(map.values()).slice(-MAX_TOPIC_ROWS))
 }
 
-function updateSourceStatus(booksDir, results = []) {
+async function updateSourceStatus(booksDir, results = []) {
   const rows = readRows(booksDir, SOURCE_STATUS_FILE)
   const map = new Map(rows.map((row) => [row.source, row]))
   for (const result of results) {
@@ -1682,11 +1682,11 @@ function updateSourceStatus(booksDir, results = []) {
       }
     )
   })
-  writeRows(booksDir, SOURCE_STATUS_FILE, items)
+  await writeRows(booksDir, SOURCE_STATUS_FILE, items)
   return items.map((item) => enrichSourceStatus(item))
 }
 
-function appendCollectionLogs(booksDir, results = []) {
+async function appendCollectionLogs(booksDir, results = []) {
   const rows = readRows(booksDir, COLLECTION_LOGS_FILE)
   const logs = results.map((result) => ({
     id: `market_log_${randomUUID()}`,
@@ -1706,12 +1706,12 @@ function appendCollectionLogs(booksDir, results = []) {
     waitCount: result.waitCount || 0,
     createdAt: nowIso()
   }))
-  writeRows(booksDir, COLLECTION_LOGS_FILE, [...logs, ...rows].slice(0, 500))
+  await writeRows(booksDir, COLLECTION_LOGS_FILE, [...logs, ...rows].slice(0, 500))
   return logs
 }
 
 export async function refreshHotTopics(booksDir, options = {}) {
-  const cachePrune = pruneSourceCache(booksDir, options)
+  const cachePrune = await pruneSourceCache(booksDir, options)
   const sources = (
     Array.isArray(options.sources) && options.sources.length ? options.sources : DEFAULT_SOURCES
   )
@@ -1722,11 +1722,11 @@ export async function refreshHotTopics(booksDir, options = {}) {
     results.push(await fetchSource(source, options, booksDir))
   }
   const topics = results.flatMap((result) => result.topics || [])
-  const upsert = upsertHotTopics(booksDir, topics, {
+  const upsert = await upsertHotTopics(booksDir, topics, {
     replaceSources: results.filter((result) => result.success).map((result) => result.source)
   })
-  const sourceStatus = updateSourceStatus(booksDir, results)
-  const collectionLogs = appendCollectionLogs(booksDir, results)
+  const sourceStatus = await updateSourceStatus(booksDir, results)
+  const collectionLogs = await appendCollectionLogs(booksDir, results)
   return {
     success: results.some((result) => result.success),
     sources,
@@ -1791,10 +1791,10 @@ export function listTrendRecords(booksDir, filter = {}) {
     .slice(0, limit)
 }
 
-export function listSourceStatus(booksDir) {
+export async function listSourceStatus(booksDir) {
   const rows = readRows(booksDir, SOURCE_STATUS_FILE)
   if (rows.length) return rows.map((row) => enrichSourceStatus(row))
-  return updateSourceStatus(booksDir, [])
+  return await updateSourceStatus(booksDir, [])
 }
 
 function trendScoreFor(record) {
@@ -2102,12 +2102,12 @@ function diversifyInsights(insights = [], limit = 20) {
   return picked
 }
 
-function listMarketInsights(booksDir, filter = {}) {
+async function listMarketInsights(booksDir, filter = {}) {
   const channel = normalizeChannel(filter.channel || 'all')
-  const sourceStatus = listSourceStatus(booksDir)
-  const topics = listHotTopics(booksDir, { source: filter.source || 'all', limit: 240 })
+  const sourceStatus = await listSourceStatus(booksDir)
+  const topics = await listHotTopics(booksDir, { source: filter.source || 'all', limit: 240 })
   const trendMap = new Map(
-    listTrendRecords(booksDir, { limit: 240 }).map((row) => [
+    (await listTrendRecords(booksDir, { limit: 240 })).map((row) => [
       String(row.keyword || '').toLowerCase(),
       row
     ])
@@ -2148,10 +2148,10 @@ function opportunityGrade(insights = []) {
   return 'C'
 }
 
-function buildMarketOverview(booksDir, filter = {}) {
+async function buildMarketOverview(booksDir, filter = {}) {
   const channel = normalizeChannel(filter.channel || 'all')
-  const directions = listMarketInsights(booksDir, { ...filter, channel, limit: filter.limit || 24 })
-  const sourceStatus = listSourceStatus(booksDir)
+  const directions = await listMarketInsights(booksDir, { ...filter, channel, limit: filter.limit || 24 })
+  const sourceStatus = await listSourceStatus(booksDir)
   const selectedInsight = directions[0] || null
   return {
     success: true,
@@ -2244,16 +2244,16 @@ function buildSourceList(insights = [], sourceStatus = [], topics = []) {
   return Array.from(sourceMap.values()).sort((a, b) => b.count - a.count)
 }
 
-function buildHotRank(booksDir, filter = {}) {
+async function buildHotRank(booksDir, filter = {}) {
   const channel = normalizeChannel(filter.channel || 'all')
-  const insights = listMarketInsights(booksDir, {
+  const insights = await listMarketInsights(booksDir, {
     channel,
     source: filter.source || 'all',
     limit: 60
   })
-  const sourceStatus = listSourceStatus(booksDir)
+  const sourceStatus = await listSourceStatus(booksDir)
   const source = String(filter.source || 'all')
-  const topics = listHotTopics(booksDir, { limit: 500 })
+  const topics = await listHotTopics(booksDir, { limit: 500 })
   const cards = insights
     .filter(
       (item) =>
@@ -2295,9 +2295,9 @@ function keywordType(word = '') {
   return KEYWORD_TYPE_RULES.find((rule) => rule.pattern.test(word))?.type || 'genre'
 }
 
-function buildKeywordClusters(booksDir, filter = {}) {
+async function buildKeywordClusters(booksDir, filter = {}) {
   const channel = normalizeChannel(filter.channel || 'all')
-  const insights = listMarketInsights(booksDir, { channel, limit: 80 })
+  const insights = await listMarketInsights(booksDir, { channel, limit: 80 })
   const map = new Map()
   for (const insight of insights) {
     for (const word of uniqueList(
@@ -2327,9 +2327,9 @@ function buildKeywordClusters(booksDir, filter = {}) {
     .slice(0, 36)
 }
 
-function combinationDetailFromKeywords(booksDir, keywords = [], channel = 'all') {
+async function combinationDetailFromKeywords(booksDir, keywords = [], channel = 'all') {
   const normalizedKeywords = uniqueList(keywords, 5)
-  const insights = listMarketInsights(booksDir, { channel, limit: 80 })
+  const insights = await listMarketInsights(booksDir, { channel, limit: 80 })
   const matched =
     insights.find((item) =>
       normalizedKeywords.some((word) => item.tags.includes(word) || item.genre.includes(word))
@@ -2386,12 +2386,13 @@ function combinationDetailFromKeywords(booksDir, keywords = [], channel = 'all')
   }
 }
 
-function popularCombinations(booksDir, filter = {}) {
-  const insights = listMarketInsights(booksDir, { channel: filter.channel || 'all', limit: 12 })
-  return insights.slice(0, 6).map((item, index) => {
+async function popularCombinations(booksDir, filter = {}) {
+  const insights = await listMarketInsights(booksDir, { channel: filter.channel || 'all', limit: 12 })
+  const combinations = []
+  for (const [index, item] of insights.slice(0, 6).entries()) {
     const words = [item.genre, ...item.tags.slice(1, 3)]
-    const detail = combinationDetailFromKeywords(booksDir, words, filter.channel || 'all')
-    return {
+    const detail = await combinationDetailFromKeywords(booksDir, words, filter.channel || 'all')
+    combinations.push({
       id: `combo_${index + 1}`,
       keywords: uniqueList(words, 4),
       title: uniqueList(words, 4).join(' + '),
@@ -2399,21 +2400,22 @@ function popularCombinations(booksDir, filter = {}) {
       growthScore: detail.growthScore,
       direction: detail.novelizedResult.direction,
       trend: [34, 42 + index * 4, 48 + index * 5, 62 + index * 3, detail.growthScore]
-    }
-  })
+    })
+  }
+  return combinations
 }
 
-function buildKeywordCloud(booksDir, filter = {}) {
+async function buildKeywordCloud(booksDir, filter = {}) {
   const channel = normalizeChannel(filter.channel || 'all')
-  const clusters = buildKeywordClusters(booksDir, { channel })
-  const combinations = popularCombinations(booksDir, { channel })
+  const clusters = await buildKeywordClusters(booksDir, { channel })
+  const combinations = await popularCombinations(booksDir, { channel })
   const selected = combinations[0]?.keywords || clusters.slice(0, 3).map((item) => item.name)
   return {
     success: true,
     channel,
     keywordClusters: clusters,
     popularCombinations: combinations,
-    defaultCombinationDetail: combinationDetailFromKeywords(booksDir, selected, channel)
+    defaultCombinationDetail: await combinationDetailFromKeywords(booksDir, selected, channel)
   }
 }
 
@@ -2542,11 +2544,11 @@ function buildActivityDirection(text = '', platform = '') {
   return '请打开来源页确认细则后，再生成投稿方向。'
 }
 
-export function buildRuleOpportunities(booksDir, filter = {}) {
+export async function buildRuleOpportunities(booksDir, filter = {}) {
   const limit = Math.max(1, Math.min(50, Number(filter.limit || 10)))
-  const topics = listHotTopics(booksDir, { limit: 200, source: filter.source || 'all' })
+  const topics = await listHotTopics(booksDir, { limit: 200, source: filter.source || 'all' })
   const trendMap = new Map(
-    listTrendRecords(booksDir, { limit: 200 }).map((row) => [
+    (await listTrendRecords(booksDir, { limit: 200 })).map((row) => [
       String(row.keyword || '').toLowerCase(),
       row
     ])
@@ -2574,7 +2576,7 @@ export function buildRuleOpportunities(booksDir, filter = {}) {
   const rows = Array.from(merged.values())
     .sort((a, b) => b.heatScore + b.trendScore - (a.heatScore + a.trendScore))
     .slice(0, limit)
-  writeRows(booksDir, OPPORTUNITIES_FILE, rows)
+  await writeRows(booksDir, OPPORTUNITIES_FILE, rows)
   return rows
 }
 
@@ -2675,10 +2677,10 @@ function buildPlatformRankings(signals = [], topics = []) {
     .sort((a, b) => b.heatScore - a.heatScore)
 }
 
-function buildActivities(booksDir, filter = {}) {
+async function buildActivities(booksDir, filter = {}) {
   const channel = normalizeChannel(filter.channel || 'all')
-  const sourceStatus = listSourceStatus(booksDir)
-  const topics = listHotTopics(booksDir, { limit: 240 })
+  const sourceStatus = await listSourceStatus(booksDir)
+  const topics = await listHotTopics(booksDir, { limit: 240 })
   const rows = topics
     .map((topic) => activityFromTopic(topic, sourceStatus))
     .filter(Boolean)
@@ -2768,7 +2770,7 @@ function normalizeLlmOpportunityItems(parsed = [], base = []) {
 
 export async function generateOpportunitiesWithLLM(booksDir, options = {}) {
   const provider = options.provider
-  const base = buildRuleOpportunities(booksDir, { limit: options.limit || 10 })
+  const base = await buildRuleOpportunities(booksDir, { limit: options.limit || 10 })
   if (!provider?.chat) {
     return {
       success: false,
@@ -2805,7 +2807,7 @@ export async function generateOpportunitiesWithLLM(booksDir, options = {}) {
     if (!parsed.length) throw new Error('AI 返回内容无法解析')
     const items = normalizeLlmOpportunityItems(parsed, base)
     if (!items.length) throw new Error('AI 返回内容缺少可用机会建议')
-    writeRows(booksDir, OPPORTUNITIES_FILE, items)
+    await writeRows(booksDir, OPPORTUNITIES_FILE, items)
     return {
       success: true,
       items,
@@ -2850,28 +2852,28 @@ function parseJsonArray(text) {
   }
 }
 
-export function getMarketDashboard(booksDir, filter = {}) {
+export async function getMarketDashboard(booksDir, filter = {}) {
   const channel = normalizeChannel(filter.channel || 'all')
   const limit = Number(filter.limit || 30)
-  const sourceStatus = listSourceStatus(booksDir)
-  const topics = listHotTopics(booksDir, { source: filter.source || 'all', limit })
+  const sourceStatus = await listSourceStatus(booksDir)
+  const topics = await listHotTopics(booksDir, { source: filter.source || 'all', limit })
   const hotspots = topics
-  const recentTrends = listTrendRecords(booksDir, { limit: 12 })
-  const topOpportunities = buildRuleOpportunities(booksDir, {
+  const recentTrends = await listTrendRecords(booksDir, { limit: 12 })
+  const topOpportunities = await buildRuleOpportunities(booksDir, {
     limit: filter.opportunityLimit || 10
   })
-  const insights = listMarketInsights(booksDir, { channel, source: filter.source || 'all', limit })
+  const insights = await listMarketInsights(booksDir, { channel, source: filter.source || 'all', limit })
   const novelSignals = analyzeNovelSignals(hotspots).filter((item) => {
     const rule = NOVEL_SIGNAL_RULES.find((rule) => rule.key === item.key)
     return channelMatches(firstByChannel(rule?.channels || ['all'], channel), channel)
   })
   const platformRankings = buildPlatformRankings(novelSignals, hotspots)
-  const activities = buildActivities(booksDir, { ...filter, channel })
+  const activities = await buildActivities(booksDir, { ...filter, channel })
   const writerActivities = activities.activities || []
   const agentBrief = buildAgentBrief(novelSignals, platformRankings, writerActivities)
-  const overview = buildMarketOverview(booksDir, { ...filter, channel })
-  const hotRank = buildHotRank(booksDir, { ...filter, channel })
-  const keywordCloud = buildKeywordCloud(booksDir, { ...filter, channel })
+  const overview = await buildMarketOverview(booksDir, { ...filter, channel })
+  const hotRank = await buildHotRank(booksDir, { ...filter, channel })
+  const keywordCloud = await buildKeywordCloud(booksDir, { ...filter, channel })
   const lastUpdatedAt =
     hotspots[0]?.capturedAt ||
     sourceStatus.find((item) => item.lastSuccessAt)?.lastSuccessAt ||
@@ -2898,7 +2900,7 @@ export function getMarketDashboard(booksDir, filter = {}) {
   }
 }
 
-export function startScheduler(getBooksDir, options = {}) {
+export async function startScheduler(getBooksDir, options = {}) {
   stopScheduler()
   const intervalMs = Math.max(
     60 * 1000,

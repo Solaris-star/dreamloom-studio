@@ -1,21 +1,33 @@
 import assert from 'node:assert/strict'
+import { join } from 'node:path'
 import { handleSettingsRoute, isSettingsRoute } from '../src/main/webApi/settingsRoutes.js'
 
 const responses = []
 const writes = []
 const removed = []
+
+// Platform-native absolute paths so path.join/resolve match the runtime path module.
+const isWin = process.platform === 'win32'
+const booksDir = isWin ? 'D:\\books' : '/books'
+const storeFile = isWin ? 'D:\\app\\.store.json' : '/app/.store.json'
+const nestedDir = join(booksDir, 'nested')
+const trashDir = join(booksDir, 'assets-trash')
+const bookFile = join(booksDir, 'book.txt')
+const chapterFile = join(nestedDir, 'chapter.txt')
+const trashFile = join(trashDir, 'cover.png')
+
 const entries = new Map([
-  ['D:\\books', { type: 'directory' }],
-  ['D:\\books\\book.txt', { type: 'file', size: 12 }],
-  ['D:\\books\\nested', { type: 'directory' }],
-  ['D:\\books\\nested\\chapter.txt', { type: 'file', size: 18 }],
-  ['D:\\books\\assets-trash', { type: 'directory' }],
-  ['D:\\books\\assets-trash\\cover.png', { type: 'file', size: 25 }],
-  ['D:\\app\\.store.json', { type: 'file', size: 40 }]
+  [booksDir, { type: 'directory' }],
+  [bookFile, { type: 'file', size: 12 }],
+  [nestedDir, { type: 'directory' }],
+  [chapterFile, { type: 'file', size: 18 }],
+  [trashDir, { type: 'directory' }],
+  [trashFile, { type: 'file', size: 25 }],
+  [storeFile, { type: 'file', size: 40 }]
 ])
 const children = new Map([
   [
-    'D:\\books',
+    booksDir,
     [
       { name: 'book.txt', kind: 'file' },
       { name: 'nested', kind: 'directory' },
@@ -23,8 +35,8 @@ const children = new Map([
       { name: 'ignored-link', kind: 'link' }
     ]
   ],
-  ['D:\\books\\nested', [{ name: 'chapter.txt', kind: 'file' }]],
-  ['D:\\books\\assets-trash', [{ name: 'cover.png', kind: 'file' }]]
+  [nestedDir, [{ name: 'chapter.txt', kind: 'file' }]],
+  [trashDir, [{ name: 'cover.png', kind: 'file' }]]
 ])
 const toStats = (entry) => ({
   size: entry.size || 0,
@@ -47,14 +59,14 @@ const fileSystem = {
   },
   rmSync(path, options) {
     removed.push([path, options])
-    entries.delete('D:\\books\\assets-trash\\cover.png')
+    entries.delete(trashFile)
     children.set(path, [])
   }
 }
 const common = {
   res: {},
-  booksDir: 'D:\\books',
-  storeFile: 'D:\\app\\.store.json',
+  booksDir,
+  storeFile,
   sendJson: (_res, payload, status) => responses.push([payload, status]),
   readStore: () => ({ theme: 'dark' }),
   setStoreValue: (...args) => writes.push(args),
@@ -74,22 +86,17 @@ for (const path of [
 assert.equal(isSettingsRoute('/api/vector/stats'), false)
 assert.equal(handleSettingsRoute({ ...common, path: '/api/vector/stats' }), false)
 
-assert.equal(
-  handleSettingsRoute({ ...common, path: '/api/settings/storage-stats' }),
-  true
-)
+assert.equal(handleSettingsRoute({ ...common, path: '/api/settings/storage-stats' }), true)
 assert.deepEqual(responses.at(-1)[0], {
   success: true,
-  booksDir: 'D:\\books',
+  booksDir,
   booksSize: 55,
   storeSize: 40,
   trashSize: 25
 })
 
 handleSettingsRoute({ ...common, path: '/api/settings/clear-trash' })
-assert.deepEqual(removed, [
-  ['D:\\books\\assets-trash', { recursive: true, force: true }]
-])
+assert.deepEqual(removed, [[trashDir, { recursive: true, force: true }]])
 assert.deepEqual(responses.at(-1)[0], {
   success: true,
   bytesBefore: 25,

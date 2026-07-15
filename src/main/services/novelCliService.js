@@ -459,8 +459,8 @@ function buildSettingTreePayload(input = {}, idea = '', bookPath = '', selectedP
   }
 }
 
-function writeSettingsDocument(booksDir, bookName, settingsData) {
-  return writeSettings({ bookName: safeName(bookName), data: settingsData }, booksDir)
+async function writeSettingsDocument(booksDir, bookName, settingsData) {
+  return await writeSettings({ bookName: safeName(bookName), data: settingsData }, booksDir)
 }
 
 function resolveLifecycleSelectedPlan(runResult = {}, input = {}) {
@@ -613,7 +613,7 @@ function normalizeChapterDraft(item = {}, index = 0) {
   }
 }
 
-function resolveChapterPlans(input, booksDir, bookName) {
+async function resolveChapterPlans(input, booksDir, bookName) {
   const injectedPlans = Array.isArray(input.chapterPlans)
     ? input.chapterPlans
     : Array.isArray(input.outlineItems)
@@ -621,7 +621,7 @@ function resolveChapterPlans(input, booksDir, bookName) {
       : []
   if (injectedPlans.length) return injectedPlans.map(normalizeChapterPlan)
 
-  const outlines = requireOutlineReadData(readOutlines(safeName(bookName), booksDir))
+  const outlines = requireOutlineReadData(await readOutlines(safeName(bookName), booksDir))
   const root = input.outlineId
     ? findOutlineNode(outlines, input.outlineId)
     : latestOutlineRoot(outlines)
@@ -671,8 +671,8 @@ function readExistingChapterSnapshot({ booksDir, bookName, volumeName, chapterNa
   }
 }
 
-function loadStoredOutlineForResume(booksDir, bookName, outlineId = '') {
-  const outlines = requireOutlineReadData(readOutlines(safeName(bookName), booksDir))
+async function loadStoredOutlineForResume(booksDir, bookName, outlineId = '') {
+  const outlines = requireOutlineReadData(await readOutlines(safeName(bookName), booksDir))
   const root = outlineId ? findOutlineNode(outlines, outlineId) : latestOutlineRoot(outlines)
   if (!root) return null
   const items = collectOutlineLeaves(root).map(normalizeChapterPlan)
@@ -853,7 +853,7 @@ async function callChat(service, request) {
 
 async function callStreamChat(service, request, hooks = {}) {
   throwIfAborted(request.signal)
-  if (request.stream === false || !service.streamChat) return callChat(service, request)
+  if (request.stream === false || !service.streamChat) return await callChat(service, request)
   const stream = await service.streamChat(request)
   let content = ''
   let usage = {}
@@ -1050,7 +1050,7 @@ async function notifyTaskProgress(onTaskProgress, bookPath, task) {
   }
 }
 
-function createStreamRecorder({
+async function createStreamRecorder({
   bookPath,
   taskId,
   generationId,
@@ -1142,7 +1142,7 @@ async function runWriterReviewLoop(input, provider, generationId, context = {}) 
       requestId: `cli_writer_${generationId}`,
       stageName: 'Writer'
     },
-    createStreamRecorder({
+    await createStreamRecorder({
       ...context,
       generationId,
       ...skillRecord(input),
@@ -1210,7 +1210,7 @@ async function runWriterReviewLoop(input, provider, generationId, context = {}) 
       requestId: `cli_writer_rewrite_${generationId}`,
       stageName: 'Writer 重写'
     },
-    createStreamRecorder({
+    await createStreamRecorder({
       ...context,
       generationId,
       ...skillRecord(input),
@@ -1295,7 +1295,7 @@ async function runRepairLoop(input, provider, sourceGenerationId, check, issues,
       requestId: `cli_writer_repair_${repairGenerationId}`,
       stageName: 'Writer 返修'
     },
-    createStreamRecorder({
+    await createStreamRecorder({
       ...context,
       generationId: repairGenerationId,
       ...skillRecord(input),
@@ -1437,7 +1437,7 @@ export async function researchNovelMarket(input = {}) {
   )
 
   const dashboard = requireCliMarketDashboardResult(
-    marketService.getMarketDashboard(booksDir, {
+    await marketService.getMarketDashboard(booksDir, {
       source: input.sourceFilter || 'all',
       channel: input.channel || 'all',
       limit: Number.isFinite(limit) && limit > 0 ? limit : 12
@@ -1495,7 +1495,7 @@ export async function generateNovelOutline(input = {}) {
         timeoutMs: input.timeoutMs
       })
     } else {
-      const dashboard = marketService.getMarketDashboard(booksDir, {
+      const dashboard = await marketService.getMarketDashboard(booksDir, {
         source: input.sourceFilter || 'all',
         channel: input.channel || 'all',
         limit: Number(input.marketLimit || 8)
@@ -1542,8 +1542,8 @@ export async function generateNovelOutline(input = {}) {
     result.items.map((item) => outlineNode(item.title, item.content))
   )
   const saveMode = normalizeOutlineSaveMode(input.saveMode)
-  const existing = requireOutlineReadData(readOutlines(safeName(bookName), booksDir))
-  const saved = writeOutlines(
+  const existing = requireOutlineReadData(await readOutlines(safeName(bookName), booksDir))
+  const saved = await writeOutlines(
     {
       bookName: safeName(bookName),
       data: appendOutlinePayload(existing, node, saveMode)
@@ -1597,7 +1597,7 @@ export async function writeNovelChapters(input = {}) {
   if (!Number.isFinite(targetWords) || targetWords <= 0) throw new Error('目标字数无效')
   ensureBookExists(booksDir, bookName)
 
-  const plans = limitChapterPlans(resolveChapterPlans(input, booksDir, bookName), input)
+  const plans = limitChapterPlans(await resolveChapterPlans(input, booksDir, bookName), input)
   const drafts = limitChapterPlans(resolveChapterDrafts(input), input)
   if (!plans.length) throw new Error('没有可写章节计划')
 
@@ -2334,7 +2334,7 @@ export async function runNovelLifecycle(input = {}) {
     settingPayload,
     provider.service
   )
-  const settingsDocument = writeSettingsDocument(
+  const settingsDocument = await writeSettingsDocument(
     booksDir,
     initialized.bookName,
     cloneSettingsCategories(settingTree)
@@ -2350,7 +2350,7 @@ export async function runNovelLifecycle(input = {}) {
   throwIfAborted(input.signal)
   let outline = null
   if (input.resume) {
-    outline = loadStoredOutlineForResume(booksDir, initialized.bookName, input.outlineId)
+    outline = await loadStoredOutlineForResume(booksDir, initialized.bookName, input.outlineId)
   }
   if (outline) {
     stages.push({
@@ -2442,7 +2442,7 @@ export async function runNovelLifecycle(input = {}) {
   let exported = null
   if (input.exportResult !== false && input.export !== false) {
     throwIfAborted(input.signal)
-    exported = exportNovelBook({
+    exported = await exportNovelBook({
       ...input,
       booksDir,
       bookName: initialized.bookName,
@@ -2475,13 +2475,13 @@ export async function runNovelLifecycle(input = {}) {
   }
 }
 
-export function exportNovelBook(input = {}) {
+export async function exportNovelBook(input = {}) {
   const booksDir = ensureBooksDir(input.booksDir)
   const bookName = cleanText(input.bookName || input.book)
   if (!bookName) throw new Error('缺少书籍名称')
   ensureBookExists(booksDir, bookName)
 
-  const result = exportBook(booksDir, {
+  const result = await exportBook(booksDir, {
     bookName: safeName(bookName),
     format: input.format || 'txt'
   })

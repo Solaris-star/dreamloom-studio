@@ -7,7 +7,7 @@
  * `.store.json` 文件作为简单的键值仓库，提供本地设置读写能力。
  */
 import fs from 'node:fs'
-import { isAbsolute, join, relative, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import {
   confirmBookIdeaRun as confirmNovelBookIdeaRun,
   recordChapterWrite as recordNovelChapterWrite,
@@ -15,7 +15,7 @@ import {
   upsertProjectFromBook as upsertNovelProjectFromBook
 } from './novelDatabaseService.js'
 import { fetchPublicHttpResource } from './safeRemoteUrl.js'
-import { readJson, writeJson } from './webJsonRepository.js'
+import { readJson, writeJson, updateJson, withPathLock, writeTextAtomic } from './webJsonRepository.js'
 
 const IMAGE_CONTENT_TYPE_EXTENSION = {
   'image/jpeg': 'jpg',
@@ -246,49 +246,65 @@ function generateChapterName(number, settings) {
 
 const STORE_FILE = resolve('.store.json')
 
-function readStore() {
-  if (!fs.existsSync(STORE_FILE)) return {}
+async function readStore() {
   let store
   try {
-    store = JSON.parse(fs.readFileSync(STORE_FILE, 'utf-8') || 'null')
+    store = await readJson(STORE_FILE, null)
   } catch (error) {
-    throw new Error(`本地设置读取失败：${error.message}`)
+    throw new Error(`本地设置读取失败：${error.cause?.message || error.message}`, { cause: error })
   }
+  if (store == null) return {}
   if (!store || typeof store !== 'object' || Array.isArray(store)) {
     throw new Error('本地设置格式异常，已停止读取本地设置')
   }
   return store
 }
 
-function writeStore(data) {
+async function writeStore(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
     throw new Error('本地设置格式异常，已停止写入本地设置')
   }
-  writeJson(STORE_FILE, data || {})
+  await writeJson(STORE_FILE, data || {})
   return true
 }
 
-export function storeGet(key) {
+export async function storeGet(key) {
   if (!key) return null
-  const store = readStore()
+  const store = await readStore()
   return Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null
 }
 
-export function storeSet(key, value) {
+export async function storeSet(key, value) {
   if (!key) return false
-  const store = readStore()
-  store[key] = value
-  writeStore(store)
+  await updateJson(
+    STORE_FILE,
+    (current) => {
+      const store = current == null ? {} : current
+      if (!store || typeof store !== 'object' || Array.isArray(store)) {
+        throw new Error('本地设置格式异常，已停止写入本地设置')
+      }
+      store[key] = value
+      return store
+    },
+    {}
+  )
   return true
 }
 
-export function storeDelete(key) {
+export async function storeDelete(key) {
   if (!key) return false
-  const store = readStore()
-  if (Object.prototype.hasOwnProperty.call(store, key)) {
-    delete store[key]
-    writeStore(store)
-  }
+  await updateJson(
+    STORE_FILE,
+    (current) => {
+      const store = current == null ? {} : current
+      if (!store || typeof store !== 'object' || Array.isArray(store)) {
+        throw new Error('本地设置格式异常，已停止写入本地设置')
+      }
+      if (Object.prototype.hasOwnProperty.call(store, key)) delete store[key]
+      return store
+    },
+    {}
+  )
   return true
 }
 
@@ -307,14 +323,14 @@ function requireVolumeOrder(value, bookName, action = '读取卷顺序') {
   throw new Error(`${bookName} 卷顺序记录格式异常，已停止${action}以免覆盖原始记录`)
 }
 
-function readVolumeOrder(bookName, action = '读取卷顺序') {
-  const value = storeGet(getVolumeOrderKey(bookName))
+async function readVolumeOrder(bookName, action = '读取卷顺序') {
+  const value = await storeGet(getVolumeOrderKey(bookName))
   if (value == null) return []
   return requireVolumeOrder(value, bookName, action)
 }
 
-function writeVolumeOrder(bookName, order) {
-  storeSet(getVolumeOrderKey(bookName), requireVolumeOrder(order, bookName, '写入卷顺序'))
+async function writeVolumeOrder(bookName, order) {
+  await storeSet(getVolumeOrderKey(bookName), requireVolumeOrder(order, bookName, '写入卷顺序'))
 }
 
 function safeAssetName(value, fallback = '未命名') {
@@ -676,11 +692,11 @@ function requireOutlineAiSessionsPayload(data) {
   }
 }
 
-function writeBookJson(booksDir, bookName, fileName, data) {
+async function writeBookJson(booksDir, bookName, fileName, data) {
   if (!bookName || !booksDir) return { success: false, message: '书籍名称不能为空' }
   const bookPath = ensureBookPath(booksDir, bookName)
   const filePath = join(bookPath, fileName)
-  writeJson(filePath, data)
+  await writeJson(filePath, data)
   const documentType = BOOK_DOCUMENT_TYPES[fileName]
   let documentRecord = null
   if (documentType) {
@@ -708,8 +724,8 @@ function getDirCreateTimeMs(dirPath) {
   }
 }
 
-function ensureVolumeOrder(bookName, bookPath, volumeNames) {
-  let order = readVolumeOrder(bookName, '读取章节目录')
+async function ensureVolumeOrder(bookName, bookPath, volumeNames) {
+  let order = await readVolumeOrder(bookName, '读取章节目录')
 
   order = order.filter((name) => volumeNames.includes(name))
 
@@ -732,7 +748,7 @@ function ensureVolumeOrder(bookName, bookPath, volumeNames) {
     order = withTime.map((x) => x.name)
   }
 
-  writeVolumeOrder(bookName, order)
+  await writeVolumeOrder(bookName, order)
   return order
 }
 
@@ -817,7 +833,7 @@ export async function createBook(bookInfo, booksDir) {
     createdAt: nowText(),
     updatedAt: nowText()
   }
-  writeJson(join(bookPath, 'mazi.json'), meta)
+  await writeJson(join(bookPath, 'mazi.json'), meta)
 
   fs.mkdirSync(join(bookPath, '正文'), { recursive: true })
   fs.mkdirSync(join(bookPath, '笔记'), { recursive: true })
@@ -882,7 +898,7 @@ export async function readBooksDir(booksDir) {
       const metaPath = join(booksDir, file.name, 'mazi.json')
       if (fs.existsSync(metaPath)) {
         try {
-          const meta = readJson(metaPath, null)
+          const meta = await readJson(metaPath, null)
           if (!meta || typeof meta !== 'object') continue
           const stats = calculateBookTextStats(file.name, booksDir)
           const totalWords = firstPositiveNumber(
@@ -915,7 +931,7 @@ export async function readBooksDir(booksDir) {
             normalizedMeta.type !== meta.type ||
             normalizedMeta.typeName !== meta.typeName
           ) {
-            writeJson(metaPath, normalizedMeta)
+            await writeJson(metaPath, normalizedMeta)
           }
           books.push({ ...normalizedMeta, folderName: file.name })
         } catch {
@@ -974,7 +990,7 @@ export async function editBook(bookInfo = {}, booksDir) {
     const metaPath = join(bookPath, 'mazi.json')
     let existingMeta
     try {
-      existingMeta = readJson(metaPath, null)
+      existingMeta = await readJson(metaPath, null)
     } catch {
       return { success: false, message: '书籍元数据损坏' }
     }
@@ -1030,7 +1046,7 @@ export async function editBook(bookInfo = {}, booksDir) {
       coverUrl,
       updatedAt: nowText()
     }
-    writeJson(join(bookPath, 'mazi.json'), mergedMeta)
+    await writeJson(join(bookPath, 'mazi.json'), mergedMeta)
     const project = syncNovelProject(booksDir, nextFolderName, {
       meta: mergedMeta,
       previousBookName: originalName
@@ -1058,14 +1074,14 @@ async function updateBookMetadata(bookName, booksDir) {
   const safeBookName = safeAssetName(bookName)
   const metaPath = join(getBookPath(booksDir, safeBookName), 'mazi.json')
   if (!fs.existsSync(metaPath)) return null
-  const meta = readJson(metaPath, null)
+  const meta = await readJson(metaPath, null)
   if (!meta || typeof meta !== 'object') return null
   const stats = calculateBookTextStats(safeBookName, booksDir)
   meta.totalWords = stats.totalWords
   meta.totalChapterCount = stats.chapterCount
   meta.chapterCount = stats.chapterCount
   meta.updatedAt = new Date().toLocaleString()
-  writeJson(metaPath, meta)
+  await writeJson(metaPath, meta)
   return syncNovelProject(booksDir, safeBookName, { meta })
 }
 
@@ -1079,30 +1095,51 @@ export async function saveChapter(
   const finalName = requirePathSegment(newName || chapterName, '章节名称')
   const targetPath = join(volumePath, `${finalName}.txt`)
 
-  if (!fs.existsSync(oldPath)) {
-    return { success: false, message: '章节不存在' }
-  }
-  if (newName && finalName !== chapterName && fs.existsSync(targetPath)) {
-    return { success: false, message: '章节名已存在', name: chapterName }
-  }
-
-  const oldContent = fs.readFileSync(oldPath, 'utf-8')
   const nextContent = content === undefined || content === null ? '' : String(content)
-  const isClearingExistingChapter =
-    oldContent.trim().length > 0 && nextContent.trim().length === 0 && !String(newName || '').trim()
-
-  if (isClearingExistingChapter) {
-    return { success: false, message: '已阻止空内容覆盖已有章节' }
-  }
-
-  fs.writeFileSync(oldPath, nextContent, 'utf-8')
-
-  if (newName && finalName !== chapterName) {
-    fs.renameSync(oldPath, targetPath)
-  }
+  const finalPath = newName && finalName !== chapterName ? targetPath : oldPath
+  const saveResult = await withPathLock(oldPath, async () => {
+    if (!fs.existsSync(oldPath)) {
+      return { success: false, message: '章节不存在' }
+    }
+    if (newName && finalName !== chapterName && fs.existsSync(targetPath)) {
+      return { success: false, message: '章节名已存在', name: chapterName }
+    }
+    const oldContent = fs.readFileSync(oldPath, 'utf-8')
+    const isClearingExistingChapter =
+      oldContent.trim().length > 0 &&
+      nextContent.trim().length === 0 &&
+      !String(newName || '').trim()
+    if (isClearingExistingChapter) {
+      return { success: false, message: '已阻止空内容覆盖已有章节' }
+    }
+    // already under withPathLock(oldPath); avoid nested path-lock deadlock
+    {
+      const directory = dirname(oldPath)
+      const temporaryPath = join(
+        directory,
+        `.${basename(oldPath)}.${process.pid}.${Date.now()}.${Math.random().toString(16).slice(2)}.tmp`
+      )
+      fs.mkdirSync(directory, { recursive: true })
+      try {
+        fs.writeFileSync(temporaryPath, nextContent, 'utf-8')
+        fs.renameSync(temporaryPath, oldPath)
+      } catch (error) {
+        try {
+          fs.rmSync(temporaryPath, { force: true })
+        } catch {
+          // keep original write error
+        }
+        throw new Error(`写入文件失败：${oldPath}：${error.message}`, { cause: error })
+      }
+    }
+    if (newName && finalName !== chapterName) {
+      fs.renameSync(oldPath, targetPath)
+    }
+    return { success: true }
+  })
+  if (!saveResult.success) return saveResult
 
   await updateBookMetadata(bookName, booksDir)
-  const finalPath = newName && finalName !== chapterName ? targetPath : oldPath
   const chapterRecord = syncWrittenChapter(booksDir, {
     bookName,
     volumeName,
@@ -1157,7 +1194,7 @@ export async function createChapter({ bookName, volumeId }, booksDir) {
     }
   }
 
-  const chapterSettings = storeGet(`chapterSettings:${bookName}`) || {
+  const chapterSettings = await storeGet(`chapterSettings:${bookName}`) || {
     chapterFormat: 'number',
     suffixType: '章',
     targetWords: 2000
@@ -1190,7 +1227,7 @@ export async function upsertChapter(
     return { success: false, exists: true, message: '章节已存在' }
   }
 
-  fs.writeFileSync(chapterPath, String(content || ''), 'utf-8')
+  await writeTextAtomic(chapterPath, String(content || ''), 'utf-8')
   await updateBookMetadata(bookName, booksDir)
   const chapterRecord = syncWrittenChapter(booksDir, {
     bookName,
@@ -1233,7 +1270,7 @@ export async function loadChapters(bookName, booksDir) {
 
   const volumes = fs.readdirSync(volumeRootPath, { withFileTypes: true })
   const volumeNames = volumes.filter((v) => v.isDirectory()).map((v) => v.name)
-  const volumeOrder = ensureVolumeOrder(bookName, bookPath, volumeNames)
+  const volumeOrder = await ensureVolumeOrder(bookName, bookPath, volumeNames)
 
   const chapters = []
   for (const volumeName of volumeOrder) {
@@ -1316,7 +1353,7 @@ export async function createVolume(bookName, booksDir) {
   if (!fs.existsSync(volumeRootPath)) {
     fs.mkdirSync(volumeRootPath, { recursive: true })
   }
-  const order = readVolumeOrder(bookName, '创建卷')
+  const order = await readVolumeOrder(bookName, '创建卷')
   let volumeName = '新加卷'
   let index = 1
   while (fs.existsSync(join(volumeRootPath, volumeName))) {
@@ -1327,7 +1364,7 @@ export async function createVolume(bookName, booksDir) {
 
   if (!order.includes(volumeName)) {
     order.push(volumeName)
-    writeVolumeOrder(bookName, order)
+    await writeVolumeOrder(bookName, order)
   }
   return { success: true, volumeName }
 }
@@ -1349,13 +1386,13 @@ export async function editNode({ bookName, type, volume, chapter, newName }, boo
         }
       }
       if (fs.existsSync(newVolumePath)) return { success: false, message: '新卷名已存在' }
-      const order = readVolumeOrder(bookName, '重命名卷')
+      const order = await readVolumeOrder(bookName, '重命名卷')
       fs.renameSync(volumePath, newVolumePath)
 
       const idx = order.indexOf(volume)
       if (idx !== -1) order[idx] = newName
       else if (!order.includes(newName)) order.push(newName)
-      writeVolumeOrder(bookName, order)
+      await writeVolumeOrder(bookName, order)
       return { success: true, type: 'volume', oldName: volume, newName, volumeName: newName }
     } else if (type === 'chapter') {
       const chapterPath = resolveBookChildPath(
@@ -1407,9 +1444,9 @@ export async function deleteNode({ bookName, type, volume, chapter }, booksDir) 
   if (type === 'volume') {
     const volumePath = resolveBookChildPath(booksDir, bookName, '正文', volume)
     if (!fs.existsSync(volumePath)) return { success: false, message: '卷不存在' }
-    const order = readVolumeOrder(bookName, '删除卷').filter((name) => name !== volume)
+    const order = (await readVolumeOrder(bookName, '删除卷')).filter((name) => name !== volume)
     fs.rmSync(volumePath, { recursive: true, force: true })
-    writeVolumeOrder(bookName, order)
+    await writeVolumeOrder(bookName, order)
     return { success: true, type: 'volume', volumeName: volume }
   }
   if (type === 'chapter') {
@@ -1431,20 +1468,20 @@ export async function deleteNode({ bookName, type, volume, chapter }, booksDir) 
 // 排序与章节设置
 // ---------------------------------------------------------------------------
 
-export function getSortOrder(bookName) {
-  return storeGet(`sortOrder:${bookName}`) || 'desc'
+export async function getSortOrder(bookName) {
+  return await storeGet(`sortOrder:${bookName}`) || 'desc'
 }
 
-export function setSortOrder({ bookName, order }) {
+export async function setSortOrder({ bookName, order }) {
   if (!bookName || !['asc', 'desc'].includes(order)) {
     return { success: false, message: '排序参数无效' }
   }
-  storeSet(`sortOrder:${bookName}`, order)
-  return { success: true, order: getSortOrder(bookName) }
+  await storeSet(`sortOrder:${bookName}`, order)
+  return { success: true, order: await getSortOrder(bookName) }
 }
 
-export function getChapterSettings(bookName) {
-  const settings = storeGet(`chapterSettings:${bookName}`) || {
+export async function getChapterSettings(bookName) {
+  const settings = await storeGet(`chapterSettings:${bookName}`) || {
     suffixType: '章',
     targetWords: 2000
   }
@@ -1455,16 +1492,16 @@ export function getChapterSettings(bookName) {
   }
 }
 
-export function setChapterTargetWords({ bookName, targetWords }) {
+export async function setChapterTargetWords({ bookName, targetWords }) {
   if (!bookName) return { success: false, message: '书籍名称不能为空' }
   const numeric = Number(targetWords)
   const sanitized = Number.isFinite(numeric) && numeric > 0 ? Math.round(numeric) : 2000
-  const existing = storeGet(`chapterSettings:${bookName}`) || {
+  const existing = await storeGet(`chapterSettings:${bookName}`) || {
     suffixType: '章',
     targetWords: 2000
   }
   const updated = { ...existing, targetWords: sanitized }
-  storeSet(`chapterSettings:${bookName}`, updated)
+  await storeSet(`chapterSettings:${bookName}`, updated)
   return { success: true, settings: updated }
 }
 
@@ -1484,8 +1521,8 @@ export async function updateChapterFormat({ bookName, settings: rawSettings }, b
           : 2000
     }
     const settingsKey = `chapterSettings:${bookName}`
-    storeSet(settingsKey, cleanSettings)
-    const persistedSettings = storeGet(settingsKey) || {}
+    await storeSet(settingsKey, cleanSettings)
+    const persistedSettings = await storeGet(settingsKey) || {}
     const appliedSettings = {
       chapterFormat: persistedSettings?.chapterFormat === 'hanzi' ? 'hanzi' : 'number',
       suffixType: persistedSettings?.suffixType || '章',
@@ -2010,20 +2047,20 @@ export function readTimeline(bookName, booksDir) {
   return readBookJsonResult(booksDir, bookName, 'timelines.json', [], '时间线')
 }
 
-export function writeTimeline({ bookName, data }, booksDir) {
+export async function writeTimeline({ bookName, data }, booksDir) {
   const payload = requireBookArrayPayload(data, '时间线')
   if (!payload.success) return payload
-  return writeBookJson(booksDir, bookName, 'timelines.json', payload.data)
+  return await writeBookJson(booksDir, bookName, 'timelines.json', payload.data)
 }
 
 export function readOutlines(bookName, booksDir) {
   return readBookJsonResult(booksDir, bookName, 'outlines.json', null, '大纲')
 }
 
-export function writeOutlines({ bookName, data }, booksDir) {
+export async function writeOutlines({ bookName, data }, booksDir) {
   const payload = requireOutlinePayload(data)
   if (!payload.success) return payload
-  return writeBookJson(booksDir, bookName, 'outlines.json', payload.data)
+  return await writeBookJson(booksDir, bookName, 'outlines.json', payload.data)
 }
 
 export function readOutlineAiSessions(bookName, booksDir) {
@@ -2039,27 +2076,27 @@ export function readOutlineAiSessions(bookName, booksDir) {
   return payload.success ? { success: true, data: payload.data } : payload
 }
 
-export function writeOutlineAiSessions({ bookName, data }, booksDir) {
+export async function writeOutlineAiSessions({ bookName, data }, booksDir) {
   const payload = requireOutlineAiSessionsPayload(data)
   if (!payload.success) return payload
-  return writeBookJson(booksDir, bookName, 'outline-ai-sessions.json', payload.data)
+  return await writeBookJson(booksDir, bookName, 'outline-ai-sessions.json', payload.data)
 }
 
 export function readCharacters(bookName, booksDir) {
   return readBookArrayJsonResult(booksDir, bookName, 'characters.json', '人物谱')
 }
 
-export function writeCharacters({ bookName, data }, booksDir) {
+export async function writeCharacters({ bookName, data }, booksDir) {
   const payload = requireBookArrayPayload(data, '人物谱')
   if (!payload.success) return payload
-  return writeBookJson(booksDir, bookName, 'characters.json', payload.data)
+  return await writeBookJson(booksDir, bookName, 'characters.json', payload.data)
 }
 
 export function readEntityProfilesForBook(bookName, booksDir) {
   return readEntityProfiles(booksDir, bookName)
 }
 
-export function writeEntityProfileCategory({ bookName, category, data }, booksDir) {
+export async function writeEntityProfileCategory({ bookName, category, data }, booksDir) {
   if (!ENTITY_PROFILE_KEYS.includes(category)) {
     return { success: false, message: '参数无效' }
   }
@@ -2070,17 +2107,17 @@ export function writeEntityProfileCategory({ bookName, category, data }, booksDi
   if (!readResult.success) return readResult
   const all = readResult.data
   all[category] = data
-  return writeBookJson(booksDir, bookName, 'entity_profiles.json', all)
+  return await writeBookJson(booksDir, bookName, 'entity_profiles.json', all)
 }
 
 export function readDictionary(bookName, booksDir) {
   return readBookArrayJsonResult(booksDir, bookName, 'dictionary.json', '词条字典')
 }
 
-export function writeDictionary({ bookName, data }, booksDir) {
+export async function writeDictionary({ bookName, data }, booksDir) {
   const payload = requireBookArrayPayload(data, '词条字典')
   if (!payload.success) return payload
-  return writeBookJson(booksDir, bookName, 'dictionary.json', payload.data)
+  return await writeBookJson(booksDir, bookName, 'dictionary.json', payload.data)
 }
 
 export function readSettings(bookName, booksDir) {
@@ -2095,46 +2132,45 @@ export function readSettings(bookName, booksDir) {
   return { success: true, data: normalizeSettingsData(result.data) }
 }
 
-export function writeSettings({ bookName, data }, booksDir) {
+export async function writeSettings({ bookName, data }, booksDir) {
   if (!bookName) return { success: false, message: '书籍名称不能为空' }
-  return writeBookJson(booksDir, bookName, 'settings.json', normalizeSettingsData(data))
+  return await writeBookJson(booksDir, bookName, 'settings.json', normalizeSettingsData(data))
 }
 
 export function readSequenceCharts(bookName, booksDir) {
   return readBookJsonResult(booksDir, bookName, 'sequence-charts.json', [], '事序图')
 }
 
-export function writeSequenceCharts({ bookName, data }, booksDir) {
+export async function writeSequenceCharts({ bookName, data }, booksDir) {
   const payload = requireBookArrayPayload(data, '事序图')
   if (!payload.success) return payload
-  return writeBookJson(booksDir, bookName, 'sequence-charts.json', payload.data)
+  return await writeBookJson(booksDir, bookName, 'sequence-charts.json', payload.data)
 }
 
-export function readMaps(bookName, booksDir) {
+export async function readMaps(bookName, booksDir) {
   const mapsDir = join(getBookPath(booksDir, bookName), 'maps')
   if (!fs.existsSync(mapsDir)) {
     fs.mkdirSync(mapsDir, { recursive: true })
     return { success: true, data: [] }
   }
-  const maps = fs
-    .readdirSync(mapsDir)
-    .filter((file) => file.endsWith('.png'))
-    .map((file) => {
-      const name = file.split('.').slice(0, -1).join('.')
-      const meta = readJson(join(mapsDir, `${name}.json`), {})
-      return {
-        id: meta.id || name,
-        name: meta.name || name,
-        description: meta.description || '',
-        createdAt: meta.createdAt || '',
-        updatedAt: meta.updatedAt || '',
-        thumbnail: readImageAsDataUrl(join(mapsDir, file))
-      }
+  const files = fs.readdirSync(mapsDir).filter((file) => file.endsWith('.png'))
+  const maps = []
+  for (const file of files) {
+    const name = file.split('.').slice(0, -1).join('.')
+    const meta = await readJson(join(mapsDir, `${name}.json`), {})
+    maps.push({
+      id: meta.id || name,
+      name: meta.name || name,
+      description: meta.description || '',
+      createdAt: meta.createdAt || '',
+      updatedAt: meta.updatedAt || '',
+      thumbnail: readImageAsDataUrl(join(mapsDir, file))
     })
+  }
   return { success: true, data: maps }
 }
 
-export function createMap({ bookName, mapName, description, imageData }, booksDir) {
+export async function createMap({ bookName, mapName, description, imageData }, booksDir) {
   const mapsDir = join(ensureBookPath(booksDir, bookName), 'maps')
   fs.mkdirSync(mapsDir, { recursive: true })
   const safeName = safeAssetName(mapName, '新地图')
@@ -2147,7 +2183,7 @@ export function createMap({ bookName, mapName, description, imageData }, booksDi
     return { success: false, message: '缺少地图图片数据' }
   }
   writeDataUrlImage(filePath, imageData)
-  writeJson(jsonPath, {
+  await writeJson(jsonPath, {
     id: safeName,
     name: safeName,
     description: description || '',
@@ -2170,17 +2206,17 @@ export function createMap({ bookName, mapName, description, imageData }, booksDi
   })
 }
 
-export function updateMap({ bookName, mapName, imageData, mapData }, booksDir) {
+export async function updateMap({ bookName, mapName, imageData, mapData }, booksDir) {
   const mapsDir = join(ensureBookPath(booksDir, bookName), 'maps')
   fs.mkdirSync(mapsDir, { recursive: true })
   const safeName = safeAssetName(mapName, '新地图')
   const filePath = join(mapsDir, `${safeName}.png`)
   const jsonPath = join(mapsDir, `${safeName}.json`)
   if (imageData) writeDataUrlImage(filePath, imageData)
-  if (mapData) writeJson(join(mapsDir, `${safeName}.data.json`), mapData)
-  const meta = readJson(jsonPath, {})
+  if (mapData) await writeJson(join(mapsDir, `${safeName}.data.json`), mapData)
+  const meta = await readJson(jsonPath, {})
   const now = new Date().toISOString()
-  writeJson(jsonPath, {
+  await writeJson(jsonPath, {
     ...meta,
     id: meta.id || safeName,
     name: meta.name || safeName,
@@ -2214,12 +2250,12 @@ export function updateMap({ bookName, mapName, imageData, mapData }, booksDir) {
   })
 }
 
-export function saveMapData({ bookName, mapName, mapData }, booksDir) {
+export async function saveMapData({ bookName, mapName, mapData }, booksDir) {
   const mapsDir = join(ensureBookPath(booksDir, bookName), 'maps')
   fs.mkdirSync(mapsDir, { recursive: true })
   const safeName = safeAssetName(mapName, '新地图')
   const dataFilePath = join(mapsDir, `${safeName}.data.json`)
-  writeJson(dataFilePath, mapData || null)
+  await writeJson(dataFilePath, mapData || null)
   const dataRecord = syncNovelDocument(
     booksDir,
     bookName,
@@ -2246,13 +2282,13 @@ export function saveMapData({ bookName, mapName, mapData }, booksDir) {
   return result
 }
 
-export function loadMapData({ bookName, mapName }, booksDir) {
+export async function loadMapData({ bookName, mapName }, booksDir) {
   const dataFilePath = join(
     getBookPath(booksDir, bookName),
     'maps',
     `${safeAssetName(mapName, '新地图')}.data.json`
   )
-  return readJson(dataFilePath, null)
+  return await readJson(dataFilePath, null)
 }
 
 export function readMapImage({ bookName, mapName }, booksDir) {
@@ -2286,34 +2322,34 @@ export function deleteMap({ bookName, mapName }, booksDir) {
   }
 }
 
-function readGraphList(booksDir, bookName, dirName) {
+async function readGraphList(booksDir, bookName, dirName) {
   const graphDir = join(getBookPath(booksDir, bookName), dirName)
   if (!fs.existsSync(graphDir)) {
     fs.mkdirSync(graphDir, { recursive: true })
     return []
   }
-  return fs
-    .readdirSync(graphDir)
-    .filter((file) => file.endsWith('.json'))
-    .map((file) => {
-      const name = file.replace('.json', '')
-      const data = readJson(join(graphDir, file), {})
-      const pngPath = join(graphDir, `${name}.png`)
-      return {
-        id: data.id || name,
-        name: data.name || name,
-        description: data.description || '',
-        thumbnail: fs.existsSync(pngPath) ? `${name}.png` : '',
-        nodes: Array.isArray(data.nodes) ? data.nodes : [],
-        lines: Array.isArray(data.lines) ? data.lines : [],
-        createdAt: data.createdAt || new Date().toISOString(),
-        updatedAt: data.updatedAt || new Date().toISOString()
-      }
+  const files = fs.readdirSync(graphDir).filter((file) => file.endsWith('.json'))
+  const graphs = []
+  for (const file of files) {
+    const name = file.replace('.json', '')
+    const data = await readJson(join(graphDir, file), {})
+    const pngPath = join(graphDir, `${name}.png`)
+    graphs.push({
+      id: data.id || name,
+      name: data.name || name,
+      description: data.description || '',
+      thumbnail: fs.existsSync(pngPath) ? `${name}.png` : '',
+      nodes: Array.isArray(data.nodes) ? data.nodes : [],
+      lines: Array.isArray(data.lines) ? data.lines : [],
+      createdAt: data.createdAt || new Date().toISOString(),
+      updatedAt: data.updatedAt || new Date().toISOString()
     })
+  }
+  return graphs
 }
 
-function readGraphData(booksDir, bookName, dirName, graphName) {
-  return readJson(
+async function readGraphData(booksDir, bookName, dirName, graphName) {
+  return await readJson(
     join(getBookPath(booksDir, bookName), dirName, `${safeAssetName(graphName)}.json`),
     null
   )
@@ -2394,7 +2430,7 @@ function graphDeleteResult({ booksDir, bookName, dirName, graphName, deletedFile
   }
 }
 
-function writeGraphData(
+async function writeGraphData(
   booksDir,
   bookName,
   dirName,
@@ -2409,7 +2445,7 @@ function writeGraphData(
   if (shouldFailIfExists && fs.existsSync(filePath)) {
     return { success: false, message: '已存在同名文件' }
   }
-  const previous = readJson(filePath, {})
+  const previous = await readJson(filePath, {})
   const created = !fs.existsSync(filePath)
   const now = new Date().toISOString()
   const data =
@@ -2433,7 +2469,7 @@ function writeGraphData(
     createdAt: data.createdAt || previous.createdAt || now,
     updatedAt: now
   }
-  writeJson(filePath, savedData)
+  await writeJson(filePath, savedData)
   const documentRecord = syncNovelDocument(
     booksDir,
     bookName,
@@ -2486,17 +2522,17 @@ function deleteGraph(booksDir, bookName, dirName, graphName) {
   return graphDeleteResult({ booksDir, bookName, dirName, graphName, deletedFiles, missingFiles })
 }
 
-export function readRelationships(bookName, booksDir) {
-  return { success: true, data: readGraphList(booksDir, bookName, 'relationships') }
+export async function readRelationships(bookName, booksDir) {
+  return { success: true, data: await readGraphList(booksDir, bookName, 'relationships') }
 }
 
-export function readRelationshipData({ bookName, relationshipName }, booksDir) {
-  const data = readGraphData(booksDir, bookName, 'relationships', relationshipName)
+export async function readRelationshipData({ bookName, relationshipName }, booksDir) {
+  const data = await readGraphData(booksDir, bookName, 'relationships', relationshipName)
   return data ? { success: true, data } : { success: false, error: '关系图不存在' }
 }
 
-export function createRelationship({ bookName, relationshipName, relationshipData }, booksDir) {
-  const result = writeGraphData(
+export async function createRelationship({ bookName, relationshipName, relationshipData }, booksDir) {
+  const result = await writeGraphData(
     booksDir,
     bookName,
     'relationships',
@@ -2507,8 +2543,8 @@ export function createRelationship({ bookName, relationshipName, relationshipDat
   return result.success ? result : { success: false, message: '已存在同名关系图' }
 }
 
-export function saveRelationshipData({ bookName, relationshipName, relationshipData }, booksDir) {
-  return writeGraphData(booksDir, bookName, 'relationships', relationshipName, relationshipData)
+export async function saveRelationshipData({ bookName, relationshipName, relationshipData }, booksDir) {
+  return await writeGraphData(booksDir, bookName, 'relationships', relationshipName, relationshipData)
 }
 
 export function updateRelationshipThumbnail(
@@ -2526,17 +2562,17 @@ export function deleteRelationship({ bookName, relationshipName }, booksDir) {
   return deleteGraph(booksDir, bookName, 'relationships', relationshipName)
 }
 
-export function readOrganizations(bookName, booksDir) {
-  return { success: true, data: readGraphList(booksDir, bookName, 'organizations') }
+export async function readOrganizations(bookName, booksDir) {
+  return { success: true, data: await readGraphList(booksDir, bookName, 'organizations') }
 }
 
-export function readOrganization({ bookName, organizationName }, booksDir) {
-  const data = readGraphData(booksDir, bookName, 'organizations', organizationName)
+export async function readOrganization({ bookName, organizationName }, booksDir) {
+  const data = await readGraphData(booksDir, bookName, 'organizations', organizationName)
   return data ? { success: true, data } : { success: false, error: '组织架构不存在' }
 }
 
-export function createOrganization({ bookName, organizationName, organizationData }, booksDir) {
-  const result = writeGraphData(
+export async function createOrganization({ bookName, organizationName, organizationData }, booksDir) {
+  const result = await writeGraphData(
     booksDir,
     bookName,
     'organizations',
@@ -2547,8 +2583,8 @@ export function createOrganization({ bookName, organizationName, organizationDat
   return result.success ? result : { success: false, error: '已存在同名组织架构' }
 }
 
-export function writeOrganization({ bookName, organizationName, organizationData }, booksDir) {
-  return writeGraphData(booksDir, bookName, 'organizations', organizationName, organizationData)
+export async function writeOrganization({ bookName, organizationName, organizationData }, booksDir) {
+  return await writeGraphData(booksDir, bookName, 'organizations', organizationName, organizationData)
 }
 
 export function updateOrganizationThumbnail({ bookName, organizationId, thumbnailData }, booksDir) {

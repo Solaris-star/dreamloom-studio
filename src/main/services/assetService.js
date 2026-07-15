@@ -65,14 +65,14 @@ function readTrashManifest(booksDir) {
   return rows
 }
 
-function writeTrashManifest(booksDir, rows) {
+async function writeTrashManifest(booksDir, rows) {
   if (!Array.isArray(rows)) {
     throw new Error('素材回收站记录格式异常，已停止写入以免覆盖原始记录')
   }
-  writeJson(join(getTrashDir(booksDir), TRASH_MANIFEST), rows)
+  await writeJson(join(getTrashDir(booksDir), TRASH_MANIFEST), rows)
 }
 
-function readBooks(booksDir) {
+async function readBooks(booksDir) {
   if (!booksDir || !fs.existsSync(booksDir)) return []
   let entries = []
   try {
@@ -81,21 +81,20 @@ function readBooks(booksDir) {
     return []
   }
 
-  return entries
-    .filter((entry) => entry.isDirectory() && entry.name !== TRASH_DIR)
-    .map((entry) => {
-      const bookPath = join(booksDir, entry.name)
-      const meta = readJson(join(bookPath, 'mazi.json'), null)
-      if (!meta || typeof meta !== 'object') return null
-      return {
-        id: String(meta.id || entry.name),
-        name: String(meta.name || entry.name),
-        folderName: entry.name,
-        path: bookPath,
-        meta
-      }
+  const books = []
+  for (const entry of entries.filter((entry) => entry.isDirectory() && entry.name !== TRASH_DIR)) {
+    const bookPath = join(booksDir, entry.name)
+    const meta = await readJson(join(bookPath, 'mazi.json'), null)
+    if (!meta || typeof meta !== 'object') continue
+    books.push({
+      id: String(meta.id || entry.name),
+      name: String(meta.name || entry.name),
+      folderName: entry.name,
+      path: bookPath,
+      meta
     })
-    .filter(Boolean)
+  }
+  return books
 }
 
 function getFileStats(filePath) {
@@ -391,9 +390,9 @@ function summarize(items, books) {
   }
 }
 
-export function listAssets(booksDir, filterInput = {}) {
+export async function listAssets(booksDir, filterInput = {}) {
   const filter = normalizeFilter(filterInput)
-  const books = readBooks(booksDir)
+  const books = await readBooks(booksDir)
   let items = books.flatMap((book) => scanBookAssets(booksDir, book))
   if (filter.includeTrash) {
     items =
@@ -472,8 +471,8 @@ function destinationForType(bookPath, type, fileName) {
   return uniqueFilePath(dirPath, fileName)
 }
 
-function getBookByName(booksDir, bookName) {
-  const books = readBooks(booksDir)
+async function getBookByName(booksDir, bookName) {
+  const books = await readBooks(booksDir)
   const book = books.find(
     (item) => item.name === bookName || item.folderName === bookName || item.id === bookName
   )
@@ -481,19 +480,19 @@ function getBookByName(booksDir, bookName) {
   return book
 }
 
-function updateBookCoverMeta(book, targetPath) {
+async function updateBookCoverMeta(book, targetPath) {
   const metaPath = join(book.path, 'mazi.json')
-  const meta = readJson(metaPath, {})
+  const meta = await readJson(metaPath, {})
   meta.coverUrl = basename(targetPath)
   meta.updatedAt = new Date().toLocaleString()
-  writeJson(metaPath, meta)
+  await writeJson(metaPath, meta)
 }
 
-export function importAsset(booksDir, input = {}) {
+export async function importAsset(booksDir, input = {}) {
   if (input.sourcePath) {
     throw new Error('Web 服务必须通过网页上传素材内容，不能读取服务器本地路径')
   }
-  const book = getBookByName(booksDir, input.bookName)
+  const book = await getBookByName(booksDir, input.bookName)
   const type = String(input.type || 'attachment')
   const fileName = safeName(input.fileName || `asset_${Date.now()}`)
   const targetPath = destinationForType(book.path, type, fileName)
@@ -512,11 +511,11 @@ export function importAsset(booksDir, input = {}) {
     throw new Error('缺少导入文件')
   }
 
-  if (type === 'cover') updateBookCoverMeta(book, targetPath)
+  if (type === 'cover') await updateBookCoverMeta(book, targetPath)
   return { success: true, item: makeAsset(booksDir, book, targetPath, type, 'import') }
 }
 
-export function deleteAsset(booksDir, id) {
+export async function deleteAsset(booksDir, id) {
   const filePath = getActiveAssetPath(booksDir, id)
   const references = findAssetReferences(booksDir, id)
   if (references.length) {
@@ -527,7 +526,7 @@ export function deleteAsset(booksDir, id) {
     throw new Error(`该素材仍被引用，不能删除：${locations}`)
   }
   const rel = relative(booksDir, filePath)
-  const existing = listAssets(booksDir, {}).items.find((item) => item.id === id)
+  const existing = (await listAssets(booksDir, {})).items.find((item) => item.id === id)
   const trashDir = getTrashDir(booksDir)
   const rows = readTrashManifest(booksDir)
   fs.mkdirSync(trashDir, { recursive: true })
@@ -551,11 +550,11 @@ export function deleteAsset(booksDir, id) {
     deletedAt: nowIso()
   }
   rows.unshift(record)
-  writeTrashManifest(booksDir, rows)
+  await writeTrashManifest(booksDir, rows)
   return { success: true, item: record }
 }
 
-export function restoreAsset(booksDir, id) {
+export async function restoreAsset(booksDir, id) {
   const { row, filePath, rows } = getTrashAsset(booksDir, id)
   const targetPath = resolve(booksDir, row.originalRelativePath)
   if (!isInside(booksDir, targetPath) || isInside(getTrashDir(booksDir), targetPath)) {
@@ -564,7 +563,7 @@ export function restoreAsset(booksDir, id) {
   if (fs.existsSync(targetPath)) throw new Error('原位置已有同名文件，请先处理后再恢复')
   fs.mkdirSync(dirname(targetPath), { recursive: true })
   fs.renameSync(filePath, targetPath)
-  writeTrashManifest(
+  await writeTrashManifest(
     booksDir,
     rows.filter((item) => item.id !== id)
   )
@@ -572,7 +571,7 @@ export function restoreAsset(booksDir, id) {
     String(row.originalRelativePath || '')
       .split(/[\\/]/)
       .filter(Boolean)[0] || ''
-  const restoredBook = readBooks(booksDir).find(
+  const restoredBook = (await readBooks(booksDir)).find(
     (book) =>
       book.folderName === row.bookFolderName ||
       book.name === row.bookName ||
@@ -589,13 +588,13 @@ export function restoreAsset(booksDir, id) {
   }
 }
 
-export function attachToBook(booksDir, input = {}) {
+export async function attachToBook(booksDir, input = {}) {
   const source = getAssetFile(booksDir, { id: input.id, trash: Boolean(input.trash) }).filePath
-  const book = getBookByName(booksDir, input.bookName)
+  const book = await getBookByName(booksDir, input.bookName)
   const type = String(input.type || input.assetType || 'attachment')
   const targetPath = destinationForType(book.path, type, input.fileName || basename(source))
   fs.copyFileSync(source, targetPath)
-  if (type === 'cover') updateBookCoverMeta(book, targetPath)
+  if (type === 'cover') await updateBookCoverMeta(book, targetPath)
   return { success: true, item: makeAsset(booksDir, book, targetPath, type, 'attached') }
 }
 

@@ -45,14 +45,14 @@ const insight = {
 try {
   fs.mkdirSync(booksDir, { recursive: true })
 
-  assert.throws(() => listHotspots(''), /请先设置书籍目录/)
+  await assert.rejects(() => listHotspots(''), /请先设置书籍目录/)
   const marketDir = join(booksDir, 'market')
   fs.mkdirSync(marketDir, { recursive: true })
   fs.writeFileSync(join(marketDir, 'hotspots.json'), '{broken', 'utf8')
-  assert.throws(() => listHotspots(booksDir), /市场数据读取失败/)
+  await assert.rejects(() => listHotspots(booksDir), /市场数据读取失败/)
   fs.rmSync(join(marketDir, 'hotspots.json'))
 
-  const hotspot = createHotspot(booksDir, {
+  const hotspot = await createHotspot(booksDir, {
     id: 'hotspot-1',
     title: 'AI 悬疑短篇',
     platform: '公开热榜',
@@ -62,25 +62,27 @@ try {
     heatScore: 81
   })
   assert.equal(hotspot.success, true)
-  assert.equal(listHotspots(booksDir, { keyword: '悬疑', sortBy: 'heat' }).length, 1)
-  assert.equal(listHotspots(booksDir, { platform: '不存在' }).length, 0)
-  assert.equal(updateHotspot(booksDir, 'missing', {}).success, false)
-  const updatedHotspot = updateHotspot(booksDir, 'hotspot-1', { opportunityScore: 91 })
+  assert.equal((await listHotspots(booksDir, { keyword: '悬疑', sortBy: 'heat' })).length, 1)
+  assert.equal((await listHotspots(booksDir, { platform: '不存在' })).length, 0)
+  assert.equal((await updateHotspot(booksDir, 'missing', {})).success, false)
+  const updatedHotspot = await updateHotspot(booksDir, 'hotspot-1', { opportunityScore: 91 })
   assert.equal(updatedHotspot.item.opportunityScore, 91)
-  const sparseHotspot = createHotspot(booksDir, {
-    title: '',
-    keyword: '',
-    url: 'https://example.com/sparse',
-    platforms: ['测试平台', null, ''],
-    categories: ['其他'],
-    tags: '不是数组',
-    heatScore: 150,
-    growthScore: -10,
-    competitionScore: 'invalid',
-    opportunityScore: 75.4,
-    extra: null,
-    createdAt: '2024-01-01T00:00:00.000Z'
-  }).item
+  const sparseHotspot = (
+    await createHotspot(booksDir, {
+      title: '',
+      keyword: '',
+      url: 'https://example.com/sparse',
+      platforms: ['测试平台', null, ''],
+      categories: ['其他'],
+      tags: '不是数组',
+      heatScore: 150,
+      growthScore: -10,
+      competitionScore: 'invalid',
+      opportunityScore: 75.4,
+      extra: null,
+      createdAt: '2024-01-01T00:00:00.000Z'
+    })
+  ).item
   assert.match(sparseHotspot.id, /^market_hotspot_/)
   assert.equal(sparseHotspot.title, '未命名热点')
   assert.equal(sparseHotspot.sourceUrl, 'https://example.com/sparse')
@@ -90,21 +92,21 @@ try {
   assert.equal(sparseHotspot.competitionScore, 0)
   assert.equal(sparseHotspot.opportunityScore, 75)
   assert.deepEqual(sparseHotspot.extra, {})
-  assert.equal(listHotspots(booksDir, { category: '其他' }).length, 1)
-  assert.equal(listHotspots(booksDir, { status: 'missing' }).length, 0)
-  assert.equal(listHotspots(booksDir, { sortBy: 'opportunity' })[0].id, 'hotspot-1')
-  assert.equal(listHotspots(booksDir, { sortBy: 'createdAt' }).at(-1).id, sparseHotspot.id)
-  assert.equal(listHotspots(booksDir, { sortBy: 'updatedAt' }).length, 2)
+  assert.equal((await listHotspots(booksDir, { category: '其他' })).length, 1)
+  assert.equal((await listHotspots(booksDir, { status: 'missing' })).length, 0)
+  assert.equal((await listHotspots(booksDir, { sortBy: 'opportunity' }))[0].id, 'hotspot-1')
+  assert.equal((await listHotspots(booksDir, { sortBy: 'createdAt' })).at(-1).id, sparseHotspot.id)
+  assert.equal((await listHotspots(booksDir, { sortBy: 'updatedAt' })).length, 2)
 
-  const savedHotspot = saveHotspotToKnowledge(booksDir, 'hotspot-1')
+  const savedHotspot = await saveHotspotToKnowledge(booksDir, 'hotspot-1')
   assert.equal(savedHotspot.success, true)
   assert.equal(Boolean(savedHotspot.knowledgeItem?.id), true)
-  const hotspotCard = createTopicCardFromHotspot(booksDir, 'hotspot-1')
+  const hotspotCard = await createTopicCardFromHotspot(booksDir, 'hotspot-1')
   assert.equal(hotspotCard.success, true)
   assert.equal(hotspotCard.topicCard.type, 'topic_card')
-  assert.equal(saveHotspotToKnowledge(booksDir, 'missing').success, false)
+  assert.equal((await saveHotspotToKnowledge(booksDir, 'missing')).success, false)
 
-  const activity = createActivity(booksDir, {
+  const activity = await createActivity(booksDir, {
     id: 'activity-1',
     title: '悬疑短篇征文',
     platform: '测试平台',
@@ -114,47 +116,49 @@ try {
     endDate: '2099-12-31'
   })
   assert.equal(activity.success, true)
-  assert.equal(listActivities(booksDir, { category: '悬疑', sortBy: 'endDate' }).length, 1)
-  assert.equal(updateActivity(booksDir, 'missing', {}).success, false)
+  assert.equal((await listActivities(booksDir, { category: '悬疑', sortBy: 'endDate' })).length, 1)
+  assert.equal((await updateActivity(booksDir, 'missing', {})).success, false)
   assert.equal(
-    updateActivity(booksDir, 'activity-1', { reminderEnabled: true }).item.reminderEnabled,
+    (await updateActivity(booksDir, 'activity-1', { reminderEnabled: true })).item.reminderEnabled,
     true
   )
-  const sparseActivity = createActivity(booksDir, {
-    title: '',
-    url: 'https://example.com/activity',
-    categories: '不是数组',
-    targetAudience: [null, '新作者'],
-    tags: ['短篇', ''],
-    endDate: '2024-01-01'
-  }).item
+  const sparseActivity = (
+    await createActivity(booksDir, {
+      title: '',
+      url: 'https://example.com/activity',
+      categories: '不是数组',
+      targetAudience: [null, '新作者'],
+      tags: ['短篇', ''],
+      endDate: '2024-01-01'
+    })
+  ).item
   assert.match(sparseActivity.id, /^market_activity_/)
   assert.equal(sparseActivity.title, '未命名活动')
   assert.equal(sparseActivity.activityType, 'other')
   assert.equal(sparseActivity.sourceUrl, 'https://example.com/activity')
   assert.deepEqual(sparseActivity.categories, [])
   assert.deepEqual(sparseActivity.targetAudience, ['新作者'])
-  assert.equal(listActivities(booksDir, { platform: '不存在' }).length, 0)
-  assert.equal(listActivities(booksDir, { status: sparseActivity.status }).length > 0, true)
-  assert.equal(listActivities(booksDir, { sortBy: 'createdAt' }).length, 2)
-  assert.equal(Boolean(saveActivityToKnowledge(booksDir, 'activity-1').knowledgeItem?.id), true)
-  assert.equal(saveActivityToKnowledge(booksDir, 'missing').success, false)
+  assert.equal((await listActivities(booksDir, { platform: '不存在' })).length, 0)
+  assert.equal((await listActivities(booksDir, { status: sparseActivity.status })).length > 0, true)
+  assert.equal((await listActivities(booksDir, { sortBy: 'createdAt' })).length, 2)
+  assert.equal(Boolean((await saveActivityToKnowledge(booksDir, 'activity-1')).knowledgeItem?.id), true)
+  assert.equal((await saveActivityToKnowledge(booksDir, 'missing')).success, false)
   assert.equal(
-    createTopicCardFromActivity(booksDir, 'activity-1').topicCard.type,
+    (await createTopicCardFromActivity(booksDir, 'activity-1')).topicCard.type,
     'topic_card'
   )
-  assert.equal(createTopicCardFromActivity(booksDir, 'missing').success, false)
+  assert.equal((await createTopicCardFromActivity(booksDir, 'missing')).success, false)
 
-  const savedInsight = saveInsightToKnowledge(booksDir, { insight })
+  const savedInsight = await saveInsightToKnowledge(booksDir, { insight })
   assert.equal(savedInsight.success, true)
   assert.equal(savedInsight.item.type, 'topic_card')
-  assert.equal(saveInsightToKnowledge(booksDir, { insight: null, insightId: 'missing' }).success, false)
+  assert.equal((await saveInsightToKnowledge(booksDir, { insight: null, insightId: 'missing' })).success, false)
 
-  const outline = generateOutlineFromInsight(booksDir, { insight, mode: 'save_only' })
+  const outline = await generateOutlineFromInsight(booksDir, { insight, mode: 'save_only' })
   assert.equal(outline.success, true)
   assert.equal(outline.outline.volumes.length, 3)
   assert.equal(Boolean(outline.item.id), true)
-  const maleOutline = generateOutlineFromInsight(booksDir, {
+  const maleOutline = await generateOutlineFromInsight(booksDir, {
     insight: {
       title: '系统创业',
       channel: 'male',
@@ -166,7 +170,7 @@ try {
   assert.equal(maleOutline.outline.protagonist.startsWith('男主'), true)
   assert.equal(maleOutline.outline.titles[0], '系统创业')
   assert.equal(maleOutline.outline.emotionalHook, '反击、反转、共情')
-  const neutralSaved = saveInsightToKnowledge(booksDir, {
+  const neutralSaved = await saveInsightToKnowledge(booksDir, {
     insight: {
       originalTitle: '原始信号',
       rawPayload: { platform: '公开来源', sourceType: 'rank', url: 'https://example.com/rank' },
@@ -184,8 +188,8 @@ try {
   assert.equal(neutralSaved.item.sourceName, '公开来源')
   assert.equal(neutralSaved.item.sourceUrl, 'https://example.com/rank')
 
-  assert.equal(applyInsightToBook(booksDir, { insight }).success, false)
-  const applied = applyInsightToBook(booksDir, {
+  assert.equal((await applyInsightToBook(booksDir, { insight })).success, false)
+  const applied = await applyInsightToBook(booksDir, {
     insight,
     bookName: '已有作品',
     targetSection: 'characters'
@@ -194,37 +198,37 @@ try {
   assert.equal(applied.bookName, '已有作品')
   assert.equal(applied.item.type, 'character_setting')
   assert.equal(
-    applyInsightToBook(booksDir, {
+    (await applyInsightToBook(booksDir, {
       insight,
       bookId: '已有作品',
       targetSection: 'worldview'
-    }).item.type,
+    })).item.type,
     'world_setting'
   )
   assert.equal(
-    applyInsightToBook(booksDir, {
+    (await applyInsightToBook(booksDir, {
       insight,
       bookName: '已有作品',
       targetSection: 'book_setting'
-    }).item.type,
+    })).item.type,
     'world_setting'
   )
   assert.equal(
-    applyInsightToBook(booksDir, {
+    (await applyInsightToBook(booksDir, {
       insight,
       bookName: '已有作品',
       targetSection: 'conflict'
-    }).item.type,
+    })).item.type,
     'plot_fragment'
   )
 
-  assert.equal(createBookFromInsight('', { insight }).success, false)
-  assert.equal(createBookFromInsight({}, { insight }).success, false)
-  const escaped = createBookFromInsight(booksDir, { insight, selectedTitle: '..' })
+  assert.equal((await createBookFromInsight('', { insight })).success, false)
+  assert.equal((await createBookFromInsight({}, { insight })).success, false)
+  const escaped = await createBookFromInsight(booksDir, { insight, selectedTitle: '..' })
   assert.equal(escaped.success, false)
   assert.equal(fs.existsSync(outsideMeta), false)
 
-  const createdBook = createBookFromInsight(booksDir, { insight })
+  const createdBook = await createBookFromInsight(booksDir, { insight })
   assert.equal(createdBook.success, true)
   assert.equal(createdBook.bookName, '月港来电')
   assert.equal(fs.existsSync(join(booksDir, '月港来电', 'mazi.json')), true)
@@ -233,7 +237,7 @@ try {
     true
   )
 
-  const duplicateBook = createBookFromInsight(booksDir, { insight })
+  const duplicateBook = await createBookFromInsight(booksDir, { insight })
   assert.equal(duplicateBook.success, true)
   assert.equal(duplicateBook.bookName, '月港来电 2')
 
@@ -243,7 +247,7 @@ try {
     ['科幻末世', 'kehuan'],
     ['古言权谋', 'lishi']
   ]) {
-    const result = createBookFromInsight(booksDir, {
+    const result = await createBookFromInsight(booksDir, {
       selectedTitle: `${genre}测试`,
       insight: {
         ...insight,

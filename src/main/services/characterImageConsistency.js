@@ -251,7 +251,7 @@ export function compareCharacterImageFeatures(referenceFeatures, candidateFeatur
   }
 }
 
-export function findCharacterImageReference(imagesDir, candidatePath, subjectName) {
+export async function findCharacterImageReference(imagesDir, candidatePath, subjectName) {
   const cleanSubject = cleanText(subjectName)
   if (!cleanSubject || !imagesDir || !fs.existsSync(imagesDir)) return null
 
@@ -259,7 +259,7 @@ export function findCharacterImageReference(imagesDir, candidatePath, subjectNam
   for (const entry of fs.readdirSync(imagesDir, { withFileTypes: true })) {
     if (!entry.isFile() || extname(entry.name).toLowerCase() !== '.json') continue
     const metadataPath = join(imagesDir, entry.name)
-    const metadata = readJson(metadataPath, null)
+    const metadata = await readJson(metadataPath, null)
     if (!metadata || typeof metadata !== 'object') continue
     if (cleanText(metadata.type) && metadata.type !== 'ai_character_image') continue
     if (cleanText(metadata.subjectName) !== cleanSubject) continue
@@ -274,7 +274,7 @@ export function findCharacterImageReference(imagesDir, candidatePath, subjectNam
   return rows[0] || null
 }
 
-export function buildCharacterImageVisualCheck(options = {}) {
+export async function buildCharacterImageVisualCheck(options = {}) {
   const candidatePath = cleanText(options.candidatePath)
   const subjectName = cleanText(options.subjectName || options.metadata?.subjectName)
   const imagesDir = cleanText(options.imagesDir) || dirname(candidatePath)
@@ -299,7 +299,7 @@ export function buildCharacterImageVisualCheck(options = {}) {
     }
   }
 
-  const reference = findCharacterImageReference(imagesDir, candidatePath, subjectName)
+  const reference = await findCharacterImageReference(imagesDir, candidatePath, subjectName)
   if (!reference) {
     return {
       checkedAt,

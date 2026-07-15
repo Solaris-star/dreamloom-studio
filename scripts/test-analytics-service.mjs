@@ -115,7 +115,7 @@ try {
     ]
   })
 
-  const daily = analytics.getDailyWords(booksDir, {
+  const daily = await analytics.getDailyWords(booksDir, {
     bookId: 'book-1',
     startDate: '2026-07-01',
     endDate: '2026-07-03'
@@ -129,7 +129,7 @@ try {
     ]
   )
 
-  const tokens = analytics.getTokenStats(booksDir, {
+  const tokens = await analytics.getTokenStats(booksDir, {
     bookId: 'book-1',
     startDate: '2026-07-01',
     endDate: '2026-07-01'
@@ -142,7 +142,7 @@ try {
   assert.equal(tokens.totalCost, 0.00025)
   assert.equal(tokens.byFeature[0].feature, '续写')
 
-  const overview = analytics.getOverview(booksDir, {})
+  const overview = await analytics.getOverview(booksDir, {})
   assert.equal(overview.bookCount, 2)
   assert.equal(overview.totalWords, 5)
   assert.equal(overview.chapterCount, 3)
@@ -152,7 +152,7 @@ try {
     true
   )
 
-  const habit = analytics.getWritingHabit(booksDir, {
+  const habit = await analytics.getWritingHabit(booksDir, {
     bookId: 'book-1',
     startDate: '2026-07-01',
     endDate: '2026-07-03'
@@ -161,12 +161,12 @@ try {
   assert.equal(habit.bestDay.words, 120)
   assert.equal(habit.weekday.reduce((sum, row) => sum + row.words, 0), 200)
 
-  const sessions = analytics.getSessionStats(booksDir, { bookId: 'book-1' })
+  const sessions = await analytics.getSessionStats(booksDir, { bookId: 'book-1' })
   assert.equal(sessions.sessionCount, 2)
   assert.equal(sessions.totalWords, 200)
   assert.equal(sessions.sessions.at(-1).entries, 1)
 
-  const weekly = analytics.getWeeklyReport(booksDir, {
+  const weekly = await analytics.getWeeklyReport(booksDir, {
     bookId: 'book-1',
     date: '2026-07-02'
   })
@@ -175,7 +175,7 @@ try {
   assert.match(weekly.summary, /本周新增 200 字/)
   assert.match(weekly.summary, /AI 使用 450 tokens/)
 
-  const monthly = analytics.getMonthlyReport(booksDir, {
+  const monthly = await analytics.getMonthlyReport(booksDir, {
     bookId: 'book-1',
     date: '2026-07-15'
   })
@@ -193,7 +193,7 @@ try {
   assert.throws(() => analytics.getTokenStats(booksDir), /统计本地记录读取失败/)
 
   writeJson(storeFile, [])
-  assert.throws(() => analytics.getOverview(booksDir), /统计本地记录格式异常/)
+  await assert.rejects(() => analytics.getOverview(booksDir), /统计本地记录格式异常/)
 } finally {
   process.chdir(originalCwd)
   fs.rmSync(rootDir, { recursive: true, force: true })

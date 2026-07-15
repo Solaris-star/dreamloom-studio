@@ -205,7 +205,7 @@ function collectTxtFiles(dirPath, result = []) {
   return result
 }
 
-function readBooks(booksDir) {
+async function readBooks(booksDir) {
   if (!booksDir || !fs.existsSync(booksDir)) return []
   let entries = []
   try {
@@ -214,26 +214,25 @@ function readBooks(booksDir) {
     return []
   }
 
-  return entries
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => {
-      const bookPath = join(booksDir, entry.name)
-      let meta
-      try {
-        meta = readJson(join(bookPath, 'mazi.json'), null)
-      } catch {
-        return null
-      }
-      if (!meta || typeof meta !== 'object') return null
-      return {
-        id: String(meta.id || entry.name),
-        name: String(meta.name || entry.name),
-        folderName: entry.name,
-        path: bookPath,
-        meta
-      }
+  const books = []
+  for (const entry of entries.filter((entry) => entry.isDirectory())) {
+    const bookPath = join(booksDir, entry.name)
+    let meta
+    try {
+      meta = await readJson(join(bookPath, 'mazi.json'), null)
+    } catch {
+      continue
+    }
+    if (!meta || typeof meta !== 'object') continue
+    books.push({
+      id: String(meta.id || entry.name),
+      name: String(meta.name || entry.name),
+      folderName: entry.name,
+      path: bookPath,
+      meta
     })
-    .filter(Boolean)
+  }
+  return books
 }
 
 function isDownloadedBook(book) {
@@ -248,9 +247,9 @@ function isDownloadedBook(book) {
   )
 }
 
-function readBookWordStats(booksDir, params = {}) {
+async function readBookWordStats(booksDir, params = {}) {
   const bookFilter = String(params.bookId || params.bookName || params.book || '').trim()
-  const books = readBooks(booksDir).filter((book) => {
+  const books = (await readBooks(booksDir)).filter((book) => {
     if (!bookFilter) return true
     return [book.id, book.name, book.folderName].some((value) => String(value) === bookFilter)
   })
@@ -415,8 +414,8 @@ export function getTokenStats(booksDir, params = {}) {
   return summarizeTokenRows(rows)
 }
 
-export function getOverview(booksDir, params = {}) {
-  const bookStats = readBookWordStats(booksDir, params)
+export async function getOverview(booksDir, params = {}) {
+  const bookStats = await readBookWordStats(booksDir, params)
   const totalWords = bookStats.reduce((sum, book) => sum + book.totalWords, 0)
   const chapterCount = bookStats.reduce((sum, book) => sum + book.chapterCount, 0)
   const today = toDateKey()

@@ -17,16 +17,17 @@ const goalServiceSource = readProjectFile('src/main/services/goalService.js')
 const statisticsServiceSource = readProjectFile('src/renderer/src/service/statisticsService.js')
 
 for (const expected of [
-  'throw new Error(`写作目标本地记录读取失败：${error.message}`)',
+  '写作目标本地记录读取失败',
   "throw new Error('写作目标本地记录格式异常，已停止读取写作目标')",
   "throw new Error('写作目标列表格式异常，已停止读取写作目标以免掩盖原始记录问题')",
   "throw new Error('写作目标列表格式异常，已停止写入以免覆盖原始记录')",
-  'function readGoalsRows()',
+  'async function readGoalsRows()',
   'function requireGoalRows(goals)',
-  'return readGoalsRows().map(normalizeGoal)',
-  'storeSet(GOALS_KEY, requireGoalRows(goals).map(normalizeGoal))',
+  'return (await readGoalsRows()).map(normalizeGoal)',
+  'await storeSet(GOALS_KEY, requireGoalRows(goals).map(normalizeGoal))',
   'const deletedGoal = goals.find((goal) => goal.id === id)',
-  'return { success: true, id: deletedGoal.id, item: calculateProgress(deletedGoal, booksDir), items: listGoals(booksDir) }'
+  'item: await calculateProgress(deletedGoal, booksDir)',
+  'items: await listGoals(booksDir)'
 ]) {
   assertIncludes(goalServiceSource, expected, `goal service missing ${expected}`)
 }
@@ -67,8 +68,8 @@ try {
   mkdirSync('books', { recursive: true })
   const goalService = await import(`../src/main/services/goalService.js?goal-redline-${Date.now()}`)
 
-  assert.deepEqual(goalService.listGoals(join(tempRoot, 'books')), [])
-  const emptyProgress = goalService.calculateProgress(
+  assert.deepEqual(await goalService.listGoals(join(tempRoot, 'books')), [])
+  const emptyProgress = await goalService.calculateProgress(
     { id: 'empty', targetValue: 'not-a-number', status: '' },
     join(tempRoot, 'books')
   )
@@ -80,7 +81,7 @@ try {
   assert.equal(emptyProgress.status, 'active')
 
   writeFileSync('.store.json', '{"stats:goals":', 'utf8')
-  assert.throws(
+  await assert.rejects(
     () => goalService.listGoals(join(tempRoot, 'books')),
     /写作目标本地记录读取失败/,
     'goal reads should reject broken store JSON'
@@ -88,12 +89,12 @@ try {
   assert.equal(readFileSync('.store.json', 'utf8'), '{"stats:goals":')
 
   writeFileSync('.store.json', JSON.stringify(['broken-root']), 'utf8')
-  assert.throws(
+  await assert.rejects(
     () => goalService.listGoals(join(tempRoot, 'books')),
     /写作目标本地记录格式异常/,
     'goal reads should reject a non-object store root'
   )
-  assert.throws(
+  await assert.rejects(
     () => goalService.createGoal({ title: '本月目标', targetValue: 1000 }, join(tempRoot, 'books')),
     /写作目标本地记录格式异常/,
     'goal writes should stop when store root is malformed'
@@ -101,12 +102,12 @@ try {
   assert.equal(readFileSync('.store.json', 'utf8'), JSON.stringify(['broken-root']))
 
   writeFileSync('.store.json', JSON.stringify({ 'stats:goals': { broken: true } }), 'utf8')
-  assert.throws(
+  await assert.rejects(
     () => goalService.listGoals(join(tempRoot, 'books')),
     /写作目标列表格式异常/,
     'goal reads should reject a malformed stored goal list'
   )
-  assert.throws(
+  await assert.rejects(
     () => goalService.createGoal({ title: '本月目标', targetValue: 1000 }, join(tempRoot, 'books')),
     /写作目标列表格式异常/,
     'goal writes should stop when the stored goal list is malformed'
@@ -139,7 +140,7 @@ try {
     }),
     'utf8'
   )
-  const createResult = goalService.createGoal(
+  const createResult = await goalService.createGoal(
     {
       id: 'goal-range',
       title: '本月目标',
@@ -158,7 +159,7 @@ try {
   assert.equal(createResult.item.remaining, 500)
   assert.equal(Array.isArray(JSON.parse(readFileSync('.store.json', 'utf8'))['stats:goals']), true)
 
-  const dailyResult = goalService.createGoal(
+  const dailyResult = await goalService.createGoal(
     {
       id: 'goal-daily',
       title: '今日目标',
@@ -173,7 +174,7 @@ try {
   assert.equal(dailyResult.item.percent, 100)
   assert.equal(dailyResult.item.status, 'completed')
 
-  const totalResult = goalService.createGoal(
+  const totalResult = await goalService.createGoal(
     {
       id: 'goal-total',
       title: '全书目标',
@@ -187,7 +188,7 @@ try {
   assert.equal(totalResult.item.currentValue, 0)
   assert.equal(totalResult.item.percent, 0)
 
-  const overdueResult = goalService.createGoal(
+  const overdueResult = await goalService.createGoal(
     {
       id: 'goal-overdue',
       name: '过期目标',
@@ -205,7 +206,7 @@ try {
   assert.equal(overdueResult.item.overdue, true)
   assert.equal(overdueResult.item.status, 'overdue')
 
-  const pausedResult = goalService.createGoal(
+  const pausedResult = await goalService.createGoal(
     {
       id: 'goal-paused',
       type: 'range',
@@ -220,7 +221,7 @@ try {
   assert.equal(pausedResult.item.note, '123')
   assert.equal(pausedResult.item.status, 'paused')
 
-  const defaultDailyResult = goalService.createGoal(
+  const defaultDailyResult = await goalService.createGoal(
     {
       id: 'goal-default-daily',
       type: 'daily',
@@ -232,35 +233,35 @@ try {
   assert.equal(defaultDailyResult.item.title, '每日写作目标')
 
   assert.deepEqual(
-    goalService.createGoal({ title: '', targetValue: 1000 }, join(tempRoot, 'books')),
+    await goalService.createGoal({ title: '', targetValue: 1000 }, join(tempRoot, 'books')),
     { success: false, message: '目标名称不能为空' }
   )
   assert.deepEqual(
-    goalService.createGoal({ name: ' ', targetValue: 1000 }, join(tempRoot, 'books')),
+    await goalService.createGoal({ name: ' ', targetValue: 1000 }, join(tempRoot, 'books')),
     { success: false, message: '目标名称不能为空' }
   )
   assert.deepEqual(
-    goalService.createGoal({ title: '无效目标', targetValue: 0 }, join(tempRoot, 'books')),
+    await goalService.createGoal({ title: '无效目标', targetValue: 0 }, join(tempRoot, 'books')),
     { success: false, message: '目标字数必须大于 0' }
   )
   assert.deepEqual(
-    goalService.createGoal({ title: '负数目标', targetValue: -10 }, join(tempRoot, 'books')),
+    await goalService.createGoal({ title: '负数目标', targetValue: -10 }, join(tempRoot, 'books')),
     { success: false, message: '目标字数必须大于 0' }
   )
   assert.deepEqual(
-    goalService.updateGoal('missing', { targetValue: 2000 }, join(tempRoot, 'books')),
+    await goalService.updateGoal('missing', { targetValue: 2000 }, join(tempRoot, 'books')),
     { success: false, message: '目标不存在' }
   )
   assert.deepEqual(
-    goalService.updateGoal('goal-range', { title: '   ' }, join(tempRoot, 'books')),
+    await goalService.updateGoal('goal-range', { title: '   ' }, join(tempRoot, 'books')),
     { success: false, message: '目标名称不能为空' }
   )
   assert.deepEqual(
-    goalService.updateGoal('goal-range', { targetValue: 0 }, join(tempRoot, 'books')),
+    await goalService.updateGoal('goal-range', { targetValue: 0 }, join(tempRoot, 'books')),
     { success: false, message: '目标字数必须大于 0' }
   )
 
-  const updateResult = goalService.updateGoal(
+  const updateResult = await goalService.updateGoal(
     'goal-range',
     { title: '调整后的目标', targetValue: 400 },
     join(tempRoot, 'books')
@@ -271,12 +272,12 @@ try {
   assert.equal(updateResult.item.percent, 100)
   assert.equal(updateResult.item.targetValue, 400)
 
-  const listedGoals = goalService.listGoals(join(tempRoot, 'books'))
+  const listedGoals = await goalService.listGoals(join(tempRoot, 'books'))
   assert.equal(listedGoals.length, 6)
   assert.equal(listedGoals.at(-1).status, 'paused')
   assert.equal(listedGoals.some((goal) => goal.status === 'completed'), true)
 
-  const unknownStatusUpdate = goalService.updateGoal(
+  const unknownStatusUpdate = await goalService.updateGoal(
     'goal-paused',
     { status: 'custom', endDate: '' },
     join(tempRoot, 'books')
@@ -284,11 +285,11 @@ try {
   assert.equal(unknownStatusUpdate.success, true)
   assert.equal(unknownStatusUpdate.item.status, 'custom')
 
-  assert.deepEqual(goalService.deleteGoal('missing', join(tempRoot, 'books')), {
+  assert.deepEqual(await goalService.deleteGoal('missing', join(tempRoot, 'books')), {
     success: false,
     message: '目标不存在'
   })
-  const deleteResult = goalService.deleteGoal(createResult.item.id, join(tempRoot, 'books'))
+  const deleteResult = await goalService.deleteGoal(createResult.item.id, join(tempRoot, 'books'))
   assert.equal(deleteResult.success, true)
   assert.equal(deleteResult.id, createResult.item.id)
   assert.equal(deleteResult.item.id, createResult.item.id)

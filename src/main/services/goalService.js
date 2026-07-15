@@ -1,42 +1,45 @@
 import { randomUUID } from 'node:crypto'
-import fs from 'node:fs'
 import { resolve } from 'node:path'
-import { writeJson } from './webJsonRepository.js'
+import { readJson, updateJson } from './webJsonRepository.js'
 import { getOverview, getDailyWords, toDateKey } from './analyticsService.js'
 
 const STORE_FILE = resolve('.store.json')
 const GOALS_KEY = 'stats:goals'
 
-function readStore() {
-  if (!fs.existsSync(STORE_FILE)) return {}
+async function readStore() {
   let store
   try {
-    store = JSON.parse(fs.readFileSync(STORE_FILE, 'utf-8') || '{}')
+    store = await readJson(STORE_FILE, null)
   } catch (error) {
-    throw new Error(`写作目标本地记录读取失败：${error.message}`)
+    throw new Error(`写作目标本地记录读取失败：${error.cause?.message || error.message}`, {
+      cause: error
+    })
   }
+  if (store == null) return {}
   if (!store || typeof store !== 'object' || Array.isArray(store)) {
     throw new Error('写作目标本地记录格式异常，已停止读取写作目标')
   }
   return store
 }
 
-function writeStore(store) {
-  if (!store || typeof store !== 'object' || Array.isArray(store)) {
-    throw new Error('写作目标本地记录格式异常，已停止写入以免覆盖原始记录')
-  }
-  writeJson(STORE_FILE, store)
-}
-
-function storeGet(key, fallback) {
-  const store = readStore()
+async function storeGet(key, fallback) {
+  const store = await readStore()
   return Object.prototype.hasOwnProperty.call(store, key) ? store[key] : fallback
 }
 
-function storeSet(key, value) {
-  const store = readStore()
-  store[key] = value
-  writeStore(store)
+async function storeSet(key, value) {
+  await updateJson(
+    STORE_FILE,
+    (current) => {
+      const store = current == null ? {} : current
+      if (!store || typeof store !== 'object' || Array.isArray(store)) {
+        throw new Error('写作目标本地记录格式异常，已停止写入以免覆盖原始记录')
+      }
+      store[key] = value
+      return store
+    },
+    {}
+  )
 }
 
 function asNumber(value, fallback = 0) {
@@ -51,8 +54,8 @@ function hasExplicitEmptyTitle(input = {}) {
   return false
 }
 
-function readGoalsRows() {
-  const value = storeGet(GOALS_KEY, undefined)
+async function readGoalsRows() {
+  const value = await storeGet(GOALS_KEY, undefined)
   if (value == null) return []
   if (!Array.isArray(value)) {
     throw new Error('写作目标列表格式异常，已停止读取写作目标以免掩盖原始记录问题')
@@ -94,15 +97,15 @@ function normalizeGoal(raw = {}) {
   }
 }
 
-function readGoals() {
-  return readGoalsRows().map(normalizeGoal)
+async function readGoals() {
+  return (await readGoalsRows()).map(normalizeGoal)
 }
 
-function writeGoals(goals) {
-  storeSet(GOALS_KEY, requireGoalRows(goals).map(normalizeGoal))
+async function writeGoals(goals) {
+  await storeSet(GOALS_KEY, requireGoalRows(goals).map(normalizeGoal))
 }
 
-export function calculateProgress(goalInput, booksDir = '') {
+export async function calculateProgress(goalInput, booksDir = '') {
   const goal = normalizeGoal(goalInput)
   let currentValue = 0
 
@@ -114,7 +117,7 @@ export function calculateProgress(goalInput, booksDir = '') {
     })
     currentValue = todayRows.reduce((sum, row) => sum + row.words, 0)
   } else if (goal.type === 'total') {
-    currentValue = getOverview(booksDir, { bookId: goal.bookId }).totalWords
+    currentValue = (await getOverview(booksDir, { bookId: goal.bookId })).totalWords
   } else {
     const rows = getDailyWords(booksDir, {
       bookId: goal.bookId,
@@ -142,19 +145,22 @@ export function calculateProgress(goalInput, booksDir = '') {
   }
 }
 
-export function listGoals(booksDir = '') {
-  return readGoals()
-    .map((goal) => calculateProgress(goal, booksDir))
-    .sort((a, b) => {
-      const statusWeight = { active: 0, overdue: 1, completed: 2, paused: 3 }
-      const aw = statusWeight[a.status] ?? 0
-      const bw = statusWeight[b.status] ?? 0
-      if (aw !== bw) return aw - bw
-      return new Date(b.updatedAt) - new Date(a.updatedAt)
-    })
+export async function listGoals(booksDir = '') {
+  const goals = await readGoals()
+  const withProgress = []
+  for (const goal of goals) {
+    withProgress.push(await calculateProgress(goal, booksDir))
+  }
+  return withProgress.sort((a, b) => {
+    const statusWeight = { active: 0, overdue: 1, completed: 2, paused: 3 }
+    const aw = statusWeight[a.status] ?? 0
+    const bw = statusWeight[b.status] ?? 0
+    if (aw !== bw) return aw - bw
+    return new Date(b.updatedAt) - new Date(a.updatedAt)
+  })
 }
 
-export function createGoal(input = {}, booksDir = '') {
+export async function createGoal(input = {}, booksDir = '') {
   if (hasExplicitEmptyTitle(input)) return { success: false, message: '目标名称不能为空' }
   const goal = normalizeGoal({
     ...input,
@@ -164,14 +170,14 @@ export function createGoal(input = {}, booksDir = '') {
   })
   if (!goal.title) return { success: false, message: '目标名称不能为空' }
   if (!goal.targetValue) return { success: false, message: '目标字数必须大于 0' }
-  const goals = readGoals()
+  const goals = await readGoals()
   goals.unshift(goal)
-  writeGoals(goals)
-  return { success: true, item: calculateProgress(goal, booksDir), items: listGoals(booksDir) }
+  await writeGoals(goals)
+  return { success: true, item: await calculateProgress(goal, booksDir), items: await listGoals(booksDir) }
 }
 
-export function updateGoal(id, patch = {}, booksDir = '') {
-  const goals = readGoals()
+export async function updateGoal(id, patch = {}, booksDir = '') {
+  const goals = await readGoals()
   const index = goals.findIndex((goal) => goal.id === id)
   if (index === -1) return { success: false, message: '目标不存在' }
   if (hasExplicitEmptyTitle(patch)) return { success: false, message: '目标名称不能为空' }
@@ -185,17 +191,26 @@ export function updateGoal(id, patch = {}, booksDir = '') {
   })
   if (!updated.targetValue) return { success: false, message: '目标字数必须大于 0' }
   goals[index] = updated
-  writeGoals(goals)
-  return { success: true, item: calculateProgress(updated, booksDir), items: listGoals(booksDir) }
+  await writeGoals(goals)
+  return {
+    success: true,
+    item: await calculateProgress(updated, booksDir),
+    items: await listGoals(booksDir)
+  }
 }
 
-export function deleteGoal(id, booksDir = '') {
-  const goals = readGoals()
+export async function deleteGoal(id, booksDir = '') {
+  const goals = await readGoals()
   const deletedGoal = goals.find((goal) => goal.id === id)
   const nextGoals = goals.filter((goal) => goal.id !== id)
   if (nextGoals.length === goals.length) return { success: false, message: '目标不存在' }
-  writeGoals(nextGoals)
-  return { success: true, id: deletedGoal.id, item: calculateProgress(deletedGoal, booksDir), items: listGoals(booksDir) }
+  await writeGoals(nextGoals)
+  return {
+    success: true,
+    id: deletedGoal.id,
+    item: await calculateProgress(deletedGoal, booksDir),
+    items: await listGoals(booksDir)
+  }
 }
 
 export default {

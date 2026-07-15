@@ -86,20 +86,20 @@ try {
   assert.ok(differentComparison.score < 62)
   assert.ok(differentComparison.issues.length > 0)
 
-  const noSubjectCheck = buildCharacterImageVisualCheck({
+  const noSubjectCheck = await buildCharacterImageVisualCheck({
     candidatePath: otherSubjectImage,
     subjectName: ''
   })
   assert.equal(noSubjectCheck.status, 'skipped')
   assert.equal(noSubjectCheck.passed, true)
 
-  writeCharacterImageMetadata(referenceImage, {
+  await writeCharacterImageMetadata(referenceImage, {
     bookName: '测试作品',
     characterName: '林舟',
     prompt: '银发白衣少年',
     size: '720*1280'
   })
-  writeCharacterImageMetadata(otherSubjectImage, {
+  await writeCharacterImageMetadata(otherSubjectImage, {
     bookName: '测试作品',
     characterName: '沈青',
     prompt: '红衣女子',
@@ -108,7 +108,7 @@ try {
 
   const similarTempImage = join(tempDir, 'ai_char1.png')
   fs.copyFileSync(similarImage, similarTempImage)
-  writeCharacterImageMetadata(similarTempImage, {
+  await writeCharacterImageMetadata(similarTempImage, {
     bookName: '测试作品',
     characterName: '林舟',
     prompt: '银发白衣少年',
@@ -116,7 +116,7 @@ try {
   })
   const similarFinalImage = join(finalDir, 'img_confirmed_similar.png')
   fs.copyFileSync(similarTempImage, similarFinalImage)
-  const similarMetadata = confirmCharacterImageMetadata(similarTempImage, similarFinalImage, {
+  const similarMetadata = await confirmCharacterImageMetadata(similarTempImage, similarFinalImage, {
     bookName: '测试作品'
   })
   assert.equal(similarMetadata.visualCheck.status, 'compared')
@@ -126,7 +126,7 @@ try {
 
   const differentTempImage = join(tempDir, 'ai_char2.png')
   fs.copyFileSync(differentImage, differentTempImage)
-  writeCharacterImageMetadata(differentTempImage, {
+  await writeCharacterImageMetadata(differentTempImage, {
     bookName: '测试作品',
     characterName: '林舟',
     prompt: '银发白衣少年',
@@ -134,7 +134,7 @@ try {
   })
   const differentFinalImage = join(finalDir, 'img_confirmed_different.png')
   fs.copyFileSync(differentTempImage, differentFinalImage)
-  const differentMetadata = confirmCharacterImageMetadata(differentTempImage, differentFinalImage, {
+  const differentMetadata = await confirmCharacterImageMetadata(differentTempImage, differentFinalImage, {
     bookName: '测试作品'
   })
   assert.equal(differentMetadata.visualCheck.status, 'compared')
@@ -143,7 +143,7 @@ try {
 
   const noReferenceTempImage = join(tempDir, 'ai_char3.png')
   fs.copyFileSync(otherSubjectImage, noReferenceTempImage)
-  writeCharacterImageMetadata(noReferenceTempImage, {
+  await writeCharacterImageMetadata(noReferenceTempImage, {
     bookName: '测试作品',
     characterName: '新角色',
     prompt: '新角色',
@@ -151,7 +151,7 @@ try {
   })
   const noReferenceFinalImage = join(finalDir, 'img_no_reference.png')
   fs.copyFileSync(noReferenceTempImage, noReferenceFinalImage)
-  const noReferenceMetadata = confirmCharacterImageMetadata(
+  const noReferenceMetadata = await confirmCharacterImageMetadata(
     noReferenceTempImage,
     noReferenceFinalImage,
     {

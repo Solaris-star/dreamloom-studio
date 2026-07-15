@@ -37,7 +37,7 @@ export async function handleAiImageRoute({
 
   if (path === '/api/ai/image-task') {
     const imageResult = await generateImage(store, payload)
-    const saved = saveImage(bookPath, payload, imageResult)
+    const saved = await saveImage(bookPath, payload, imageResult)
     sendJson(res, {
       ...saved,
       imageUrl: toImageUrl(bookPath, saved.localPath)
@@ -52,7 +52,7 @@ export async function handleAiImageRoute({
     return true
   }
 
-  const confirmed = confirmImage(bookPath, safePayload)
+  const confirmed = await confirmImage(bookPath, safePayload)
   sendJson(res, {
     ...confirmed,
     imageUrl: toImageUrl(bookPath, confirmed.localPath)

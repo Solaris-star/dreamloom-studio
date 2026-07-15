@@ -91,16 +91,14 @@ for (const [body, message] of [
   [{ bookName: '长夜', query: '测试', embeddingConfig: [] }, '缺少 Embedding 配置']
 ]) {
   const callCount = calls.length
-  await assert.rejects(
-    handleVectorRoute({ ...common, path: '/api/vector/search', body }),
+  await assert.rejects(() => handleVectorRoute({ ...common, path: '/api/vector/search', body }),
     (error) => error.statusCode === 400 && error.message === message
   )
   assert.equal(calls.length, callCount)
 }
 
 const callCount = calls.length
-await assert.rejects(
-  handleVectorRoute({
+await assert.rejects(() => handleVectorRoute({
     ...common,
     path: '/api/vector/delete-source',
     body: { bookName: '长夜', sourceExtractionId: '   ' }
@@ -110,8 +108,7 @@ await assert.rejects(
 assert.equal(calls.length, callCount)
 
 const pathError = Object.assign(new Error('书籍路径越界'), { statusCode: 400 })
-await assert.rejects(
-  handleVectorRoute({
+await assert.rejects(() => handleVectorRoute({
     ...common,
     path: '/api/vector/stats',
     body: { bookPath: 'D:/outside' },

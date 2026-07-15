@@ -105,8 +105,7 @@ for (const path of [
   assert.equal(responses.at(-1)[0].success, true)
 }
 
-await assert.rejects(
-  handleExtractionRoute({
+await assert.rejects(() => handleExtractionRoute({
     ...common,
     path: '/api/extraction/search',
     body: { bookName: '作品', query: '  ' }

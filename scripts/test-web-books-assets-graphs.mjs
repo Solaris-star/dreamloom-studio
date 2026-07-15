@@ -65,71 +65,71 @@ try {
     data: { version: 1, nodes: {} }
   })
 
-  assert.equal(writeTimeline({ bookName, data: null }, booksDir).success, false)
-  assert.equal(writeCharacters({ bookName, data: {} }, booksDir).success, false)
-  assert.equal(writeDictionary({ bookName, data: 'invalid' }, booksDir).success, false)
-  assert.equal(writeSequenceCharts({ bookName, data: 1 }, booksDir).success, false)
-  assert.equal(writeSettings({ bookName: '', data: {} }, booksDir).success, false)
-  assert.equal(writeOutlines({ bookName, data: null }, booksDir).success, false)
+  assert.equal((await writeTimeline({ bookName, data: null }, booksDir)).success, false)
+  assert.equal((await writeCharacters({ bookName, data: {} }, booksDir)).success, false)
+  assert.equal((await writeDictionary({ bookName, data: 'invalid' }, booksDir)).success, false)
+  assert.equal((await writeSequenceCharts({ bookName, data: 1 }, booksDir)).success, false)
+  assert.equal((await writeSettings({ bookName: '', data: {} }, booksDir)).success, false)
+  assert.equal((await writeOutlines({ bookName, data: null }, booksDir)).success, false)
   assert.equal(
-    writeOutlines({ bookName, data: { children: 'invalid' } }, booksDir).success,
+    (await writeOutlines({ bookName, data: { children: 'invalid' } }, booksDir)).success,
     false
   )
   assert.equal(
-    writeOutlines({ bookName, data: [{ id: 'root', children: [null] }] }, booksDir).success,
+    (await writeOutlines({ bookName, data: [{ id: 'root', children: [null] }] }, booksDir)).success,
     false
   )
-  assert.equal(writeOutlineAiSessions({ bookName, data: [] }, booksDir).success, false)
+  assert.equal((await writeOutlineAiSessions({ bookName, data: [] }, booksDir)).success, false)
   assert.equal(
-    writeOutlineAiSessions({ bookName, data: { nodes: [] } }, booksDir).success,
-    false
-  )
-  assert.equal(
-    writeEntityProfileCategory({ bookName, category: 'invalid', data: [] }, booksDir).success,
+    (await writeOutlineAiSessions({ bookName, data: { nodes: [] } }, booksDir)).success,
     false
   )
   assert.equal(
-    writeEntityProfileCategory({ bookName, category: 'artifact', data: {} }, booksDir).success,
+    (await writeEntityProfileCategory({ bookName, category: 'invalid', data: [] }, booksDir)).success,
+    false
+  )
+  assert.equal(
+    (await writeEntityProfileCategory({ bookName, category: 'artifact', data: {} }, booksDir)).success,
     false
   )
 
-  assert.equal(writeTimeline({ bookName, data: [{ id: 'timeline-1' }] }, booksDir).success, true)
-  assert.equal(writeCharacters({ bookName, data: [{ name: '林青' }] }, booksDir).success, true)
-  assert.equal(writeDictionary({ bookName, data: [{ word: '月影术' }] }, booksDir).success, true)
+  assert.equal((await writeTimeline({ bookName, data: [{ id: 'timeline-1' }] }, booksDir)).success, true)
+  assert.equal((await writeCharacters({ bookName, data: [{ name: '林青' }] }, booksDir)).success, true)
+  assert.equal((await writeDictionary({ bookName, data: [{ word: '月影术' }] }, booksDir)).success, true)
   assert.equal(
-    writeSequenceCharts({ bookName, data: [{ id: 'sequence-1' }] }, booksDir).success,
+    (await writeSequenceCharts({ bookName, data: [{ id: 'sequence-1' }] }, booksDir)).success,
     true
   )
   assert.equal(
-    writeSettings({ bookName, data: { categories: [{ name: '术法', items: [] }] } }, booksDir)
+    (await writeSettings({ bookName, data: { categories: [{ name: '术法', items: [] }] } }, booksDir))
       .success,
     true
   )
   assert.equal(
-    writeEntityProfileCategory(
+    (await writeEntityProfileCategory(
       { bookName, category: 'artifact', data: [{ name: '月影剑' }] },
       booksDir
-    ).success,
+    )).success,
     true
   )
   assert.equal(
-    writeOutlines(
+    (await writeOutlines(
       {
         bookName,
         data: [{ id: 'outline-root', children: [{ id: 'outline-child', children: [] }] }]
       },
       booksDir
-    ).success,
+    )).success,
     true
   )
   assert.equal(
-    writeOutlineAiSessions(
+    (await writeOutlineAiSessions(
       {
         bookName,
         data: { version: 0, nodes: { 'outline-root': { messages: [] } } }
       },
       booksDir
-    ).success,
+    )).success,
     true
   )
   assert.equal(readOutlines(bookName, booksDir).data[0].id, 'outline-root')
@@ -173,7 +173,7 @@ try {
   assert.match(normalizedSettings.data.categories[0].children[0].items[0].id, /^setting-/)
   assert.equal(normalizedSettings.data.categories[0].children[0].items[0].name, '无名术法')
   assert.equal(normalizedSettings.data.categories[0].children[0].items[0].introduction, '术法说明')
-  assert.equal(writeSettings({ bookName, data: { categories: null } }, booksDir).success, true)
+  assert.equal((await writeSettings({ bookName, data: { categories: null } }, booksDir)).success, true)
   assert.equal(readSettings(bookName, booksDir).data.categories[0].id, 'default')
 
   fs.writeFileSync(join(booksDir, bookName, 'outline-ai-sessions.json'), '[]', 'utf8')
@@ -183,10 +183,10 @@ try {
   fs.writeFileSync(join(booksDir, bookName, 'entity_profiles.json'), '{broken', 'utf8')
   assert.equal(readEntityProfilesForBook(bookName, booksDir).success, false)
   assert.equal(
-    writeEntityProfileCategory(
+    (await writeEntityProfileCategory(
       { bookName, category: 'artifact', data: [{ name: '不应覆盖' }] },
       booksDir
-    ).success,
+    )).success,
     false
   )
   assert.equal(
@@ -194,11 +194,11 @@ try {
     '{broken'
   )
 
-  assert.deepEqual(readMaps(bookName, booksDir), { success: true, data: [] })
+  assert.deepEqual(await readMaps(bookName, booksDir), { success: true, data: [] })
   const mapsDir = join(booksDir, bookName, 'maps')
   fs.writeFileSync(join(mapsDir, '旧地图.png'), pngBytes)
   fs.writeFileSync(join(mapsDir, '旧地图.json'), JSON.stringify(null), 'utf8')
-  assert.deepEqual(readMaps(bookName, booksDir).data[0], {
+  assert.deepEqual((await readMaps(bookName, booksDir)).data[0], {
     id: '旧地图',
     name: '旧地图',
     description: '',
@@ -209,23 +209,23 @@ try {
   fs.rmSync(join(mapsDir, '旧地图.png'))
   fs.rmSync(join(mapsDir, '旧地图.json'))
   assert.equal(
-    createMap({ bookName, mapName: '山门图', description: '山门地形' }, booksDir).success,
+    (await createMap({ bookName, mapName: '山门图', description: '山门地形' }, booksDir)).success,
     false
   )
-  const map = createMap(
+  const map = await createMap(
     { bookName, mapName: '山门图', description: '山门地形', imageData: pngDataUrl },
     booksDir
   )
   assert.equal(map.success, true)
   assert.equal(map.assetType, 'map')
   assert.equal(
-    createMap({ bookName, mapName: '山门图', imageData: pngDataUrl }, booksDir).success,
+    (await createMap({ bookName, mapName: '山门图', imageData: pngDataUrl }, booksDir)).success,
     false
   )
-  assert.equal(readMaps(bookName, booksDir).data[0].description, '山门地形')
+  assert.equal((await readMaps(bookName, booksDir)).data[0].description, '山门地形')
   assert.match(readMapImage({ bookName, mapName: '山门图' }, booksDir), /^data:image\/png;base64,/)
 
-  const updatedMap = updateMap(
+  const updatedMap = await updateMap(
     {
       bookName,
       mapName: '山门图',
@@ -236,15 +236,15 @@ try {
   )
   assert.equal(updatedMap.success, true)
   assert.equal(updatedMap.dataDatabaseSync.success, true)
-  assert.equal(loadMapData({ bookName, mapName: '山门图' }, booksDir).nodes[0].id, 'gate')
-  const imageOnlyMap = updateMap(
+  assert.equal((await loadMapData({ bookName, mapName: '山门图' }, booksDir)).nodes[0].id, 'gate')
+  const imageOnlyMap = await updateMap(
     { bookName, mapName: '山门图', imageData: pngDataUrl },
     booksDir
   )
   assert.equal(imageOnlyMap.success, true)
   assert.equal(imageOnlyMap.dataFileName, '')
   assert.equal(Object.hasOwn(imageOnlyMap, 'dataDatabaseSync'), false)
-  const dataOnlyMap = updateMap(
+  const dataOnlyMap = await updateMap(
     {
       bookName,
       mapName: '山门图',
@@ -254,23 +254,23 @@ try {
   )
   assert.equal(dataOnlyMap.success, true)
   assert.equal(dataOnlyMap.dataDatabaseSync.success, true)
-  assert.equal(loadMapData({ bookName, mapName: '山门图' }, booksDir).nodes[0].id, 'courtyard')
-  const emptyMapData = saveMapData({ bookName, mapName: '山门图', mapData: null }, booksDir)
+  assert.equal((await loadMapData({ bookName, mapName: '山门图' }, booksDir)).nodes[0].id, 'courtyard')
+  const emptyMapData = await saveMapData({ bookName, mapName: '山门图', mapData: null }, booksDir)
   assert.equal(emptyMapData.success, false)
   assert.match(emptyMapData.message, /数据库未记录快照/)
-  assert.equal(loadMapData({ bookName, mapName: '山门图' }, booksDir), null)
+  assert.equal(await loadMapData({ bookName, mapName: '山门图' }, booksDir), null)
   const deletedMap = deleteMap({ bookName, mapName: '山门图' }, booksDir)
   assert.equal(deletedMap.existed, true)
   assert.equal(deletedMap.deletedFiles.length, 3)
   assert.equal(deleteMap({ bookName, mapName: '山门图' }, booksDir).existed, false)
   assert.equal(readMapImage({ bookName, mapName: '山门图' }, booksDir), '')
 
-  assert.deepEqual(readRelationships(bookName, booksDir).data, [])
+  assert.deepEqual((await readRelationships(bookName, booksDir)).data, [])
   assert.equal(
-    readRelationshipData({ bookName, relationshipName: '人物关系' }, booksDir).success,
+    (await readRelationshipData({ bookName, relationshipName: '人物关系' }, booksDir)).success,
     false
   )
-  const relationship = createRelationship(
+  const relationship = await createRelationship(
     {
       bookName,
       relationshipName: '人物关系',
@@ -285,20 +285,20 @@ try {
   assert.equal(relationship.success, true)
   assert.equal(relationship.created, true)
   assert.equal(
-    createRelationship(
+    (await createRelationship(
       { bookName, relationshipName: '人物关系', relationshipData: {} },
       booksDir
-    ).success,
+    )).success,
     false
   )
   assert.equal(
-    saveRelationshipData(
+    (await saveRelationshipData(
       { bookName, relationshipName: '人物关系', relationshipData: { description: '更新关系' } },
       booksDir
-    ).created,
+    )).created,
     false
   )
-  assert.equal(readRelationships(bookName, booksDir).data[0].nodes.length, 1)
+  assert.equal((await readRelationships(bookName, booksDir)).data[0].nodes.length, 1)
   assert.equal(
     updateRelationshipThumbnail(
       { bookName, relationshipName: '人物关系', thumbnailData: '' },
@@ -325,7 +325,7 @@ try {
     JSON.stringify({ nodes: 'invalid', lines: null }),
     'utf8'
   )
-  const legacyRelationship = readRelationships(bookName, booksDir).data.find(
+  const legacyRelationship = (await readRelationships(bookName, booksDir)).data.find(
     (item) => item.name === '旧关系'
   )
   assert.equal(legacyRelationship.id, '旧关系')
@@ -336,12 +336,12 @@ try {
   assert.ok(legacyRelationship.createdAt)
   assert.ok(legacyRelationship.updatedAt)
 
-  assert.deepEqual(readOrganizations(bookName, booksDir).data, [])
+  assert.deepEqual((await readOrganizations(bookName, booksDir)).data, [])
   assert.equal(
-    readOrganization({ bookName, organizationName: '山门组织' }, booksDir).success,
+    (await readOrganization({ bookName, organizationName: '山门组织' }, booksDir)).success,
     false
   )
-  const organization = createOrganization(
+  const organization = await createOrganization(
     {
       bookName,
       organizationName: '山门组织',
@@ -351,20 +351,20 @@ try {
   )
   assert.equal(organization.success, true)
   assert.equal(
-    createOrganization(
+    (await createOrganization(
       { bookName, organizationName: '山门组织', organizationData: {} },
       booksDir
-    ).success,
+    )).success,
     false
   )
   assert.equal(
-    writeOrganization(
+    (await writeOrganization(
       { bookName, organizationName: '山门组织', organizationData: { lines: [{ id: 'line-1' }] } },
       booksDir
-    ).success,
+    )).success,
     true
   )
-  assert.equal(readOrganization({ bookName, organizationName: '山门组织' }, booksDir).data.nodes.length, 1)
+  assert.equal((await readOrganization({ bookName, organizationName: '山门组织' }, booksDir)).data.nodes.length, 1)
   assert.equal(
     updateOrganizationThumbnail(
       { bookName, organizationId: '山门组织', thumbnailData: pngDataUrl },
@@ -392,7 +392,7 @@ try {
     }),
     'utf8'
   )
-  const updatedLegacyOrganization = writeOrganization(
+  const updatedLegacyOrganization = await writeOrganization(
     {
       bookName,
       organizationName: '旧组织',
