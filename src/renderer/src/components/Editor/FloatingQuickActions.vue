@@ -15,8 +15,9 @@
     <button
       class="action-btn"
       type="button"
-      title="章节目录"
-      aria-label="章节目录"
+      title="打开章节目录"
+      aria-label="打开章节目录"
+      data-testid="editor-open-catalog"
       @click="emit('catalog')"
     >
       <ListTree :size="18" />
@@ -151,17 +152,30 @@ const emit = defineEmits([
   .floating-quick-actions {
     flex-direction: row;
     justify-content: space-around;
+    align-items: center;
     width: 100%;
-    padding: 4px max(8px, env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom))
-      max(8px, env(safe-area-inset-left));
+    min-height: 44px;
+    padding: 2px max(6px, env(safe-area-inset-right)) calc(2px + env(safe-area-inset-bottom))
+      max(6px, env(safe-area-inset-left));
     border-width: 1px 0 0;
     border-radius: 0;
-    box-shadow: 0 -4px 14px rgba(34, 30, 24, 0.08);
+    box-shadow: 0 -2px 10px rgba(34, 30, 24, 0.06);
     box-sizing: border-box;
+  }
+
+  .action-btn {
+    width: 34px;
+    height: 34px;
   }
 
   .mobile-only {
     display: flex;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-btn {
+    transition: none;
   }
 }
 </style>

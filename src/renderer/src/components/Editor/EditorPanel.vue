@@ -2288,30 +2288,65 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  overflow: hidden;
 }
 .chapter-title-input {
   font-size: 20px;
   font-weight: bold;
   flex: 1;
+  min-width: 0;
 }
 .character-highlight-switch,
 .banned-words-hint-switch {
   flex-shrink: 0;
 }
 
-@media (max-width: 767px) {
+.save-state {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
   .chapter-title {
-    gap: 8px;
-    padding: 8px 12px;
+    gap: 6px;
+    padding: 6px 10px;
+    flex-wrap: nowrap;
   }
 
   .chapter-title-input {
     min-width: 0;
+    font-size: 17px;
+  }
+
+  .chapter-title :deep(.el-input__wrapper) {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .chapter-title :deep(.el-button) {
+    flex-shrink: 0;
+    padding: 4px 8px;
   }
 
   .character-highlight-switch,
   .banned-words-hint-switch {
     display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .chapter-title {
+    gap: 6px;
+    padding: 6px 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-polish-btn,
+  .ai-continue-btn,
+  .ai-scene-btn {
+    transition: none;
   }
 }
 

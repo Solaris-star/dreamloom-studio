@@ -98,7 +98,7 @@ async function openEditor(page, bookName) {
 }
 
 async function openFirstChapter(page) {
-  await page.getByRole('button', { name: '章节目录' }).click()
+  await page.getByRole('button', { name: '打开章节目录' }).click()
   const catalog = page.getByRole('dialog', { name: '章节目录' })
   await catalog.getByRole('button', { name: /第1章/ }).click()
   await expect(page.locator('.ProseMirror')).toContainText('夜雨落在青石长街上')
@@ -421,14 +421,14 @@ test('创作台目录和章节切换可以操作', async ({ page }, testInfo) =>
   const bookName = testBookName(testInfo.project.name)
   await openEditor(page, bookName)
 
-  await page.getByRole('button', { name: '章节目录' }).click()
+  await page.getByRole('button', { name: '打开章节目录' }).click()
   const catalog = page.getByRole('dialog', { name: '章节目录' })
   await expect(catalog).toBeVisible()
   await expect(catalog.getByRole('button', { name: /第2章/ })).toBeVisible()
   await catalog.getByRole('button', { name: /第1章/ }).click()
   await expect(page.locator('.ProseMirror')).toContainText('夜雨落在青石长街上')
 
-  await page.getByRole('button', { name: '章节目录' }).click()
+  await page.getByRole('button', { name: '打开章节目录' }).click()
   await catalog.getByRole('button', { name: /第2章/ }).click()
   await expect(page.locator('.ProseMirror')).toContainText('天亮以后')
 

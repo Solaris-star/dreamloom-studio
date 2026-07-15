@@ -449,6 +449,12 @@ onBeforeUnmount(detachWindowListeners)
   transition: right 180ms ease, top 180ms ease;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .editor-quick-actions {
+    transition: none;
+  }
+}
+
 .editor-container.are-side-panels-hidden {
   :deep(.editor-left-panel),
   :deep(.editor-right-panel),
@@ -533,7 +539,9 @@ onBeforeUnmount(detachWindowListeners)
 
 @media (max-width: 767px) {
   .editor-container {
-    padding-bottom: calc(53px + env(safe-area-inset-bottom));
+    /* 更矮的底栏：按钮 34 + padding + safe-area */
+    padding-bottom: calc(44px + env(safe-area-inset-bottom));
+    overflow-x: hidden;
   }
 
   .editor-quick-actions {
@@ -558,10 +566,12 @@ onBeforeUnmount(detachWindowListeners)
   :deep(.editor-main-panel) {
     width: 100% !important;
     height: 100%;
+    min-width: 0;
   }
 
   :deep(.editor-content .tiptap) {
-    padding: 32px 20px 80px;
+    /* 为底部快捷栏和软键盘留出滚动空间，避免输入遮挡正文 */
+    padding: 24px 16px calc(96px + env(safe-area-inset-bottom));
   }
 
   .reading-setting {

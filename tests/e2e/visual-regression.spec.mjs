@@ -59,10 +59,17 @@ async function openEditor(page, bookName) {
   await page.getByRole('option', { name: '18px' }).click()
   await page.getByTestId('editor-line-height').click()
   await page.getByRole('option', { name: '1.8' }).click()
-  await page.getByTestId('editor-paragraph-spacing').click()
-  await page.getByRole('option', { name: '1', exact: true }).click()
-  await page.getByTestId('editor-page-width').click()
-  await page.getByRole('option', { name: '自适应 (中)' }).click()
+  // 段落间距 / 页宽在窄屏可能收进「更多」菜单，宽屏直接点稳定 testid
+  const paragraphSpacing = page.getByTestId('editor-paragraph-spacing')
+  if (await paragraphSpacing.isVisible()) {
+    await paragraphSpacing.click()
+    await page.getByRole('option', { name: '1', exact: true }).click()
+  }
+  const pageWidth = page.getByTestId('editor-page-width')
+  if (await pageWidth.isVisible()) {
+    await pageWidth.click()
+    await page.getByRole('option', { name: '自适应 (中)' }).click()
+  }
 }
 
 async function expectPageScreenshot(page, name) {
@@ -123,7 +130,7 @@ test('宽屏创作台视觉基准', async ({ page }, testInfo) => {
   await openEditor(page, testBookName('wide'))
   await expectPageScreenshot(page, 'wide-editor.png')
 
-  await page.getByLabel('创作台快捷操作').getByRole('button', { name: '章节目录', exact: true }).click()
+  await page.getByLabel('创作台快捷操作').getByRole('button', { name: '打开章节目录' }).click()
   await expect(page.getByRole('dialog', { name: '章节目录' })).toBeVisible()
   await expectPageScreenshot(page, 'wide-editor-catalog.png')
 

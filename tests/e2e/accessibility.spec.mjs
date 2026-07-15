@@ -82,3 +82,46 @@ test('减少动态效果偏好会关闭持续动画', async ({ page }) => {
 
   expect(continuouslyAnimated).toEqual([])
 })
+
+test('创作台面板控制与目录入口可被辅助技术区分', async ({ page, request }, testInfo) => {
+  test.skip(testInfo.project.name !== 'wide', '按钮命名巡检在宽屏执行')
+  const bookName = `织梦工坊无障碍 ${testInfo.project.name}`
+  await request.post('/api/books/delete', { data: { name: bookName } })
+  const created = await request.post('/api/books/create', {
+    data: {
+      name: bookName,
+      intro: '无障碍命名检查',
+      type: 'xuanhuan',
+      typeName: '玄幻',
+      bookRole: 'original'
+    }
+  })
+  expect(created.ok()).toBeTruthy()
+  await request.post('/api/chapters/save', {
+    data: {
+      bookName,
+      volumeName: '正文',
+      chapterName: '第1章',
+      content: '夜雨落在青石长街上。'
+    }
+  })
+
+  await page.goto(`/#/editor/${encodeURIComponent(bookName)}?name=${encodeURIComponent(bookName)}`)
+  await expect(page.getByLabel('创作台快捷操作')).toBeVisible()
+
+  // 面板控制 vs 目录入口：名称互不冲突
+  await expect(page.getByTestId('editor-toggle-chapter-panel')).toHaveAttribute(
+    'aria-label',
+    /展开章节面板|收起章节面板/
+  )
+  await expect(page.getByRole('button', { name: '打开章节目录' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '章节目录', exact: true })).toHaveCount(0)
+
+  // 稳定选择器覆盖常用排版控件
+  await expect(page.getByTestId('editor-font-family')).toBeVisible()
+  await expect(page.getByTestId('editor-font-size')).toBeVisible()
+  await expect(page.getByTestId('editor-line-height')).toBeVisible()
+  await expect(page.getByTestId('editor-theme')).toBeVisible()
+
+  await request.post('/api/books/delete', { data: { name: bookName } })
+})

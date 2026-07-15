@@ -1,16 +1,21 @@
 <template>
   <div class="editor-menubar">
-    <div class="panel-toggles" aria-label="面板缩放">
+    <div
+      class="panel-toggles"
+      aria-label="面板缩放"
+    >
       <el-tooltip
-        :content="leftCollapsed ? '展开章节目录' : '收起章节目录'"
+        :content="leftCollapsed ? '展开章节面板' : '收起章节面板'"
         placement="bottom"
         :show-after="200"
+        :disabled="isMobileViewport"
       >
         <el-button
           size="small"
           class="toolbar-item panel-toggle-btn"
+          data-testid="editor-toggle-chapter-panel"
           :type="leftCollapsed ? 'primary' : 'default'"
-          :aria-label="leftCollapsed ? '展开章节目录' : '收起章节目录'"
+          :aria-label="leftCollapsed ? '展开章节面板' : '收起章节面板'"
           :aria-pressed="!leftCollapsed"
           @click="emit('toggle-left')"
         >
@@ -29,10 +34,12 @@
         :content="rightCollapsed ? '展开 AI 助手' : '收起 AI 助手'"
         placement="bottom"
         :show-after="200"
+        :disabled="isMobileViewport"
       >
         <el-button
           size="small"
           class="toolbar-item panel-toggle-btn"
+          data-testid="editor-toggle-ai-panel"
           :type="rightCollapsed ? 'primary' : 'default'"
           :aria-label="rightCollapsed ? '展开 AI 助手' : '收起 AI 助手'"
           :aria-pressed="!rightCollapsed"
@@ -55,10 +62,13 @@
         :content="t('editorMenubar.font')"
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
+        :disabled="isMobileViewport"
       >
         <el-select
           v-model="fontFamily"
-          class="toolbar-item"
+          class="toolbar-item toolbar-primary"
+          data-testid="editor-font-family"
+          aria-label="字体"
           size="small"
           style="width: 82px"
           data-testid="editor-font-family"
@@ -99,10 +109,13 @@
         :content="t('editorMenubar.heading')"
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
+        :disabled="isMobileViewport"
       >
         <el-select
           :model-value="headingLevel"
-          class="toolbar-item"
+          class="toolbar-item toolbar-secondary"
+          data-testid="editor-heading"
+          aria-label="标题级别"
           size="small"
           style="width: 70px"
           @change="handleHeadingChange"
@@ -133,10 +146,13 @@
         :content="t('editorMenubar.fontSize')"
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
+        :disabled="isMobileViewport"
       >
         <el-select
           v-model="fontSize"
-          class="toolbar-item"
+          class="toolbar-item toolbar-primary"
+          data-testid="editor-font-size"
+          aria-label="字号"
           size="small"
           style="width: 62px"
           data-testid="editor-font-size"
@@ -208,10 +224,13 @@
         :content="t('editorMenubar.lineHeight')"
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
+        :disabled="isMobileViewport"
       >
         <el-select
           v-model="lineHeight"
-          class="toolbar-item"
+          class="toolbar-item toolbar-primary"
+          data-testid="editor-line-height"
+          aria-label="行距"
           size="small"
           style="width: 50px"
           data-testid="editor-line-height"
@@ -247,10 +266,13 @@
         :content="t('editorMenubar.paragraphSpacing')"
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
+        :disabled="isMobileViewport"
       >
         <el-select
           v-model="paragraphSpacing"
-          class="toolbar-item"
+          class="toolbar-item toolbar-secondary"
+          data-testid="editor-paragraph-spacing"
+          aria-label="段落间距"
           size="small"
           style="width: 60px"
           data-testid="editor-paragraph-spacing"
@@ -286,10 +308,13 @@
         content="页边距/页宽"
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
+        :disabled="isMobileViewport"
       >
         <el-select
           v-model="pageWidth"
-          class="toolbar-item"
+          class="toolbar-item toolbar-secondary"
+          data-testid="editor-page-width"
+          aria-label="页宽"
           size="small"
           style="width: 105px"
           data-testid="editor-page-width"
@@ -317,9 +342,12 @@
         :content="t('editorMenubar.bold')"
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
+        :disabled="isMobileViewport"
       >
         <el-button
-          class="toolbar-item"
+          class="toolbar-item toolbar-primary"
+          data-testid="editor-bold"
+          aria-label="加粗"
           size="small"
           :type="isBold ? 'primary' : 'default'"
           @click="handleToggleBold"
@@ -331,9 +359,12 @@
         :content="t('editorMenubar.italic')"
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
+        :disabled="isMobileViewport"
       >
         <el-button
-          class="toolbar-item"
+          class="toolbar-item toolbar-primary"
+          data-testid="editor-italic"
+          aria-label="倾斜"
           :type="isItalic ? 'primary' : 'default'"
           size="small"
           @click="handleToggleItalic"
@@ -352,8 +383,10 @@
         <template #reference>
           <el-button
             size="small"
-            class="toolbar-item"
+            class="toolbar-item toolbar-secondary"
+            data-testid="editor-highlight"
             :title="t('editorMenubar.highlight')"
+            :aria-label="t('editorMenubar.highlight')"
             :type="isHighlight ? 'primary' : 'default'"
           >
             <SvgIcon
@@ -398,10 +431,13 @@
         :content="t('editorMenubar.oneClickFormat')"
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
+        :disabled="isMobileViewport"
       >
         <el-button
           size="small"
-          class="toolbar-item"
+          class="toolbar-item toolbar-secondary"
+          data-testid="editor-format"
+          :aria-label="t('editorMenubar.oneClickFormat')"
           @click="handleFormatContent"
         >
           <el-icon><Tickets /></el-icon>
@@ -411,10 +447,13 @@
         :content="t('editorMenubar.undo')"
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
+        :disabled="isMobileViewport"
       >
         <el-button
           size="small"
-          class="toolbar-item"
+          class="toolbar-item toolbar-primary"
+          data-testid="editor-undo"
+          :aria-label="t('editorMenubar.undo')"
           :disabled="!canUndo"
           @click="handleUndo"
         >
@@ -425,10 +464,13 @@
         :content="t('editorMenubar.redo')"
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
+        :disabled="isMobileViewport"
       >
         <el-button
           size="small"
-          class="toolbar-item"
+          class="toolbar-item toolbar-primary"
+          data-testid="editor-redo"
+          :aria-label="t('editorMenubar.redo')"
           :disabled="!canRedo"
           @click="handleRedo"
         >
@@ -438,13 +480,15 @@
       <el-dropdown
         split-button
         size="small"
-        class="copy-menu"
+        class="copy-menu toolbar-secondary"
+        data-testid="editor-copy"
         @click="handleCopyContent"
       >
         <el-tooltip
           :content="t('editorMenubar.copyPlainText')"
           placement="bottom"
           :show-after="TOOLTIP_SHOW_AFTER"
+          :disabled="isMobileViewport"
         >
           <el-icon><DocumentCopy /></el-icon>
         </el-tooltip>
@@ -463,10 +507,13 @@
         :content="t('editorMenubar.search')"
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
+        :disabled="isMobileViewport"
       >
         <el-button
           size="small"
-          class="toolbar-item"
+          class="toolbar-item toolbar-primary"
+          data-testid="editor-search"
+          :aria-label="t('editorMenubar.search')"
           @click="handleToggleSearchPanel"
         >
           <el-icon><Search /></el-icon>
@@ -478,6 +525,7 @@
         content="配色"
         placement="bottom"
         :show-after="200"
+        :disabled="isMobileViewport"
       >
         <el-dropdown
           trigger="click"
@@ -485,8 +533,9 @@
         >
           <el-button
             size="small"
-            class="toolbar-item theme-switcher-btn"
-            aria-label="切换创作台配色"
+            class="toolbar-item theme-switcher-btn toolbar-primary"
+            data-testid="editor-theme"
+            aria-label="主题"
           >
             <Palette :size="14" />
             <span class="theme-switcher-label">{{ currentThemeName }}</span>
@@ -513,10 +562,13 @@
         :content="t('editorMenubar.save')"
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
+        :disabled="isMobileViewport"
       >
         <el-button
           size="small"
-          class="toolbar-item"
+          class="toolbar-item toolbar-primary"
+          data-testid="editor-save"
+          :aria-label="t('editorMenubar.save')"
           @click="handleSave"
         >
           <SvgIcon
@@ -530,10 +582,13 @@
         :content="t('editorMenubar.export')"
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
+        :disabled="isMobileViewport"
       >
         <el-button
           size="small"
-          class="toolbar-item"
+          class="toolbar-item toolbar-secondary"
+          data-testid="editor-export"
+          :aria-label="t('editorMenubar.export')"
           @click="handleExport"
         >
           <SvgIcon
@@ -542,16 +597,62 @@
           />
         </el-button>
       </el-tooltip>
+      <el-dropdown
+        class="toolbar-more"
+        trigger="click"
+        :teleported="true"
+      >
+        <el-button
+          size="small"
+          class="toolbar-item toolbar-more-btn"
+          data-testid="editor-more-menu"
+          aria-label="更多编辑操作"
+        >
+          <MoreHorizontal :size="14" />
+        </el-button>
+        <template #dropdown>
+          <el-dropdown-menu class="toolbar-more-menu">
+            <el-dropdown-item @click="paragraphSpacing = '1em'">
+              段落间距 1
+            </el-dropdown-item>
+            <el-dropdown-item @click="pageWidth = '80%'">
+              页宽 自适应 (中)
+            </el-dropdown-item>
+            <el-dropdown-item
+              v-if="!isNoteEditor"
+              divided
+              @click="handleFormatContent"
+            >
+              {{ t('editorMenubar.oneClickFormat') }}
+            </el-dropdown-item>
+            <el-dropdown-item
+              v-if="!isNoteEditor"
+              @click="handleExport"
+            >
+              {{ t('editorMenubar.export') }}
+            </el-dropdown-item>
+            <el-dropdown-item
+              divided
+              @click="handleCopyContent"
+            >
+              {{ t('editorMenubar.copyPlainText') }}
+            </el-dropdown-item>
+            <el-dropdown-item @click="handleCopyRichContent">
+              {{ t('editorMenubar.copyRichText') }}
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, watch, onBeforeUnmount } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { DocumentCopy, Search, Tickets } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Redo, Undo, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Palette } from 'lucide-vue-next'
+import { Redo, Undo, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Palette, MoreHorizontal } from 'lucide-vue-next'
 import dayjs from 'dayjs'
 import { useEditorStore } from '@renderer/stores/editor'
 import { useThemeStore } from '@renderer/stores/theme'
@@ -566,6 +667,19 @@ import {
 import { toggleEditorSelectionMark } from '@renderer/service/editorSelectionFormat'
 
 const TOOLTIP_SHOW_AFTER = 2000
+const MOBILE_BREAKPOINT = 767
+const isMobileViewport = ref(false)
+
+function updateMobileViewport() {
+  if (typeof window === 'undefined') return
+  isMobileViewport.value = window.innerWidth <= MOBILE_BREAKPOINT
+}
+
+onMounted(() => {
+  updateMobileViewport()
+  window.addEventListener('resize', updateMobileViewport)
+})
+
 const { t } = useI18n()
 
 const props = defineProps({
@@ -640,6 +754,9 @@ watch(
   { immediate: true }
 )
 onBeforeUnmount(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('resize', updateMobileViewport)
+  }
   if (currentEditor && transactionHandler && typeof currentEditor.off === 'function') {
     currentEditor.off('transaction', transactionHandler)
   }
@@ -1110,20 +1227,44 @@ async function handleExport() {
   font-weight: 600;
 }
 
+.toolbar-more {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .editor-menubar {
+    .panel-toggle-label,
+    .theme-switcher-label {
+      display: none;
+    }
+  }
+}
+
 @media (max-width: 767px) {
   .editor-menubar {
     justify-content: flex-start;
-    overflow-x: auto;
-    scrollbar-width: none;
+    gap: 6px;
+    padding: 6px 10px;
+    overflow-x: hidden;
 
-    &::-webkit-scrollbar {
-      display: none;
+    .panel-toggles {
+      padding-right: 6px;
+      margin-right: 0;
     }
 
-    .panel-toggles,
-    .toolbar-left,
-    .toolbar-right,
-    .toolbar-item {
+    .toolbar-left {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+
+    .toolbar-right {
       flex-shrink: 0;
     }
 
@@ -1131,6 +1272,24 @@ async function handleExport() {
     .theme-switcher-label {
       display: none;
     }
+
+    .toolbar-secondary {
+      display: none !important;
+    }
+
+    .toolbar-more {
+      display: inline-flex;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .highlight-color-item {
+    transition: none !important;
+  }
+
+  .highlight-color-item:hover {
+    transform: none;
   }
 }
 
