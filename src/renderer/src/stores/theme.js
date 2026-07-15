@@ -5,7 +5,7 @@ import { getStoreValue, setStoreValue } from '../service/webStore.js'
 // 主题配置对象 - 统一管理所有主题的颜色配置
 const themeConfigs = {
   light: {
-    name: '亮色',
+    name: '白色',
     bgPrimary: '#F8F9FA',
     bgSoft: '#FFFFFF',
     bgMute: '#F1F3F5',
@@ -23,8 +23,27 @@ const themeConfigs = {
     dangerColor: '#EF4444', // 危险色 - 红色
     infoColor: '#3B82F6' // 信息色 - 蓝色
   },
+  parchment: {
+    name: '仿真',
+    bgPrimary: '#F3E6C8',
+    bgSoft: '#F8EDD5',
+    bgMute: '#E8D5AE',
+    textBase: '#3B2A1A',
+    textGray: '#6B5340',
+    textGrayLight: '#8A7058',
+    textGrayLighter: '#C4A882',
+    textGrayLightest: '#F8EDD5',
+    accentColor: '#8B5A2B',
+    primaryColor: '#A67C52',
+    borderColor: '#D2B48C',
+    borderColorSoft: '#E6D3B0',
+    successGreen: '#6B8E23',
+    warningColor: '#C27B2F',
+    dangerColor: '#B54A3A',
+    infoColor: '#5B7C99'
+  },
   dark: {
-    name: '暗色',
+    name: '夜色',
     bgPrimary: '#1A1A1A',
     bgSoft: '#242424',
     bgMute: '#2c2c2c',
@@ -43,7 +62,7 @@ const themeConfigs = {
     infoColor: '#60A5FA' // 信息色 - 亮蓝色
   },
   yellow: {
-    name: '护眼黄',
+    name: '护眼',
     bgPrimary: '#FAF0E6',
     bgSoft: '#F5E6D3',
     bgMute: '#F0DCC0',
@@ -257,7 +276,7 @@ export const useThemeStore = defineStore('theme', () => {
 
   // 获取主题名称
   const getThemeName = (theme) => {
-    return themeConfigs[theme]?.name || '亮色'
+    return themeConfigs[theme]?.name || '白色'
   }
 
   // 初始化主题

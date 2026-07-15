@@ -1,5 +1,55 @@
 <template>
   <div class="editor-menubar">
+    <div class="panel-toggles" aria-label="面板缩放">
+      <el-tooltip
+        :content="leftCollapsed ? '展开章节目录' : '收起章节目录'"
+        placement="bottom"
+        :show-after="200"
+      >
+        <el-button
+          size="small"
+          class="toolbar-item panel-toggle-btn"
+          :type="leftCollapsed ? 'primary' : 'default'"
+          :aria-label="leftCollapsed ? '展开章节目录' : '收起章节目录'"
+          :aria-pressed="!leftCollapsed"
+          @click="emit('toggle-left')"
+        >
+          <PanelLeftOpen
+            v-if="leftCollapsed"
+            :size="15"
+          />
+          <PanelLeftClose
+            v-else
+            :size="15"
+          />
+          <span class="panel-toggle-label">目录</span>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip
+        :content="rightCollapsed ? '展开 AI 助手' : '收起 AI 助手'"
+        placement="bottom"
+        :show-after="200"
+      >
+        <el-button
+          size="small"
+          class="toolbar-item panel-toggle-btn"
+          :type="rightCollapsed ? 'primary' : 'default'"
+          :aria-label="rightCollapsed ? '展开 AI 助手' : '收起 AI 助手'"
+          :aria-pressed="!rightCollapsed"
+          @click="emit('toggle-right')"
+        >
+          <PanelRightOpen
+            v-if="rightCollapsed"
+            :size="15"
+          />
+          <PanelRightClose
+            v-else
+            :size="15"
+          />
+          <span class="panel-toggle-label">AI</span>
+        </el-button>
+      </el-tooltip>
+    </div>
     <div class="toolbar-left">
       <el-tooltip
         :content="t('editorMenubar.font')"
@@ -415,6 +465,41 @@
     </div>
     <div class="toolbar-right">
       <el-tooltip
+        content="配色"
+        placement="bottom"
+        :show-after="200"
+      >
+        <el-dropdown
+          trigger="click"
+          @command="handleThemeChange"
+        >
+          <el-button
+            size="small"
+            class="toolbar-item theme-switcher-btn"
+            aria-label="切换创作台配色"
+          >
+            <Palette :size="14" />
+            <span class="theme-switcher-label">{{ currentThemeName }}</span>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu class="theme-switcher-menu">
+              <el-dropdown-item
+                v-for="theme in availableThemes"
+                :key="theme.key"
+                :command="theme.key"
+                :class="{ 'is-active-theme': themeStore.currentTheme === theme.key }"
+              >
+                <span
+                  class="theme-swatch"
+                  :style="{ background: theme.preview }"
+                />
+                <span>{{ theme.name }}</span>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </el-tooltip>
+      <el-tooltip
         :content="t('editorMenubar.save')"
         placement="bottom"
         :show-after="TOOLTIP_SHOW_AFTER"
@@ -456,9 +541,10 @@ import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { DocumentCopy, Search, Tickets } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Redo, Undo, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-vue-next'
+import { Redo, Undo, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Palette } from 'lucide-vue-next'
 import dayjs from 'dayjs'
 import { useEditorStore } from '@renderer/stores/editor'
+import { useThemeStore } from '@renderer/stores/theme'
 import SvgIcon from '@renderer/components/SvgIcon.vue'
 import { buildBookTextExport, downloadBookTextExport } from '@renderer/service/editorExport'
 import {
@@ -932,12 +1018,34 @@ async function handleExport() {
   padding: 8px 15px;
   border-bottom: 1px solid var(--border-color);
   background: var(--bg-soft);
+  flex-wrap: nowrap;
+  min-width: 0;
+
+  .panel-toggles,
   .toolbar-left,
   .toolbar-right {
     display: flex;
     align-items: center;
     gap: 6px;
+    flex-shrink: 0;
   }
+
+  .toolbar-left {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .panel-toggles {
+    padding-right: 8px;
+    margin-right: 2px;
+    border-right: 1px solid var(--border-color);
+  }
+
   .el-button--small {
     padding: 5px 8px;
     min-width: 24px;
@@ -945,6 +1053,51 @@ async function handleExport() {
 }
 .toolbar-item {
   margin: 0;
+}
+
+.panel-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.panel-toggle-label {
+  font-size: 12px;
+  line-height: 1;
+}
+
+
+.theme-switcher-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.theme-switcher-label {
+  font-size: 12px;
+  line-height: 1;
+  max-width: 3.5em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.theme-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color, #d0d0d0);
+  vertical-align: middle;
+}
+
+:deep(.theme-switcher-menu .is-active-theme) {
+  color: var(--el-color-primary);
+  font-weight: 600;
 }
 
 @media (max-width: 767px) {
@@ -957,10 +1110,16 @@ async function handleExport() {
       display: none;
     }
 
+    .panel-toggles,
     .toolbar-left,
     .toolbar-right,
     .toolbar-item {
       flex-shrink: 0;
+    }
+
+    .panel-toggle-label,
+    .theme-switcher-label {
+      display: none;
     }
   }
 }
