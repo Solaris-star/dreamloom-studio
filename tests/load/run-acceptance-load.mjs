@@ -190,6 +190,7 @@ async function runAutocannonScenario({
   path,
   method = 'POST',
   body,
+  bodyFactory,
   cookie,
   connections,
   duration = DURATION_SEC
@@ -207,7 +208,16 @@ async function runAutocannonScenario({
     duration,
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: typeof bodyFactory === 'function' ? undefined : body === undefined ? undefined : JSON.stringify(body),
+    setupClient:
+      typeof bodyFactory === 'function'
+        ? (client) => {
+            client.setBody(JSON.stringify(bodyFactory()))
+            client.on('response', () => {
+              client.setBody(JSON.stringify(bodyFactory()))
+            })
+          }
+        : undefined,
     timeout: 30,
     pipelining: 1
   })
@@ -620,13 +630,14 @@ async function main() {
           name: 'ai-queue-write',
           path: '/api/editor-agent/queue-write',
           method: 'POST',
-          body: {
+          bodyFactory: () => ({
             bookName: BOOK_NAME,
             volumeName: VOLUME_NAME,
             chapterName: CHAPTER_NAME,
+            booksDir: process.env.NOVEL_BOOKS_DIR || '',
             prompt: '写一段雨夜开场，不超过 80 字',
-            taskId: `load-${connections}-${Date.now()}`
-          },
+            jobId: `load-${connections}-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`
+          }),
           cookie,
           connections: Math.min(connections, 30),
           duration: Math.min(DURATION_SEC, 8)
