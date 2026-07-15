@@ -2,7 +2,7 @@
   <div class="market-page">
     <header class="market-hero">
       <div class="hero-copy">
-        <h1>市场灵感 / Trend Radar</h1>
+        <h1>市场灵感</h1>
         <p>从真实平台热词、榜单趋势和作者活动中，提炼可直接写成小说的题材方向。</p>
       </div>
 
