@@ -58,7 +58,11 @@ import { handleCreativePlanningRoute } from './src/main/webApi/creativePlanningR
 import { handleAiChatRoute } from './src/main/webApi/aiChatRoutes.js'
 import { createSnapshot as createSettingSnapshot } from './src/main/services/settingSnapshotService.js'
 import { setWebBooksDirectory } from './src/main/services/webBooksDirectoryService.js'
-import { createWebAuthService } from './src/main/services/webAuthService.js'
+import {
+  createAuthStateStoreFromEnv,
+  createMemoryAuthStateStore,
+  createWebAuthService
+} from './src/main/services/webAuthService.js'
 import { createWebServerStore } from './src/main/services/webServerStoreService.js'
 import { createWebAiHistoryReader } from './src/main/services/webAiHistoryStoreService.js'
 import {
@@ -91,11 +95,30 @@ export function createWebServerPlugins() {
     getStoredBooksDir: () => webStore.get('booksDir')
   })
 
-  const webAuth = createWebAuthService({
-    storeGet: webStore.get,
-    storeSet: webStore.set,
-    storeDelete: webStore.delete
-  })
+  const authStateStorePromise = createAuthStateStoreFromEnv({
+    redisUrl: process.env.REDIS_URL,
+    preferRedis:
+      process.env.NOVEL_AUTH_REDIS == null
+        ? null
+        : !['0', 'false', 'no', 'off'].includes(String(process.env.NOVEL_AUTH_REDIS).trim().toLowerCase())
+  }).catch(() => createMemoryAuthStateStore())
+
+  const webAuthPromise = authStateStorePromise.then((stateStore) =>
+    createWebAuthService({
+      storeGet: webStore.get,
+      storeSet: webStore.set,
+      storeDelete: webStore.delete,
+      stateStore,
+      redisUrl: process.env.REDIS_URL
+    })
+  )
+  webAuthPromise
+    .then((auth) => {
+      console.log('[web-api] auth state store ready', { kind: auth.getStateStoreKind() })
+    })
+    .catch((error) => {
+      console.warn('[web-api] auth state store init failed:', error?.message || error)
+    })
 
   const readAiHistoryRows = createWebAiHistoryReader(webStore.read)
 
@@ -134,8 +157,9 @@ export function createWebServerPlugins() {
         }
 
         const path = req.url.split('?')[0]
+        const webAuth = await webAuthPromise
         if (
-          handleAuthRoute({
+          await handleAuthRoute({
             path,
             body,
             req,
@@ -146,7 +170,8 @@ export function createWebServerPlugins() {
         ) {
           return
         }
-        if (!webAuth.getAuthenticatedSession(req).authenticated) {
+        const authSession = await webAuth.getAuthenticatedSession(req)
+        if (!authSession.authenticated) {
           sendJson(res, { success: false, message: '需要书架密码认证' }, 401)
           return
         }

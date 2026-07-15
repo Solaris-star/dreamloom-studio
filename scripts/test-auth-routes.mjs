@@ -6,32 +6,34 @@ const cookies = []
 const cleared = []
 let configuredPassword = ''
 let authenticated = false
+let openAuthEnabled = false
 
 const auth = {
-  getAuthenticatedSession: () => ({
-    authenticated: !configuredPassword || authenticated,
+  getAuthenticatedSession: async () => ({
+    authenticated: (!configuredPassword && openAuthEnabled) || authenticated,
     passwordConfigured: Boolean(configuredPassword)
   }),
-  getBookshelfPassword: () => configuredPassword,
+  getBookshelfPassword: async () => configuredPassword,
   passwordsMatch: (actual, expected) => actual === expected,
-  storeAccessKey: (key) => {
+  storeAccessKey: async (key) => {
     configuredPassword = `stored:${key}`
     return configuredPassword
   },
-  clearAccessKey: () => {
+  clearAccessKey: async () => {
     configuredPassword = ''
   },
-  normalizeStoredCredential: (_key, credential) => credential,
+  normalizeStoredCredential: async (_key, credential) => credential,
   isSecureAuthRequest: () => true,
-  checkLoginAllowed: () => ({ allowed: true, retryAfterSeconds: 0 }),
-  recordLoginFailure: () => {},
-  clearLoginFailures: () => {},
-  createSession: (password) => `token:${password}`,
+  isOpenAuthEnabled: () => openAuthEnabled,
+  checkLoginAllowed: async () => ({ allowed: true, retryAfterSeconds: 0 }),
+  recordLoginFailure: async () => {},
+  clearLoginFailures: async () => {},
+  createSession: async (password) => `token:${password}`,
   setAuthCookie: (_req, _res, token) => cookies.push(token),
-  clearAuthCookie: (req, res) => cleared.push([req, res])
+  clearAuthCookie: async (req, res) => cleared.push([req, res])
 }
 const common = {
-  req: { headers: {} },
+  req: { headers: {}, socket: { remoteAddress: '127.0.0.1' } },
   res: {},
   sendJson: (_res, payload, status) => responses.push([payload, status]),
   auth
@@ -41,16 +43,27 @@ for (const path of ['/api/auth/status', '/api/auth/login', '/api/auth/logout', '
   assert.equal(isAuthRoute(path), true)
 }
 assert.equal(isAuthRoute('/api/books/list'), false)
-assert.equal(handleAuthRoute({ ...common, path: '/api/books/list' }), false)
+assert.equal(await handleAuthRoute({ ...common, path: '/api/books/list' }), false)
 
-handleAuthRoute({ ...common, path: '/api/auth/status' })
+openAuthEnabled = false
+configuredPassword = ''
+authenticated = false
+await handleAuthRoute({ ...common, path: '/api/auth/status' })
+assert.deepEqual(responses.at(-1)[0], {
+  success: true,
+  authenticated: false,
+  passwordConfigured: false
+})
+
+openAuthEnabled = true
+await handleAuthRoute({ ...common, path: '/api/auth/status' })
 assert.deepEqual(responses.at(-1)[0], {
   success: true,
   authenticated: true,
   passwordConfigured: false
 })
 
-handleAuthRoute({
+await handleAuthRoute({
   ...common,
   path: '/api/auth/login',
   auth: { ...auth, isSecureAuthRequest: () => false },
@@ -61,17 +74,24 @@ assert.deepEqual(responses.at(-1), [
   426
 ])
 
-handleAuthRoute({
-  ...common,
-  req: { headers: { 'x-forwarded-proto': 'https' }, socket: { remoteAddress: '203.0.113.8' } },
-  path: '/api/auth/login',
-  auth: { ...auth, isSecureAuthRequest: () => false },
-  body: { password: 'test1234' }
+openAuthEnabled = false
+configuredPassword = ''
+await handleAuthRoute({ ...common, path: '/api/auth/login', body: {} })
+assert.equal(responses.at(-1)[1], 503)
+assert.equal(responses.at(-1)[0].authenticated, false)
+
+openAuthEnabled = true
+await handleAuthRoute({ ...common, path: '/api/auth/login', body: {} })
+assert.deepEqual(responses.at(-1)[0], {
+  success: true,
+  authenticated: true,
+  passwordConfigured: false
 })
-assert.equal(responses.at(-1)[1], 426)
 
 configuredPassword = 'test1234'
-handleAuthRoute({ ...common, path: '/api/auth/status' })
+authenticated = false
+openAuthEnabled = false
+await handleAuthRoute({ ...common, path: '/api/auth/status' })
 assert.deepEqual(responses.at(-1)[0], {
   success: true,
   authenticated: false,
@@ -79,7 +99,7 @@ assert.deepEqual(responses.at(-1)[0], {
 })
 
 authenticated = true
-handleAuthRoute({
+await handleAuthRoute({
   ...common,
   path: '/api/auth/access-key',
   body: { currentKey: 'test1234', newKey: 'newKey1234' }
@@ -87,16 +107,9 @@ handleAuthRoute({
 assert.equal(configuredPassword, 'stored:newKey1234')
 assert.equal(cookies.at(-1), 'token:stored:newKey1234')
 
-configuredPassword = ''
-handleAuthRoute({ ...common, path: '/api/auth/login', body: {} })
-assert.deepEqual(responses.at(-1), [
-  { success: true, authenticated: true, passwordConfigured: false },
-  undefined
-])
-
 configuredPassword = 'test1234'
 const cookieCountBeforeFailedLogin = cookies.length
-handleAuthRoute({
+await handleAuthRoute({
   ...common,
   path: '/api/auth/login',
   body: { password: 'wrong' }
@@ -104,7 +117,7 @@ handleAuthRoute({
 assert.deepEqual(responses.at(-1), [{ success: false, message: '密码错误' }, 401])
 assert.equal(cookies.length, cookieCountBeforeFailedLogin)
 
-handleAuthRoute({
+await handleAuthRoute({
   ...common,
   path: '/api/auth/login',
   body: { password: 'test1234' }
@@ -116,7 +129,24 @@ assert.deepEqual(responses.at(-1)[0], {
   passwordConfigured: true
 })
 
-handleAuthRoute({ ...common, path: '/api/auth/logout' })
+await handleAuthRoute({
+  ...common,
+  path: '/api/auth/login',
+  body: { password: 'test1234' },
+  auth: {
+    ...auth,
+    createSession: async () => {
+      const error = new Error('创建会话失败：共享会话存储不可用')
+      error.statusCode = 503
+      error.expose = true
+      throw error
+    }
+  }
+})
+assert.equal(responses.at(-1)[1], 503)
+assert.doesNotMatch(JSON.stringify(responses.at(-1)[0]), /redis:\/\/|secret-host/i)
+
+await handleAuthRoute({ ...common, path: '/api/auth/logout' })
 assert.equal(cleared.length, 1)
 assert.deepEqual(responses.at(-1)[0], { success: true })
 

@@ -8,6 +8,10 @@ import { createWebServerPlugins } from '../vite.web.plugins.mjs'
 const root = fs.mkdtempSync(join(os.tmpdir(), 'dreamloom-web-api-security-'))
 const originalCwd = process.cwd()
 const originalLimit = process.env.NOVEL_MAX_REQUEST_BODY_BYTES
+const originalAllowOpen = process.env.NOVEL_ALLOW_OPEN_AUTH
+const originalAuthRedis = process.env.NOVEL_AUTH_REDIS
+const originalRedisUrl = process.env.REDIS_URL
+const originalScheduler = process.env.MARKET_TREND_SCHEDULER
 let server
 
 function listen(handler) {
@@ -58,6 +62,11 @@ function postChunked(baseUrl, path, chunks) {
 try {
   process.chdir(root)
   process.env.NOVEL_MAX_REQUEST_BODY_BYTES = '128'
+  process.env.NOVEL_AUTH_REDIS = 'false'
+  delete process.env.REDIS_URL
+  process.env.NOVEL_ALLOW_OPEN_AUTH = 'false'
+  process.env.MARKET_TREND_SCHEDULER = '0'
+
   const webPlugin = createWebServerPlugins().find((plugin) => plugin.name === 'web-api-middleware')
   assert.equal(typeof webPlugin.configureServer, 'function')
   assert.equal(typeof webPlugin.configurePreviewServer, 'function')
@@ -72,10 +81,12 @@ try {
   })
   assert.equal(typeof middleware, 'function')
 
-  server = await listen((req, res) => middleware(req, res, () => {
-    res.statusCode = 404
-    res.end()
-  }))
+  server = await listen((req, res) =>
+    middleware(req, res, () => {
+      res.statusCode = 404
+      res.end()
+    })
+  )
   const baseUrl = `http://127.0.0.1:${server.address().port}`
 
   let response = await fetch(`${baseUrl}/api/auth/status`, {
@@ -84,7 +95,14 @@ try {
     body: '{}'
   })
   assert.equal(response.status, 200)
-  assert.equal((await response.json()).authenticated, true)
+  assert.equal((await response.json()).authenticated, false)
+
+  response = await fetch(`${baseUrl}/api/books/list`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}'
+  })
+  assert.equal(response.status, 401)
 
   fs.writeFileSync(
     join(root, '.store.json'),
@@ -118,6 +136,7 @@ try {
   const cookie = response.headers.get('set-cookie')
   assert.match(cookie, /dreamloom_session=/)
   assert.match(cookie, /HttpOnly/)
+  assert.match(cookie, /SameSite=Strict/)
   assert.match(cookie, /Max-Age=43200/)
   const migratedStore = JSON.parse(fs.readFileSync(join(root, '.store.json'), 'utf8'))
   assert.match(migratedStore.bookshelfPassword, /^scrypt\$v1\$/)
@@ -140,6 +159,13 @@ try {
   const updatedStoreText = fs.readFileSync(join(root, '.store.json'), 'utf8')
   assert.match(JSON.parse(updatedStoreText).bookshelfPassword, /^scrypt\$v1\$/)
   assert.doesNotMatch(updatedStoreText, /newSecret123/)
+
+  response = await fetch(`${baseUrl}/api/books/list`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: '{}'
+  })
+  assert.equal(response.status, 401)
 
   response = await fetch(`${baseUrl}/api/auth/login`, {
     method: 'POST',
@@ -170,7 +196,7 @@ try {
 
   response = await fetch(`${baseUrl}/api/books/list`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    headers: { 'Content-Type': 'application/json', Cookie: updatedCookie },
     body: '{}'
   })
   assert.equal(response.status, 401)
@@ -194,6 +220,14 @@ try {
   process.chdir(originalCwd)
   if (originalLimit === undefined) delete process.env.NOVEL_MAX_REQUEST_BODY_BYTES
   else process.env.NOVEL_MAX_REQUEST_BODY_BYTES = originalLimit
+  if (originalAllowOpen === undefined) delete process.env.NOVEL_ALLOW_OPEN_AUTH
+  else process.env.NOVEL_ALLOW_OPEN_AUTH = originalAllowOpen
+  if (originalAuthRedis === undefined) delete process.env.NOVEL_AUTH_REDIS
+  else process.env.NOVEL_AUTH_REDIS = originalAuthRedis
+  if (originalRedisUrl === undefined) delete process.env.REDIS_URL
+  else process.env.REDIS_URL = originalRedisUrl
+  if (originalScheduler === undefined) delete process.env.MARKET_TREND_SCHEDULER
+  else process.env.MARKET_TREND_SCHEDULER = originalScheduler
   fs.rmSync(root, { recursive: true, force: true })
 }
 

@@ -129,6 +129,16 @@ assertIncludes(
   '.env.example must document the agent task queue concurrency'
 )
 assertIncludes(envExample, 'REDIS_PORT=6379', '.env.example must document the redis port')
+assertIncludes(envExample, 'NOVEL_ALLOW_OPEN_AUTH=false', '.env.example must document open auth switch')
+assertIncludes(envExample, 'NOVEL_TRUST_PROXY=false', '.env.example must document trust proxy switch')
+assertIncludes(compose, 'NOVEL_ALLOW_OPEN_AUTH: ${NOVEL_ALLOW_OPEN_AUTH:-false}', 'Compose must pass the open auth switch')
+assertIncludes(compose, 'NOVEL_TRUST_PROXY: ${NOVEL_TRUST_PROXY:-false}', 'Compose must pass the trust proxy switch')
+assertIncludes(envExample, 'REDIS_PORT=6379', '.env.example must document the redis port')
+assertIncludes(envExample, 'NOVEL_ALLOW_OPEN_AUTH=false', '.env.example must document open auth switch')
+assertIncludes(envExample, 'NOVEL_TRUST_PROXY=false', '.env.example must document trust proxy switch')
+assertIncludes(compose, 'NOVEL_ALLOW_OPEN_AUTH: ${NOVEL_ALLOW_OPEN_AUTH:-false}', 'Compose must pass the open auth switch')
+assertIncludes(compose, 'NOVEL_TRUST_PROXY: ${NOVEL_TRUST_PROXY:-false}', 'Compose must pass the trust proxy switch')
+
 assertIncludes(
   webConfig,
   'createWebServerPlugins()',
