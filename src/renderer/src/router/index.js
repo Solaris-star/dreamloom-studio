@@ -58,8 +58,29 @@ function titleFromMap(section, titleMap, fallback) {
   return titleMap[String(section || '')] || fallback
 }
 
+function resolveRouteTitle(to) {
+  // 从最深层 matched 记录取 title，兼容嵌套路由 / 重定向落点 / keep-alive 复用场景
+  const matched = Array.isArray(to?.matched) ? to.matched : []
+  for (let index = matched.length - 1; index >= 0; index -= 1) {
+    const metaTitle = matched[index]?.meta?.title
+    if (typeof metaTitle === 'function') {
+      const resolved = metaTitle(to)
+      if (resolved) return String(resolved)
+    } else if (typeof metaTitle === 'string' && metaTitle.trim()) {
+      return metaTitle.trim()
+    }
+  }
+
+  const fallback = to?.meta?.title
+  if (typeof fallback === 'function') {
+    const resolved = fallback(to)
+    return resolved ? String(resolved) : ''
+  }
+  return typeof fallback === 'string' ? fallback.trim() : ''
+}
+
 function resolveDocumentTitle(to) {
-  const title = typeof to.meta?.title === 'function' ? to.meta.title(to) : to.meta?.title
+  const title = resolveRouteTitle(to)
   return title ? `${title} | ${APP_BRAND_TITLE}` : APP_BRAND_TITLE
 }
 
@@ -471,6 +492,11 @@ const router = createRouter({
   routes
 })
 
+function applyDocumentTitle(to) {
+  if (typeof document === 'undefined') return
+  document.title = resolveDocumentTitle(to)
+}
+
 router.beforeEach(async (to, from, next) => {
   if (to.name === 'Auth') {
     next()
@@ -491,14 +517,15 @@ router.beforeEach(async (to, from, next) => {
   next({ name: 'Auth' })
 })
 
+// 每次导航成功（含首次解析、push/replace、浏览器前进后退）都同步 document.title
 router.afterEach((to) => {
-  if (typeof document === 'undefined') return
-  document.title = resolveDocumentTitle(to)
+  applyDocumentTitle(to)
 })
 
 if (typeof window !== 'undefined') {
+  // 首次就绪时再刷一次，覆盖挂载时序与异步路由组件落点
   router.isReady().then(() => {
-    document.title = resolveDocumentTitle(router.currentRoute.value)
+    applyDocumentTitle(router.currentRoute.value)
   })
 }
 

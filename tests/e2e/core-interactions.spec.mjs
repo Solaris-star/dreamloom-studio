@@ -141,16 +141,18 @@ async function mockAgentQueuePage(page, options = {}) {
 }
 
 test.beforeEach(async ({ page, request }, testInfo) => {
-  await page.route('**/api/bookshelf-auth/status', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      body: JSON.stringify({
-        success: true,
-        authenticated: true,
-        passwordConfigured: false
+  for (const pattern of ['**/api/auth/status', '**/api/bookshelf-auth/status']) {
+    await page.route(pattern, async (route) => {
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          authenticated: true,
+          passwordConfigured: false
+        })
       })
     })
-  })
+  }
   await createTestBook(request, testInfo.project.name)
 })
 

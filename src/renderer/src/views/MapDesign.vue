@@ -1181,10 +1181,7 @@ async function loadMapData() {
 
 // ==================== 生命周期 ====================
 onMounted(async () => {
-  // 设置页面title
-  if (mapName.value) {
-    document.title = mapName.value
-  }
+  // document.title 统一由路由 meta.title / afterEach 管理
 
   nextTick(async () => {
     if (canvasRef.value) {

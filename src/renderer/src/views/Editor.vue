@@ -220,9 +220,7 @@ function handleMobileAiTrigger(command, arg) {
 }
 
 onMounted(() => {
-  if (bookName.value) {
-    document.title = `${bookName.value} - 织梦工坊`
-  }
+  // document.title 统一由路由 meta.title / afterEach 管理，避免覆盖 keep-alive 往返后的标题
   void nextTick(() => {
     refreshNotes()
   })

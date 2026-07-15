@@ -61,6 +61,8 @@
           class="toolbar-item"
           size="small"
           style="width: 82px"
+          data-testid="editor-font-family"
+          aria-label="字体"
         >
           <el-option
             label="宋体"
@@ -137,6 +139,8 @@
           class="toolbar-item"
           size="small"
           style="width: 62px"
+          data-testid="editor-font-size"
+          aria-label="字号"
         >
           <el-option
             label="12px"
@@ -210,6 +214,8 @@
           class="toolbar-item"
           size="small"
           style="width: 50px"
+          data-testid="editor-line-height"
+          aria-label="行高"
         >
           <el-option
             label="1.4"
@@ -247,6 +253,8 @@
           class="toolbar-item"
           size="small"
           style="width: 60px"
+          data-testid="editor-paragraph-spacing"
+          aria-label="段落间距"
         >
           <el-option
             :label="t('editorMenubar.none')"
@@ -284,6 +292,8 @@
           class="toolbar-item"
           size="small"
           style="width: 105px"
+          data-testid="editor-page-width"
+          aria-label="页边距/页宽"
         >
           <el-option
             label="自适应 (极宽)"

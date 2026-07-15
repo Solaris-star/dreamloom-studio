@@ -30,7 +30,8 @@ app.component('SvgIcon', SvgIcon)
 const themeStore = useThemeStore()
 themeStore.initTheme()
 
-initLocale().finally(() => {
-  app.mount('#app')
-  installElementPlusMotion()
-})
+// 先挂载应用，避免 initLocale 的异步 I/O 阻塞首屏与路由标题生效。
+// 默认 locale 已是 zh-CN，initLocale 仅覆盖用户偏好，可在挂载后完成。
+app.mount('#app')
+installElementPlusMotion()
+void initLocale()

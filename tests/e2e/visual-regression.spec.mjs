@@ -53,13 +53,15 @@ async function openEditor(page, bookName) {
   await page.goto(`/#/editor/${encodeURIComponent(bookName)}?name=${encodeURIComponent(bookName)}`)
   await expect(page.getByLabel('创作台快捷操作')).toBeVisible()
   await expect(page.locator('.ProseMirror')).toContainText(/夜雨落在青石长街上|天亮以后/)
-  await page.locator('.toolbar-item').nth(1).click()
+
+  // 使用 aria-label / data-testid，避免 .toolbar-item.nth() 依赖 DOM 顺序
+  await page.getByTestId('editor-font-size').click()
   await page.getByRole('option', { name: '18px' }).click()
-  await page.locator('.toolbar-item').nth(2).click()
+  await page.getByTestId('editor-line-height').click()
   await page.getByRole('option', { name: '1.8' }).click()
-  await page.locator('.toolbar-item').nth(3).click()
+  await page.getByTestId('editor-paragraph-spacing').click()
   await page.getByRole('option', { name: '1', exact: true }).click()
-  await page.locator('.toolbar-item').nth(4).click()
+  await page.getByTestId('editor-page-width').click()
   await page.getByRole('option', { name: '自适应 (中)' }).click()
 }
 
@@ -77,16 +79,19 @@ test.beforeEach(async ({ page, request }, testInfo) => {
     key: 'config.locale',
     value: 'zh-CN'
   })
-  await page.route('**/api/bookshelf-auth/status', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      body: JSON.stringify({
-        success: true,
-        authenticated: true,
-        passwordConfigured: false
+  // 真实认证接口是 /api/auth/status；同时兼容旧 mock 路径
+  for (const pattern of ['**/api/auth/status', '**/api/bookshelf-auth/status']) {
+    await page.route(pattern, async (route) => {
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          authenticated: true,
+          passwordConfigured: false
+        })
       })
     })
-  })
+  }
   await createTestBook(request, testInfo.project.name)
 })
 
@@ -118,12 +123,12 @@ test('宽屏创作台视觉基准', async ({ page }, testInfo) => {
   await openEditor(page, testBookName('wide'))
   await expectPageScreenshot(page, 'wide-editor.png')
 
-  await page.getByRole('button', { name: '章节目录' }).click()
+  await page.getByLabel('创作台快捷操作').getByRole('button', { name: '章节目录', exact: true }).click()
   await expect(page.getByRole('dialog', { name: '章节目录' })).toBeVisible()
   await expectPageScreenshot(page, 'wide-editor-catalog.png')
 
   await page.keyboard.press('Escape')
-  await page.getByLabel('进入专注模式').click()
+  await page.getByLabel('创作台快捷操作').getByLabel('进入专注模式').click()
   await expect(page.locator('.editor-container')).toHaveClass(/is-focus-mode/)
   await expectPageScreenshot(page, 'wide-editor-focus.png')
 })
@@ -133,7 +138,7 @@ test('手机创作台视觉基准', async ({ page }, testInfo) => {
   await openEditor(page, testBookName('mobile'))
   await expectPageScreenshot(page, 'mobile-editor.png')
 
-  await page.getByRole('button', { name: '创作工具' }).click()
+  await page.getByLabel('创作台快捷操作').getByRole('button', { name: '创作工具', exact: true }).click()
   await expect(page.getByRole('dialog', { name: '创作工具' })).toBeVisible()
   await expectPageScreenshot(page, 'mobile-editor-tools.png')
 })
