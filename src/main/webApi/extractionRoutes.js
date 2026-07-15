@@ -2,6 +2,7 @@ const ROUTES = new Set([
   '/api/extraction/dimensions',
   '/api/extraction/create',
   '/api/extraction/progress',
+  '/api/extraction/cancel',
   '/api/extraction/list',
   '/api/extraction/get',
   '/api/extraction/result-page',
@@ -43,6 +44,14 @@ export async function handleExtractionRoute({
 
   if (path === '/api/extraction/progress') {
     sendJson(res, tasks.progress(payload.jobId))
+    return true
+  }
+
+  if (path === '/api/extraction/cancel') {
+    if (typeof tasks.cancel !== 'function') {
+      throw Object.assign(new Error('当前服务不支持取消拆书任务'), { statusCode: 501 })
+    }
+    sendJson(res, tasks.cancel(payload.jobId, payload.reason))
     return true
   }
 

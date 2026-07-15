@@ -57,7 +57,12 @@ const created = taskService.create(
     dimensions: ['characters']
   }
 )
-assert.deepEqual(created, { success: true, status: 'queued', jobId: 'extraction_job-1' })
+assert.deepEqual(created, {
+  success: true,
+  status: 'queued',
+  jobId: 'extraction_job-1',
+  timeoutMs: 30 * 60 * 1000
+})
 
 await new Promise((resolve) => setImmediate(resolve))
 assert.equal(receivedOptions.bookPath, 'D:\\books\\demo')
@@ -96,6 +101,34 @@ assert.equal(completed.done, true)
 assert.equal(completed.result.success, true)
 assert.equal(completed.progress.extractionId, 'ext-1')
 assert.equal(completed.progress.overallPercent, 100)
+assert.equal(completed.failedReason, '')
+
+const cancelRun = deferred()
+const cancelService = new WebExtractionTaskService({
+  extractionService: {
+    async createExtraction(options) {
+      return new Promise((resolve, reject) => {
+        options.signal?.addEventListener(
+          'abort',
+          () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })),
+          { once: true }
+        )
+        cancelRun.resolve = resolve
+      })
+    }
+  },
+  createTextProvider: () => ({ service: { chat: async () => ({ content: '[]' }) } }),
+  createJobId: () => 'job-cancel'
+})
+const cancelCreated = cancelService.create({}, { bookPath: 'D:\\books\\cancel' })
+await new Promise((resolve) => setImmediate(resolve))
+const cancelResult = cancelService.cancel(cancelCreated.jobId)
+assert.equal(cancelResult.cancellationRequested, true)
+await new Promise((resolve) => setImmediate(resolve))
+const cancelled = cancelService.progress(cancelCreated.jobId)
+assert.equal(cancelled.done, true)
+assert.equal(cancelled.progress.status, 'cancelled')
+assert.match(cancelled.failedReason, /取消/)
 
 const failedService = new WebExtractionTaskService({
   extractionService: {

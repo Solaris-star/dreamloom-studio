@@ -30,7 +30,18 @@ assertIncludes(dockerfile, 'npm run build', 'Dockerfile must verify the web buil
 assertIncludes(dockerfile, 'EXPOSE 5174', 'Dockerfile must expose the Vite web port')
 
 assertIncludes(compose, 'app:', 'Compose must define the app service')
+assertIncludes(compose, 'worker:', 'Compose must define the worker service')
 assertIncludes(compose, 'redis:', 'Compose must define the redis service')
+assertIncludes(
+  compose,
+  "command: ['npm', 'run', 'start:worker']",
+  'Compose worker service must start the independent worker process'
+)
+assertIncludes(
+  compose,
+  "AGENT_TASK_WORKER_ENABLED: 'false'",
+  'Compose app service must not run BullMQ workers'
+)
 assertIncludes(compose, 'target: dev', 'Compose app service must use the dev target')
 assertIncludes(
   compose,
@@ -71,6 +82,11 @@ assertIncludes(
   compose,
   'AGENT_TASK_QUEUE_CONCURRENCY: ${AGENT_TASK_QUEUE_CONCURRENCY:-1}',
   'Compose must pass the agent task queue concurrency'
+)
+assertIncludes(
+  compose,
+  'AGENT_TASK_QUEUE_JOB_TIMEOUT_MS: ${AGENT_TASK_QUEUE_JOB_TIMEOUT_MS:-900000}',
+  'Compose must pass the agent task job timeout'
 )
 assertIncludes(
   compose,
@@ -127,6 +143,16 @@ assertIncludes(
   envExample,
   'AGENT_TASK_QUEUE_CONCURRENCY=1',
   '.env.example must document the agent task queue concurrency'
+)
+assertIncludes(
+  envExample,
+  'AGENT_TASK_QUEUE_JOB_TIMEOUT_MS=900000',
+  '.env.example must document the agent task job timeout'
+)
+assertIncludes(
+  envExample,
+  'AGENT_TASK_QUEUE_PROVIDER_CONCURRENCY=',
+  '.env.example must document provider concurrency overrides'
 )
 assertIncludes(envExample, 'REDIS_PORT=6379', '.env.example must document the redis port')
 assertIncludes(envExample, 'NOVEL_ALLOW_OPEN_AUTH=false', '.env.example must document open auth switch')

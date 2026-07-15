@@ -2,9 +2,16 @@ import { randomUUID } from 'node:crypto'
 
 const FINAL_STATUSES = new Set(['completed', 'partial', 'failed', 'cancelled'])
 const MAX_RETAINED_JOBS = 100
+const DEFAULT_TIMEOUT_MS = 30 * 60 * 1000
 
 function nowIso() {
   return new Date().toISOString()
+}
+
+function normalizeTimeoutMs(value) {
+  const timeout = Number(value)
+  if (!Number.isFinite(timeout) || timeout <= 0) return DEFAULT_TIMEOUT_MS
+  return Math.min(Math.max(Math.floor(timeout), 1000), 2 * 60 * 60 * 1000)
 }
 
 function initialProgress(jobId, bookPath) {
@@ -60,6 +67,8 @@ export class WebExtractionTaskService {
     }
 
     const jobId = `extraction_${this.createJobId()}`
+    const controller = new AbortController()
+    const timeoutMs = normalizeTimeoutMs(options.timeoutMs)
     const job = {
       id: jobId,
       activeKey,
@@ -67,6 +76,9 @@ export class WebExtractionTaskService {
       createdAt: nowIso(),
       updatedAt: nowIso(),
       done: false,
+      timeoutMs,
+      controller,
+      cancelRequested: false,
       progress: initialProgress(jobId, bookPath),
       result: null
     }
@@ -75,7 +87,7 @@ export class WebExtractionTaskService {
     this.trimJobs()
 
     queueMicrotask(() => this.runJob(store, job, options))
-    return { success: true, status: 'queued', jobId }
+    return { success: true, status: 'queued', jobId, timeoutMs }
   }
 
   activeKey(options = {}) {
@@ -93,12 +105,21 @@ export class WebExtractionTaskService {
   }
 
   async runJob(store, job, options) {
+    let timedOut = false
+    const timeoutId = setTimeout(() => {
+      timedOut = true
+      if (!job.controller.signal.aborted) {
+        job.controller.abort(`拆书任务超时（${Math.round(job.timeoutMs / 1000)} 秒）`)
+      }
+    }, job.timeoutMs)
     try {
       const provider = this.createTextProvider(store, options)
       const result = await this.extractionService.createExtraction({
         ...options,
         textProvider: provider.service,
+        signal: job.controller.signal,
         onProgress: (progress) => {
+          if (job.cancelRequested) return
           job.progress = {
             ...job.progress,
             ...progress,
@@ -108,6 +129,17 @@ export class WebExtractionTaskService {
           job.updatedAt = nowIso()
         }
       })
+      if (job.cancelRequested) {
+        job.result = { success: false, status: 'cancelled', message: '拆书任务已取消' }
+        job.done = true
+        job.progress = {
+          ...job.progress,
+          status: 'cancelled',
+          currentStep: '拆书已取消',
+          error: job.result.message
+        }
+        return
+      }
       job.result = result
       job.done = true
       job.progress = {
@@ -120,6 +152,24 @@ export class WebExtractionTaskService {
         overallPercent: result.success ? 100 : job.progress.overallPercent
       }
     } catch (error) {
+      if (job.cancelRequested || timedOut || job.controller.signal.aborted) {
+        const message = timedOut
+          ? `拆书任务超时（${Math.round(job.timeoutMs / 1000)} 秒）`
+          : '拆书任务已取消'
+        job.result = {
+          success: false,
+          status: timedOut ? 'failed' : 'cancelled',
+          message
+        }
+        job.done = true
+        job.progress = {
+          ...job.progress,
+          status: timedOut ? 'failed' : 'cancelled',
+          currentStep: timedOut ? '拆书超时' : '拆书已取消',
+          error: message
+        }
+        return
+      }
       job.result = publicFailure(error)
       job.done = true
       job.progress = {
@@ -129,8 +179,40 @@ export class WebExtractionTaskService {
         error: job.result.message
       }
     } finally {
+      clearTimeout(timeoutId)
       job.updatedAt = nowIso()
       this.activeKeys.delete(job.activeKey)
+    }
+  }
+
+  cancel(jobId, reason = '用户取消') {
+    const id = String(jobId || '').trim()
+    if (!id) throw new Error('缺少拆书任务 ID')
+    const job = this.jobs.get(id)
+    if (!job) throw new Error('拆书任务不存在或服务已重启')
+    if (job.done || FINAL_STATUSES.has(job.progress.status)) {
+      return {
+        success: true,
+        cancelled: false,
+        jobId: job.id,
+        status: job.progress.status,
+        message: '任务已经结束'
+      }
+    }
+    job.cancelRequested = true
+    job.controller?.abort?.(reason)
+    job.progress = {
+      ...job.progress,
+      status: 'cancelling',
+      currentStep: '正在取消拆书任务'
+    }
+    job.updatedAt = nowIso()
+    return {
+      success: true,
+      cancelled: false,
+      cancellationRequested: true,
+      jobId: job.id,
+      status: 'cancelling'
     }
   }
 
@@ -144,7 +226,8 @@ export class WebExtractionTaskService {
       jobId: job.id,
       done: job.done || FINAL_STATUSES.has(job.progress.status),
       progress: job.progress,
-      result: job.done ? job.result : null
+      result: job.done ? job.result : null,
+      failedReason: job.done && job.result?.success === false ? job.result.message : ''
     }
   }
 

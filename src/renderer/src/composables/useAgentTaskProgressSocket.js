@@ -112,6 +112,8 @@ export function useAgentTaskProgressSocket(options = {}) {
     nextReconnectAt.value = new Date(Date.now() + delay).toISOString()
     reconnectTimer = window.setTimeout(() => {
       reconnectTimer = null
+      // 断线后重新拉一次 progress-server，拿到最新 token / 端口
+      serverInfo.value = null
       connect(latestFilters)
     }, delay)
   }

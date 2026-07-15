@@ -468,6 +468,7 @@ try {
   assert.equal(closeResult.closedWorker, false)
   assert.equal(closeResult.closedQueue, false)
   assert.equal(closeResult.abortedActiveJobs, 0)
+  assert.equal(closeResult.acceptingNewJobs, false)
 
   const defaultCloseResult = await closeAgentTaskQueue()
   assert.equal(defaultCloseResult.success, true)
@@ -475,6 +476,7 @@ try {
   assert.equal(defaultCloseResult.redisUrl, 'redis://127.0.0.1:6379/0')
   assert.equal(defaultCloseResult.closedWorker, false)
   assert.equal(defaultCloseResult.closedQueue, false)
+  assert.equal(defaultCloseResult.acceptingNewJobs, false)
 } finally {
   fs.rmSync(rootDir, { recursive: true, force: true })
 }
