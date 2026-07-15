@@ -45,7 +45,6 @@
         <EditorToolbar
           :cleanup-task-state="cleanupTaskState"
           @trigger-ai="handleAiTrigger"
-          @banned-words-changed="handleBannedWordsChanged"
         />
       </el-splitter-panel>
     </el-splitter>
@@ -108,7 +107,6 @@
       <EditorToolbar
         :cleanup-task-state="cleanupTaskState"
         @trigger-ai="handleMobileAiTrigger"
-        @banned-words-changed="handleBannedWordsChanged"
       />
     </el-drawer>
 
@@ -116,7 +114,39 @@
       v-model="readingSettingsVisible"
       title="阅读设置"
       width="min(420px, 92vw)"
+      class="reading-settings-dialog"
     >
+      <div class="reading-setting theme-setting">
+        <span>阅读主题</span>
+        <div
+          class="theme-chip-row"
+          role="listbox"
+          aria-label="阅读主题"
+        >
+          <button
+            v-for="theme in availableThemes"
+            :key="theme.key"
+            type="button"
+            class="theme-chip"
+            :class="{ active: themeStore.currentTheme === theme.key }"
+            role="option"
+            :aria-selected="themeStore.currentTheme === theme.key"
+            :data-theme-option="theme.key"
+            :aria-label="`切换到${theme.name}`"
+            @click="handleReadingThemeChange(theme.key)"
+          >
+            <span
+              class="theme-swatch"
+              :style="{
+                background: theme.preview,
+                '--theme-swatch-accent': theme.previewPrimary || theme.previewAccent
+              }"
+              aria-hidden="true"
+            />
+            <span>{{ theme.name }}</span>
+          </button>
+        </div>
+      </div>
       <div class="reading-setting">
         <span>正文字号</span>
         <el-slider
@@ -189,9 +219,17 @@ import {
   readEditorLayout,
   shouldExitEditorFocusMode
 } from '@renderer/service/editorLayout'
+import { useThemeStore } from '@renderer/stores/theme'
 
 const route = useRoute()
 const router = useRouter()
+const themeStore = useThemeStore()
+const availableThemes = computed(() => themeStore.getAvailableThemes())
+
+async function handleReadingThemeChange(themeKey) {
+  if (!themeKey || themeKey === themeStore.currentTheme) return
+  await themeStore.setTheme(themeKey)
+}
 
 const bookName = computed(() => String(route.query.name || route.params.bookId || '').trim())
 const cleanupTaskState = ref({ selection: 'idle', chapter: 'idle' })
@@ -201,10 +239,6 @@ function handleCleanupTaskState(state) {
     selection: state?.selection || 'idle',
     chapter: state?.chapter || 'idle'
   }
-}
-
-function handleBannedWordsChanged(words) {
-  editorPanelRef.value?.refreshBannedWordHints?.(words)
 }
 
 // keep-alive 下用 activated/deactivated 绑定窗口事件，避免停用页仍监听刷新
@@ -521,6 +555,51 @@ onBeforeUnmount(detachWindowListeners)
   min-height: 54px;
 }
 
+.reading-setting.theme-setting {
+  align-items: start;
+  min-height: auto;
+  margin-bottom: 8px;
+}
+
+.theme-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.theme-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 10px 4px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-soft);
+  color: var(--text-base);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.theme-chip .theme-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.theme-chip.active,
+.theme-chip:hover,
+.theme-chip:focus-visible {
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+  background: var(--bg-mute);
+  outline: none;
+}
+
 :deep(.editor-content .tiptap) {
   width: 100%;
   max-width: var(--editor-paper-width);
@@ -529,6 +608,7 @@ onBeforeUnmount(detachWindowListeners)
   padding: 48px clamp(24px, 6vw, 72px);
   box-sizing: border-box;
   background: var(--bg-primary);
+  color: var(--text-base);
   font-size: var(--editor-reading-font-size) !important;
   line-height: var(--editor-reading-line-height) !important;
 }

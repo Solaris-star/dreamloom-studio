@@ -170,6 +170,7 @@
                   class="theme-card"
                   :class="{ active: themeStore.currentTheme === theme.key }"
                   type="button"
+                  :data-theme-option="theme.key"
                   :aria-label="`切换到${theme.name}`"
                   @click="handleThemeChange(theme.key)"
                 >
@@ -185,6 +186,10 @@
                     <i class="preview-dot dot-two" />
                   </span>
                   <span class="theme-label">{{ theme.name }}</span>
+                  <span
+                    v-if="theme.description"
+                    class="theme-desc"
+                  >{{ theme.description }}</span>
                   <Check
                     v-if="themeStore.currentTheme === theme.key"
                     class="theme-check"
@@ -882,14 +887,15 @@ function formatSize(size) {
 }
 
 function getPreviewStyle(themeKey) {
+  const meta = themeStore.getAvailableThemes().find((item) => item.key === themeKey)
   const config = themeStore.getThemeConfig(themeKey)
   return {
-    '--preview-bg': config.bgPrimary,
-    '--preview-paper': config.bgSoft,
-    '--preview-line': config.borderColor,
-    '--preview-ink': config.textBase,
-    '--preview-primary': config.primaryColor,
-    '--preview-accent': config.accentColor
+    '--preview-bg': meta?.previewPaper || config.bgPrimary,
+    '--preview-paper': meta?.preview || config.bgSoft,
+    '--preview-line': meta?.previewBorder || config.borderColor,
+    '--preview-ink': meta?.previewInk || config.textBase,
+    '--preview-primary': meta?.previewPrimary || config.primaryColor,
+    '--preview-accent': meta?.previewAccent || config.accentColor
   }
 }
 
@@ -1239,11 +1245,18 @@ async function handleThemeChange(theme) {
     line-height: 1.2;
   }
 
+  .theme-desc {
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--text-secondary, var(--color-text));
+    opacity: 0.86;
+  }
+
   .theme-check {
     position: absolute;
     right: 12px;
     bottom: 12px;
-    color: var(--color-primary-strong);
+    color: var(--color-primary, var(--el-color-primary));
   }
 }
 
