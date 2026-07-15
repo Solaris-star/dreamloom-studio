@@ -8,7 +8,7 @@ const root = fs.mkdtempSync(join(os.tmpdir(), 'dreamloom-book-create-safety-'))
 const booksDir = join(root, 'books')
 const originalFetch = globalThis.fetch
 
-async function createRemoteCoverBook(name, coverRemoteUrl = 'https://images.example/cover.png') {
+async function createRemoteCoverBook(name, coverRemoteUrl = 'https://203.0.113.10/cover.png') {
   return createBook(
     {
       id: `remote-${name}`,
@@ -192,7 +192,7 @@ try {
     {
       id: 'remote-cover',
       name: '远程封面过大',
-      coverRemoteUrl: 'https://images.example/cover.png'
+      coverRemoteUrl: 'https://203.0.113.10/cover.png'
     },
     booksDir
   )
@@ -290,7 +290,7 @@ try {
       id: 'retained-cover',
       name: '已有封面地址',
       coverUrl: 'covers/existing.png',
-      coverRemoteUrl: 'https://images.example/unused.png'
+      coverRemoteUrl: 'https://203.0.113.10/unused.png'
     },
     booksDir
   )
@@ -301,6 +301,22 @@ try {
   )
   assert.equal(retainedCover.coverWarning, '')
   assert.equal(remoteFetchCalls, 0)
+
+  const privateRemote = await createRemoteCoverBook('内网远程封面', 'http://127.0.0.1/cover.png')
+  assert.equal(privateRemote.success, true)
+  assert.match(privateRemote.coverWarning, /本机或内网/)
+  assert.equal(remoteFetchCalls, 0)
+
+  const privateLanRemote = await createRemoteCoverBook(
+    '局域网远程封面',
+    'http://192.168.1.8/cover.png'
+  )
+  assert.equal(privateLanRemote.success, true)
+  assert.match(privateLanRemote.coverWarning, /本机或内网/)
+
+  const ipv6LocalRemote = await createRemoteCoverBook('IPv6本地封面', 'http://[::1]/cover.png')
+  assert.equal(ipv6LocalRemote.success, true)
+  assert.match(ipv6LocalRemote.coverWarning, /本机或内网/)
 
   const networkFailure = await createRemoteCoverBook('远程网络异常')
   assert.equal(networkFailure.success, true)

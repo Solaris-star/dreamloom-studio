@@ -3,7 +3,7 @@ import { TongyiwanxiangService } from '../src/main/services/tongyiwanxiang.js'
 
 const originalFetch = globalThis.fetch
 
-function successfulResponse(image = 'https://image.example/cover.png') {
+function successfulResponse(image = 'https://203.0.113.10/cover.png') {
   return {
     ok: true,
     async json() {
@@ -53,7 +53,7 @@ try {
       size: '1200*1600',
       negativePrompt: 'watermark'
     }),
-    'https://image.example/cover.png'
+    'https://203.0.113.10/cover.png'
   )
   assert.match(request.url, /multimodal-generation\/generation$/)
   assert.equal(request.init.headers.Authorization, 'Bearer test-key')
