@@ -1,0 +1,904 @@
+{
+  "startedAt": "2026-07-15T16:20:12.683Z",
+  "env": {
+    "baseUrl": "http://127.0.0.1:5174",
+    "wsUrl": "ws://127.0.0.1:8787/agent-tasks",
+    "bookName": "压测验收书",
+    "durationSec": 8,
+    "connections": [
+      10,
+      50,
+      100,
+      300
+    ],
+    "openAuth": false,
+    "skipAi": false,
+    "skipWs": false
+  },
+  "baseline": {
+    "authStatus": {
+      "success": true,
+      "authenticated": true,
+      "passwordConfigured": false
+    },
+    "redis": {
+      "ping": "PONG",
+      "usedMemoryHuman": "30.73M",
+      "connectedClients": 11
+    },
+    "eventLoopIdleMs": {
+      "meanMs": 11.723142095238096,
+      "p50Ms": 12.034047,
+      "p95Ms": 12.075007,
+      "p99Ms": 12.091391,
+      "maxMs": 12.091391
+    }
+  },
+  "scenarios": [
+    {
+      "connections": 10,
+      "results": [
+        {
+          "name": "login",
+          "path": "/api/auth/login",
+          "method": "POST",
+          "connections": 10,
+          "duration": 8,
+          "throughputRps": 6025.375,
+          "totalRequests": 48203,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 1.2076670000001286,
+            "p95": 4.171875,
+            "p99": 7.66137499999968,
+            "mean": 1.6577798245544757,
+            "max": 20.904625000000124
+          }
+        },
+        {
+          "name": "books-list",
+          "path": "/api/books/list",
+          "method": "POST",
+          "connections": 10,
+          "duration": 8,
+          "throughputRps": 1823.63,
+          "totalRequests": 14589,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 5,
+            "p90": 6,
+            "p95": 9,
+            "p97_5": 9,
+            "p99": 12,
+            "mean": 4.96,
+            "max": 43
+          },
+          "throughputBytes": 1057664,
+          "raw": {
+            "2xx": 14589,
+            "4xx": 0,
+            "5xx": 0
+          }
+        },
+        {
+          "name": "chapter-read",
+          "path": "/api/chapters/read",
+          "method": "POST",
+          "connections": 10,
+          "duration": 8,
+          "throughputRps": 2157.5,
+          "totalRequests": 17256,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 4,
+            "p90": 5,
+            "p95": 5,
+            "p97_5": 5,
+            "p99": 7,
+            "mean": 4.16,
+            "max": 23
+          },
+          "throughputBytes": 961984,
+          "raw": {
+            "2xx": 17256,
+            "4xx": 0,
+            "5xx": 0
+          }
+        },
+        {
+          "name": "chapter-save",
+          "path": "/api/chapters/save",
+          "method": "POST",
+          "connections": 10,
+          "duration": 8,
+          "throughputRps": 427.38,
+          "totalRequests": 3419,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 22,
+            "p90": 24,
+            "p95": 27,
+            "p97_5": 27,
+            "p99": 35,
+            "mean": 22.87,
+            "max": 66
+          },
+          "throughputBytes": 294880,
+          "raw": {
+            "2xx": 3419,
+            "4xx": 0,
+            "5xx": 0
+          }
+        },
+        {
+          "name": "ai-text-task",
+          "path": "/api/ai/text-task",
+          "method": "POST",
+          "connections": 10,
+          "duration": 8,
+          "throughputRps": 1224.25,
+          "totalRequests": 9794,
+          "errors": 9794,
+          "timeouts": 0,
+          "non2xx": 9794,
+          "errorRate": 1,
+          "latencyMs": {
+            "p50": 7,
+            "p90": 8,
+            "p95": 10,
+            "p97_5": 10,
+            "p99": 11,
+            "mean": 7.61,
+            "max": 28
+          },
+          "throughputBytes": 319552,
+          "raw": {
+            "2xx": 0,
+            "4xx": 0,
+            "5xx": 9794
+          }
+        },
+        {
+          "name": "ai-queue-write",
+          "path": "/api/editor-agent/queue-write",
+          "method": "POST",
+          "connections": 10,
+          "duration": 8,
+          "throughputRps": 119.5,
+          "totalRequests": 956,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 78,
+            "p90": 91,
+            "p95": 106,
+            "p97_5": 106,
+            "p99": 317,
+            "mean": 82.63,
+            "max": 454
+          },
+          "throughputBytes": 46961,
+          "raw": {
+            "2xx": 956,
+            "4xx": 0,
+            "5xx": 0
+          }
+        },
+        {
+          "name": "websocket",
+          "path": "/agent-tasks",
+          "method": "WS",
+          "connections": 10,
+          "duration": 3,
+          "throughputRps": 3.3333333333333335,
+          "totalRequests": 10,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 10.214749999999185,
+            "p95": 10.484917000001587,
+            "p99": 10.484917000001587,
+            "mean": 9.943604099999357,
+            "max": 10.484917000001587
+          },
+          "connected": 10
+        }
+      ],
+      "metrics": {
+        "redis": {
+          "ping": "PONG",
+          "usedMemoryHuman": "34.77M",
+          "connectedClients": 11
+        },
+        "eventLoopMs": {
+          "meanMs": 11.544012057971013,
+          "p50Ms": 11.804671,
+          "p95Ms": 12.115967,
+          "p99Ms": 12.132351,
+          "maxMs": 12.353535
+        }
+      },
+      "integrity": {
+        "saveOk": true,
+        "readOk": true,
+        "lost": false,
+        "contentLength": 18,
+        "marker": "c10"
+      }
+    },
+    {
+      "connections": 50,
+      "results": [
+        {
+          "name": "login",
+          "path": "/api/auth/login",
+          "method": "POST",
+          "connections": 50,
+          "duration": 8,
+          "throughputRps": 6985.375,
+          "totalRequests": 55883,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 6.357250000000931,
+            "p95": 11.060041999997338,
+            "p99": 15.498999999996158,
+            "mean": 7.1558807834045055,
+            "max": 26.617834000004223
+          }
+        },
+        {
+          "name": "books-list",
+          "path": "/api/books/list",
+          "method": "POST",
+          "connections": 50,
+          "duration": 8,
+          "throughputRps": 1893,
+          "totalRequests": 15144,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 25,
+            "p90": 27,
+            "p95": 30,
+            "p97_5": 30,
+            "p99": 40,
+            "mean": 25.88,
+            "max": 139
+          },
+          "throughputBytes": 1097760,
+          "raw": {
+            "2xx": 15144,
+            "4xx": 0,
+            "5xx": 0
+          }
+        },
+        {
+          "name": "chapter-read",
+          "path": "/api/chapters/read",
+          "method": "POST",
+          "connections": 50,
+          "duration": 8,
+          "throughputRps": 2093.38,
+          "totalRequests": 16742,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 23,
+            "p90": 26,
+            "p95": 29,
+            "p97_5": 29,
+            "p99": 34,
+            "mean": 23.38,
+            "max": 66
+          },
+          "throughputBytes": 835072,
+          "raw": {
+            "2xx": 16742,
+            "4xx": 0,
+            "5xx": 0
+          }
+        },
+        {
+          "name": "chapter-save",
+          "path": "/api/chapters/save",
+          "method": "POST",
+          "connections": 50,
+          "duration": 8,
+          "throughputRps": 401.63,
+          "totalRequests": 3213,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 117,
+            "p90": 145,
+            "p95": 175,
+            "p97_5": 175,
+            "p99": 226,
+            "mean": 123.07,
+            "max": 245
+          },
+          "throughputBytes": 277168,
+          "raw": {
+            "2xx": 3213,
+            "4xx": 0,
+            "5xx": 0
+          }
+        },
+        {
+          "name": "ai-text-task",
+          "path": "/api/ai/text-task",
+          "method": "POST",
+          "connections": 50,
+          "duration": 8,
+          "throughputRps": 1185.5,
+          "totalRequests": 9484,
+          "errors": 9484,
+          "timeouts": 0,
+          "non2xx": 9484,
+          "errorRate": 1,
+          "latencyMs": {
+            "p50": 40,
+            "p90": 45,
+            "p95": 54,
+            "p97_5": 54,
+            "p99": 65,
+            "mean": 41.58,
+            "max": 123
+          },
+          "throughputBytes": 309376,
+          "raw": {
+            "2xx": 0,
+            "4xx": 0,
+            "5xx": 9484
+          }
+        },
+        {
+          "name": "ai-queue-write",
+          "path": "/api/editor-agent/queue-write",
+          "method": "POST",
+          "connections": 30,
+          "duration": 8,
+          "throughputRps": 121,
+          "totalRequests": 968,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 242,
+            "p90": 269,
+            "p95": 299,
+            "p97_5": 299,
+            "p99": 311,
+            "mean": 243.9,
+            "max": 325
+          },
+          "throughputBytes": 47556,
+          "raw": {
+            "2xx": 968,
+            "4xx": 0,
+            "5xx": 0
+          }
+        },
+        {
+          "name": "websocket",
+          "path": "/agent-tasks",
+          "method": "WS",
+          "connections": 50,
+          "duration": 3,
+          "throughputRps": 16.666666666666668,
+          "totalRequests": 50,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 8.840124999987893,
+            "p95": 9.674958000003244,
+            "p99": 9.686416000011377,
+            "mean": 8.620659959999903,
+            "max": 9.686416000011377
+          },
+          "connected": 50
+        }
+      ],
+      "metrics": {
+        "redis": {
+          "ping": "PONG",
+          "usedMemoryHuman": "38.93M",
+          "connectedClients": 11
+        },
+        "eventLoopMs": {
+          "meanMs": 11.410402742857142,
+          "p50Ms": 11.804671,
+          "p95Ms": 12.083199,
+          "p99Ms": 12.091391,
+          "maxMs": 12.091391
+        }
+      },
+      "integrity": {
+        "saveOk": true,
+        "readOk": true,
+        "lost": false,
+        "contentLength": 18,
+        "marker": "c50"
+      }
+    },
+    {
+      "connections": 100,
+      "results": [
+        {
+          "name": "login",
+          "path": "/api/auth/login",
+          "method": "POST",
+          "connections": 100,
+          "duration": 8,
+          "throughputRps": 5287.75,
+          "totalRequests": 42302,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 13.841834000006202,
+            "p95": 44.20666700000584,
+            "p99": 87.35533399999258,
+            "mean": 18.91394393057076,
+            "max": 108.38908400000946
+          }
+        },
+        {
+          "name": "books-list",
+          "path": "/api/books/list",
+          "method": "POST",
+          "connections": 100,
+          "duration": 8,
+          "throughputRps": 1911.38,
+          "totalRequests": 15291,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 51,
+            "p90": 56,
+            "p95": 62,
+            "p97_5": 62,
+            "p99": 73,
+            "mean": 51.65,
+            "max": 90
+          },
+          "throughputBytes": 1108480,
+          "raw": {
+            "2xx": 15291,
+            "4xx": 0,
+            "5xx": 0
+          }
+        },
+        {
+          "name": "chapter-read",
+          "path": "/api/chapters/read",
+          "method": "POST",
+          "connections": 100,
+          "duration": 8,
+          "throughputRps": 2129.13,
+          "totalRequests": 17029,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 45,
+            "p90": 49,
+            "p95": 55,
+            "p97_5": 55,
+            "p99": 68,
+            "mean": 46.35,
+            "max": 77
+          },
+          "throughputBytes": 849280,
+          "raw": {
+            "2xx": 17029,
+            "4xx": 0,
+            "5xx": 0
+          }
+        },
+        {
+          "name": "chapter-save",
+          "path": "/api/chapters/save",
+          "method": "POST",
+          "connections": 100,
+          "duration": 8,
+          "throughputRps": 394.13,
+          "totalRequests": 3153,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 245,
+            "p90": 281,
+            "p95": 348,
+            "p97_5": 348,
+            "p99": 359,
+            "mean": 249.64,
+            "max": 360
+          },
+          "throughputBytes": 271968,
+          "raw": {
+            "2xx": 3153,
+            "4xx": 0,
+            "5xx": 0
+          }
+        },
+        {
+          "name": "ai-text-task",
+          "path": "/api/ai/text-task",
+          "method": "POST",
+          "connections": 50,
+          "duration": 8,
+          "throughputRps": 1146.13,
+          "totalRequests": 9169,
+          "errors": 9169,
+          "timeouts": 0,
+          "non2xx": 9169,
+          "errorRate": 1,
+          "latencyMs": {
+            "p50": 40,
+            "p90": 45,
+            "p95": 67,
+            "p97_5": 67,
+            "p99": 74,
+            "mean": 43.02,
+            "max": 260
+          },
+          "throughputBytes": 299128,
+          "raw": {
+            "2xx": 0,
+            "4xx": 0,
+            "5xx": 9169
+          }
+        },
+        {
+          "name": "ai-queue-write",
+          "path": "/api/editor-agent/queue-write",
+          "method": "POST",
+          "connections": 30,
+          "duration": 8,
+          "throughputRps": 124.25,
+          "totalRequests": 994,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 238,
+            "p90": 255,
+            "p95": 272,
+            "p97_5": 272,
+            "p99": 279,
+            "mean": 237.93,
+            "max": 298
+          },
+          "throughputBytes": 48836,
+          "raw": {
+            "2xx": 994,
+            "4xx": 0,
+            "5xx": 0
+          }
+        },
+        {
+          "name": "websocket",
+          "path": "/agent-tasks",
+          "method": "WS",
+          "connections": 100,
+          "duration": 3,
+          "throughputRps": 33.333333333333336,
+          "totalRequests": 100,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 4.122458999976516,
+            "p95": 4.921042000001762,
+            "p99": 5.001374999992549,
+            "mean": 4.208974540002236,
+            "max": 5.6213340000249445
+          },
+          "connected": 100
+        }
+      ],
+      "metrics": {
+        "redis": {
+          "ping": "PONG",
+          "usedMemoryHuman": "43.20M",
+          "connectedClients": 11
+        },
+        "eventLoopMs": {
+          "meanMs": 11.67926211764706,
+          "p50Ms": 12.025855,
+          "p95Ms": 12.058623,
+          "p99Ms": 12.091391,
+          "maxMs": 12.214271
+        }
+      },
+      "integrity": {
+        "saveOk": true,
+        "readOk": true,
+        "lost": false,
+        "contentLength": 19,
+        "marker": "c100"
+      }
+    },
+    {
+      "connections": 300,
+      "results": [
+        {
+          "name": "login",
+          "path": "/api/auth/login",
+          "method": "POST",
+          "connections": 100,
+          "duration": 8,
+          "throughputRps": 5193.25,
+          "totalRequests": 41546,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 14.715457999991486,
+            "p95": 45.16458300000522,
+            "p99": 87.2331669999985,
+            "mean": 19.264878013334567,
+            "max": 312.484832999995
+          }
+        },
+        {
+          "name": "books-list",
+          "path": "/api/books/list",
+          "method": "POST",
+          "connections": 300,
+          "duration": 8,
+          "throughputRps": 1930,
+          "totalRequests": 15439,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 154,
+            "p90": 161,
+            "p95": 183,
+            "p97_5": 183,
+            "p99": 205,
+            "mean": 153.48,
+            "max": 207
+          },
+          "throughputBytes": 1119360,
+          "raw": {
+            "2xx": 15439,
+            "4xx": 0,
+            "5xx": 0
+          }
+        },
+        {
+          "name": "chapter-read",
+          "path": "/api/chapters/read",
+          "method": "POST",
+          "connections": 300,
+          "duration": 8,
+          "throughputRps": 2100.25,
+          "totalRequests": 16796,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 138,
+            "p90": 147,
+            "p95": 169,
+            "p97_5": 169,
+            "p99": 193,
+            "mean": 141.17,
+            "max": 257
+          },
+          "throughputBytes": 839808,
+          "raw": {
+            "2xx": 16796,
+            "4xx": 0,
+            "5xx": 0
+          }
+        },
+        {
+          "name": "chapter-save",
+          "path": "/api/chapters/save",
+          "method": "POST",
+          "connections": 300,
+          "duration": 8,
+          "throughputRps": 384,
+          "totalRequests": 3072,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 737,
+            "p90": 893,
+            "p95": 949,
+            "p97_5": 949,
+            "p99": 953,
+            "mean": 743.09,
+            "max": 964
+          },
+          "throughputBytes": 264992,
+          "raw": {
+            "2xx": 3072,
+            "4xx": 0,
+            "5xx": 0
+          }
+        },
+        {
+          "name": "ai-text-task",
+          "path": "/api/ai/text-task",
+          "method": "POST",
+          "connections": 50,
+          "duration": 8,
+          "throughputRps": 1064.13,
+          "totalRequests": 8513,
+          "errors": 8513,
+          "timeouts": 0,
+          "non2xx": 8513,
+          "errorRate": 1,
+          "latencyMs": {
+            "p50": 41,
+            "p90": 46,
+            "p95": 66,
+            "p97_5": 66,
+            "p99": 121,
+            "mean": 46.37,
+            "max": 732
+          },
+          "throughputBytes": 277750,
+          "raw": {
+            "2xx": 0,
+            "4xx": 0,
+            "5xx": 8513
+          }
+        },
+        {
+          "name": "ai-queue-write",
+          "path": "/api/editor-agent/queue-write",
+          "method": "POST",
+          "connections": 30,
+          "duration": 8,
+          "throughputRps": 89.25,
+          "totalRequests": 714,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 256,
+            "p90": 610,
+            "p95": 855,
+            "p97_5": 855,
+            "p99": 951,
+            "mean": 331.44,
+            "max": 1000
+          },
+          "throughputBytes": 35074.5,
+          "raw": {
+            "2xx": 714,
+            "4xx": 0,
+            "5xx": 0
+          }
+        },
+        {
+          "name": "websocket",
+          "path": "/agent-tasks",
+          "method": "WS",
+          "connections": 300,
+          "duration": 3,
+          "throughputRps": 100,
+          "totalRequests": 300,
+          "errors": 0,
+          "timeouts": 0,
+          "non2xx": 0,
+          "errorRate": 0,
+          "latencyMs": {
+            "p50": 7.317417000012938,
+            "p95": 17.099583000002895,
+            "p99": 17.37612500000978,
+            "mean": 8.308067059999933,
+            "max": 17.417832999984967
+          },
+          "connected": 300
+        }
+      ],
+      "metrics": {
+        "redis": {
+          "ping": "PONG",
+          "usedMemoryHuman": "46.31M",
+          "connectedClients": 11
+        },
+        "eventLoopMs": {
+          "meanMs": 11.367336228571428,
+          "p50Ms": 11.452415,
+          "p95Ms": 12.091391,
+          "p99Ms": 12.247039,
+          "maxMs": 12.451839
+        }
+      },
+      "integrity": {
+        "saveOk": true,
+        "readOk": true,
+        "lost": false,
+        "contentLength": 19,
+        "marker": "c300"
+      }
+    }
+  ],
+  "integrity": [
+    {
+      "saveOk": true,
+      "readOk": true,
+      "lost": false,
+      "contentLength": 18,
+      "marker": "c10"
+    },
+    {
+      "saveOk": true,
+      "readOk": true,
+      "lost": false,
+      "contentLength": 18,
+      "marker": "c50"
+    },
+    {
+      "saveOk": true,
+      "readOk": true,
+      "lost": false,
+      "contentLength": 19,
+      "marker": "c100"
+    },
+    {
+      "saveOk": true,
+      "readOk": true,
+      "lost": false,
+      "contentLength": 19,
+      "marker": "c300"
+    }
+  ],
+  "notes": [],
+  "finishedAt": "2026-07-15T16:23:59.879Z",
+  "redisAfter": {
+    "ping": "PONG",
+    "usedMemoryHuman": "46.31M",
+    "connectedClients": 11
+  }
+}

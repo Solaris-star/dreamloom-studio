@@ -1,0 +1,144 @@
+{
+  "startedAt": "2026-07-15T16:19:43.283Z",
+  "baseUrl": "http://127.0.0.1:5174",
+  "checks": [
+    {
+      "name": "baseline-auth-status",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "authenticated": true,
+          "passwordConfigured": false
+        }
+      }
+    },
+    {
+      "name": "baseline-login",
+      "pass": true,
+      "detail": {
+        "status": 200,
+        "hasCookie": false,
+        "body": {
+          "success": true,
+          "authenticated": true,
+          "passwordConfigured": false
+        }
+      }
+    },
+    {
+      "name": "ai-request-timeout-or-error-handled",
+      "pass": true,
+      "detail": {
+        "status": 502,
+        "elapsedMs": 2.2851670000000013,
+        "body": {
+          "success": false,
+          "message": "读取 Provider 失败：本地配置格式不正确"
+        }
+      },
+      "notes": "期望服务在超时/上游失败时返回可解析 JSON 错误，而不是挂死连接"
+    },
+    {
+      "name": "redis-brief-unavailable",
+      "pass": true,
+      "detail": {
+        "pause": {
+          "ok": true,
+          "out": "OK"
+        },
+        "duringStatus": 200,
+        "duringBody": {
+          "success": true,
+          "queueName": "novel-agent-writing",
+          "redisUrl": "redis://127.0.0.1:6379/0",
+          "counts": {
+            "waiting": 3701,
+            "active": 0,
+            "completed": 0,
+            "failed": 0,
+            "delayed": 0,
+            "paused": 0
+          },
+          "workerRunning": false,
+          "localWorkerRunning": false,
+          "workerCount": 0,
+          "workers": [],
+          "workerStatusError": "",
+          "acceptingNewJobs": true,
+          "shuttingDown": false
+        },
+        "afterStatus": 200,
+        "afterBody": {
+          "success": true,
+          "queueName": "novel-agent-writing",
+          "redisUrl": "redis://127.0.0.1:6379/0",
+          "counts": {
+            "waiting": 3701,
+            "active": 0,
+            "completed": 0,
+            "failed": 0,
+            "delayed": 0,
+            "paused": 0
+          },
+          "workerRunning": false,
+          "localWorkerRunning": false,
+          "workerCount": 0,
+          "workers": [],
+          "workerStatusError": "",
+          "acceptingNewJobs": true,
+          "shuttingDown": false
+        },
+        "authDuring": {
+          "status": 200,
+          "body": {
+            "success": true,
+            "authenticated": true,
+            "passwordConfigured": false
+          }
+        }
+      },
+      "notes": "队列接口在 Redis 抖动时应返回 success/message 而不是进程崩溃"
+    },
+    {
+      "name": "service-restart",
+      "pass": true,
+      "skipped": true,
+      "detail": {
+        "reason": "未设置 RESTART_CMD，改为连续健康探测",
+        "okCount": 20,
+        "total": 20,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    }
+  ],
+  "finishedAt": "2026-07-15T16:19:49.694Z",
+  "summary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "skipped": 1
+  }
+}

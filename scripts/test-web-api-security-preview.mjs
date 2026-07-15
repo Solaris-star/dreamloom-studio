@@ -12,6 +12,7 @@ const originalAllowOpen = process.env.NOVEL_ALLOW_OPEN_AUTH
 const originalAuthRedis = process.env.NOVEL_AUTH_REDIS
 const originalRedisUrl = process.env.REDIS_URL
 const originalScheduler = process.env.MARKET_TREND_SCHEDULER
+const originalAgentWs = process.env.AGENT_TASK_WS_ENABLED
 let server
 
 function listen(handler) {
@@ -66,6 +67,8 @@ try {
   delete process.env.REDIS_URL
   process.env.NOVEL_ALLOW_OPEN_AUTH = 'false'
   process.env.MARKET_TREND_SCHEDULER = '0'
+  // 本用例只测 HTTP 鉴权/限流，不需要进度 WebSocket；避免 open handle 挂住进程
+  process.env.AGENT_TASK_WS_ENABLED = 'false'
 
   const webPlugin = createWebServerPlugins().find((plugin) => plugin.name === 'web-api-middleware')
   assert.equal(typeof webPlugin.configureServer, 'function')
@@ -228,6 +231,8 @@ try {
   else process.env.REDIS_URL = originalRedisUrl
   if (originalScheduler === undefined) delete process.env.MARKET_TREND_SCHEDULER
   else process.env.MARKET_TREND_SCHEDULER = originalScheduler
+  if (originalAgentWs === undefined) delete process.env.AGENT_TASK_WS_ENABLED
+  else process.env.AGENT_TASK_WS_ENABLED = originalAgentWs
   fs.rmSync(root, { recursive: true, force: true })
 }
 
