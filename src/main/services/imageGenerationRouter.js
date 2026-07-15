@@ -8,6 +8,7 @@ import * as doubaoImage from './doubaoImage.js'
 import customImageApiService from './customImageApi.js'
 import { PNG } from 'pngjs'
 import { getConfiguredStoreValue } from './envConfig.js'
+import { fetchPublicHttpResource } from './safeRemoteUrl.js'
 
 export const IMAGE_PROVIDER_TONGYI = 'tongyi'
 export const IMAGE_PROVIDER_GEMINI = 'gemini'
@@ -232,26 +233,33 @@ export async function generateImageBuffer(store, options) {
       Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0
         ? Number(timeoutMs)
         : DEFAULT_IMAGE_DOWNLOAD_TIMEOUT_MS
-    const timeoutSignal = AbortSignal.timeout(effectiveTimeout)
-    const downloadSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
-    let res
+    let downloaded
     try {
-      res = await fetch(imageUrl, { signal: downloadSignal })
+      downloaded = await fetchPublicHttpResource(imageUrl, {
+        signal,
+        timeoutMs: effectiveTimeout,
+        maxBytes: 10 * 1024 * 1024,
+        redirect: 'error',
+        validateOptions: {
+          invalidMessage: '通义万相返回了无效图片地址',
+          protocolMessage: '通义万相返回了不安全的图片地址',
+          privateMessage: '通义万相返回了不允许访问的内网图片地址'
+        }
+      })
     } catch (error) {
       if (error?.name === 'AbortError' || error?.name === 'TimeoutError') {
         if (signal?.aborted) throw error
         throw new Error(`下载通义万相图片超时（${effectiveTimeout} ms）`)
       }
+      if (String(error?.message || '').includes('超时')) {
+        throw new Error(`下载通义万相图片超时（${effectiveTimeout} ms）`)
+      }
       throw error
     }
-    if (!res.ok) {
-      throw new Error(`下载生成图片失败: ${res.status} ${res.statusText}`)
-    }
-    const imageBuffer = Buffer.from(await res.arrayBuffer())
-    if (!imageBuffer.length) {
+    if (!downloaded.buffer.length) {
       throw new Error('通义万相下载到了空图片')
     }
-    return imageBuffer
+    return downloaded.buffer
   }
 
   if (config.providerId === 'gemini') {

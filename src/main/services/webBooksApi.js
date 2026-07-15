@@ -14,6 +14,7 @@ import {
   syncBookDocument as syncNovelBookDocument,
   upsertProjectFromBook as upsertNovelProjectFromBook
 } from './novelDatabaseService.js'
+import { fetchPublicHttpResource } from './safeRemoteUrl.js'
 import { readJson, writeJson } from './webJsonRepository.js'
 
 const IMAGE_CONTENT_TYPE_EXTENSION = {
@@ -434,33 +435,23 @@ function saveCoverImageSource(bookPath, source, existingCoverUrl = '') {
   return coverFileName
 }
 
-function requireRemoteCoverUrl(value) {
-  let url
-  try {
-    url = new URL(String(value || '').trim())
-  } catch {
-    throw new Error('远程封面地址无效')
-  }
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    throw new Error('远程封面只支持 HTTP 或 HTTPS 地址')
-  }
-  return url
-}
-
-async function downloadRemoteCover(source) {
-  const url = requireRemoteCoverUrl(source)
-  const response = await fetch(url, { signal: AbortSignal.timeout(COVER_DOWNLOAD_TIMEOUT_MS) })
-  if (!response.ok) throw new Error(`远程封面下载失败：HTTP ${response.status}`)
+async function downloadRemoteCover(source, options = {}) {
+  const { response, buffer } = await fetchPublicHttpResource(source, {
+    timeoutMs: COVER_DOWNLOAD_TIMEOUT_MS,
+    maxBytes: MAX_COVER_BYTES,
+    redirect: 'error',
+    lookup: options.lookup,
+    fetchImpl: options.fetchImpl,
+    validateOptions: {
+      invalidMessage: '远程封面地址无效',
+      protocolMessage: '远程封面只支持 HTTP 或 HTTPS 地址',
+      privateMessage: '不允许访问本机或内网封面地址'
+    }
+  })
   const contentType = response.headers.get('content-type')?.split(';')[0] || ''
   const extension = IMAGE_CONTENT_TYPE_EXTENSION[contentType]
   if (!extension) throw new Error('远程封面返回的不是受支持的图片')
-  const declaredSize = Number(response.headers.get('content-length'))
-  if (Number.isFinite(declaredSize) && declaredSize > MAX_COVER_BYTES) {
-    throw new Error('远程封面不能超过 10 MB')
-  }
-  const buffer = Buffer.from(await response.arrayBuffer())
   if (buffer.length < 8 * 1024) throw new Error('封面图片过小，可能是站点占位图')
-  if (buffer.length > MAX_COVER_BYTES) throw new Error('远程封面不能超过 10 MB')
   if (!matchesImageSignature(buffer, extension)) throw new Error('远程封面内容与格式不匹配')
   return { buffer, extension }
 }

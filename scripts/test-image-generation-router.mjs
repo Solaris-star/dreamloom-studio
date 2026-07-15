@@ -198,7 +198,7 @@ try {
             return {
               data: [
                 {
-                  url: 'https://image.example/generated.png'
+                  url: 'https://203.0.113.10/generated.png'
                 }
               ]
             }
@@ -206,7 +206,7 @@ try {
         }
       }
       downloadCalled = true
-      assert.equal(url, 'https://image.example/generated.png')
+      assert.equal(url, 'https://203.0.113.10/generated.png')
       return {
         ok: true,
         async arrayBuffer() {

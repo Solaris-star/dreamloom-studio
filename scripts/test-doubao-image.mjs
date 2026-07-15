@@ -58,7 +58,7 @@ try {
       return {
         ok: true,
         async json() {
-          return { data: [{ url: 'https://images.example/result.png' }] }
+          return { data: [{ url: 'https://203.0.113.10/result.png' }] }
         }
       }
     }
@@ -126,7 +126,7 @@ try {
       return {
         ok: true,
         async json() {
-          return { data: [{ url: 'https://images.example/cancelled.png' }] }
+          return { data: [{ url: 'https://203.0.113.10/cancelled.png' }] }
         }
       }
     }

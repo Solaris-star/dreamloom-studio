@@ -3,8 +3,11 @@
  * 文档：https://www.volcengine.com/docs/82379/（以控制台当前文档为准）
  */
 
+import { fetchPublicHttpResource } from './safeRemoteUrl.js'
+
 export const DEFAULT_DOUBAO_BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3'
 export const DEFAULT_DOUBAO_TIMEOUT_MS = 60000
+const MAX_DOUBAO_IMAGE_BYTES = 10 * 1024 * 1024
 
 /**
  * 通义「宽*高」转为方舟常见「宽x高」
@@ -112,31 +115,31 @@ export async function generateImageBuffer({
 
   const imageUrl = data.data?.[0]?.url
   if (imageUrl && typeof imageUrl === 'string') {
-    let parsedImageUrl
+    let downloaded
     try {
-      parsedImageUrl = new URL(imageUrl)
-    } catch {
-      throw new Error('豆包图像 API 返回了无效图片地址')
-    }
-    if (!['http:', 'https:'].includes(parsedImageUrl.protocol)) {
-      throw new Error('豆包图像 API 返回了不安全的图片地址')
-    }
-    let imgRes
-    try {
-      imgRes = await fetch(parsedImageUrl, { signal: requestSignal })
+      downloaded = await fetchPublicHttpResource(imageUrl, {
+        signal: requestSignal,
+        timeoutMs: effectiveTimeout,
+        maxBytes: MAX_DOUBAO_IMAGE_BYTES,
+        redirect: 'error',
+        validateOptions: {
+          invalidMessage: '豆包图像 API 返回了无效图片地址',
+          protocolMessage: '豆包图像 API 返回了不安全的图片地址',
+          privateMessage: '豆包图像 API 返回了不允许访问的内网图片地址'
+        }
+      })
     } catch (error) {
       if (error?.name === 'AbortError' || error?.name === 'TimeoutError') {
         if (signal?.aborted) throw createCancelledError()
         throw new Error(`下载豆包返回的图片超时（${effectiveTimeout} ms）`)
       }
+      if (String(error?.message || '').includes('超时')) {
+        throw new Error(`下载豆包返回的图片超时（${effectiveTimeout} ms）`)
+      }
       throw error
     }
-    if (!imgRes.ok) {
-      throw new Error(`下载豆包返回的图片失败: ${imgRes.status}`)
-    }
-    const imageBuffer = Buffer.from(await imgRes.arrayBuffer())
-    if (!imageBuffer.length) throw new Error('豆包图像 API 下载到了空图片')
-    return imageBuffer
+    if (!downloaded.buffer.length) throw new Error('豆包图像 API 下载到了空图片')
+    return downloaded.buffer
   }
 
   throw new Error('豆包图像 API 未返回有效图片数据')

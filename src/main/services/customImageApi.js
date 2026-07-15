@@ -3,8 +3,11 @@
  * 支持自定义图像生成 API，自动拼接 /v1/images/generations 端点
  */
 
+import { fetchPublicHttpResource } from './safeRemoteUrl.js'
+
 const DEFAULT_GENERATION_TIMEOUT_MS = 180000
 const DEFAULT_VALIDATION_TIMEOUT_MS = 60000
+const MAX_GENERATED_IMAGE_BYTES = 10 * 1024 * 1024
 
 function normalizeTimeoutMs(value, fallback) {
   const timeout = Number(value)
@@ -72,19 +75,6 @@ function decodeBase64Image(value) {
     throw new Error('图像 API 返回了空图片')
   }
   return buffer
-}
-
-function requireHttpImageUrl(value) {
-  let url
-  try {
-    url = new URL(String(value || ''))
-  } catch {
-    throw new Error('图像 API 返回了无效的图片地址')
-  }
-  if (!['http:', 'https:'].includes(url.protocol)) {
-    throw new Error('图像 API 返回了不安全的图片地址')
-  }
-  return url
 }
 
 export class CustomImageApiService {
@@ -213,24 +203,30 @@ export class CustomImageApiService {
       const imageUrl = data.data?.[0]?.url || data.image?.url || ''
 
       if (imageUrl) {
-        const safeImageUrl = requireHttpImageUrl(imageUrl)
-        let imageResponse
+        let downloaded
         try {
-          imageResponse = await fetch(safeImageUrl.href, { signal: request.signal })
+          downloaded = await fetchPublicHttpResource(imageUrl, {
+            signal: request.signal,
+            timeoutMs: request.timeout,
+            maxBytes: MAX_GENERATED_IMAGE_BYTES,
+            redirect: 'error',
+            validateOptions: {
+              invalidMessage: '图像 API 返回了无效的图片地址',
+              protocolMessage: '图像 API 返回了不安全的图片地址',
+              privateMessage: '图像 API 返回了不允许访问的内网图片地址'
+            }
+          })
         } catch (error) {
           throw requestError(error, request, signal, '生成图片下载')
         }
-        if (!imageResponse.ok) {
-          throw new Error(`下载生成图片失败: ${imageResponse.status}`)
-        }
-        const buffer = Buffer.from(await imageResponse.arrayBuffer())
+        const buffer = downloaded.buffer
         if (!buffer.length) {
           throw new Error('图像 API 返回了空图片')
         }
         this.lastResult = {
           success: true,
-          content: safeImageUrl.href,
-          images: [safeImageUrl.href],
+          content: downloaded.url.href,
+          images: [downloaded.url.href],
           usage,
           model: this.model,
           providerId: '',

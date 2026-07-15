@@ -57,7 +57,7 @@ try {
     requests.push({ url: String(url), options })
     if (requests.length === 1) {
       return jsonResponse({
-        data: [{ url: 'https://cdn.example/generated.png' }],
+        data: [{ url: 'https://203.0.113.10/generated.png' }],
         usage: { total_tokens: 3 }
       })
     }
@@ -73,7 +73,8 @@ try {
     ).toString(),
     'downloaded-image'
   )
-  assert.equal(requests[0].options.signal, requests[1].options.signal)
+  assert.equal(requests[0].options.signal instanceof AbortSignal, true)
+  assert.equal(requests[1].options.signal instanceof AbortSignal, true)
   assert.deepEqual(JSON.parse(requests[0].options.body), {
     prompt: '封面',
     width: 1200,
@@ -82,16 +83,16 @@ try {
     model: 'image-model',
     negative_prompt: '水印'
   })
-  assert.equal(service.lastResult.content, 'https://cdn.example/generated.png')
+  assert.equal(service.lastResult.content, 'https://203.0.113.10/generated.png')
   assert.equal(service.lastResult.usage.imageRequests, 1)
 
   globalThis.fetch = async () =>
-    jsonResponse({ image: { url: 'https://cdn.example/second.png' } })
+    jsonResponse({ image: { url: 'https://203.0.113.10/second.png' } })
   let callCount = 0
   globalThis.fetch = async () => {
     callCount += 1
     return callCount === 1
-      ? jsonResponse({ image: { url: 'https://cdn.example/second.png' } })
+      ? jsonResponse({ image: { url: 'https://203.0.113.10/second.png' } })
       : new Response(Buffer.from('second-image'))
   }
   assert.equal((await service.generateImageBuffer({ prompt: '场景', size: 'square' })).toString(), 'second-image')
@@ -139,10 +140,10 @@ try {
   globalThis.fetch = async () => {
     callCount += 1
     return callCount === 1
-      ? jsonResponse({ data: [{ url: 'https://cdn.example/failed.png' }] })
+      ? jsonResponse({ data: [{ url: 'https://203.0.113.10/failed.png' }] })
       : new Response('', { status: 503 })
   }
-  await assert.rejects(() => service.generateImageBuffer({ prompt: 'test' }), /下载生成图片失败: 503/)
+  await assert.rejects(() => service.generateImageBuffer({ prompt: 'test' }), /远程资源下载失败：HTTP 503|下载生成图片失败: 503/)
 
   globalThis.fetch = async (_url, { signal }) => abortablePendingRequest(signal)
   await assert.rejects(
@@ -154,7 +155,7 @@ try {
   globalThis.fetch = async (_url, { signal }) => {
     callCount += 1
     if (callCount === 1) {
-      return jsonResponse({ data: [{ url: 'https://cdn.example/slow.png' }] })
+      return jsonResponse({ data: [{ url: 'https://203.0.113.10/slow.png' }] })
     }
     return abortablePendingRequest(signal)
   }

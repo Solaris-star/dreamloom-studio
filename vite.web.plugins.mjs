@@ -70,6 +70,7 @@ import {
   sendJson,
   sendTransparentImage
 } from './src/main/services/webHttpServerService.js'
+import { sanitizePublicErrorMessage } from './src/main/services/safeRemoteUrl.js'
 
 export function createWebServerPlugins() {
   const configuredBooksDir = String(process.env.NOVEL_BOOKS_DIR || '').trim()
@@ -128,7 +129,14 @@ export function createWebServerPlugins() {
           try {
             body = await readJsonBody(req)
           } catch (error) {
-            sendJson(res, { success: false, message: error.message }, error.statusCode || 400)
+            sendJson(
+              res,
+              {
+                success: false,
+                message: sanitizePublicErrorMessage(error, '请求处理失败')
+              },
+              error.statusCode || 400
+            )
             return
           }
         }
@@ -464,7 +472,14 @@ export function createWebServerPlugins() {
               sendJson(res, { success: false, message: 'Not Found' }, 404)
             }
         } catch (error) {
-          sendJson(res, { success: false, message: error.message }, error.statusCode || 500)
+          sendJson(
+            res,
+            {
+              success: false,
+              message: sanitizePublicErrorMessage(error, '服务器内部错误')
+            },
+            error.statusCode || 500
+          )
         }
       })
     }
