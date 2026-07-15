@@ -56,3 +56,8 @@ reports/acceptance/**/*.log
 
 docs
 others
+
+# local secrets
+.env
+.env.*
+!.env.example

@@ -713,6 +713,25 @@ const emit = defineEmits([
 ])
 
 const editorStore = useEditorStore()
+const themeStore = useThemeStore()
+
+const availableThemes = computed(() => {
+  // 主题预览色取 bgSoft，保证下拉有色块
+  return Object.entries(themeStore.themeConfigs || {}).map(([key, config]) => ({
+    key,
+    name: config?.name || key,
+    preview: config?.bgSoft || config?.bgPrimary || '#F8F9FA'
+  }))
+})
+
+const currentThemeName = computed(() => {
+  return themeStore.getThemeName?.(themeStore.currentTheme) || '白色'
+})
+
+async function handleThemeChange(themeKey) {
+  if (!themeKey) return
+  await themeStore.setTheme(themeKey)
+}
 
 // 判断是否为笔记编辑器
 const isNoteEditor = computed(() => editorStore.file?.type === 'note')

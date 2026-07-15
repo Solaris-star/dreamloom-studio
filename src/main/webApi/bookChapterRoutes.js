@@ -73,13 +73,13 @@ export async function handleBookChapterRoute({
   } else if (path === '/api/nodes/delete') {
     result = await service.deleteNode(payload, booksDir)
   } else if (path === '/api/sort-order/get') {
-    result = { success: true, order: service.getSortOrder(payload.bookName) }
+    result = { success: true, order: await service.getSortOrder(payload.bookName) }
   } else if (path === '/api/sort-order/set') {
-    result = service.setSortOrder(payload)
+    result = await service.setSortOrder(payload)
   } else if (path === '/api/chapter-settings/get') {
-    result = service.getChapterSettings(payload.bookName)
+    result = await service.getChapterSettings(payload.bookName)
   } else if (path === '/api/chapter-settings/target-words') {
-    result = service.setChapterTargetWords(payload)
+    result = await service.setChapterTargetWords(payload)
   } else if (path === '/api/chapter-format/update') {
     result = await service.updateChapterFormat(payload, booksDir)
   } else {

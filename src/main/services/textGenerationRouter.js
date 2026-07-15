@@ -66,7 +66,10 @@ function isDeepSeekProvider(provider = {}) {
 
 function storedAiProviders(store) {
   if (!store?.get) return []
-  const stored = store?.get?.('aiProviders', [])
+  // webServerStore.get 是 async；同步读取路径里 Promise 不能当配置对象解析。
+  const stored = store.get('aiProviders', [])
+  if (stored == null) return []
+  if (typeof stored?.then === 'function') return []
   if (Array.isArray(stored)) return stored
   if (Array.isArray(stored?.providers)) return stored.providers
   throw new Error('读取 Provider 失败：本地配置格式不正确')
@@ -79,7 +82,11 @@ export function listConfiguredTextProviders(store) {
 
 export function getActiveTextProviderConfig(store, providerId = '') {
   const providers = listConfiguredTextProviders(store)
-  const activeId = providerId || store?.get?.('aiProviders.activeTextId', '') || ''
+  const activeRaw = store?.get?.('aiProviders.activeTextId', '')
+  const activeId =
+    providerId ||
+    (activeRaw && typeof activeRaw.then !== 'function' ? activeRaw : '') ||
+    ''
   if (activeId === TEXT_PROVIDER_LEGACY_DEEPSEEK && configuredValue(store, 'deepseek.apiKey', '')) {
     return {
       id: TEXT_PROVIDER_LEGACY_DEEPSEEK,
