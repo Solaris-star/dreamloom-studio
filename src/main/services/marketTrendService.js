@@ -151,6 +151,136 @@ const CHANNEL_LABELS = {
   female: '女频'
 }
 
+/** 内容来源类型：live=实时采集，cached=缓存，stale=过期缓存，example=内置示例，user=用户自建 */
+const CONTENT_KIND = {
+  live: 'live',
+  cached: 'cached',
+  stale: 'stale',
+  example: 'example',
+  user: 'user'
+}
+
+const CONTENT_KIND_LABELS = {
+  live: '外部实时',
+  cached: '缓存结果',
+  stale: '过期缓存',
+  example: '示例内容',
+  user: '用户内容'
+}
+
+/**
+ * 明确标注的内置示例灵感。
+ * 不伪装实时市场、不附虚假热度/销量/评价数字。
+ * 仅在真实采集结果为空时返回，供开箱试用。
+ */
+const EXAMPLE_INSIGHTS = [
+  {
+    id: 'example_family_reversal',
+    title: '【示例】离婚当天绑定品牌系统',
+    originalTitle: '家庭反转题材写法示例',
+    source: '内置示例',
+    sourceType: 'example',
+    channel: 'female',
+    channelLabel: '女频',
+    genre: '都市情感',
+    tags: ['示例内容', '现言', '逆袭', '家庭'],
+    heatScore: null,
+    growthScore: null,
+    opportunityScore: null,
+    novelizeScore: null,
+    riskPenalty: 0,
+    summary: '这是内置示例内容，不是实时市场数据。可用来体验保存灵感、生成模板和新建作品流程。',
+    suitableWriting: '示例写法：关系反转 + 都市情感 + 强开篇冲突',
+    readerEmotion: ['委屈', '反击', '共情'],
+    storyPotential: '亲密关系突然翻面，主角在亲情、婚姻和利益里做出反击。',
+    conflict: '亲密关系背叛 vs 主角自证',
+    hook: '离婚当天，她被通知三小时内搬出别墅，但手机里多了一个品牌孵化系统。',
+    bookTitleIdeas: ['离婚后我靠新品牌翻身', '被全家抛弃后她成了谈判桌主人'],
+    loglineIdeas: ['被嘲到谷底的女主，在离婚当天得到商业系统，从家庭弃子变成行业新贵。'],
+    openingIdeas: ['离婚当天，她被通知三小时内搬出别墅，但手机里多了一个品牌孵化系统。'],
+    sourceStatus: 'example',
+    sourceSummary: '内置示例 · 非实时市场数据',
+    contentKind: CONTENT_KIND.example,
+    contentKindLabel: CONTENT_KIND_LABELS.example,
+    isExample: true,
+    isLive: false,
+    createdAt: '',
+    updatedAt: '',
+    rawIds: [],
+    rawPayload: { source: 'example', platform: '内置示例', sourceType: 'example' }
+  },
+  {
+    id: 'example_wealth_power',
+    title: '【示例】破产后接管产业地图',
+    originalTitle: '财富权力题材写法示例',
+    source: '内置示例',
+    sourceType: 'example',
+    channel: 'male',
+    channelLabel: '男频',
+    genre: '都市逆袭',
+    tags: ['示例内容', '都市', '逆袭', '商业'],
+    heatScore: null,
+    growthScore: null,
+    opportunityScore: null,
+    novelizeScore: null,
+    riskPenalty: 0,
+    summary: '这是内置示例内容，不是实时市场数据。适合体验男频逆袭开篇与大纲生成。',
+    suitableWriting: '示例写法：升级反击 + 都市逆袭 + 信息差',
+    readerEmotion: ['憋屈', '爽感', '翻身'],
+    storyPotential: '普通人被卷入财富规则，用信息差或隐藏身份完成逆袭。',
+    conflict: '资本围堵 vs 草根破局',
+    hook: '他被公司扫地出门时，旧手机里弹出一份十年后的并购名单。',
+    bookTitleIdeas: ['破产后我接管万亿暗线', '被裁那天我绑定产业地图'],
+    loglineIdeas: ['普通人被迫进入财富游戏，用信息差和胆识从边缘位置逆风翻盘。'],
+    openingIdeas: ['他被公司扫地出门时，旧手机里弹出一份十年后的并购名单。'],
+    sourceStatus: 'example',
+    sourceSummary: '内置示例 · 非实时市场数据',
+    contentKind: CONTENT_KIND.example,
+    contentKindLabel: CONTENT_KIND_LABELS.example,
+    isExample: true,
+    isLive: false,
+    createdAt: '',
+    updatedAt: '',
+    rawIds: [],
+    rawPayload: { source: 'example', platform: '内置示例', sourceType: 'example' }
+  },
+  {
+    id: 'example_tech_future',
+    title: '【示例】捡到十年后的芯片',
+    originalTitle: '科技变量题材写法示例',
+    source: '内置示例',
+    sourceType: 'example',
+    channel: 'all',
+    channelLabel: '通用',
+    genre: '科幻脑洞',
+    tags: ['示例内容', '科幻', '系统', '创业'],
+    heatScore: null,
+    growthScore: null,
+    opportunityScore: null,
+    novelizeScore: null,
+    riskPenalty: 0,
+    summary: '这是内置示例内容，不是实时市场数据。可保存到创作资料，或据此新建作品。',
+    suitableWriting: '示例写法：能力代价 + 科幻脑洞 + 悬念推进',
+    readerEmotion: ['新奇', '紧张', '爽感'],
+    storyPotential: '技术改变普通人的命运，也带来无法回头的代价。',
+    conflict: '技术突破 vs 资本围剿',
+    hook: '破产那天，他捡到一块来自十年后的芯片，里面写着明天的事故名单。',
+    bookTitleIdeas: ['我捡到十年后的芯片', '破产程序员的未来公司'],
+    loglineIdeas: ['普通人得到未来技术，却必须在资本围堵和伦理代价之间完成一次逆袭。'],
+    openingIdeas: ['破产那天，他捡到一块来自十年后的芯片，里面写着明天的事故名单。'],
+    sourceStatus: 'example',
+    sourceSummary: '内置示例 · 非实时市场数据',
+    contentKind: CONTENT_KIND.example,
+    contentKindLabel: CONTENT_KIND_LABELS.example,
+    isExample: true,
+    isLive: false,
+    createdAt: '',
+    updatedAt: '',
+    rawIds: [],
+    rawPayload: { source: 'example', platform: '内置示例', sourceType: 'example' }
+  }
+]
+
 const NOVEL_SIGNAL_RULES = [
   {
     key: 'family_reversal',
@@ -1817,6 +1947,92 @@ function normalizeChannel(value = 'all') {
   return ['all', 'male', 'female'].includes(value) ? value : 'all'
 }
 
+function contentKindFromSourceStatus(status = '') {
+  if (status === 'stale') return CONTENT_KIND.stale
+  if (status === 'success') return CONTENT_KIND.live
+  if (status === 'error' || status === 'empty' || status === 'skipped') return CONTENT_KIND.cached
+  return CONTENT_KIND.live
+}
+
+function annotateContentKind(item = {}, kind = CONTENT_KIND.live) {
+  const contentKind = CONTENT_KIND[kind] || CONTENT_KIND.live
+  return {
+    ...item,
+    contentKind,
+    contentKindLabel: CONTENT_KIND_LABELS[contentKind] || CONTENT_KIND_LABELS.live,
+    isExample: contentKind === CONTENT_KIND.example,
+    isLive: contentKind === CONTENT_KIND.live,
+    isStale: contentKind === CONTENT_KIND.stale,
+    isUserContent: contentKind === CONTENT_KIND.user
+  }
+}
+
+function listExampleInsights(channel = 'all') {
+  const now = nowIso()
+  return EXAMPLE_INSIGHTS.filter((item) => channelMatches(item.channel, channel)).map((item) =>
+    annotateContentKind(
+      {
+        ...item,
+        createdAt: item.createdAt || now,
+        updatedAt: item.updatedAt || now
+      },
+      CONTENT_KIND.example
+    )
+  )
+}
+
+export { listExampleInsights, CONTENT_KIND, CONTENT_KIND_LABELS, EXAMPLE_INSIGHTS }
+
+function buildEmptyStateMeta({
+  hasLiveData = false,
+  hasExampleData = false,
+  offline = false,
+  sourceStatus = []
+} = {}) {
+  const errorCount = sourceStatus.filter((row) => row.status === 'error').length
+  const staleCount = sourceStatus.filter((row) => row.status === 'stale').length
+  const successCount = sourceStatus.filter((row) => row.status === 'success').length
+  let reason = 'empty'
+  let title = '暂无真实市场数据'
+  let description =
+    '当前书库还没有采集到公开热词或榜单。你可以刷新来源、创建自己的灵感，或先使用下方明确标注的示例内容。'
+  if (offline) {
+    reason = 'offline'
+    title = '当前似乎处于离线状态'
+    description = '网络不可用时无法采集外部热榜。你可以先用示例内容练习，或手动创建/导入灵感。'
+  } else if (errorCount > 0 && successCount === 0) {
+    reason = 'source_error'
+    title = '外部来源暂时不可用'
+    description = '公开热榜接口请求失败或超时。页面不会伪造市场数据，请稍后刷新，或先创建自己的灵感。'
+  } else if (staleCount > 0 && successCount === 0) {
+    reason = 'stale_only'
+    title = '仅剩过期缓存'
+    description = '最近一次成功采集已过期。可刷新重试，或先使用示例内容 / 自建灵感。'
+  } else if (hasLiveData) {
+    reason = 'ok'
+    title = ''
+    description = ''
+  }
+  return {
+    reason,
+    title,
+    description,
+    hasLiveData,
+    hasExampleData,
+    offline,
+    canRefresh: true,
+    canCreate: true,
+    canImport: true,
+    canUseExamples: true,
+    sourceSummary: {
+      successCount,
+      errorCount,
+      staleCount,
+      total: sourceStatus.length
+    }
+  }
+}
+
 function channelMatches(itemChannel, filterChannel = 'all') {
   const channel = normalizeChannel(filterChannel)
   if (channel === 'all') return true
@@ -2071,7 +2287,18 @@ function buildInsightFromTopic(topic = {}, context = {}) {
     sourceSummary: `${raw.platform || raw.source} · ${raw.rank ? `TOP${raw.rank}` : '公开热榜'} · ${raw.heatText || raw.heatValue || heatScore}`,
     createdAt: topic.createdAt || topic.capturedAt || nowIso(),
     updatedAt: topic.updatedAt || topic.capturedAt || nowIso(),
-    rawPayload: raw
+    rawPayload: raw,
+    ...(() => {
+      const kind = contentKindFromSourceStatus(raw.status)
+      return {
+        contentKind: kind,
+        contentKindLabel: CONTENT_KIND_LABELS[kind],
+        isExample: false,
+        isLive: kind === CONTENT_KIND.live,
+        isStale: kind === CONTENT_KIND.stale,
+        isUserContent: false
+      }
+    })()
   }
 }
 
@@ -2104,6 +2331,7 @@ function diversifyInsights(insights = [], limit = 20) {
 
 async function listMarketInsights(booksDir, filter = {}) {
   const channel = normalizeChannel(filter.channel || 'all')
+  const includeExamples = filter.includeExamples !== false
   const sourceStatus = await listSourceStatus(booksDir)
   const topics = await listHotTopics(booksDir, { source: filter.source || 'all', limit: 240 })
   const trendMap = new Map(
@@ -2115,54 +2343,79 @@ async function listMarketInsights(booksDir, filter = {}) {
   const insights = topics
     .map((topic) => buildInsightFromTopic(topic, { channel, sourceStatus, trendMap }))
     .filter(Boolean)
-  return diversifyInsights(
+  const live = diversifyInsights(
     dedupeInsights(insights).filter((item) => channelMatches(item.channel, channel)),
     Number(filter.limit || 30)
   )
+  if (live.length > 0 || !includeExamples) return live
+  return listExampleInsights(channel).slice(0, Number(filter.limit || 30))
 }
 
 function genreDistribution(insights = []) {
-  const total = Math.max(1, insights.length)
+  const liveItems = insights.filter((item) => !item.isExample)
+  const total = Math.max(1, liveItems.length || insights.length)
   const map = new Map()
-  for (const item of insights) {
+  for (const item of liveItems.length ? liveItems : insights) {
     map.set(item.genre, (map.get(item.genre) || 0) + 1)
   }
   return Array.from(map.entries())
     .map(([name, count]) => ({
       name,
       count,
-      percent: Math.round((count / total) * 100)
+      percent: liveItems.length ? Math.round((count / total) * 100) : null
     }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 8)
 }
 
 function opportunityGrade(insights = []) {
-  const avg = insights.length
-    ? insights.slice(0, 6).reduce((sum, item) => sum + Number(item.opportunityScore || 0), 0) /
-      Math.min(6, insights.length)
-    : 0
-  if (avg >= 84) return 'A+'
-  if (avg >= 74) return 'A'
-  if (avg >= 62) return 'B'
-  return 'C'
+  const live = insights.filter((item) => !item.isExample && Number.isFinite(item.opportunityScore))
+  if (!live.length) {
+    return { grade: '—', score: null, isExampleOnly: insights.some((item) => item.isExample) }
+  }
+  const avg =
+    live.slice(0, 6).reduce((sum, item) => sum + Number(item.opportunityScore || 0), 0) /
+    Math.min(6, live.length)
+  if (avg >= 84) return { grade: 'A+', score: Math.round(avg), isExampleOnly: false }
+  if (avg >= 74) return { grade: 'A', score: Math.round(avg), isExampleOnly: false }
+  if (avg >= 62) return { grade: 'B', score: Math.round(avg), isExampleOnly: false }
+  return { grade: 'C', score: Math.round(avg), isExampleOnly: false }
 }
 
 async function buildMarketOverview(booksDir, filter = {}) {
   const channel = normalizeChannel(filter.channel || 'all')
-  const directions = await listMarketInsights(booksDir, { ...filter, channel, limit: filter.limit || 24 })
+  const liveDirections = await listMarketInsights(booksDir, {
+    ...filter,
+    channel,
+    limit: filter.limit || 24,
+    includeExamples: false
+  })
+  const usingExamples = liveDirections.length === 0
+  const directions = usingExamples
+    ? listExampleInsights(channel).slice(0, filter.limit || 24)
+    : liveDirections
   const sourceStatus = await listSourceStatus(booksDir)
   const selectedInsight = directions[0] || null
+  const gradeInfo = opportunityGrade(directions)
+  const emptyState = buildEmptyStateMeta({
+    hasLiveData: !usingExamples && directions.length > 0,
+    hasExampleData: usingExamples,
+    offline: Boolean(filter.offline),
+    sourceStatus
+  })
   return {
     success: true,
     channel,
     writableDirections: directions,
     opportunityIndex: {
-      grade: opportunityGrade(directions),
-      score: directions[0]?.opportunityScore || 0,
-      summary: directions.length
-        ? `${CHANNEL_LABELS[channel]}今日有 ${directions.length} 个可写方向，最高机会分 ${directions[0].opportunityScore}。`
-        : '暂无可写方向，建议刷新后再看。'
+      grade: usingExamples ? '示例' : gradeInfo.grade,
+      score: usingExamples ? null : gradeInfo.score || directions[0]?.opportunityScore || 0,
+      summary: usingExamples
+        ? '当前没有真实采集结果。下方是明确标注的示例内容，不是实时市场数据。'
+        : directions.length
+          ? `${CHANNEL_LABELS[channel]}今日有 ${directions.length} 个可写方向，最高机会分 ${directions[0].opportunityScore}。`
+          : '暂无可写方向，建议刷新后再看。',
+      isExampleOnly: usingExamples
     },
     genreDistribution: genreDistribution(directions),
     inspirationExpress: directions.slice(0, 6).map((item) => ({
@@ -2170,17 +2423,29 @@ async function buildMarketOverview(booksDir, filter = {}) {
       title: item.title,
       channel: item.channel,
       genre: item.genre,
-      tags: item.tags.slice(0, 4),
-      score: item.opportunityScore,
+      tags: (item.tags || []).slice(0, 4),
+      score: item.isExample ? null : item.opportunityScore,
       hook: item.hook,
-      sourceStatus: item.sourceStatus
+      sourceStatus: item.sourceStatus,
+      contentKind: item.contentKind,
+      contentKindLabel: item.contentKindLabel,
+      isExample: Boolean(item.isExample)
     })),
     selectedInsight,
     sourceStatus,
-    lastUpdatedAt:
-      directions[0]?.updatedAt ||
-      sourceStatus.find((item) => item.lastSuccessAt)?.lastSuccessAt ||
-      ''
+    emptyState,
+    dataMode: usingExamples ? 'example' : 'live',
+    contentKinds: {
+      example: usingExamples,
+      live: !usingExamples && directions.length > 0,
+      user: false,
+      stale: sourceStatus.some((row) => row.status === 'stale')
+    },
+    lastUpdatedAt: usingExamples
+      ? ''
+      : directions[0]?.updatedAt ||
+        sourceStatus.find((item) => item.lastSuccessAt)?.lastSuccessAt ||
+        ''
   }
 }
 
@@ -2246,11 +2511,14 @@ function buildSourceList(insights = [], sourceStatus = [], topics = []) {
 
 async function buildHotRank(booksDir, filter = {}) {
   const channel = normalizeChannel(filter.channel || 'all')
-  const insights = await listMarketInsights(booksDir, {
+  const liveInsights = await listMarketInsights(booksDir, {
     channel,
     source: filter.source || 'all',
-    limit: 60
+    limit: 60,
+    includeExamples: false
   })
+  const usingExamples = liveInsights.length === 0
+  const insights = usingExamples ? listExampleInsights(channel) : liveInsights
   const sourceStatus = await listSourceStatus(booksDir)
   const source = String(filter.source || 'all')
   const topics = await listHotTopics(booksDir, { limit: 500 })
@@ -2267,8 +2535,8 @@ async function buildHotRank(booksDir, filter = {}) {
       rank: index + 1,
       rawTitle: item.originalTitle || item.title,
       transferablePlot: item.storyPotential,
-      readerPleasure: item.readerEmotion.join('、'),
-      writableTypes: [item.genre, ...item.tags].slice(0, 5)
+      readerPleasure: (item.readerEmotion || []).join('、'),
+      writableTypes: [item.genre, ...(item.tags || [])].slice(0, 5)
     }))
   return {
     success: true,
@@ -2276,7 +2544,14 @@ async function buildHotRank(booksDir, filter = {}) {
     sources: buildSourceList(insights, sourceStatus, topics),
     items: cards,
     selectedItem: cards[0] || null,
-    sourceStatus
+    sourceStatus,
+    emptyState: buildEmptyStateMeta({
+      hasLiveData: !usingExamples && cards.length > 0,
+      hasExampleData: usingExamples,
+      offline: Boolean(filter.offline),
+      sourceStatus
+    }),
+    dataMode: usingExamples ? 'example' : cards.length ? 'live' : 'empty'
   }
 }
 
@@ -2297,7 +2572,7 @@ function keywordType(word = '') {
 
 async function buildKeywordClusters(booksDir, filter = {}) {
   const channel = normalizeChannel(filter.channel || 'all')
-  const insights = await listMarketInsights(booksDir, { channel, limit: 80 })
+  const insights = await listMarketInsights(booksDir, { channel, limit: 80, includeExamples: false })
   const map = new Map()
   for (const insight of insights) {
     for (const word of uniqueList(
@@ -2312,10 +2587,13 @@ async function buildKeywordClusters(booksDir, filter = {}) {
         growthScore: 0,
         channel: insight.channel,
         relatedKeywords: [],
-        relatedInsightIds: []
+        relatedInsightIds: [],
+        contentKind: insight.contentKind || CONTENT_KIND.live,
+        contentKindLabel: insight.contentKindLabel || CONTENT_KIND_LABELS.live,
+        isExample: false
       }
-      old.heatScore = Math.max(old.heatScore, insight.heatScore)
-      old.growthScore = Math.max(old.growthScore, insight.growthScore)
+      old.heatScore = Math.max(old.heatScore, insight.heatScore || 0)
+      old.growthScore = Math.max(old.growthScore, insight.growthScore || 0)
       old.relatedKeywords = uniqueList([...old.relatedKeywords, insight.tags], 8)
       old.relatedInsightIds = uniqueList([...old.relatedInsightIds, insight.id], 12)
       if (old.channel !== insight.channel) old.channel = 'all'
@@ -2329,21 +2607,26 @@ async function buildKeywordClusters(booksDir, filter = {}) {
 
 async function combinationDetailFromKeywords(booksDir, keywords = [], channel = 'all') {
   const normalizedKeywords = uniqueList(keywords, 5)
-  const insights = await listMarketInsights(booksDir, { channel, limit: 80 })
+  const liveInsights = await listMarketInsights(booksDir, {
+    channel,
+    limit: 80,
+    includeExamples: false
+  })
+  const insights = liveInsights.length ? liveInsights : listExampleInsights(channel)
   const matched =
     insights.find((item) =>
-      normalizedKeywords.some((word) => item.tags.includes(word) || item.genre.includes(word))
+      normalizedKeywords.some((word) => (item.tags || []).includes(word) || item.genre.includes(word))
     ) || insights[0]
   const title = normalizedKeywords.length
     ? `${normalizedKeywords.join(' + ')}`
     : matched
-      ? `${matched.genre} + ${matched.tags.slice(1, 3).join(' + ')}`
+      ? `${matched.genre} + ${(matched.tags || []).filter((tag) => tag !== '示例内容').slice(0, 2).join(' + ')}`
       : ''
   if (!matched) {
     return {
       title,
-      heatScore: 0,
-      growthScore: 0,
+      heatScore: null,
+      growthScore: null,
       relatedKeywords: normalizedKeywords,
       writableDirections: [],
       recommendedCharacters: [],
@@ -2355,14 +2638,18 @@ async function combinationDetailFromKeywords(booksDir, keywords = [], channel = 
         conflict: '',
         hook: ''
       },
-      sourceInsightId: ''
+      sourceInsightId: '',
+      contentKind: CONTENT_KIND.example,
+      contentKindLabel: CONTENT_KIND_LABELS.example,
+      isExample: true
     }
   }
   const baseTitle = matched.title
+  const isExample = Boolean(matched.isExample)
   return {
-    title,
-    heatScore: matched.heatScore,
-    growthScore: matched.growthScore,
+    title: isExample && !String(title).startsWith('【示例】') ? `【示例】${title || baseTitle}` : title,
+    heatScore: isExample ? null : matched.heatScore,
+    growthScore: isExample ? null : matched.growthScore,
     relatedKeywords: uniqueList([normalizedKeywords, matched?.tags || []], 8),
     writableDirections: [baseTitle, ...(matched?.bookTitleIdeas || [])].slice(0, 4),
     recommendedCharacters: [
@@ -2375,31 +2662,45 @@ async function combinationDetailFromKeywords(booksDir, keywords = [], channel = 
       4
     ),
     readerPleasure: uniqueList([matched?.readerEmotion || [], '反转', '爽感'], 5),
-    openingExample:
-      matched?.hook || '离婚当天，她被通知三小时内搬出别墅，但手机里多了一个品牌孵化系统。',
+    openingExample: matched?.hook || '',
     novelizedResult: {
       direction: baseTitle,
-      conflict: matched?.conflict || '前夫家族封杀 vs 女主用新消费品牌逆袭',
-      hook: matched?.hook || '离婚当天，她被通知三小时内搬出别墅，但手机里多了一个品牌孵化系统。'
+      conflict: matched?.conflict || '',
+      hook: matched?.hook || ''
     },
-    sourceInsightId: matched?.id || ''
+    sourceInsightId: matched?.id || '',
+    contentKind: matched.contentKind || (isExample ? CONTENT_KIND.example : CONTENT_KIND.live),
+    contentKindLabel:
+      matched.contentKindLabel ||
+      (isExample ? CONTENT_KIND_LABELS.example : CONTENT_KIND_LABELS.live),
+    isExample
   }
 }
 
 async function popularCombinations(booksDir, filter = {}) {
-  const insights = await listMarketInsights(booksDir, { channel: filter.channel || 'all', limit: 12 })
+  const insights = await listMarketInsights(booksDir, {
+    channel: filter.channel || 'all',
+    limit: 12,
+    includeExamples: false
+  })
+  const pool = insights.length ? insights : listExampleInsights(filter.channel || 'all')
   const combinations = []
-  for (const [index, item] of insights.slice(0, 6).entries()) {
-    const words = [item.genre, ...item.tags.slice(1, 3)]
+  for (const [index, item] of pool.slice(0, 6).entries()) {
+    const words = [item.genre, ...(item.tags || []).filter((tag) => tag !== '示例内容').slice(0, 2)]
     const detail = await combinationDetailFromKeywords(booksDir, words, filter.channel || 'all')
     combinations.push({
-      id: `combo_${index + 1}`,
+      id: item.isExample ? `example_combo_${index + 1}` : `combo_${index + 1}`,
       keywords: uniqueList(words, 4),
-      title: uniqueList(words, 4).join(' + '),
-      heatScore: detail.heatScore,
-      growthScore: detail.growthScore,
+      title: item.isExample
+        ? `【示例】${uniqueList(words, 4).join(' + ')}`
+        : uniqueList(words, 4).join(' + '),
+      heatScore: item.isExample ? null : detail.heatScore,
+      growthScore: item.isExample ? null : detail.growthScore,
       direction: detail.novelizedResult.direction,
-      trend: [34, 42 + index * 4, 48 + index * 5, 62 + index * 3, detail.growthScore]
+      trend: item.isExample ? [] : [34, 42 + index * 4, 48 + index * 5, 62 + index * 3, detail.growthScore],
+      contentKind: item.contentKind,
+      contentKindLabel: item.contentKindLabel,
+      isExample: Boolean(item.isExample)
     })
   }
   return combinations
@@ -2407,15 +2708,43 @@ async function popularCombinations(booksDir, filter = {}) {
 
 async function buildKeywordCloud(booksDir, filter = {}) {
   const channel = normalizeChannel(filter.channel || 'all')
-  const clusters = await buildKeywordClusters(booksDir, { channel })
+  const liveClusters = await buildKeywordClusters(booksDir, { channel })
+  const usingExamples = liveClusters.length === 0
+  const clusters = usingExamples
+    ? listExampleInsights(channel).flatMap((item, index) =>
+        uniqueList([item.genre, ...(item.tags || [])], 6).map((name, wordIndex) =>
+          annotateContentKind(
+            {
+              id: `example_kw_${index}_${wordIndex}`,
+              name,
+              type: keywordType(name),
+              heatScore: null,
+              growthScore: null,
+              channel: item.channel,
+              relatedKeywords: item.tags || [],
+              relatedInsightIds: [item.id]
+            },
+            CONTENT_KIND.example
+          )
+        )
+      )
+    : liveClusters
   const combinations = await popularCombinations(booksDir, { channel })
   const selected = combinations[0]?.keywords || clusters.slice(0, 3).map((item) => item.name)
+  const sourceStatus = await listSourceStatus(booksDir)
   return {
     success: true,
     channel,
-    keywordClusters: clusters,
+    keywordClusters: clusters.slice(0, 36),
     popularCombinations: combinations,
-    defaultCombinationDetail: await combinationDetailFromKeywords(booksDir, selected, channel)
+    defaultCombinationDetail: await combinationDetailFromKeywords(booksDir, selected, channel),
+    emptyState: buildEmptyStateMeta({
+      hasLiveData: !usingExamples,
+      hasExampleData: usingExamples,
+      offline: Boolean(filter.offline),
+      sourceStatus
+    }),
+    dataMode: usingExamples ? 'example' : 'live'
   }
 }
 
@@ -2710,9 +3039,19 @@ function buildAgentBrief(signals = [], rankings = [], activities = []) {
   if (!top) {
     return {
       title: 'Agent 等待更多小说信号',
-      summary: '当前真实数据里还没有足够清楚的小说方向，请刷新或检查平台来源。',
-      directions: [],
-      actions: ['刷新热榜', '查看平台榜']
+      summary:
+        '当前没有真实热词和平台榜单。页面不会伪造市场数据；你可刷新采集、创建灵感，或使用明确标注的示例内容。',
+      directions: listExampleInsights('all').slice(0, 3).map((item) => ({
+        title: item.title,
+        hook: item.hook,
+        platforms: ['内置示例'],
+        keywords: (item.tags || []).filter((tag) => tag !== '示例内容').slice(0, 5),
+        contentKind: CONTENT_KIND.example,
+        contentKindLabel: CONTENT_KIND_LABELS.example,
+        isExample: true
+      })),
+      actions: ['刷新热榜', '创建灵感', '使用示例内容'],
+      dataMode: 'example'
     }
   }
   return {
@@ -2723,22 +3062,32 @@ function buildAgentBrief(signals = [], rankings = [], activities = []) {
         title: `${top.label}开篇`,
         hook: top.hook,
         platforms: top.platforms,
-        keywords: top.keywords.slice(0, 5)
+        keywords: top.keywords.slice(0, 5),
+        contentKind: CONTENT_KIND.live,
+        contentKindLabel: CONTENT_KIND_LABELS.live,
+        isExample: false
       },
       {
         title: `${rankings[0]?.platform || '番茄'}适配`,
         hook: rankings[0]?.suggestion || '开篇先给清楚冲突，再给人物选择。',
         platforms: [rankings[0]?.platform || '番茄'],
-        keywords: rankings[0]?.keywords || []
+        keywords: rankings[0]?.keywords || [],
+        contentKind: CONTENT_KIND.live,
+        contentKindLabel: CONTENT_KIND_LABELS.live,
+        isExample: false
       },
       {
         title: '活动投稿',
         hook: activities[0]?.requirementSummary || '把热词转成原创人物处境，不写新闻复述。',
         platforms: [activities[0]?.platform || '短剧'],
-        keywords: activities[0]?.keywords || []
+        keywords: activities[0]?.keywords || [],
+        contentKind: CONTENT_KIND.live,
+        contentKindLabel: CONTENT_KIND_LABELS.live,
+        isExample: false
       }
     ],
-    actions: ['生成选题卡', '引用到创作起笔', '存入知识库']
+    actions: ['生成选题卡', '引用到创作起笔', '存入知识库'],
+    dataMode: 'live'
   }
 }
 
@@ -2862,7 +3211,12 @@ export async function getMarketDashboard(booksDir, filter = {}) {
   const topOpportunities = await buildRuleOpportunities(booksDir, {
     limit: filter.opportunityLimit || 10
   })
-  const insights = await listMarketInsights(booksDir, { channel, source: filter.source || 'all', limit })
+  const insights = await listMarketInsights(booksDir, {
+    channel,
+    source: filter.source || 'all',
+    limit,
+    includeExamples: true
+  })
   const novelSignals = analyzeNovelSignals(hotspots).filter((item) => {
     const rule = NOVEL_SIGNAL_RULES.find((rule) => rule.key === item.key)
     return channelMatches(firstByChannel(rule?.channels || ['all'], channel), channel)
@@ -2874,6 +3228,7 @@ export async function getMarketDashboard(booksDir, filter = {}) {
   const overview = await buildMarketOverview(booksDir, { ...filter, channel })
   const hotRank = await buildHotRank(booksDir, { ...filter, channel })
   const keywordCloud = await buildKeywordCloud(booksDir, { ...filter, channel })
+  const hasLiveData = hotspots.length > 0 || novelSignals.length > 0
   const lastUpdatedAt =
     hotspots[0]?.capturedAt ||
     sourceStatus.find((item) => item.lastSuccessAt)?.lastSuccessAt ||
@@ -2895,7 +3250,20 @@ export async function getMarketDashboard(booksDir, filter = {}) {
     hotRank,
     keywordCloud,
     activities,
-    lastUpdatedAt,
+    emptyState: buildEmptyStateMeta({
+      hasLiveData,
+      hasExampleData: Boolean(overview.dataMode === 'example'),
+      offline: Boolean(filter.offline),
+      sourceStatus
+    }),
+    dataMode: hasLiveData ? 'live' : overview.dataMode || 'empty',
+    contentKinds: overview.contentKinds || {
+      example: overview.dataMode === 'example',
+      live: hasLiveData,
+      user: false,
+      stale: sourceStatus.some((row) => row.status === 'stale')
+    },
+    lastUpdatedAt: hasLiveData ? lastUpdatedAt : '',
     nextRefreshAt: ''
   }
 }
@@ -2946,6 +3314,9 @@ export const SOURCE_OPTIONS = Object.keys(SOURCE_CONFIG)
 
 export default {
   SOURCE_OPTIONS,
+  CONTENT_KIND,
+  CONTENT_KIND_LABELS,
+  EXAMPLE_INSIGHTS,
   refreshHotTopics,
   listHotTopics,
   getTrendRecord,
@@ -2954,6 +3325,7 @@ export default {
   pruneSourceCache,
   buildRuleOpportunities,
   listMarketInsights,
+  listExampleInsights,
   buildMarketOverview,
   buildHotRank,
   buildKeywordCloud,

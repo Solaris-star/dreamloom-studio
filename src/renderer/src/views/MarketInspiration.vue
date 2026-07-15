@@ -3,7 +3,9 @@
     <header class="market-hero">
       <div class="hero-copy">
         <h1>市场灵感 / Trend Radar</h1>
-        <p>从真实平台热词、榜单趋势和作者活动中，提炼可直接写成小说的题材方向。</p>
+        <p>
+          从公开热词、榜单趋势和作者活动中提炼可写题材。空数据时会展示明确标注的示例内容，不会伪造实时热度、销量或评价。
+        </p>
       </div>
 
       <div class="source-bar">
@@ -50,6 +52,23 @@
           />
           {{ refreshing ? '刷新中' : '刷新灵感' }}
         </button>
+        <button
+          v-motion-feedback
+          class="ghost-button"
+          type="button"
+          :disabled="Boolean(actionLoading)"
+          @click="openCreateInspiration"
+        >
+          创建灵感
+        </button>
+        <button
+          v-motion-feedback
+          class="ghost-button"
+          type="button"
+          @click="openImportInspiration"
+        >
+          导入 / 添加
+        </button>
       </div>
     </header>
 
@@ -57,7 +76,56 @@
       v-if="pageError"
       class="error-banner"
     >
-      {{ pageError }}
+      <div>
+        <strong>{{ isOffline ? '网络不可用' : '加载失败' }}</strong>
+        <p>{{ pageError }}</p>
+      </div>
+      <div class="error-actions">
+        <button
+          type="button"
+          @click="handleRefresh"
+        >
+          重试刷新
+        </button>
+        <button
+          type="button"
+          @click="openCreateInspiration"
+        >
+          创建灵感
+        </button>
+      </div>
+    </section>
+
+    <section
+      v-if="emptyStateBanner"
+      class="empty-banner"
+      :class="{ offline: emptyStateBanner.offline }"
+    >
+      <div>
+        <strong>{{ emptyStateBanner.title }}</strong>
+        <p>{{ emptyStateBanner.description }}</p>
+        <small v-if="dataMode === 'example'">当前列表含【示例内容】，不是实时市场数据。</small>
+      </div>
+      <div class="error-actions">
+        <button
+          type="button"
+          @click="handleRefresh"
+        >
+          刷新
+        </button>
+        <button
+          type="button"
+          @click="openCreateInspiration"
+        >
+          创建灵感
+        </button>
+        <button
+          type="button"
+          @click="openImportInspiration"
+        >
+          导入 / 添加
+        </button>
+      </div>
     </section>
 
     <section
@@ -131,7 +199,13 @@
         <MarketEmptyState
           v-if="overview.writableDirections.length === 0"
           title="暂无可写方向。"
-          description="当前没有真实采集结果。请点击刷新，或检查微博、百度、小说平台公开页是否可访问。"
+          description="当前没有真实采集结果，也没有可展示的示例内容。请刷新、创建灵感，或导入自己的题材。"
+          :reason="emptyState?.reason || 'empty'"
+          :offline="isOffline"
+          show-actions
+          @refresh="handleRefresh"
+          @create="openCreateInspiration"
+          @import="openImportInspiration"
         />
 
         <button
@@ -147,20 +221,24 @@
           <div class="direction-main">
             <div class="direction-head">
               <h3>{{ item.title }}</h3>
-              <strong>{{ item.heatScore }}</strong>
+              <strong :class="{ 'is-example': item.isExample || item.heatScore == null }">
+                {{ scoreLabel(item.heatScore, item) }}
+              </strong>
             </div>
             <div class="tag-line">
+              <span class="content-kind-chip">{{ contentKindLabel(item) }}</span>
               <span>{{ channelLabel(item.channel) }}</span>
               <span
-                v-for="tag in item.tags.slice(0, 4)"
+                v-for="tag in (item.tags || []).slice(0, 4)"
                 :key="tag"
               >{{ tag }}</span>
             </div>
             <p><b>适合写法：</b>{{ item.suitableWriting }}</p>
             <p><b>开篇钩子：</b>{{ item.hook }}</p>
             <div class="mini-metrics">
-              <span>增长 {{ item.growthScore }}</span>
-              <span>机会 {{ item.opportunityScore }}</span>
+              <span v-if="!item.isExample && item.growthScore != null">增长 {{ item.growthScore }}</span>
+              <span v-if="!item.isExample && item.opportunityScore != null">机会 {{ item.opportunityScore }}</span>
+              <span v-if="item.isExample">非实时示例</span>
               <span :class="item.sourceStatus">来源 {{ sourceStatusText(item.sourceStatus) }}</span>
             </div>
           </div>
@@ -175,21 +253,25 @@
         }"
         class="overview-center"
       >
-        <section class="opportunity-card">
+        <section class="opportunity-card" :class="{ example: dataMode === 'example' }">
           <div>
-            <span>今日创作机会指数</span>
-            <strong>{{ overview.opportunityIndex.grade || 'C' }}</strong>
+            <span>{{ dataMode === 'example' ? '当前数据模式' : '今日创作机会指数' }}</span>
+            <strong>{{ overview.opportunityIndex.grade || (dataMode === 'example' ? '示例' : '—') }}</strong>
             <p>{{ overview.opportunityIndex.summary }}</p>
           </div>
           <div
+            v-if="dataMode !== 'example' && hasLiveScores"
             class="sparkline"
             aria-hidden="true"
           >
             <i
-              v-for="n in 18"
+              v-for="(height, n) in sparklineHeights"
               :key="n"
-              :style="{ height: `${28 + ((n * 17) % 48)}px` }"
+              :style="{ height: `${height}px` }"
             />
+          </div>
+          <div v-else class="example-note" aria-hidden="false">
+            <span>示例模式不展示伪热度曲线</span>
           </div>
         </section>
 
@@ -233,7 +315,9 @@
               class="genre-dial"
               @click="selectKeyword(item.name)"
             >
-              <span :style="{ '--percent': `${item.percent}%` }">{{ item.percent }}%</span>
+              <span :style="{ '--percent': `${item.percent == null ? 0 : item.percent}%` }">
+                {{ item.percent == null ? '示例' : `${item.percent}%` }}
+              </span>
               <b>{{ item.name }}</b>
             </button>
           </div>
@@ -253,9 +337,9 @@
             >
               <span>{{ channelLabel(item.channel) }} · {{ item.genre }}</span>
               <b>{{ item.title }}</b>
-              <small class="heat-mark">
-                <Flame :size="13" />
-                {{ item.score }}
+              <small class="heat-mark" :class="{ 'is-example': item.isExample || item.score == null }">
+                <Flame v-if="item.score != null && !item.isExample" :size="13" />
+                {{ item.isExample || item.score == null ? contentKindLabel(item) : item.score }}
               </small>
             </button>
           </div>
@@ -335,7 +419,13 @@
         <MarketEmptyState
           v-if="hotRank.items.length === 0"
           title="暂无热榜数据。"
-          description="当前来源暂未返回内容，不影响其他分区使用。"
+          description="当前来源暂未返回内容。可刷新、创建灵感，或先使用示例内容。"
+          :reason="emptyState?.reason || 'empty'"
+          :offline="isOffline"
+          show-actions
+          @refresh="handleRefresh"
+          @create="openCreateInspiration"
+          @import="openImportInspiration"
         />
 
         <button
@@ -352,9 +442,9 @@
             <div class="hot-line">
               <h3>{{ item.rawTitle }}</h3>
               <span>{{ item.source }}</span>
-              <b class="heat-mark">
-                <Flame :size="14" />
-                {{ item.heatScore }}
+              <b class="heat-mark" :class="{ 'is-example': item.isExample || item.heatScore == null }">
+                <Flame v-if="item.heatScore != null && !item.isExample" :size="14" />
+                {{ scoreLabel(item.heatScore, item) }}
               </b>
             </div>
             <div class="novel-direction">
@@ -462,9 +552,12 @@
             @click="selectCombination(combo)"
           >
             <strong>{{ combo.title }}</strong>
-            <span>热度 {{ combo.heatScore }} · 增长 {{ combo.growthScore }}</span>
+            <span>
+              <template v-if="combo.isExample || combo.heatScore == null">示例内容 · 非实时热度</template>
+              <template v-else>热度 {{ combo.heatScore }} · 增长 {{ combo.growthScore }}</template>
+            </span>
             <p>{{ combo.direction }}</p>
-            <i v-if="showKeywordTrend">
+            <i v-if="showKeywordTrend && combo.trend?.length && !combo.isExample">
               <em
                 v-for="(point, index) in combo.trend"
                 :key="index"
@@ -478,9 +571,9 @@
       <aside class="paper-panel combination-panel">
         <div class="panel-title">
           <h2>组合详情</h2>
-          <b class="heat-mark">
-            <Flame :size="15" />
-            {{ combinationDetail.heatScore || 0 }}
+          <b class="heat-mark" :class="{ 'is-example': combinationDetail.isExample || combinationDetail.heatScore == null }">
+            <Flame v-if="combinationDetail.heatScore != null && !combinationDetail.isExample" :size="15" />
+            {{ scoreLabel(combinationDetail.heatScore, combinationDetail) }}
           </b>
         </div>
         <h3>{{ combinationDetail.title }}</h3>
@@ -538,7 +631,13 @@
         <MarketEmptyState
           v-if="activityBoard.activities.length === 0"
           title="暂无作者活动。"
-          description="当前没有真实活动采集结果。请刷新后查看来源状态；页面不会自动补活动。"
+          description="当前没有真实活动采集结果。页面不会伪造活动或适合投稿百分比；可刷新或手动创建灵感。"
+          :reason="emptyState?.reason || 'empty'"
+          :offline="isOffline"
+          show-actions
+          @refresh="handleRefresh"
+          @create="openCreateInspiration"
+          @import="openImportInspiration"
         />
 
         <article
@@ -566,9 +665,9 @@
               </div>
               <p>{{ activity.summary }}</p>
             </div>
-            <div class="fit-score">
-              <b>{{ activity.fitScore || 0 }}%</b>
-              <span>适合投稿</span>
+            <div class="fit-score" :class="{ muted: activity.fitScore == null }">
+              <b>{{ activity.fitScore == null ? '—' : `${activity.fitScore}%` }}</b>
+              <span>{{ activity.fitScore == null ? '待评估' : '适合投稿' }}</span>
             </div>
           </button>
           <div class="card-actions">
@@ -647,7 +746,9 @@
               <span>{{
                 selectedBookId === bookIdentity(book)
                   ? '已选为目标作品'
-                  : `${selectedActivity.fitScore || 82}% · 可按活动题材微调开篇和简介`
+                  : selectedActivity.fitScore == null
+                    ? '可按活动题材微调开篇和简介'
+                    : `${selectedActivity.fitScore}% · 可按活动题材微调开篇和简介`
               }}</span>
             </button>
           </section>
@@ -676,6 +777,7 @@ import { Bookmark, Flame, RefreshCw } from 'lucide-vue-next'
 import {
   applyMarketInsightToCurrentBook,
   createBookFromMarketInsight,
+  createMarketHotspot,
   generateMarketOutline,
   getMarketActivitiesBoard,
   getMarketDashboard,
@@ -746,6 +848,10 @@ const pageError = ref('')
 const actionLoading = ref('')
 const books = ref([])
 const lastActionResult = ref(null)
+const isOffline = ref(typeof navigator !== 'undefined' ? !navigator.onLine : false)
+const dataMode = ref('empty')
+const emptyState = ref(null)
+const contentKinds = ref({ example: false, live: false, user: false, stale: false })
 
 const dashboard = reactive({
   sourceStatus: [],
@@ -758,7 +864,8 @@ const overview = reactive({
   opportunityIndex: {},
   genreDistribution: [],
   inspirationExpress: [],
-  selectedInsight: null
+  selectedInsight: null,
+  lastUpdatedAt: ''
 })
 
 const hotRank = reactive({
@@ -794,6 +901,32 @@ const hasAnyData = computed(
     activityBoard.activities.length
 )
 
+const hasLiveScores = computed(() =>
+  overview.writableDirections.some(
+    (item) => !item.isExample && (item.opportunityScore != null || item.heatScore != null)
+  )
+)
+
+const sparklineHeights = computed(() => {
+  const scores = overview.writableDirections
+    .filter((item) => !item.isExample && item.opportunityScore != null)
+    .map((item) => Number(item.opportunityScore))
+    .slice(0, 18)
+  if (!scores.length) return []
+  return scores.map((score) => Math.max(18, Math.min(72, Math.round(score * 0.7))))
+})
+
+const emptyStateBanner = computed(() => {
+  if (loading.value) return null
+  if (!emptyState.value?.title) return null
+  if (emptyState.value.reason === 'ok') return null
+  if (dataMode.value === 'live' && hasAnyData.value) return null
+  return {
+    ...emptyState.value,
+    offline: isOffline.value || emptyState.value.reason === 'offline'
+  }
+})
+
 const lastUpdatedAt = computed(() => dashboard.lastUpdatedAt || overview.lastUpdatedAt || '')
 
 const statusCards = computed(() => {
@@ -808,8 +941,16 @@ const statusCards = computed(() => {
 const visibleKeywordClusters = computed(() => keywordCloud.keywordClusters.slice(0, 24))
 
 onMounted(async () => {
+  if (typeof window !== 'undefined') {
+    window.addEventListener('online', handleOnlineStatus)
+    window.addEventListener('offline', handleOnlineStatus)
+  }
   await Promise.all([loadBooks(), loadMarket()])
 })
+
+function handleOnlineStatus() {
+  isOffline.value = typeof navigator !== 'undefined' ? !navigator.onLine : false
+}
 
 watch(channel, () => loadMarket())
 
@@ -940,8 +1081,13 @@ async function loadMarket() {
   const hadData = Boolean(hasAnyData.value)
   loading.value = !hadData
   pageError.value = ''
+  isOffline.value = typeof navigator !== 'undefined' ? !navigator.onLine : false
   try {
-    const payload = { channel: channel.value, source: selectedSource.value }
+    const payload = {
+      channel: channel.value,
+      source: selectedSource.value,
+      offline: isOffline.value
+    }
     const [dashboardResult, overviewResult, rankResult, keywordResult, activityResult] =
       await Promise.all([
         getMarketDashboard(payload),
@@ -964,13 +1110,42 @@ async function loadMarket() {
     Object.assign(hotRank, normalizeHotRank(rankPayload))
     Object.assign(keywordCloud, normalizeKeywordCloud(keywordPayload))
     Object.assign(activityBoard, normalizeActivityBoard(activityPayload))
+    dataMode.value =
+      dashboardPayload.dataMode ||
+      overviewPayload.dataMode ||
+      rankPayload.dataMode ||
+      (overview.writableDirections.some((item) => item.isExample) ? 'example' : 'live')
+    emptyState.value =
+      dashboardPayload.emptyState || overviewPayload.emptyState || rankPayload.emptyState || null
+    contentKinds.value =
+      dashboardPayload.contentKinds ||
+      overviewPayload.contentKinds || {
+        example: dataMode.value === 'example',
+        live: dataMode.value === 'live',
+        user: false,
+        stale: false
+      }
     selectedInsight.value = overview.selectedInsight || overview.writableDirections[0] || null
     selectedHotRank.value = hotRank.selectedItem || hotRank.items[0] || null
     selectedActivity.value =
       activityBoard.selectedActivityDetail || activityBoard.activities[0] || null
     combinationDetail.value = keywordCloud.defaultCombinationDetail || combinationDetail.value || {}
   } catch (error) {
-    pageError.value = error?.message || '市场灵感加载失败'
+    const message = error?.message || '市场灵感加载失败'
+    if (isOffline.value || /network|fetch|Failed to fetch|超时|timeout|offline/i.test(message)) {
+      pageError.value = isOffline.value
+        ? `当前离线：${message}。可先创建灵感或使用已标注的示例内容。`
+        : `网络异常：${message}`
+      emptyState.value = {
+        reason: 'offline',
+        title: '网络不可用',
+        description:
+          '外部市场来源暂时无法访问。页面不会伪造热度或销量，可稍后刷新或手动创建灵感。',
+        offline: true
+      }
+    } else {
+      pageError.value = message
+    }
   } finally {
     loading.value = false
   }
@@ -1034,6 +1209,19 @@ async function handleRefresh() {
   if (refreshing.value) return
   refreshing.value = true
   pageError.value = ''
+  isOffline.value = typeof navigator !== 'undefined' ? !navigator.onLine : false
+  if (isOffline.value) {
+    pageError.value = '当前离线，无法采集外部热榜。可先创建灵感或使用示例内容。'
+    emptyState.value = {
+      reason: 'offline',
+      title: '网络不可用',
+      description: '离线状态下不会伪造市场数据。请联网后刷新，或手动创建/导入灵感。',
+      offline: true
+    }
+    ElMessage.warning(pageError.value)
+    refreshing.value = false
+    return
+  }
   try {
     const result = await refreshMarketTrends({
       sources: ['weibo', 'baidu', 'aggregated', 'dailyhot', 'qidian', 'jjwxc', 'fanqie', 'qimao'],
@@ -1045,9 +1233,94 @@ async function handleRefresh() {
   } catch (error) {
     pageError.value = error?.message || '刷新失败'
     ElMessage.error(pageError.value)
+    try {
+      await loadMarket()
+    } catch {
+      /* keep page usable with cached / example content */
+    }
   } finally {
     refreshing.value = false
   }
+}
+
+async function openCreateInspiration() {
+  if (actionLoading.value) return
+  const title = window.prompt('创建灵感标题（将保存到你的书库市场热点）')
+  if (title == null) return
+  const cleanTitle = String(title || '').trim()
+  if (!cleanTitle) {
+    ElMessage.warning('请输入灵感标题')
+    return
+  }
+  const summary =
+    window.prompt('可选：补充一句话简介 / 冲突 / 钩子', '') ||
+    '用户自建灵感，非外部实时市场数据。'
+  if (!beginAction('create-user')) return
+  try {
+    const result = await createMarketHotspot({
+      title: cleanTitle,
+      keyword: cleanTitle,
+      summary: String(summary || '').trim(),
+      sourceName: '用户自建',
+      platforms: ['用户自建'],
+      categories: [],
+      tags: ['用户内容'],
+      contentKind: 'user',
+      isUserContent: true
+    })
+    const item = requireMarketSuccess(result, '创建灵感失败').item
+    if (!item) throw new Error('创建灵感失败：接口没有返回条目')
+    const insight = {
+      id: item.id,
+      title: item.title,
+      source: item.sourceName || '用户自建',
+      sourceType: 'user',
+      channel: channel.value,
+      genre: item.categories?.[0] || '自建题材',
+      tags: item.tags || ['用户内容'],
+      heatScore: null,
+      growthScore: null,
+      opportunityScore: null,
+      summary: item.summary,
+      readerEmotion: [],
+      storyPotential: item.summary,
+      conflict: item.summary,
+      hook: item.summary,
+      bookTitleIdeas: [item.title],
+      loglineIdeas: [item.summary],
+      openingIdeas: [item.summary],
+      contentKind: 'user',
+      contentKindLabel: '用户内容',
+      isUserContent: true,
+      isExample: false,
+      rawIds: [item.id]
+    }
+    const saved = requireMarketKnowledgeResult(
+      await saveMarketInspiration({
+        insightId: insight.id,
+        insight,
+        channel: channel.value
+      }),
+      '保存失败'
+    )
+    ElMessage.success(saved.duplicate ? '灵感库已有该题材，已刷新' : '已创建并保存用户灵感')
+    setActionResult({
+      title: '已创建用户灵感',
+      description: `“${item.title}”已写入素材箱，可按标题查找。`,
+      actionText: '打开素材箱',
+      route: { path: '/knowledge/materials', query: { q: item.title || cleanTitle } }
+    })
+    await loadMarket()
+  } catch (error) {
+    ElMessage.error(error?.message || '创建灵感失败')
+  } finally {
+    finishAction('create-user')
+  }
+}
+
+function openImportInspiration() {
+  router.push({ path: '/knowledge/materials', query: { source: 'market-import' } })
+  ElMessage.info('可在素材箱中管理导入内容；市场页也支持创建用户灵感。')
 }
 
 function setChannel(value) {
@@ -1275,9 +1548,15 @@ function combinationToInsight() {
     channel: channel.value,
     genre: selectedKeywords.value[0] || '组合题材',
     tags: detail.relatedKeywords || selectedKeywords.value,
-    heatScore: detail.heatScore || 80,
-    growthScore: detail.growthScore || 60,
-    opportunityScore: Math.round(((detail.heatScore || 80) + (detail.growthScore || 60)) / 2),
+    heatScore: detail.heatScore == null ? null : detail.heatScore,
+    growthScore: detail.growthScore == null ? null : detail.growthScore,
+    opportunityScore:
+      detail.heatScore == null && detail.growthScore == null
+        ? null
+        : Math.round(((detail.heatScore || 0) + (detail.growthScore || 0)) / 2),
+    contentKind: detail.contentKind || (detail.isExample ? 'example' : 'live'),
+    contentKindLabel: detail.contentKindLabel || (detail.isExample ? '示例内容' : '外部实时'),
+    isExample: Boolean(detail.isExample),
     summary: detail.novelizedResult?.direction || '',
     readerEmotion: detail.readerPleasure || [],
     storyPotential: detail.novelizedResult?.direction || '',
@@ -1295,15 +1574,18 @@ function agentDirectionToInsight(direction = {}) {
     id: `agent_${Date.now()}_${String(direction.title || '').replace(/\s+/g, '_')}`,
     title: direction.title || 'Agent 创作方向',
     source: (direction.platforms || ['市场灵感'])[0],
-    sourceType: 'hot_search',
+    sourceType: direction.isExample ? 'example' : 'hot_search',
     channel: channel.value,
     genre: direction.title || '创作方向',
     tags: direction.keywords || direction.platforms || [],
-    heatScore: 78,
-    growthScore: 66,
-    opportunityScore: 80,
+    heatScore: direction.isExample ? null : direction.heatScore == null ? null : direction.heatScore,
+    growthScore: null,
+    opportunityScore: null,
+    contentKind: direction.contentKind || (direction.isExample ? 'example' : 'live'),
+    contentKindLabel: direction.contentKindLabel || (direction.isExample ? '示例内容' : '外部实时'),
+    isExample: Boolean(direction.isExample),
     summary: direction.hook || '',
-    readerEmotion: ['期待', '爽感', '反转'],
+    readerEmotion: direction.isExample ? [] : ['期待', '爽感', '反转'],
     storyPotential: direction.hook || '',
     conflict: direction.hook || '',
     hook: direction.hook || '',
@@ -1370,11 +1652,14 @@ function activityToInsight(activity = {}) {
     channel: activity.channel || channel.value,
     genre: activity.genres?.[0] || activity.categories?.[0] || '投稿题材',
     tags: activity.tags || activity.genres || activity.categories || [],
-    heatScore: activity.fitScore || 78,
-    growthScore: 60,
-    opportunityScore: activity.fitScore || 78,
+    heatScore: activity.fitScore == null ? null : activity.fitScore,
+    growthScore: null,
+    opportunityScore: activity.fitScore == null ? null : activity.fitScore,
+    contentKind: activity.contentKind || 'live',
+    contentKindLabel: activity.contentKindLabel || '外部实时',
+    isExample: Boolean(activity.isExample),
     summary: activity.summary,
-    readerEmotion: ['期待', '爽感', '反转'],
+    readerEmotion: [],
     storyPotential: activity.recommendedDirection || activity.requirementSummary,
     conflict: activity.recommendedDirection || activity.requirementSummary,
     hook: activity.recommendedDirection || activity.summary,
@@ -1384,6 +1669,20 @@ function activityToInsight(activity = {}) {
     rawIds: [activity.id],
     rawPayload: activity
   }
+}
+
+function contentKindLabel(item = {}) {
+  if (item?.contentKindLabel) return item.contentKindLabel
+  if (item?.isExample) return '示例内容'
+  if (item?.isUserContent) return '用户内容'
+  if (item?.isStale || item?.contentKind === 'stale') return '过期缓存'
+  if (item?.contentKind === 'cached') return '缓存结果'
+  return '外部实时'
+}
+
+function scoreLabel(score, item = {}) {
+  if (item?.isExample || score == null || score === '') return contentKindLabel(item)
+  return String(score)
 }
 
 function statusCard(source, label, status) {
@@ -2608,6 +2907,94 @@ button {
   display: block;
   color: var(--ink);
   margin-bottom: 8px;
+}
+
+.ghost-button {
+  border: 1px solid rgba(138, 115, 93, 0.24);
+  border-radius: 10px;
+  background: rgba(251, 250, 246, 0.92);
+  color: var(--ink);
+  min-height: 42px;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.ghost-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.error-banner,
+.empty-banner {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  border: 1px solid rgba(176, 108, 84, 0.28);
+  border-radius: 12px;
+  background: rgba(255, 244, 236, 0.92);
+  padding: 14px 16px;
+}
+
+.empty-banner {
+  border-color: rgba(111, 122, 104, 0.28);
+  background: rgba(243, 247, 239, 0.95);
+}
+
+.empty-banner.offline {
+  border-color: rgba(176, 108, 84, 0.28);
+  background: rgba(255, 244, 236, 0.92);
+}
+
+.error-actions,
+.market-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.error-actions button,
+.market-empty-action {
+  border: 1px solid rgba(138, 115, 93, 0.2);
+  border-radius: 8px;
+  background: #fff;
+  min-height: 36px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.market-empty-action.primary,
+.error-actions button:first-child {
+  background: rgba(111, 122, 104, 0.12);
+  border-color: rgba(111, 122, 104, 0.36);
+}
+
+.content-kind-chip,
+.heat-mark.is-example,
+.direction-head strong.is-example {
+  color: #6f7a68;
+  font-weight: 600;
+}
+
+.example-note {
+  display: grid;
+  place-items: center;
+  min-height: 72px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.opportunity-card.example strong {
+  font-size: 36px;
+}
+
+.fit-score.muted b {
+  color: var(--muted);
+}
+
+.market-empty-offline {
+  margin-top: 6px;
+  color: #a15b3d;
 }
 
 .market-skeleton {

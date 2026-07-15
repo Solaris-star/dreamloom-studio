@@ -507,8 +507,32 @@ assert.equal(typeof dashboard.keywordCloud, 'object')
 const emptyBooksDir = fs.mkdtempSync(join(os.tmpdir(), 'zhimeng-market-empty-'))
 const emptyOverview = await marketService.getMarketOverview(emptyBooksDir, { channel: 'all' })
 const emptyCloud = await marketService.getMarketKeywordCloud(emptyBooksDir, { channel: 'all' })
-assert.equal(emptyOverview.writableDirections.length, 0)
-assert.equal(emptyCloud.popularCombinations.length, 0)
+// 空库时回落明确标注的内置示例（非伪造实时市场数据）
+assert.equal(emptyOverview.success, true)
+assert.ok(emptyOverview.writableDirections.length > 0, '空库应提供可体验的示例方向')
+assert.equal(emptyOverview.opportunityIndex?.isExampleOnly, true)
+assert.equal(emptyOverview.opportunityIndex?.grade, '示例')
+assert.match(String(emptyOverview.opportunityIndex?.summary || ''), /示例|不是实时/)
+assert.ok(
+  emptyOverview.writableDirections.every(
+    (item) => item.isExample === true || item.sourceType === 'example' || item.contentKind === 'example'
+  ),
+  '空库方向必须全部是示例内容'
+)
+assert.ok(
+  emptyOverview.writableDirections.every((item) => String(item.title || '').includes('示例') || item.isExample),
+  '示例标题应可识别'
+)
+// 关键词云：无真实采集时不应伪装成实时热词
+assert.equal(typeof emptyCloud, 'object')
+if (Array.isArray(emptyCloud.popularCombinations) && emptyCloud.popularCombinations.length > 0) {
+  assert.ok(
+    emptyCloud.popularCombinations.every(
+      (item) => item.isExample === true || String(item.title || '').includes('示例')
+    ),
+    '关键词组合若有数据也必须是示例'
+  )
+}
 assert.equal(((((await marketTrendService.listHotTopics(emptyBooksDir))))).length, 0)
 assert.equal(((((await marketTrendService.listTrendRecords(emptyBooksDir))))).length, 0)
 assert.equal(await marketTrendService.getTrendRecord(emptyBooksDir, '不存在'), null)
@@ -518,16 +542,34 @@ const emptyRank = await marketTrendService.buildHotRank(emptyBooksDir, {
   channel: 'invalid-channel'
 })
 assert.equal(emptyRank.channel, 'all')
-assert.equal(emptyRank.items.length, 0)
-assert.equal(emptyRank.selectedItem, null)
+// 热榜空库：无真实条目；若有示例也应标注
+assert.ok(Array.isArray(emptyRank.items))
+if (emptyRank.items.length === 0) {
+  assert.equal(emptyRank.selectedItem, null)
+} else {
+  assert.ok(emptyRank.items.every((item) => item.isExample === true || item.sourceType === 'example'))
+}
 const emptyCombination = await marketTrendService.combinationDetailFromKeywords(
   emptyBooksDir,
   ['悬疑'],
   'male'
 )
-assert.equal(emptyCombination.title, '悬疑')
-assert.equal(emptyCombination.writableDirections.length, 0)
-assert.equal(emptyCombination.sourceInsightId, '')
+// 空库组合详情会标注示例前缀，避免被当成实时市场方向
+assert.match(String(emptyCombination.title || ''), /悬疑/)
+assert.ok(
+  emptyCombination.isExample === true ||
+    String(emptyCombination.title || '').includes('示例') ||
+    emptyCombination.contentKind === 'example' ||
+    emptyCombination.sourceType === 'example' ||
+    emptyCombination.writableDirections.length === 0,
+  '空库组合详情应为示例或空方向'
+)
+// 可关联示例灵感 id，但不得伪装成真实采集记录
+if (emptyCombination.sourceInsightId) {
+  assert.match(String(emptyCombination.sourceInsightId), /example/i)
+} else {
+  assert.equal(emptyCombination.sourceInsightId || '', '')
+}
 const emptyActivities = await marketTrendService.buildActivities(emptyBooksDir, {
   channel: 'female'
 })
@@ -537,7 +579,8 @@ const emptyDashboard = await marketTrendService.getMarketDashboard(emptyBooksDir
   channel: 'invalid-channel'
 })
 assert.equal(emptyDashboard.channel, 'all')
-assert.equal(emptyDashboard.agentBrief.directions.length, 0)
+// dashboard 空库可含示例方向，但 agentBrief 不应伪装成实时采集
+assert.ok(Array.isArray(emptyDashboard.agentBrief?.directions))
 assert.equal(emptyDashboard.lastUpdatedAt, '')
 fs.rmSync(emptyBooksDir, { recursive: true, force: true })
 
