@@ -94,7 +94,8 @@ function readTaskRows(bookPath) {
     // 损坏文件时隔离并重建，避免整本书 Agent 队列永久不可用
     const filePath = taskStorePath(bookPath)
     if (fs.existsSync(filePath)) {
-      const brokenPath = `${filePath}.broken.${Date.now()}`
+      // 同一毫秒内多次损坏时避免 .broken.<ts> 撞名导致 rename 失败
+      const brokenPath = `${filePath}.broken.${Date.now()}.${Math.random().toString(16).slice(2)}`
       try {
         fs.renameSync(filePath, brokenPath)
       } catch {

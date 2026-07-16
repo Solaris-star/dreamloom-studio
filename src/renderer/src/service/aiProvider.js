@@ -3,7 +3,7 @@ import { postJson } from './webHttpClient.js'
 async function getStoreValue(key, fallback = null) {
   const result = await postJson('/api/store/get', { key })
   if (result?.success !== true || result.key !== key) {
-    throw new Error('读取 Provider 设置失败')
+    throw new Error('读取 AI 服务设置失败')
   }
   return result.value ?? fallback
 }
@@ -11,13 +11,13 @@ async function getStoreValue(key, fallback = null) {
 async function setStoreValue(key, value) {
   const result = await postJson('/api/store/set', { key, value })
   if (result?.success !== true || result.key !== key) {
-    throw new Error('保存 Provider 设置失败')
+    throw new Error('保存 AI 服务设置失败')
   }
 }
 
 async function storedProviders() {
   const providers = await getStoreValue('aiProviders', [])
-  if (!Array.isArray(providers)) throw new Error('读取 Provider 失败：接口返回格式不正确')
+  if (!Array.isArray(providers)) throw new Error('读取 AI 服务失败：接口返回格式不正确')
   return providers
 }
 
@@ -28,7 +28,7 @@ function providerKeys(provider = {}) {
 
 async function requestProvider(provider, path, method = 'GET', body) {
   const keys = providerKeys(provider)
-  if (!provider?.baseUrl || !keys.length) throw new Error('请先填写 API 地址和 Key')
+  if (!provider?.baseUrl || !keys.length) throw new Error('请先填写接口地址和密钥')
   let lastError
   for (const apiKey of keys) {
     try {
@@ -42,7 +42,7 @@ async function requestProvider(provider, path, method = 'GET', body) {
       lastError = error
     }
   }
-  throw lastError || new Error('所有 Key 均不可用')
+  throw lastError || new Error('所有密钥均不可用')
 }
 
 async function resolveActiveProvider(category) {
@@ -58,7 +58,7 @@ async function saveActiveProvider(category, providerId) {
   if (id) {
     const providers = await storedProviders()
     if (!providers.some((provider) => provider.id === id && provider.category === category)) {
-      throw new Error(category === 'image' ? '图像 Provider 不存在' : '文本 Provider 不存在')
+      throw new Error(category === 'image' ? '图像 AI 服务不存在' : '文本 AI 服务不存在')
     }
   }
   const key = category === 'image' ? 'aiProviders.activeImageId' : 'aiProviders.activeTextId'
@@ -90,16 +90,16 @@ function normalizeEmbeddingProvider(provider = {}) {
 async function storedEmbeddingProviders() {
   const providers = await getStoreValue('embeddingProviders', [])
   if (!Array.isArray(providers)) {
-    throw new Error('读取 Embedding Provider 失败：接口返回格式不正确')
+    throw new Error('读取向量服务失败：接口返回格式不正确')
   }
   return providers.map(normalizeEmbeddingProvider)
 }
 
 function requireEmbeddingConfig(provider, requireName = false) {
-  if (requireName && !provider.name) throw new Error('请填写 Provider 名称')
-  if (!provider.baseUrl) throw new Error('请填写 Embedding API 地址')
-  if (!provider.apiKey) throw new Error('请填写 Embedding API Key')
-  if (!provider.modelName) throw new Error('请填写 Embedding 模型名称')
+  if (requireName && !provider.name) throw new Error('请填写服务名称')
+  if (!provider.baseUrl) throw new Error('请填写向量接口地址')
+  if (!provider.apiKey) throw new Error('请填写向量密钥')
+  if (!provider.modelName) throw new Error('请填写向量模型名称')
 }
 
 function requireAiProviderSuccess(result, fallback = '操作失败') {
@@ -109,7 +109,7 @@ function requireAiProviderSuccess(result, fallback = '操作失败') {
   return result
 }
 
-function requireAiProviderListResult(result, fallback = '读取 Provider 失败') {
+function requireAiProviderListResult(result, fallback = '读取 AI 服务失败') {
   const ok = requireAiProviderSuccess(result, fallback)
   if (!Array.isArray(ok.providers)) {
     throw new Error(`${fallback}：接口返回格式不正确`)
@@ -117,7 +117,7 @@ function requireAiProviderListResult(result, fallback = '读取 Provider 失败'
   return ok
 }
 
-function requireAiProviderResult(result, fallback = '保存 Provider 失败') {
+function requireAiProviderResult(result, fallback = '保存 AI 服务失败') {
   const ok = requireAiProviderSuccess(result, fallback)
   if (!ok.provider || typeof ok.provider !== 'object' || !ok.provider.id) {
     throw new Error(`${fallback}：接口返回格式不正确`)
@@ -125,7 +125,7 @@ function requireAiProviderResult(result, fallback = '保存 Provider 失败') {
   return ok
 }
 
-function requireAiProviderValidationResult(result, fallback = '验证 Provider 失败') {
+function requireAiProviderValidationResult(result, fallback = '验证 AI 服务失败') {
   const ok = requireAiProviderSuccess(result, fallback)
   if (typeof ok.isValid !== 'boolean') {
     throw new Error(`${fallback}：接口返回格式不正确`)
@@ -152,7 +152,7 @@ function requireAiProviderTestResult(result, fallback = '测试模型失败') {
   return ok
 }
 
-function requireEmbeddingProviderListResult(result, fallback = '读取 Embedding Provider 失败') {
+function requireEmbeddingProviderListResult(result, fallback = '读取向量服务失败') {
   const ok = requireAiProviderSuccess(result, fallback)
   if (!Array.isArray(ok.providers)) {
     throw new Error(`${fallback}：接口返回格式不正确`)
@@ -168,10 +168,7 @@ function requireEmbeddingProviderModelsResult(result, fallback = '读取模型�
   return ok
 }
 
-function requireEmbeddingProviderValidationResult(
-  result,
-  fallback = '验证 Embedding Provider 失败'
-) {
+function requireEmbeddingProviderValidationResult(result, fallback = '验证向量服务失败') {
   const ok = requireAiProviderSuccess(result, fallback)
   if (typeof ok.isValid !== 'boolean') {
     throw new Error(`${fallback}：接口返回格式不正确`)
@@ -187,7 +184,7 @@ export async function getAiProviders() {
 }
 
 export async function saveAiProviders(providers) {
-  if (!Array.isArray(providers)) throw new Error('保存 Provider 失败：接口返回格式不正确')
+  if (!Array.isArray(providers)) throw new Error('保存 AI 服务失败：接口返回格式不正确')
   await setStoreValue('aiProviders', providers)
   return { success: true, providers }
 }
@@ -203,7 +200,7 @@ export async function addAiProvider(provider) {
 export async function updateAiProvider(provider) {
   const providers = await storedProviders()
   const index = providers.findIndex((item) => item.id === provider?.id)
-  if (index < 0) throw new Error('Provider not found')
+  if (index < 0) throw new Error('未找到该 AI 服务')
   providers[index] = { ...providers[index], ...provider, updatedAt: Date.now() }
   await setStoreValue('aiProviders', providers)
   return { success: true, provider: providers[index] }
@@ -212,7 +209,7 @@ export async function updateAiProvider(provider) {
 export async function deleteAiProvider(providerId) {
   const providers = await storedProviders()
   if (!providerId || !providers.some((provider) => provider.id === providerId)) {
-    throw new Error('Provider not found')
+    throw new Error('未找到该 AI 服务')
   }
   const next = providers.filter((provider) => provider.id !== providerId)
   await setStoreValue('aiProviders', next)
@@ -227,7 +224,7 @@ export async function validateAiProvider(provider) {
 export async function listAiProviderModels(provider) {
   if (provider?.category === 'image') {
     if (!provider.baseUrl || !providerKeys(provider).length) {
-      throw new Error('请先填写 API 地址和 Key')
+      throw new Error('请先填写接口地址和密钥')
     }
     return { success: true, models: Array.isArray(provider.models) ? provider.models : [] }
   }
@@ -296,7 +293,7 @@ export async function addEmbeddingProvider(provider) {
 export async function setActiveEmbeddingProvider(providerId, active) {
   const providers = await storedEmbeddingProviders()
   if (!providerId || !providers.some((item) => item.id === providerId)) {
-    throw new Error('未找到 Embedding Provider')
+    throw new Error('未找到向量服务')
   }
   const next = providers.map((item) => ({
     ...item,
@@ -309,7 +306,7 @@ export async function setActiveEmbeddingProvider(providerId, active) {
 export async function deleteEmbeddingProvider(providerId) {
   const providers = await storedEmbeddingProviders()
   if (!providerId || !providers.some((item) => item.id === providerId)) {
-    throw new Error('未找到 Embedding Provider')
+    throw new Error('未找到向量服务')
   }
   const next = providers.filter((item) => item.id !== providerId)
   await setStoreValue('embeddingProviders', next)
@@ -332,7 +329,7 @@ export async function validateEmbeddingProvider(provider) {
 
 export async function listEmbeddingProviderModels(provider) {
   const target = normalizeEmbeddingProvider(provider)
-  if (!target.baseUrl || !target.apiKey) throw new Error('请先填写 API 地址和 Key')
+  if (!target.baseUrl || !target.apiKey) throw new Error('请先填写接口地址和密钥')
   const result = await postJson('/api/ai-proxy', {
     targetUrl: `${target.baseUrl.replace(/\/$/, '')}/v1/models`,
     apiKey: target.apiKey,

@@ -911,7 +911,14 @@ test('市场灵感写操作不会重复提交或保留旧成功结果', async ({
   })
   await expect.poll(() => saveRequests, { timeout: 1_000 }).toBe(1)
   await expect(page.locator('.result-banner').getByText('已存入灵感库', { exact: true })).toBeVisible()
-  await expect.poll(() => saveRequests).
+  await expect.poll(() => saveRequests).toBe(1)
+
+  await saveButton.click()
+  await expect(page.getByText('市场灵感保存失败')).toBeVisible()
+  await expect(page.locator('.result-banner')).toHaveCount(0)
+  await expect.poll(() => saveRequests).toBe(2)
+})
+
 test('市场灵感空数据展示示例内容且不伪造热度', async ({ page }) => {
   const exampleInsight = {
     id: 'example_family_reversal',
@@ -1056,14 +1063,6 @@ test('市场灵感空数据展示示例内容且不伪造热度', async ({ page 
   )
   await expect(page.locator('.opportunity-card')).toContainText('示例')
   await expect(page.getByText('不是实时市场数据')).toBeVisible()
-})
-
-toBe(1)
-
-  await saveButton.click()
-  await expect(page.getByText('市场灵感保存失败')).toBeVisible()
-  await expect(page.locator('.result-banner')).toHaveCount(0)
-  await expect.poll(() => saveRequests).toBe(2)
 })
 
 test('小说下载不会重复提交或写入失败章节', async ({ page }) => {

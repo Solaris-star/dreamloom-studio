@@ -220,6 +220,8 @@
     "chapterTitle": "章节标题",
     "characterHighlight": "人物高亮",
     "bannedWordsHint": "禁词提示",
+    "characterHighlightCountTip": "点击跳转到下一个人名高亮",
+    "bannedWordsHintCountTip": "点击跳转到下一处禁词",
     "aiPolish": "AI 润色",
     "polishSelection": "润色选中文本",
     "polishChapter": "润色整章",
@@ -329,43 +331,43 @@
   },
   "aiSettings": {
     "title": "AI 设置",
-    "apiKey": "API Key",
+    "apiKey": "密钥（API Key）",
     "deepseek": "DeepSeek",
     "tongyi": "通义万相",
-    "deepseekPlaceholder": "请输入 DeepSeek API Key",
-    "tongyiPlaceholder": "请输入通义万相 API Key",
+    "deepseekPlaceholder": "请输入 DeepSeek 密钥",
+    "tongyiPlaceholder": "请输入通义万相密钥",
     "validate": "验证",
-    "getApiKey": "获取 API Key →",
-    "validateSuccess": "API Key 验证成功",
-    "validateFailed": "API Key 验证失败",
+    "getApiKey": "获取密钥 →",
+    "validateSuccess": "密钥验证成功",
+    "validateFailed": "密钥验证失败",
     "deepseekSaveFailed": "DeepSeek 保存失败",
     "tongyiSaveFailed": "通义万相保存失败",
     "saveSuccess": "保存成功",
     "saveFailed": "保存失败",
-    "pleaseInputDeepseek": "请先输入 DeepSeek API Key",
-    "deepseekValidateSuccess": "DeepSeek API Key 验证成功",
-    "deepseekValidateFailed": "DeepSeek API Key 验证失败",
-    "pleaseInputTongyi": "请先输入通义万相 API Key",
-    "tongyiValidateSuccess": "通义万相 API Key 验证成功",
-    "tongyiValidateFailed": "通义万相 API Key 验证失败",
+    "pleaseInputDeepseek": "请先输入 DeepSeek 密钥",
+    "deepseekValidateSuccess": "DeepSeek 密钥验证成功",
+    "deepseekValidateFailed": "DeepSeek 密钥验证失败",
+    "pleaseInputTongyi": "请先输入通义万相密钥",
+    "tongyiValidateSuccess": "通义万相密钥验证成功",
+    "tongyiValidateFailed": "通义万相密钥验证失败",
     "validateNetworkFailed": "验证失败，请检查网络连接",
     "sectionTextAi": "文本 AI",
     "sectionImageAi": "图像 AI",
     "gemini": "Gemini Imagen",
     "geminiTip": "Imagen 官方说明以英文提示词为主，中文描述效果可能不稳定。",
-    "geminiPlaceholder": "请输入 Google AI Studio / Gemini API Key",
+    "geminiPlaceholder": "请输入 Gemini 密钥",
     "geminiSaveFailed": "Gemini 保存失败",
-    "pleaseInputGemini": "请先输入 Gemini API Key",
-    "geminiValidateSuccess": "Gemini API Key 验证成功",
-    "geminiValidateFailed": "Gemini API Key 验证失败",
+    "pleaseInputGemini": "请先输入 Gemini 密钥",
+    "geminiValidateSuccess": "Gemini 密钥验证成功",
+    "geminiValidateFailed": "Gemini 密钥验证失败",
     "doubao": "豆包图像（火山方舟）",
-    "doubaoModel": "模型 ID",
+    "doubaoModel": "模型（model）",
     "doubaoModelPlaceholder": "方舟控制台中的模型名或推理接入点 ID",
-    "doubaoBaseUrl": "API 地址（可选）",
+    "doubaoBaseUrl": "接口地址（可选）",
     "doubaoBaseUrlPlaceholder": "默认 https://ark.cn-beijing.volces.com/api/v3",
-    "doubaoPlaceholder": "请输入火山方舟 API Key",
+    "doubaoPlaceholder": "请输入火山方舟密钥",
     "doubaoSaveFailed": "豆包配置保存失败",
-    "pleaseInputDoubao": "请先填写豆包 API Key 与模型 ID",
+    "pleaseInputDoubao": "请先填写豆包密钥与模型 ID",
     "doubaoValidateSuccess": "豆包配置已填写（未发起真实出图请求）",
     "doubaoValidateFailed": "豆包配置不完整"
   },
@@ -450,7 +452,8 @@
     "passwordPlaceholder": "请输入访问密钥",
     "submit": "登录",
     "pleaseInputPassword": "请输入访问密钥",
-    "wrongPassword": "访问密钥错误，请重新输入"
+    "wrongPassword": "访问密钥错误，请重新输入",
+    "statusFailed": "读取登录状态失败"
   },
   "characterProfile": {
     "kind": {
@@ -906,7 +909,8 @@
     "addSuccess": "添加成功",
     "addFailed": "添加失败",
     "deleteSuccess": "删除成功",
-    "deleteFailed": "删除失败"
+    "deleteFailed": "删除失败",
+    "loadFailed": "读取禁词失败"
   },
   "aiSceneImage": {
     "title": "AI 场景图",
@@ -950,18 +954,54 @@
       "night": "夜晚/弱光"
     },
     "styles": {
-      "anime": { "label": "日系动画", "desc": "二次元插画" },
-      "ghibli": { "label": "吉卜力风格", "desc": "手绘、治愈" },
-      "retroAnime": { "label": "复古日漫", "desc": "赛璐璐" },
-      "photorealistic": { "label": "写实摄影", "desc": "自然光影" },
-      "render3d": { "label": "3D 渲染", "desc": "CG 立体感" },
-      "pixar": { "label": "欧美卡通", "desc": "动画渲染" },
-      "guofeng": { "label": "国风插画", "desc": "古风场景" },
-      "watercolor": { "label": "水彩插画", "desc": "柔和晕染" },
-      "inkWash": { "label": "水墨画", "desc": "留白意境" },
-      "oilPainting": { "label": "厚涂插画", "desc": "油画质感" },
-      "cyberpunk": { "label": "赛博朋克", "desc": "霓虹科幻" },
-      "pixelArt": { "label": "像素艺术", "desc": "复古像素" }
+      "anime": {
+        "label": "日系动画",
+        "desc": "二次元插画"
+      },
+      "ghibli": {
+        "label": "吉卜力风格",
+        "desc": "手绘、治愈"
+      },
+      "retroAnime": {
+        "label": "复古日漫",
+        "desc": "赛璐璐"
+      },
+      "photorealistic": {
+        "label": "写实摄影",
+        "desc": "自然光影"
+      },
+      "render3d": {
+        "label": "3D 渲染",
+        "desc": "CG 立体感"
+      },
+      "pixar": {
+        "label": "欧美卡通",
+        "desc": "动画渲染"
+      },
+      "guofeng": {
+        "label": "国风插画",
+        "desc": "古风场景"
+      },
+      "watercolor": {
+        "label": "水彩插画",
+        "desc": "柔和晕染"
+      },
+      "inkWash": {
+        "label": "水墨画",
+        "desc": "留白意境"
+      },
+      "oilPainting": {
+        "label": "厚涂插画",
+        "desc": "油画质感"
+      },
+      "cyberpunk": {
+        "label": "赛博朋克",
+        "desc": "霓虹科幻"
+      },
+      "pixelArt": {
+        "label": "像素艺术",
+        "desc": "复古像素"
+      }
     },
     "stylePrompts": {
       "anime": "日本动画风格，二次元，精致插画",
@@ -1071,18 +1111,54 @@
       "side": "侧面/侧身"
     },
     "styles": {
-      "anime": { "label": "日系动画", "desc": "现代日本动画、二次元" },
-      "ghibli": { "label": "吉卜力风格", "desc": "手绘动画、治愈系" },
-      "retroAnime": { "label": "复古日漫", "desc": "赛璐璐、怀旧动画" },
-      "photorealistic": { "label": "写实摄影", "desc": "真人、自然光影" },
-      "render3d": { "label": "3D 渲染", "desc": "游戏 CG、立体感" },
-      "pixar": { "label": "欧美卡通", "desc": "皮克斯/迪士尼风" },
-      "guofeng": { "label": "国风插画", "desc": "古风、古典服饰" },
-      "watercolor": { "label": "水彩插画", "desc": "柔和晕染、纸感" },
-      "inkWash": { "label": "水墨画", "desc": "中国水墨、留白" },
-      "oilPainting": { "label": "厚涂插画", "desc": "油画质感、笔触" },
-      "cyberpunk": { "label": "赛博朋克", "desc": "科幻、霓虹" },
-      "pixelArt": { "label": "像素艺术", "desc": "复古游戏风" }
+      "anime": {
+        "label": "日系动画",
+        "desc": "现代日本动画、二次元"
+      },
+      "ghibli": {
+        "label": "吉卜力风格",
+        "desc": "手绘动画、治愈系"
+      },
+      "retroAnime": {
+        "label": "复古日漫",
+        "desc": "赛璐璐、怀旧动画"
+      },
+      "photorealistic": {
+        "label": "写实摄影",
+        "desc": "真人、自然光影"
+      },
+      "render3d": {
+        "label": "3D 渲染",
+        "desc": "游戏 CG、立体感"
+      },
+      "pixar": {
+        "label": "欧美卡通",
+        "desc": "皮克斯/迪士尼风"
+      },
+      "guofeng": {
+        "label": "国风插画",
+        "desc": "古风、古典服饰"
+      },
+      "watercolor": {
+        "label": "水彩插画",
+        "desc": "柔和晕染、纸感"
+      },
+      "inkWash": {
+        "label": "水墨画",
+        "desc": "中国水墨、留白"
+      },
+      "oilPainting": {
+        "label": "厚涂插画",
+        "desc": "油画质感、笔触"
+      },
+      "cyberpunk": {
+        "label": "赛博朋克",
+        "desc": "科幻、霓虹"
+      },
+      "pixelArt": {
+        "label": "像素艺术",
+        "desc": "复古游戏风"
+      }
     },
     "stylePrompts": {
       "anime": "日本动画风格，二次元，精致插画",
@@ -1515,5 +1591,276 @@
       "lake": "湖泊",
       "desert": "沙漠"
     }
+  },
+  "promptPreset": {
+    "title": "提示词模板",
+    "create": "新建",
+    "import": "导入",
+    "export": "导出",
+    "all": "全部",
+    "continue": "续写",
+    "polish": "润色",
+    "evolve": "剧情演化",
+    "deconstruct": "拆文",
+    "settingTree": "设定树",
+    "chat": "对话",
+    "edit": "编辑",
+    "duplicate": "复制",
+    "delete": "删除",
+    "emptyHint": "暂无提示词模板",
+    "editPreset": "编辑模板",
+    "newPreset": "新建模板",
+    "name": "名称",
+    "nameRequired": "请填写模板名称",
+    "category": "分类",
+    "systemPrompt": "系统提示词",
+    "userPrompt": "用户提示词",
+    "temperature": "温度（temperature）",
+    "maxTokens": "最大 token 数（max_tokens）",
+    "topP": "采样范围（top_p）",
+    "cancel": "取消",
+    "save": "保存",
+    "saveSuccess": "模板已保存",
+    "saveError": "保存模板失败",
+    "deleteConfirm": "确定删除模板「{name}」吗？",
+    "deleteTitle": "删除模板",
+    "deleteSuccess": "模板已删除",
+    "deleteFailed": "删除模板失败",
+    "duplicateSuccess": "模板已复制",
+    "duplicateError": "复制模板失败",
+    "importSuccess": "导入成功",
+    "importError": "导入失败",
+    "exportSuccess": "导出成功",
+    "exportError": "导出失败",
+    "loadFailed": "读取提示词模板失败",
+    "retry": "重试",
+    "builtin": {
+      "maliangTomatoWebNovel": "番茄网文结构",
+      "maliangNineLineMethod": "九线法",
+      "maliangThreeActStructure": "三幕结构",
+      "maliangShortVideoScript": "短视频脚本",
+      "creationStarter": "创作起笔"
+    }
+  },
+  "embeddingProvider": {
+    "title": "向量模型",
+    "add": "添加服务",
+    "addProvider": "添加向量服务",
+    "editProvider": "编辑向量服务",
+    "edit": "编辑",
+    "delete": "删除",
+    "validate": "验证",
+    "cancel": "取消",
+    "save": "保存",
+    "name": "名称",
+    "baseUrl": "接口地址（Base URL）",
+    "apiKey": "密钥（API Key）",
+    "modelName": "模型名称",
+    "dimension": "向量维度",
+    "emptyHint": "暂无向量服务，请先添加",
+    "requiredFields": "请填写名称、接口地址、密钥和模型",
+    "saveSuccess": "向量服务已保存",
+    "saveError": "保存向量服务失败",
+    "setActiveError": "切换向量服务失败",
+    "validateSuccess": "验证通过",
+    "validateError": "验证失败",
+    "deleteConfirm": "确定删除该向量服务吗？",
+    "deleteTitle": "删除向量服务",
+    "deleteSuccess": "已删除",
+    "deleteFailed": "删除失败",
+    "loadModels": "读取列表",
+    "loadFailed": "读取向量服务失败",
+    "loadModelsFailed": "读取模型列表失败",
+    "noModels": "没有读取到模型",
+    "needUrlAndKey": "请先填写接口地址和密钥"
+  },
+  "aiChat": {
+    "title": "AI 对话",
+    "selectPreset": "选择提示词模板",
+    "emptyHint": "先选一个模板，再开始对话",
+    "inputPlaceholder": "输入问题，Ctrl + Enter 发送",
+    "send": "发送",
+    "insert": "插入正文",
+    "clear": "清空",
+    "retry": "重试",
+    "loadPresetsFailed": "读取对话模板失败",
+    "presetUnavailable": "当前模板不可用",
+    "sendFailed": "发送失败",
+    "sendError": "发送异常，请稍后重试"
+  },
+  "settingTree": {
+    "title": "设定树",
+    "generate": "生成",
+    "aiRegenerate": "AI 重新生成",
+    "preview": "预览",
+    "edit": "编辑",
+    "editNode": "编辑节点",
+    "nodeName": "节点名称",
+    "nodeDesc": "节点说明",
+    "strategy": "生成策略",
+    "strategyFree": "自由发挥",
+    "strategyXuanhuan": "玄幻",
+    "strategyDushi": "都市",
+    "strategyKehuan": "科幻",
+    "creativity": "创意程度",
+    "creativityPlaceholder": "0 到 1，越高越发散",
+    "merge": "合并到现有",
+    "replace": "替换全部",
+    "apply": "应用",
+    "cancel": "取消",
+    "save": "保存",
+    "generateSuccess": "设定树已生成",
+    "generateFailed": "生成设定树失败",
+    "generateError": "生成设定树异常",
+    "regenerateSuccess": "已重新生成",
+    "regenerateFailed": "重新生成失败",
+    "regenerateError": "重新生成异常",
+    "applySuccess": "已应用到设定",
+    "applyFailed": "应用失败",
+    "applyError": "应用异常"
+  },
+  "settingSnapshot": {
+    "title": "设定快照",
+    "create": "创建快照",
+    "compare": "对比",
+    "diff": "差异",
+    "diffTitle": "快照差异",
+    "emptyHint": "暂无设定快照",
+    "restore": "恢复",
+    "delete": "删除",
+    "selectLeft": "选择左侧快照",
+    "selectRight": "选择右侧快照",
+    "createSuccess": "快照已创建",
+    "createFailed": "创建快照失败",
+    "createError": "创建快照异常",
+    "deleteConfirm": "确定删除该快照吗？",
+    "deleteTitle": "删除快照",
+    "deleteSuccess": "快照已删除",
+    "deleteFailed": "删除快照失败",
+    "restoreConfirm": "恢复后会覆盖当前设定，是否继续？",
+    "restoreTitle": "恢复快照",
+    "restoreSuccess": "已恢复快照",
+    "restoreFailed": "恢复快照失败",
+    "diffFailed": "对比失败",
+    "diffError": "对比异常",
+    "loadFailed": "读取快照失败"
+  },
+  "plotEvolution": {
+    "title": "剧情演化",
+    "selectProvider": "选择 AI 服务",
+    "modelSelect": "选择模型",
+    "noProviderHint": "请先在系统设置中配置文本 AI 服务",
+    "startEvolve": "开始演化",
+    "regenerate": "重新生成",
+    "apply": "应用到大纲",
+    "conflict": "冲突",
+    "emotion": "情绪",
+    "keyEvents": "关键事件",
+    "emptyHint": "暂无演化结果",
+    "evolveFailed": "剧情演化失败",
+    "evolveError": "剧情演化异常",
+    "regenerateSuccess": "已重新生成",
+    "regenerateFailed": "重新生成失败",
+    "regenerateError": "重新生成异常"
+  },
+  "agentQueue": {
+    "title": "任务队列",
+    "eyebrow": "后台任务",
+    "refresh": "刷新",
+    "queue": "队列",
+    "waiting": "等待",
+    "running": "运行",
+    "failed": "失败",
+    "worker": "执行器",
+    "recentJobs": "最近任务",
+    "allStates": "全部状态",
+    "stateWaiting": "等待中",
+    "stateActive": "运行中",
+    "stateCompleted": "已完成",
+    "stateFailed": "失败",
+    "stateDelayed": "延时",
+    "statePaused": "已暂停",
+    "stateWaitingChildren": "等待子任务",
+    "emptyJobs": "暂无队列任务",
+    "detailTitle": "任务详情",
+    "selectJob": "请选择一个任务",
+    "stop": "停止",
+    "retry": "重试",
+    "emptyDetail": "暂无任务详情",
+    "status": "状态",
+    "name": "名称",
+    "attempts": "尝试次数",
+    "backoff": "等待设置",
+    "progress": "进度",
+    "startedAt": "开始时间",
+    "finishedAt": "结束时间",
+    "failedReason": "失败原因",
+    "jobData": "任务参数",
+    "returnValue": "返回结果",
+    "notConnected": "未连接",
+    "notLoaded": "未读取",
+    "none": "无",
+    "notRecorded": "未记录",
+    "notSet": "未设置",
+    "loadingJobs": "正在读取任务",
+    "loadQueueFailed": "队列读取失败",
+    "jobsCount": "读取到 {count} 个任务",
+    "noJobs": "没有读取到任务",
+    "filterMiss": "当前筛选结果中没有这个任务，请重新选择。",
+    "loadQueueError": "读取队列失败",
+    "jobNotFound": "未找到这个任务。",
+    "loadDetailFailed": "读取任务详情失败",
+    "stopConfirm": "停止会移除等待中的任务，运行中的任务会发出停止请求。",
+    "stopTitle": "停止队列任务",
+    "stopRequested": "已请求停止任务",
+    "stopped": "任务已停止",
+    "stopFailed": "停止任务失败",
+    "retryConfirm": "任务会回到等待队列，并从头重新执行。",
+    "retryTitle": "重试队列任务",
+    "retrySuccess": "任务已重新加入队列",
+    "retryFailed": "重试任务失败",
+    "queueJob": "队列任务",
+    "exponentialBackoff": "指数等待",
+    "backoffWait": "等待",
+    "workersCount": "{count} 个"
+  },
+  "homeAi": {
+    "starterTitle": "创作起笔",
+    "starterKicker": "设定生成，黄金三章",
+    "starterDesc": "输入创意想法，选择提示词策略，织梦会先生成设定树，再给出开篇黄金三章。",
+    "ideaPlaceholder": "请输入您的小说创意想法，例如：一个现代都市的年轻程序员意外获得了穿越时空的能力...",
+    "aiService": "AI 服务",
+    "selectAiService": "选择文本 AI 服务",
+    "model": "模型",
+    "selectModel": "选择或输入模型",
+    "prompt": "提示词",
+    "selectPrompt": "选择提示词",
+    "promptMarket": "提示词市场",
+    "market": "市场",
+    "generateSetting": "生成设定",
+    "needProviderAndModel": "请先选择文本 AI 服务和模型",
+    "createStarterFailed": "创建起笔任务失败",
+    "builtinPrompt": "内置提示词",
+    "promptTemplate": "提示词",
+    "unnamedTemplate": "未命名模板",
+    "emptyMaterials": "暂无可引用资料",
+    "emptyMaterialsHint": "去创作库添加资料，或在 AI 工坊保存提示词模板。",
+    "addMaterial": "添加资料"
+  },
+  "aiWorkshopUi": {
+    "promptTemplates": "提示词模板",
+    "emptyPromptTemplates": "暂无提示词模板",
+    "promptTemplatesLoadFailed": "提示词模板返回格式异常",
+    "invalidApiKey": "密钥无效，请到系统设置检查文本模型配置。",
+    "tokenUsage": "用量（Token）",
+    "defaultPrompt": "默认提示词"
+  },
+  "bookIdea": {
+    "selectProvider": "选择 AI 服务",
+    "selectModel": "选择模型",
+    "needModel": "请先配置并选择 AI 模型",
+    "saveProviderFailed": "保存默认 AI 服务失败",
+    "loadProviderFailed": "读取 AI 服务失败",
+    "generateFailed": "生成失败，请稍后再试"
   }
 }

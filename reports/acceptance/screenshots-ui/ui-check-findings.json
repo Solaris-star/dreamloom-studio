@@ -1,0 +1,97 @@
+{
+  "generatedAt": "2026-07-16T00:10:10.186Z",
+  "findings": [
+    {
+      "level": "PASS",
+      "area": "首页中文",
+      "message": "中文正常"
+    },
+    {
+      "level": "PASS",
+      "area": "AI设置中文",
+      "message": "设置页中文检查"
+    },
+    {
+      "level": "PASS",
+      "area": "导航收缩按钮",
+      "message": "找到收起侧栏"
+    },
+    {
+      "level": "PASS",
+      "area": "导航收缩效果",
+      "message": "仅icon可见(9)"
+    },
+    {
+      "level": "PASS",
+      "area": "书架导入导出下载",
+      "message": "import=true export=true download=true"
+    },
+    {
+      "level": "PASS",
+      "area": "市场灵感",
+      "message": "有示例/空态标注"
+    },
+    {
+      "level": "PASS",
+      "area": "旧路由",
+      "message": "/#/market-inspiration -> http://127.0.0.1:5188/#/market/overview"
+    },
+    {
+      "level": "PASS",
+      "area": "旧路由",
+      "message": "/#/creative-library -> http://127.0.0.1:5188/#/knowledge"
+    },
+    {
+      "level": "PASS",
+      "area": "旧路由",
+      "message": "/#/knowledge-library/all -> http://127.0.0.1:5188/#/knowledge-library/all"
+    },
+    {
+      "level": "PASS",
+      "area": "创作台",
+      "message": "ProseMirror 可见"
+    },
+    {
+      "level": "P2",
+      "area": "主题覆盖",
+      "message": "无主题选项"
+    },
+    {
+      "level": "P1",
+      "area": "人物高亮",
+      "message": "装饰数=0"
+    },
+    {
+      "level": "PASS",
+      "area": "禁词提示",
+      "message": "装饰数=1"
+    },
+    {
+      "level": "PASS",
+      "area": "悬浮拖拽",
+      "message": "位置变化检查"
+    },
+    {
+      "level": "PASS",
+      "area": "悬浮保存",
+      "message": "saved {\"x\":12,\"y\":268,\"side\":\"left\",\"updatedAt\":1784160603407}"
+    },
+    {
+      "level": "PASS",
+      "area": "悬浮持久化",
+      "message": "刷新保留"
+    },
+    {
+      "level": "PASS",
+      "area": "操作状态",
+      "message": "导入导出页有操作按钮"
+    }
+  ],
+  "summary": {
+    "P0": 0,
+    "P1": 1,
+    "P2": 1,
+    "P3": 0,
+    "PASS": 15
+  }
+}

@@ -221,6 +221,9 @@ const applyNeumorphicVars = (root, bgSoftHex) => {
 const applyTheme = (theme) => {
   const root = document.documentElement
   const config = themeConfigs[theme] || themeConfigs.light
+  const isDark = /^#([0-9a-f]{6})$/i.test(config.bgPrimary)
+    ? parseInt(config.bgPrimary.slice(1), 16) < 0x666666
+    : false
 
   // 背景色
   root.style.setProperty('--bg-primary', config.bgPrimary)
@@ -250,15 +253,52 @@ const applyTheme = (theme) => {
   root.style.setProperty('--danger-color', config.dangerColor)
   root.style.setProperty('--info-color', config.infoColor)
 
-  // Element Plus 的默认蓝色配白字对比度不足，控件主色保持为 WCAG AA 可读色。
-  root.style.setProperty('--el-color-primary', '#52634b')
-  root.style.setProperty('--el-color-primary-rgb', '82, 99, 75')
-  root.style.setProperty('--el-color-primary-light-3', '#84917f')
-  root.style.setProperty('--el-color-primary-light-5', '#a9b1a5')
-  root.style.setProperty('--el-color-primary-light-7', '#cdd2ca')
-  root.style.setProperty('--el-color-primary-light-8', '#dee1dc')
-  root.style.setProperty('--el-color-primary-light-9', '#eef0ed')
-  root.style.setProperty('--el-color-primary-dark-2', '#424f3c')
+  // 兼容全局 base.css / AppLayout 旧变量，确保壳层、侧栏、body 同步换肤
+  root.style.setProperty('--color-background', config.bgPrimary)
+  root.style.setProperty('--color-background-soft', config.bgSoft)
+  root.style.setProperty('--color-background-mute', config.bgMute)
+  root.style.setProperty('--color-text', config.textBase)
+  root.style.setProperty('--theme-app-background', config.bgPrimary)
+  root.style.setProperty('--theme-hover-background', hexToRgba(config.primaryColor, isDark ? 0.18 : 0.1))
+  root.style.setProperty('--theme-active-background', hexToRgba(config.primaryColor, isDark ? 0.28 : 0.16))
+  root.style.setProperty('--theme-control-radius', '8px')
+  root.style.setProperty('--wabi-paper', config.bgSoft)
+  root.style.setProperty('--wabi-ink', config.textBase)
+  root.style.setProperty('--wabi-ink-soft', config.textGray)
+  root.style.setProperty('--wabi-muted', config.textGrayLight)
+  root.style.setProperty('--wabi-line', config.borderColor)
+  root.style.setProperty('--wabi-moss', config.primaryColor)
+  root.style.setProperty('--wabi-moss-dark', config.accentColor)
+  root.style.setProperty('--wabi-earth', config.textGray)
+  root.style.setProperty('--wabi-warning', config.warningColor)
+  root.style.setProperty('--wabi-indigo', config.infoColor)
+  root.dataset.theme = theme
+  root.dataset.themeMode = isDark ? 'dark' : 'light'
+
+  // Element Plus 主色跟随当前主题，避免壳层/编辑器主色割裂
+  const primary = config.primaryColor || '#52634b'
+  root.style.setProperty('--el-color-primary', primary)
+  if (/^#([0-9a-f]{6})$/i.test(primary)) {
+    const n = parseInt(primary.slice(1), 16)
+    const r = (n >> 16) & 0xff
+    const g = (n >> 8) & 0xff
+    const b = n & 0xff
+    root.style.setProperty('--el-color-primary-rgb', `${r}, ${g}, ${b}`)
+    root.style.setProperty('--el-color-primary-light-3', hexToRgba(primary, 0.72))
+    root.style.setProperty('--el-color-primary-light-5', hexToRgba(primary, 0.5))
+    root.style.setProperty('--el-color-primary-light-7', hexToRgba(primary, 0.32))
+    root.style.setProperty('--el-color-primary-light-8', hexToRgba(primary, 0.22))
+    root.style.setProperty('--el-color-primary-light-9', hexToRgba(primary, 0.12))
+    root.style.setProperty('--el-color-primary-dark-2', hexToRgba(primary, 0.85))
+  } else {
+    root.style.setProperty('--el-color-primary-rgb', '82, 99, 75')
+    root.style.setProperty('--el-color-primary-light-3', '#84917f')
+    root.style.setProperty('--el-color-primary-light-5', '#a9b1a5')
+    root.style.setProperty('--el-color-primary-light-7', '#cdd2ca')
+    root.style.setProperty('--el-color-primary-light-8', '#dee1dc')
+    root.style.setProperty('--el-color-primary-light-9', '#eef0ed')
+    root.style.setProperty('--el-color-primary-dark-2', '#424f3c')
+  }
 
   applyNeumorphicVars(root, config.bgSoft)
 }

@@ -44,7 +44,7 @@
           size="small"
           @click="loadPresets"
         >
-          重试
+          {{ t('promptPreset.retry') }}
         </el-button>
       </div>
 

@@ -197,6 +197,7 @@
     <BannedWordsDrawer
       ref="bannedWordsRef"
       :book-name="route.query.name"
+      @changed="handleBannedWordsChanged"
     />
   </div>
 </template>
@@ -210,7 +211,7 @@ import { useRouter, useRoute } from 'vue-router'
 import SvgIcon from '@renderer/components/SvgIcon.vue'
 import { useI18n } from 'vue-i18n'
 
-const emit = defineEmits(['trigger-ai'])
+const emit = defineEmits(['trigger-ai', 'banned-words-changed'])
 const props = defineProps({
   cleanupTaskState: {
     type: Object,
@@ -311,6 +312,10 @@ const handleOutlineManager = () => {
 
 const handleBannedWords = () => {
   bannedWordsRef.value.open()
+}
+
+const handleBannedWordsChanged = (words) => {
+  emit('banned-words-changed', words)
 }
 </script>
 
