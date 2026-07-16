@@ -220,6 +220,8 @@
     "chapterTitle": "章节标题",
     "characterHighlight": "人物高亮",
     "bannedWordsHint": "禁词提示",
+    "characterHighlightCountTip": "点击跳转到下一个人名高亮",
+    "bannedWordsHintCountTip": "点击跳转到下一处禁词",
     "aiPolish": "AI 润色",
     "polishSelection": "润色选中文本",
     "polishChapter": "润色整章",

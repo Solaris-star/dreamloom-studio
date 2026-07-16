@@ -63,6 +63,8 @@ const props = defineProps({
   }
 })
 
+const emit = defineEmits(['changed'])
+
 const visible = ref(false)
 const newWord = ref('')
 const bannedWords = ref([])
@@ -78,7 +80,8 @@ const open = () => {
 const loadBannedWords = async () => {
   if (!props.bookName) return
   try {
-    bannedWords.value = await listBannedWords(props.bookName)
+    const words = await listBannedWords(props.bookName)
+    bannedWords.value = Array.isArray(words) ? words : []
   } catch (error) {
     console.error('加载禁词失败:', error)
     ElMessage.error(error.message || t('bannedWords.loadFailed'))
@@ -96,15 +99,17 @@ const handleAddWord = async () => {
   }
 
   // 校验：是否已存在
-  if (bannedWords.value.includes(word)) {
+  if (bannedWords.value.some((item) => item.toLocaleLowerCase() === word.toLocaleLowerCase())) {
     ElMessage.warning(t('bannedWords.duplicate'))
     return
   }
 
   try {
-    bannedWords.value = await addBannedWord(props.bookName, word)
+    const words = await addBannedWord(props.bookName, word)
+    bannedWords.value = Array.isArray(words) ? words : []
     newWord.value = ''
     ElMessage.success(t('bannedWords.addSuccess'))
+    emit('changed', bannedWords.value)
   } catch (error) {
     console.error('添加禁词失败:', error)
     ElMessage.error(error.message || t('bannedWords.addFailed'))
@@ -114,8 +119,10 @@ const handleAddWord = async () => {
 // 删除禁词
 const handleDeleteWord = async (word) => {
   try {
-    bannedWords.value = await removeBannedWord(props.bookName, word)
+    const words = await removeBannedWord(props.bookName, word)
+    bannedWords.value = Array.isArray(words) ? words : []
     ElMessage.success(t('bannedWords.deleteSuccess'))
+    emit('changed', bannedWords.value)
   } catch (error) {
     console.error('删除禁词失败:', error)
     ElMessage.error(error.message || t('bannedWords.deleteFailed'))

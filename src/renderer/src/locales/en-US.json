@@ -220,6 +220,8 @@
     "chapterTitle": "Chapter title",
     "characterHighlight": "Character highlight",
     "bannedWordsHint": "Banned-word hint",
+    "characterHighlightCountTip": "Jump to the next character highlight",
+    "bannedWordsHintCountTip": "Jump to the next banned-word match",
     "aiPolish": "AI Polish",
     "polishSelection": "Polish selected text",
     "polishChapter": "Polish whole chapter",

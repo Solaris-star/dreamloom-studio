@@ -45,6 +45,7 @@
         <EditorToolbar
           :cleanup-task-state="cleanupTaskState"
           @trigger-ai="handleAiTrigger"
+          @banned-words-changed="handleBannedWordsChanged"
         />
       </el-splitter-panel>
     </el-splitter>
@@ -107,6 +108,7 @@
       <EditorToolbar
         :cleanup-task-state="cleanupTaskState"
         @trigger-ai="handleMobileAiTrigger"
+        @banned-words-changed="handleBannedWordsChanged"
       />
     </el-drawer>
 
@@ -199,6 +201,10 @@ function handleCleanupTaskState(state) {
     selection: state?.selection || 'idle',
     chapter: state?.chapter || 'idle'
   }
+}
+
+function handleBannedWordsChanged(words) {
+  editorPanelRef.value?.refreshBannedWordHints?.(words)
 }
 
 // keep-alive 下用 activated/deactivated 绑定窗口事件，避免停用页仍监听刷新
