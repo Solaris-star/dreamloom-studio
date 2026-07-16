@@ -2379,6 +2379,30 @@ defineExpose({
   handleContinueClick,
   handleAISceneImageClick,
   refreshBannedWordHints,
+  getReadingStyleSettings: () => ({
+    fontSize: menubarState.value.fontSize,
+    lineHeight: menubarState.value.lineHeight,
+    pageWidth: menubarState.value.pageWidth,
+    paragraphSpacing: menubarState.value.paragraphSpacing
+  }),
+  applyReadingStyleSettings: (settings = {}) => {
+    const next = { ...menubarState.value }
+    if (settings.fontSize !== undefined && settings.fontSize !== null) {
+      next.fontSize =
+        typeof settings.fontSize === 'number' ? `${settings.fontSize}px` : String(settings.fontSize)
+    }
+    if (settings.lineHeight !== undefined && settings.lineHeight !== null) {
+      next.lineHeight = String(settings.lineHeight)
+    }
+    if (settings.pageWidth !== undefined && settings.pageWidth !== null) {
+      next.pageWidth = String(settings.pageWidth)
+    }
+    if (settings.paragraphSpacing !== undefined && settings.paragraphSpacing !== null) {
+      next.paragraphSpacing = String(settings.paragraphSpacing)
+    }
+    menubarState.value = next
+    handleStyleUpdate()
+  },
   saveBeforeLeave: () => saveEditorBeforeLeave(editorStore.file, () => saveFile(false))
 })
 </script>

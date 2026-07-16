@@ -30,8 +30,9 @@ assert.deepEqual(normalizeEditorLayout({}, 'mobile'), {
   lastLeft: 240,
   lastRight: 180,
   focus: false,
-  fontSize: 18,
-  lineHeight: 1.8,
+  fontSize: 16,
+  lineHeight: 1.6,
+  pageWidth: '80%',
   contentWidth: 760
 })
 
@@ -52,8 +53,15 @@ assert.equal(unsafe.right, 60)
 assert.equal(unsafe.lastLeft, 240)
 assert.equal(unsafe.fontSize, 24)
 assert.equal(unsafe.lineHeight, 1.4)
-assert.equal(unsafe.contentWidth, 960)
+// 旧像素 contentWidth 迁移到最近百分比档
+assert.equal(unsafe.pageWidth, '100%')
 assert.equal(unsafe.focus, false)
+
+// 百分比页宽保留；像素映射
+assert.equal(normalizeEditorLayout({ pageWidth: '70%' }, 'mobile').pageWidth, '70%')
+assert.equal(normalizeEditorLayout({ contentWidth: 680 }, 'mobile').pageWidth, '70%')
+assert.equal(normalizeEditorLayout({ contentWidth: 760 }, 'mobile').pageWidth, '80%')
+assert.equal(normalizeEditorLayout({ pageWidth: '90%' }, 'wide').pageWidth, '90%')
 
 const values = new Map([
   ['legacy-wide', JSON.stringify({ left: 320, right: 200 })],

@@ -58,7 +58,7 @@
       @catalog="openCatalog"
       @prev-chapter="handlePrevChapter"
       @next-chapter="handleNextChapter"
-      @reading-settings="readingSettingsVisible = true"
+      @reading-settings="openReadingSettings"
       @tools="mobileToolsVisible = true"
       @toggle-focus="toggleFocusMode"
     />
@@ -151,7 +151,7 @@
         </div>
       </div>
       <div class="reading-setting">
-        <span>正文字号</span>
+        <span>字号</span>
         <el-slider
           v-model="readingSettings.fontSize"
           :min="14"
@@ -161,7 +161,7 @@
         />
       </div>
       <div class="reading-setting">
-        <span>正文行高</span>
+        <span>行高</span>
         <el-slider
           v-model="readingSettings.lineHeight"
           :min="1.4"
@@ -171,14 +171,20 @@
         />
       </div>
       <div class="reading-setting">
-        <span>纸面宽度</span>
-        <el-slider
-          v-model="readingSettings.contentWidth"
-          :min="640"
-          :max="960"
-          :step="20"
-          show-input
-        />
+        <span>页宽</span>
+        <el-select
+          v-model="readingSettings.pageWidth"
+          class="reading-page-width"
+          aria-label="页宽"
+          data-testid="reading-page-width"
+        >
+          <el-option
+            v-for="option in pageWidthOptions"
+            :key="option.value"
+            :label="option.label"
+            :value="option.value"
+          />
+        </el-select>
       </div>
       <template #footer>
         <el-button @click="resetReadingSettings">
@@ -186,7 +192,7 @@
         </el-button>
         <el-button
           type="primary"
-          @click="readingSettingsVisible = false"
+          @click="finishReadingSettings"
         >
           完成
         </el-button>
@@ -219,6 +225,7 @@ import {
   getEditorDevice,
   getEditorPanelVisibility,
   normalizeEditorLayout,
+  normalizeEditorPageWidth,
   readEditorLayout,
   shouldExitEditorFocusMode
 } from '@renderer/service/editorLayout'
@@ -297,19 +304,80 @@ const readingSettingsVisible = ref(false)
 const mobileToolsVisible = ref(false)
 const chapterOutline = ref([])
 const readingSettings = ref({
-  fontSize: 18,
-  lineHeight: 1.8,
-  contentWidth: 760
+  fontSize: 16,
+  lineHeight: 1.6,
+  pageWidth: '80%'
 })
+
+const pageWidthOptions = [
+  { label: '自适应 (极宽)', value: '100%' },
+  { label: '自适应 (宽)', value: '90%' },
+  { label: '自适应 (中)', value: '80%' },
+  { label: '自适应 (窄)', value: '70%' }
+]
 
 const editorReadingStyle = computed(() => ({
   '--editor-reading-font-size': `${readingSettings.value.fontSize}px`,
   '--editor-reading-line-height': String(readingSettings.value.lineHeight),
-  '--editor-paper-width': `${readingSettings.value.contentWidth}px`
+  // 百分比页宽，移动端也能真正变窄/变宽
+  '--editor-paper-width': readingSettings.value.pageWidth || '80%'
 }))
 const catalogDrawerSize = computed(() => (viewportWidth.value < 768 ? '100%' : '380px'))
 
 let isLoadingLayout = false
+
+function parseFontSizePx(value, fallback = 16) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  const matched = String(value ?? '').match(/(\d+(?:\.\d+)?)/)
+  const n = matched ? Number(matched[1]) : Number.NaN
+  return Number.isFinite(n) ? n : fallback
+}
+
+function parseLineHeight(value, fallback = 1.6) {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : fallback
+}
+
+function toReadingSettings(source = {}) {
+  return {
+    fontSize: parseFontSizePx(source.fontSize, 16),
+    lineHeight: parseLineHeight(source.lineHeight, 1.6),
+    pageWidth: normalizeEditorPageWidth(source.pageWidth ?? source.contentWidth, source.contentWidth)
+  }
+}
+
+function applyReadingSettingsToEditor(settings = readingSettings.value, { syncState = true } = {}) {
+  const next = toReadingSettings(settings)
+  if (syncState) {
+    const current = readingSettings.value
+    if (
+      current.fontSize !== next.fontSize ||
+      current.lineHeight !== next.lineHeight ||
+      current.pageWidth !== next.pageWidth
+    ) {
+      readingSettings.value = next
+    }
+  }
+  editorPanelRef.value?.applyReadingStyleSettings?.({
+    fontSize: `${next.fontSize}px`,
+    lineHeight: String(next.lineHeight),
+    pageWidth: next.pageWidth
+  })
+}
+
+function openReadingSettings() {
+  const fromPanel = editorPanelRef.value?.getReadingStyleSettings?.()
+  if (fromPanel) {
+    readingSettings.value = toReadingSettings(fromPanel)
+  }
+  readingSettingsVisible.value = true
+}
+
+function finishReadingSettings() {
+  applyReadingSettingsToEditor(readingSettings.value)
+  persistLayout()
+  readingSettingsVisible.value = false
+}
 
 function loadLayout() {
   isLoadingLayout = true
@@ -326,12 +394,10 @@ function loadLayout() {
   lastLeftPanelSize.value = data.lastLeft
   lastRightPanelSize.value = data.lastRight
   focusMode.value = data.focus
-  readingSettings.value = {
-    fontSize: data.fontSize,
-    lineHeight: data.lineHeight,
-    contentWidth: data.contentWidth
-  }
+  readingSettings.value = toReadingSettings(data)
   nextTick(() => {
+    // 与顶栏 menubar 同步，避免 CSS 变量被内联 !important 盖掉
+    applyReadingSettingsToEditor(readingSettings.value)
     isLoadingLayout = false
   })
 }
@@ -350,7 +416,9 @@ function persistLayout() {
       lastLeft: lastLeftPanelSize.value,
       lastRight: lastRightPanelSize.value,
       focus: focusMode.value,
-      ...readingSettings.value
+      fontSize: readingSettings.value.fontSize,
+      lineHeight: readingSettings.value.lineHeight,
+      pageWidth: readingSettings.value.pageWidth
     },
     editorDevice.value
   )
@@ -432,7 +500,8 @@ async function selectCatalogChapter(path) {
 }
 
 function resetReadingSettings() {
-  readingSettings.value = { fontSize: 18, lineHeight: 1.8, contentWidth: 760 }
+  applyReadingSettingsToEditor({ fontSize: 16, lineHeight: 1.6, pageWidth: '80%' })
+  persistLayout()
 }
 
 function handleViewportResize() {
@@ -458,8 +527,21 @@ function detachWindowListeners() {
 }
 
 watch(
-  [leftPanelSize, rightPanelSize, lastLeftPanelSize, lastRightPanelSize, focusMode, readingSettings],
-  persistLayout,
+  [leftPanelSize, rightPanelSize, lastLeftPanelSize, lastRightPanelSize, focusMode],
+  () => {
+    if (isLoadingLayout) return
+    persistLayout()
+  }
+)
+
+// 阅读设置：立刻同步到 EditorPanel 内联样式（覆盖 !important），并持久化
+watch(
+  readingSettings,
+  () => {
+    if (isLoadingLayout) return
+    applyReadingSettingsToEditor(readingSettings.value, { syncState: false })
+    persistLayout()
+  },
   { deep: true }
 )
 
@@ -603,7 +685,7 @@ onBeforeUnmount(detachWindowListeners)
 
 :deep(.editor-content .tiptap) {
   width: 100%;
-  max-width: var(--editor-paper-width);
+  max-width: var(--editor-paper-width, 80%);
   min-height: 100%;
   margin: 0 auto;
   padding: 48px clamp(24px, 6vw, 72px);
@@ -612,6 +694,10 @@ onBeforeUnmount(detachWindowListeners)
   color: var(--text-base);
   font-size: var(--editor-reading-font-size) !important;
   line-height: var(--editor-reading-line-height) !important;
+}
+
+.reading-page-width {
+  width: 100%;
 }
 
 :deep([class*="collapse"]) {
