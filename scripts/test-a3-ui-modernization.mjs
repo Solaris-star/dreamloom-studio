@@ -38,6 +38,12 @@ assert.match(market, /\.dark-button:hover/)
 const visualCss = fs.readFileSync('src/renderer/src/assets/styles/visual-styles.css', 'utf8')
 assert.doesNotMatch(visualCss, /fonts\.googleapis\.com/)
 assert.match(visualCss, /visual-style-fonts\.css/)
+// Apple 设置页应去掉和纸纹理，并统一右栏主题卡
+assert.match(visualCss, /data-visual-style='apple'\] \.settings-nav/)
+assert.match(visualCss, /data-visual-style='apple'\] \.theme-card/)
+assert.match(visualCss, /background-image: none !important/)
+assert.match(visualCss, /#0071e3/)
+assert.match(visualCss, /settings-body/)
 
 const fontCss = fs.readFileSync(
   'src/renderer/src/assets/fonts/visual-style-fonts.css',
