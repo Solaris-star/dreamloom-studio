@@ -1,0 +1,200 @@
+/**
+ * 创作台主题基础样式
+ * 颜色全部来自 CSS variables（由 themeService 写入 documentElement）
+ */
+
+:root {
+  color-scheme: light;
+  --theme-transition-duration: 0s;
+}
+
+html[data-theme-mode='dark'] {
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root {
+    --theme-transition-duration: 120ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --theme-transition-duration: 0s;
+  }
+
+  html,
+  body,
+  #app,
+  .editor-container,
+  .editor-panel,
+  .editor-menubar,
+  .note-chapter,
+  .editor-toolbar,
+  .ai-chat-panel,
+  .floating-quick-actions,
+  .el-dialog,
+  .el-drawer,
+  .el-popper,
+  .el-message-box,
+  .el-tooltip__popper {
+    transition: none !important;
+  }
+}
+
+html,
+body,
+#app {
+  background-color: var(--bg-primary, #f7f8fa);
+  color: var(--text-base, #1a1d21);
+  transition:
+    background-color var(--theme-transition-duration) ease,
+    color var(--theme-transition-duration) ease;
+}
+
+::selection {
+  background: var(--selection-bg, rgba(82, 99, 75, 0.18));
+  color: var(--selection-text, inherit);
+}
+
+.el-overlay-dialog .el-dialog,
+.el-dialog,
+.el-message-box,
+.el-drawer,
+.el-popper.is-light,
+.el-popper.is-dark,
+.el-select-dropdown,
+.el-dropdown-menu,
+.el-picker__popper,
+.el-autocomplete-suggestion,
+.el-tooltip__popper {
+  --el-bg-color: var(--bg-soft);
+  --el-bg-color-overlay: var(--bg-soft);
+  --el-text-color-primary: var(--text-base);
+  --el-text-color-regular: var(--text-base);
+  --el-text-color-secondary: var(--text-secondary);
+  --el-border-color: var(--border-color);
+  --el-border-color-light: var(--border-color-soft);
+  background-color: var(--bg-soft) !important;
+  color: var(--text-base) !important;
+  border-color: var(--border-color);
+}
+
+.el-input__wrapper,
+.el-textarea__inner,
+.el-select__wrapper {
+  background-color: var(--bg-soft) !important;
+  box-shadow: 0 0 0 1px var(--border-color) inset !important;
+}
+
+.el-input__inner,
+.el-textarea__inner {
+  color: var(--text-base) !important;
+}
+
+.el-input__inner::placeholder,
+.el-textarea__inner::placeholder {
+  color: var(--text-gray-light) !important;
+}
+
+.el-button {
+  --el-button-bg-color: var(--bg-soft);
+  --el-button-text-color: var(--text-base);
+  --el-button-border-color: var(--border-color);
+  --el-button-hover-bg-color: var(--bg-mute);
+  --el-button-hover-text-color: var(--text-base);
+  --el-button-hover-border-color: var(--border-color);
+}
+
+.el-button--primary {
+  --el-button-bg-color: var(--el-color-primary);
+  --el-button-border-color: var(--el-color-primary);
+  --el-button-text-color: #ffffff;
+  --el-button-hover-bg-color: var(--el-color-primary-light-3);
+  --el-button-hover-border-color: var(--el-color-primary-light-3);
+  --el-button-hover-text-color: #ffffff;
+}
+
+html[data-theme-mode='dark'] .el-button--primary {
+  --el-button-text-color: #111111;
+  --el-button-hover-text-color: #111111;
+}
+
+.el-tree {
+  background: transparent;
+  color: var(--text-base);
+  --el-tree-node-hover-bg-color: var(--bg-mute);
+  --el-fill-color-blank: transparent;
+}
+
+.el-tree-node.is-current > .el-tree-node__content {
+  background-color: var(--bg-mute) !important;
+  color: var(--el-color-primary);
+}
+
+.ProseMirror code,
+.editor-content code,
+.tiptap code,
+.chat-message .message-bubble code {
+  background: var(--code-bg);
+  color: var(--code-text);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+
+.ProseMirror pre,
+.editor-content pre,
+.tiptap pre {
+  background: var(--code-bg);
+  color: var(--code-text);
+  border: 1px solid var(--border-color-soft);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.editor-container,
+.editor-panel,
+.editor-menubar,
+.note-chapter,
+.editor-toolbar,
+.editor-content,
+.chapter-title,
+.ai-chat-panel,
+.floating-quick-actions {
+  transition:
+    background-color var(--theme-transition-duration) ease,
+    color var(--theme-transition-duration) ease,
+    border-color var(--theme-transition-duration) ease;
+}
+
+.theme-swatch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color, #d0d0d0);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.theme-swatch::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--theme-swatch-accent, currentColor);
+  border: 1px solid var(--bg-soft, #fff);
+}
+
+.theme-switcher-menu .is-active-theme .theme-swatch,
+.theme-card.active .theme-preview {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 1px;
+}

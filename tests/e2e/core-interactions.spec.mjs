@@ -1472,10 +1472,13 @@ test('系统设置分类和主题按钮可以连续操作', async ({ page }) => 
   }
 
   await settingsNavigation.getByRole('button', { name: '主题外观', exact: true }).click()
-  const themeButton = page.getByRole('button', { name: '切换到绿色' })
+  const themeButton = page.getByRole('button', { name: '切换到护眼' })
   await themeButton.click()
   await expect(themeButton).toHaveClass(/active/)
-  await expect(page.getByText('已切换到绿色')).toBeVisible()
+  await expect(page.getByText('已切换到护眼')).toBeVisible()
+  await expect
+    .poll(async () => page.locator('html').getAttribute('data-theme'))
+    .toBe('eyecare')
   expect(runtimeErrors).toEqual([])
 })
 

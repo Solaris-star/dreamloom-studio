@@ -117,8 +117,9 @@ const emit = defineEmits([
   padding: 4px;
   border: 1px solid var(--border-color, #dedbd5);
   border-radius: 6px;
-  background: var(--bg-primary, #ffffff);
-  box-shadow: 0 6px 20px rgba(34, 30, 24, 0.12);
+  background: var(--bg-soft, var(--bg-primary, #ffffff));
+  color: var(--text-base);
+  box-shadow: 0 6px 20px var(--shadow-color, rgba(34, 30, 24, 0.12));
 }
 
 .action-btn {

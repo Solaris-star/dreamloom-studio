@@ -537,12 +537,23 @@
                 :key="theme.key"
                 :command="theme.key"
                 :class="{ 'is-active-theme': themeStore.currentTheme === theme.key }"
+                :data-theme-option="theme.key"
               >
                 <span
                   class="theme-swatch"
-                  :style="{ background: theme.preview }"
+                  :style="{
+                    background: theme.preview,
+                    '--theme-swatch-accent': theme.previewPrimary || theme.previewAccent
+                  }"
+                  :aria-hidden="true"
                 />
-                <span>{{ theme.name }}</span>
+                <span class="theme-option-meta">
+                  <span class="theme-option-name">{{ theme.name }}</span>
+                  <span
+                    v-if="theme.description"
+                    class="theme-option-desc"
+                  >{{ theme.description }}</span>
+                </span>
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -715,21 +726,14 @@ const emit = defineEmits([
 const editorStore = useEditorStore()
 const themeStore = useThemeStore()
 
-const availableThemes = computed(() => {
-  // 主题预览色取 bgSoft，保证下拉有色块
-  return Object.entries(themeStore.themeConfigs || {}).map(([key, config]) => ({
-    key,
-    name: config?.name || key,
-    preview: config?.bgSoft || config?.bgPrimary || '#F8F9FA'
-  }))
-})
+const availableThemes = computed(() => themeStore.getAvailableThemes())
 
 const currentThemeName = computed(() => {
-  return themeStore.getThemeName?.(themeStore.currentTheme) || '白色'
+  return themeStore.getThemeName?.(themeStore.currentTheme) || '默认'
 })
 
 async function handleThemeChange(themeKey) {
-  if (!themeKey) return
+  if (!themeKey || themeKey === themeStore.currentTheme) return
   await themeStore.setTheme(themeKey)
 }
 
@@ -1222,18 +1226,49 @@ async function handleExport() {
 }
 
 .theme-swatch {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  margin-right: 8px;
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  margin-right: 10px;
   border-radius: 50%;
   border: 1px solid var(--border-color, #d0d0d0);
   vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.theme-option-meta {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.theme-option-name {
+  font-size: 13px;
+}
+
+.theme-option-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  max-width: 16em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:deep(.theme-switcher-menu .el-dropdown-menu__item) {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 
 :deep(.theme-switcher-menu .is-active-theme) {
   color: var(--el-color-primary);
   font-weight: 600;
+  background: var(--bg-mute);
 }
 
 .toolbar-more {
@@ -1330,14 +1365,14 @@ async function handleExport() {
 
   &:hover {
     transform: scale(1.15);
-    background: #e3e3e3;
+    background: var(--highlight-surface, var(--bg-mute));
     .hightlight-color-item-main {
       border-color: var(--el-color-primary);
     }
   }
 
   &.active {
-    background: #e3e3e3;
+    background: var(--highlight-surface, var(--bg-mute));
     .hightlight-color-item-main {
       border-color: var(--el-color-primary);
     }

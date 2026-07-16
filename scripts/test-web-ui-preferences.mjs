@@ -68,8 +68,18 @@ assert.equal(rows[0].penName, '作者25')
 assert.equal((await history.loadAiCoverFormHistory('另一本书')).length, 0)
 
 const themeSource = fs.readFileSync('src/renderer/src/stores/theme.js', 'utf8')
-assert.match(themeSource, /getStoreValue\('config\.theme', 'light'\)/)
-assert.match(themeSource, /if \(!themeConfigs\[theme\]\)/)
+assert.match(themeSource, /getStoreValue\(THEME_STORAGE_KEY|getStoreValue\('config\.theme'/)
+assert.match(themeSource, /themeService|resolveThemeKey/)
+
+const themeServiceSource = fs.readFileSync('src/renderer/src/service/themeService.js', 'utf8')
+assert.match(themeServiceSource, /eyecare/)
+assert.match(themeServiceSource, /parchment/)
+assert.match(themeServiceSource, /prefers-color-scheme/)
+assert.match(themeServiceSource, /dataset\.theme/)
+
+const themesCss = fs.readFileSync('src/renderer/src/assets/styles/themes.css', 'utf8')
+assert.match(themesCss, /prefers-reduced-motion/)
+assert.match(themesCss, /::selection/)
 
 const localeSource = fs.readFileSync('src/renderer/src/i18n/index.js', 'utf8')
 assert.match(localeSource, /getStoreValue\('config\.locale', ''\)/)
