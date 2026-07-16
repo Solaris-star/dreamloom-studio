@@ -444,7 +444,7 @@
 
 <script setup>
 import { APP_NAME_ZH } from '@renderer/constants/brand'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, onActivated, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
@@ -463,10 +463,17 @@ import {
   setActiveTextProvider
 } from '@renderer/service/aiProvider'
 import { bookImageUrl } from '@renderer/utils/webImageUrl'
+import { useCancellableLoad } from '@renderer/composables/useCancellableLoad'
+
+defineOptions({ name: 'Dashboard' })
 
 const router = useRouter()
 const mainStore = useMainStore()
 const { t, te } = useI18n()
+const { begin: beginDashboardLoad, end: endDashboardLoad } = useCancellableLoad()
+const dashboardHydrated = ref(false)
+const dashboardLastLoadedAt = ref(0)
+const DASHBOARD_SOFT_TTL_MS = 60_000
 
 const booksDir = ref('')
 const ideaInput = ref('')
@@ -653,20 +660,48 @@ const chartPoints = computed(() =>
 )
 
 onMounted(async () => {
-  await loadDashboardData()
-  refreshTimer.value = window.setInterval(loadMarketData, 30 * 60 * 1000)
+  await ensureDashboardData()
+  if (!refreshTimer.value) {
+    refreshTimer.value = window.setInterval(loadMarketData, 30 * 60 * 1000)
+  }
+})
+
+onActivated(async () => {
+  await ensureDashboardData({ soft: true })
+  if (!refreshTimer.value) {
+    refreshTimer.value = window.setInterval(loadMarketData, 30 * 60 * 1000)
+  }
 })
 
 onBeforeUnmount(() => {
   if (refreshTimer.value) window.clearInterval(refreshTimer.value)
+  refreshTimer.value = null
 })
 
 watch(marketRange, loadMarketData)
 
+async function ensureDashboardData({ soft = false } = {}) {
+  if (soft && dashboardHydrated.value) {
+    const age = Date.now() - dashboardLastLoadedAt.value
+    if (age < DASHBOARD_SOFT_TTL_MS) return
+  }
+  await loadDashboardData()
+}
+
 async function loadDashboardData() {
-  await Promise.allSettled([loadKnowledge(), loadPromptPresets(), loadMarketData(), loadTextProviders()])
-  await loadBooks()
-  await Promise.allSettled([loadStats(), loadRecentBookDetails()])
+  const session = beginDashboardLoad()
+  try {
+    await Promise.allSettled([loadKnowledge(), loadPromptPresets(), loadMarketData(), loadTextProviders()])
+    if (!session.isCurrent()) return
+    await loadBooks()
+    if (!session.isCurrent()) return
+    await Promise.allSettled([loadStats(), loadRecentBookDetails()])
+    if (!session.isCurrent()) return
+    dashboardHydrated.value = true
+    dashboardLastLoadedAt.value = Date.now()
+  } finally {
+    endDashboardLoad(session.token)
+  }
 }
 
 async function loadTextProviders() {

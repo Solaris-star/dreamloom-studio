@@ -52,6 +52,7 @@
     <FloatingQuickActions 
       class="editor-quick-actions"
       :focus-mode="focusMode"
+      :right-panel-size="rightPanelSize"
       @home="handleHome"
       @catalog="openCatalog"
       @prev-chapter="handlePrevChapter" 
@@ -439,14 +440,8 @@ onBeforeUnmount(detachWindowListeners)
 }
 
 .editor-quick-actions {
-  position: absolute;
-  right: 20px;
-  /* 中上部更顺手：避开底栏字数条，也离顶栏更近一点 */
-  top: 42%;
-  bottom: auto;
-  transform: translateY(-50%);
+  /* 位置由 FloatingQuickActions 内部 fixed + 本地偏好控制 */
   z-index: 120;
-  transition: right 180ms ease, top 180ms ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -532,9 +527,7 @@ onBeforeUnmount(detachWindowListeners)
 }
 
 @media (min-width: 768px) {
-  .editor-container:not(.is-focus-mode) .editor-quick-actions {
-    right: calc(v-bind(rightPanelSize) * 1px + 20px);
-  }
+  /* 宽屏位置由悬浮组件内部计算，避免与 AI 栏硬编码冲突 */
 }
 
 @media (max-width: 767px) {
@@ -545,12 +538,7 @@ onBeforeUnmount(detachWindowListeners)
   }
 
   .editor-quick-actions {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    top: auto;
-    transform: none;
+    /* 窄屏底部导航条由组件内部 fixed 处理 */
   }
 
   :deep(.editor-left-panel),

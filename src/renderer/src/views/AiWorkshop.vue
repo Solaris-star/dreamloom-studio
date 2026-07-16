@@ -556,7 +556,7 @@
 </template>
 
 <script setup>
-import { computed, defineComponent, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, defineComponent, h, nextTick, onBeforeUnmount, onMounted, onActivated, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
@@ -732,8 +732,14 @@ const props = defineProps({
   }
 })
 
+defineOptions({ name: 'AiWorkshop' })
+
 const route = useRoute()
 const { t, te } = useI18n()
+const workshopHydrated = ref(false)
+const workshopLastLoadedAt = ref(0)
+const WORKSHOP_SOFT_TTL_MS = 45_000
+const HISTORY_PAGE_SIZE = 40
 
 const builtinPromptPresetI18nKeys = {
   'maliang-setting-tomato-web-novel': 'promptPreset.builtin.maliangTomatoWebNovel',
@@ -1384,7 +1390,7 @@ watch(
 )
 
 onMounted(async () => {
-  await Promise.all([loadPrompts(), loadHistory(), loadContextData(), loadActiveProvider()])
+  await ensureWorkshopData()
   if (route.query.jobId) {
     activeTab.value = 'creation'
     activeToolKey.value = 'starter'
@@ -1395,6 +1401,20 @@ onMounted(async () => {
     selectDefaultPromptPreset()
   }
 })
+
+onActivated(async () => {
+  await ensureWorkshopData({ soft: true })
+})
+
+async function ensureWorkshopData({ soft = false } = {}) {
+  if (soft && workshopHydrated.value) {
+    const age = Date.now() - workshopLastLoadedAt.value
+    if (age < WORKSHOP_SOFT_TTL_MS) return
+  }
+  await Promise.all([loadPrompts(), loadHistory(), loadContextData(), loadActiveProvider()])
+  workshopHydrated.value = true
+  workshopLastLoadedAt.value = Date.now()
+}
 
 onBeforeUnmount(() => {
   stopGenerationTimer()
@@ -1506,9 +1526,9 @@ async function loadPrompts() {
 async function loadHistory() {
   historyLoadError.value = ''
   try {
-    const result = await listAiHistory({})
+    const result = await listAiHistory({ limit: HISTORY_PAGE_SIZE })
     if (!Array.isArray(result?.items)) throw new Error('生成历史返回格式异常')
-    historyItems.value = result.items
+    historyItems.value = result.items.slice(0, HISTORY_PAGE_SIZE)
   } catch (error) {
     historyItems.value = []
     historyLoadError.value = `读取生成历史失败：${error?.message || '读取失败'}`

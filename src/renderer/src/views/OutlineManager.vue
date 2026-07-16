@@ -31,6 +31,7 @@ import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import OutlineManagerPanel from '@renderer/components/Editor/OutlineManagerPanel.vue'
+import LayoutTool from '@renderer/components/LayoutTool.vue'
 
 defineOptions({ name: 'OutlineManager' })
 
