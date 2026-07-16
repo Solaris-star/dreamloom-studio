@@ -10,7 +10,12 @@ function requireAuthStatus(result, action) {
   }
   return {
     authenticated: result.authenticated,
-    passwordConfigured: result.passwordConfigured
+    passwordConfigured: result.passwordConfigured,
+    role: result.role || null,
+    keyId: result.keyId || null,
+    ownerId: result.ownerId || null,
+    canManageKeys: Boolean(result.canManageKeys),
+    label: result.label || ''
   }
 }
 
@@ -45,4 +50,31 @@ export async function updateBookshelfAccessKey(currentKey, newKey) {
     }),
     '更新书架密钥'
   )
+}
+
+export async function listAccessKeys() {
+  const result = await fetchJson('/api/auth/keys')
+  if (result?.success !== true || !Array.isArray(result.keys)) {
+    throw new Error(result?.message || '读取密钥列表失败')
+  }
+  return result
+}
+
+export async function createGuestAccessKey({ label, plainKey } = {}) {
+  const result = await postJson('/api/auth/keys/create', {
+    label: String(label || ''),
+    plainKey: plainKey ? String(plainKey) : undefined
+  })
+  if (result?.success !== true || !result.key || !result.plainKey) {
+    throw new Error(result?.message || '创建访客密钥失败')
+  }
+  return result
+}
+
+export async function revokeAccessKey(id) {
+  const result = await postJson('/api/auth/keys/revoke', { id })
+  if (result?.success !== true) {
+    throw new Error(result?.message || '删除密钥失败')
+  }
+  return result
 }

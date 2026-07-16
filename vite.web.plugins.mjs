@@ -289,7 +289,8 @@ export function createWebServerPlugins() {
               body,
               res,
               booksDir: getActiveBooksDir(),
-              sendJson
+              sendJson,
+              authSession
             })
           ) {
             return
@@ -320,6 +321,7 @@ export function createWebServerPlugins() {
               res,
               booksDir: getActiveBooksDir(),
               sendJson,
+              authSession,
               setBooksDir: (requestedDir) =>
                 setWebBooksDirectory({
                   requestedDir,

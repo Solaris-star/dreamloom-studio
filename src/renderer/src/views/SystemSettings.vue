@@ -337,15 +337,23 @@
               </h2>
               <div class="security-card">
                 <div class="info">
-                  <h3>Web 访问密钥</h3>
-                  <p>{{ hasPassword ? '已启用密钥登录' : '当前未设置密钥，访问时无需登录' }}</p>
+                  <h3>当前身份</h3>
+                  <p>
+                    {{
+                      hasPassword
+                        ? `已登录：${authRoleLabel}（${authLabel || authKeyId || '当前密钥'}）`
+                        : '当前未设置密钥，访问时无需登录'
+                    }}
+                  </p>
+                  <p class="muted">会话默认 12 小时。忘记密钥无法找回，只能重置哈希。</p>
                 </div>
                 <div class="security-actions">
                   <el-button
+                    v-if="canManageKeys"
                     type="primary"
                     @click="showPasswordDialog = true"
                   >
-                    {{ hasPassword ? '修改密钥' : '设置密钥' }}
+                    {{ hasPassword ? '修改管理员密钥' : '设置管理员密钥' }}
                   </el-button>
                   <el-button
                     v-if="hasPassword"
@@ -356,6 +364,104 @@
                   </el-button>
                 </div>
               </div>
+
+              <div
+                v-if="canManageKeys"
+                class="setting-card key-manager-card"
+              >
+                <div class="key-manager-header">
+                  <div>
+                    <h3>密钥分发</h3>
+                    <p>管理员密钥可管理全部作品；访客密钥只能看到自己创建/导入的书籍，且不能创建新密钥。</p>
+                  </div>
+                  <el-button
+                    type="primary"
+                    :loading="creatingGuestKey"
+                    @click="handleCreateGuestKey"
+                  >
+                    创建访客密钥
+                  </el-button>
+                </div>
+
+                <div
+                  v-if="latestGuestPlainKey"
+                  class="guest-key-once"
+                >
+                  <div>
+                    <strong>新访客密钥（只显示一次）</strong>
+                    <code>{{ latestGuestPlainKey }}</code>
+                  </div>
+                  <el-button
+                    size="small"
+                    @click="copyGuestKey"
+                  >
+                    复制
+                  </el-button>
+                </div>
+
+                <el-table
+                  :data="accessKeys"
+                  v-loading="loadingAccessKeys"
+                  size="small"
+                  class="key-table"
+                  empty-text="暂无密钥"
+                >
+                  <el-table-column
+                    prop="label"
+                    label="名称"
+                    min-width="140"
+                  />
+                  <el-table-column
+                    prop="role"
+                    label="角色"
+                    width="100"
+                  >
+                    <template #default="{ row }">
+                      <el-tag
+                        size="small"
+                        :type="row.role === 'admin' ? 'warning' : 'info'"
+                      >
+                        {{ row.role === 'admin' ? '管理员' : '访客' }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column
+                    prop="createdAt"
+                    label="创建时间"
+                    min-width="170"
+                  >
+                    <template #default="{ row }">
+                      {{ formatKeyTime(row.createdAt) }}
+                    </template>
+                  </el-table-column>
+                  <el-table-column
+                    label="操作"
+                    width="100"
+                    align="right"
+                  >
+                    <template #default="{ row }">
+                      <el-button
+                        v-if="row.role === 'guest'"
+                        type="danger"
+                        link
+                        @click="handleRevokeKey(row)"
+                      >
+                        删除
+                      </el-button>
+                      <span v-else class="muted">固定</span>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
+
+              <div
+                v-else
+                class="setting-card"
+              >
+                <h3>访客权限说明</h3>
+                <p class="muted">你当前是访客密钥登录：只能访问自己的书籍，无法创建或管理密钥。</p>
+              </div>
+
               <div class="setting-card">
                 <h3>隐私</h3>
                 <div class="switch-list">
@@ -569,7 +675,10 @@ import { getCurrentLocale, setLocale } from '@renderer/i18n'
 import { getBookDirectoryInfo, setBookDir } from '@renderer/service/books'
 import {
   getBookshelfAuthStatus,
-  logoutBookshelf
+  logoutBookshelf,
+  listAccessKeys,
+  createGuestAccessKey,
+  revokeAccessKey
 } from '@renderer/service/bookshelfAuth'
 import { getStoreValue, setStoreValue } from '@renderer/service/webStore'
 import {
@@ -590,6 +699,14 @@ const booksDirConfigurable = ref(true)
 const selectedLocale = ref('zh-CN')
 const currentVersion = ref('')
 const hasPassword = ref(false)
+const canManageKeys = ref(true)
+const authRole = ref('admin')
+const authKeyId = ref('')
+const authLabel = ref('')
+const accessKeys = ref([])
+const loadingAccessKeys = ref(false)
+const creatingGuestKey = ref(false)
+const latestGuestPlainKey = ref('')
 const showPasswordDialog = ref(false)
 const showDirSelector = ref(false)
 const embeddingConfigVisible = ref(false)
@@ -690,6 +807,10 @@ const shortcutItems = [
 
 const availableThemes = computed(() => themeStore.getAvailableThemes())
 const availableVisualStyles = computed(() => themeStore.getAvailableVisualStyles())
+const authRoleLabel = computed(() => {
+  if (!hasPassword.value) return '开放访问'
+  return authRole.value === 'guest' ? '访客' : '管理员'
+})
 
 watch(
   () => route.path,
@@ -758,9 +879,88 @@ async function loadPasswordStatus() {
   try {
     const status = await getBookshelfAuthStatus()
     hasPassword.value = status.passwordConfigured
+    canManageKeys.value = status.canManageKeys !== false && status.role !== 'guest'
+    authRole.value = status.role || 'admin'
+    authKeyId.value = status.keyId || ''
+    authLabel.value = status.label || ''
+    if (canManageKeys.value && status.passwordConfigured) {
+      await loadAccessKeys()
+    } else {
+      accessKeys.value = []
+    }
   } catch (error) {
     hasPassword.value = false
+    canManageKeys.value = true
     showSettingsError(error, '读取 Web 访问密钥状态失败')
+  }
+}
+
+async function loadAccessKeys() {
+  loadingAccessKeys.value = true
+  try {
+    const result = await listAccessKeys()
+    accessKeys.value = result.keys || []
+  } catch (error) {
+    showSettingsError(error, '读取密钥列表失败')
+  } finally {
+    loadingAccessKeys.value = false
+  }
+}
+
+function formatKeyTime(value) {
+  if (!value) return '-'
+  try {
+    return new Date(value).toLocaleString()
+  } catch {
+    return String(value)
+  }
+}
+
+async function handleCreateGuestKey() {
+  creatingGuestKey.value = true
+  try {
+    const { value } = await ElMessageBox.prompt('给访客密钥起个名字', '创建访客密钥', {
+      confirmButtonText: '创建',
+      cancelButtonText: '取消',
+      inputPlaceholder: '例如：合作写手 A',
+      inputValue: `访客 ${accessKeys.value.filter((item) => item.role === 'guest').length + 1}`
+    })
+    const result = await createGuestAccessKey({ label: value })
+    latestGuestPlainKey.value = result.plainKey
+    await loadAccessKeys()
+    ElMessage.success('访客密钥已创建，请立即复制保存')
+  } catch (error) {
+    if (error === 'cancel' || error === 'close') return
+    showSettingsError(error, '创建访客密钥失败')
+  } finally {
+    creatingGuestKey.value = false
+  }
+}
+
+async function copyGuestKey() {
+  if (!latestGuestPlainKey.value) return
+  try {
+    await navigator.clipboard.writeText(latestGuestPlainKey.value)
+    ElMessage.success('已复制访客密钥')
+  } catch {
+    ElMessage.error('复制失败，请手动选择复制')
+  }
+}
+
+async function handleRevokeKey(row) {
+  try {
+    await ElMessageBox.confirm(`确定删除访客密钥「${row.label}」吗？对方将立刻无法登录。`, '删除密钥', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消'
+    })
+    await revokeAccessKey(row.id)
+    if (latestGuestPlainKey.value) latestGuestPlainKey.value = ''
+    await loadAccessKeys()
+    ElMessage.success('已删除访客密钥')
+  } catch (error) {
+    if (error === 'cancel' || error === 'close') return
+    showSettingsError(error, '删除密钥失败')
   }
 }
 
@@ -1645,5 +1845,46 @@ async function handleVisualStyleChange(style) {
   .theme-card {
     min-height: 140px;
   }
+}
+
+.key-manager-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.key-manager-header p,
+.muted {
+  color: var(--text-secondary, #8a8278);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.guest-key-once {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-primary, #0f766e) 10%, white);
+  border: 1px solid color-mix(in srgb, var(--color-primary, #0f766e) 22%, transparent);
+}
+
+.guest-key-once code {
+  display: block;
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-base, #1f1b16);
+  word-break: break-all;
+}
+
+.key-table {
+  width: 100%;
 }
 </style>
