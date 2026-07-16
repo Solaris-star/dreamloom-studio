@@ -489,15 +489,16 @@ function isEditorRouteElement(el) {
   overflow: hidden;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 82% 10%, rgba(111, 122, 104, 0.07), transparent 30%),
-    radial-gradient(circle at 35% 95%, rgba(138, 115, 93, 0.06), transparent 34%),
-    linear-gradient(90deg, rgba(58, 55, 49, 0.018) 1px, transparent 1px), #f5f3ef;
+    radial-gradient(circle at 82% 10%, color-mix(in srgb, var(--primary-color, #6f7a68) 12%, transparent), transparent 30%),
+    radial-gradient(circle at 35% 95%, color-mix(in srgb, var(--accent-color, #8a735d) 10%, transparent), transparent 34%),
+    linear-gradient(90deg, color-mix(in srgb, var(--text-base, #3a3731) 4%, transparent) 1px, transparent 1px),
+    var(--theme-app-background, var(--bg-primary, #f5f3ef));
   background-size:
     auto,
     auto,
     32px 32px,
     auto;
-  color: var(--wabi-ink);
+  color: var(--wabi-ink, var(--text-base, #2c2a26));
 }
 
 .skip-link {
@@ -528,10 +529,16 @@ function isEditorRouteElement(el) {
   width: var(--sidebar-width);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--wabi-line);
+  border-right: 1px solid var(--wabi-line, var(--border-color, #e1e4e8));
   background:
-    linear-gradient(180deg, rgba(251, 250, 246, 0.96), rgba(240, 236, 227, 0.86)), var(--wabi-paper);
-  box-shadow: 10px 0 28px rgba(58, 55, 49, 0.04);
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bg-soft, #ffffff) 96%, transparent),
+      color-mix(in srgb, var(--bg-mute, #f1f3f5) 86%, transparent)
+    ),
+    var(--wabi-paper, var(--bg-soft, #fbfaf6));
+  box-shadow: 10px 0 28px color-mix(in srgb, var(--text-base, #3a3731) 8%, transparent);
+  color: var(--wabi-ink, var(--text-base, #2c2a26));
 }
 
 .sidebar-content-wrapper {
@@ -719,10 +726,10 @@ function isEditorRouteElement(el) {
     display: block;
     width: 100%;
     height: 64px;
-    border-top: 1px solid var(--wabi-line);
+    border-top: 1px solid var(--wabi-line, var(--border-color, #e1e4e8));
     border-right: 0;
-    background: rgba(251, 250, 246, 0.98);
-    box-shadow: 0 -8px 24px rgba(58, 55, 49, 0.08);
+    background: color-mix(in srgb, var(--bg-soft, #fbfaf6) 98%, transparent);
+    box-shadow: 0 -8px 24px color-mix(in srgb, var(--text-base, #3a3731) 10%, transparent);
   }
 
   .sidebar-content-wrapper {

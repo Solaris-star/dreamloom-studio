@@ -45,16 +45,18 @@
         <EditorToolbar
           :cleanup-task-state="cleanupTaskState"
           @trigger-ai="handleAiTrigger"
+          @banned-words-changed="handleBannedWordsChanged"
         />
       </el-splitter-panel>
     </el-splitter>
 
-    <FloatingQuickActions 
+    <FloatingQuickActions
       class="editor-quick-actions"
       :focus-mode="focusMode"
+      :right-panel-size="rightPanelSize"
       @home="handleHome"
       @catalog="openCatalog"
-      @prev-chapter="handlePrevChapter" 
+      @prev-chapter="handlePrevChapter"
       @next-chapter="handleNextChapter"
       @reading-settings="readingSettingsVisible = true"
       @tools="mobileToolsVisible = true"
@@ -107,6 +109,7 @@
       <EditorToolbar
         :cleanup-task-state="cleanupTaskState"
         @trigger-ai="handleMobileAiTrigger"
+        @banned-words-changed="handleBannedWordsChanged"
       />
     </el-drawer>
 
@@ -239,6 +242,10 @@ function handleCleanupTaskState(state) {
     selection: state?.selection || 'idle',
     chapter: state?.chapter || 'idle'
   }
+}
+
+function handleBannedWordsChanged(words) {
+  editorPanelRef.value?.refreshBannedWordHints?.(words)
 }
 
 // keep-alive 下用 activated/deactivated 绑定窗口事件，避免停用页仍监听刷新
@@ -479,14 +486,9 @@ onBeforeUnmount(detachWindowListeners)
 }
 
 .editor-quick-actions {
-  position: absolute;
-  right: 20px;
-  /* 中上部更顺手：避开底栏字数条，也离顶栏更近一点 */
-  top: 42%;
-  bottom: auto;
-  transform: translateY(-50%);
+  position: fixed;
   z-index: 120;
-  transition: right 180ms ease, top 180ms ease;
+  /* 具体 left/top 由组件内拖拽状态与 localStorage 接管 */
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -615,12 +617,6 @@ onBeforeUnmount(detachWindowListeners)
 
 :deep([class*="collapse"]) {
   display: none !important;
-}
-
-@media (min-width: 768px) {
-  .editor-container:not(.is-focus-mode) .editor-quick-actions {
-    right: calc(v-bind(rightPanelSize) * 1px + 20px);
-  }
 }
 
 @media (max-width: 767px) {

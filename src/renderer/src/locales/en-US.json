@@ -452,7 +452,8 @@
     "passwordPlaceholder": "Enter access key",
     "submit": "Log in",
     "pleaseInputPassword": "Please enter the access key",
-    "wrongPassword": "Incorrect access key, please try again"
+    "wrongPassword": "Incorrect access key, please try again",
+    "statusFailed": "Failed to read auth status"
   },
   "characterProfile": {
     "kind": {
@@ -908,7 +909,8 @@
     "addSuccess": "Added successfully",
     "addFailed": "Failed to add",
     "deleteSuccess": "Deleted successfully",
-    "deleteFailed": "Failed to delete"
+    "deleteFailed": "Failed to delete",
+    "loadFailed": "Failed to load banned words"
   },
   "aiSceneImage": {
     "title": "AI Scene Image",
@@ -952,18 +954,54 @@
       "night": "Night / low light"
     },
     "styles": {
-      "anime": { "label": "Anime", "desc": "2D illustration" },
-      "ghibli": { "label": "Ghibli style", "desc": "hand-drawn, cozy" },
-      "retroAnime": { "label": "Retro anime", "desc": "cel-shaded" },
-      "photorealistic": { "label": "Photorealistic", "desc": "natural lighting" },
-      "render3d": { "label": "3D render", "desc": "CG depth" },
-      "pixar": { "label": "Western cartoon", "desc": "animation render" },
-      "guofeng": { "label": "Chinese illustration", "desc": "classic vibe" },
-      "watercolor": { "label": "Watercolor", "desc": "soft wash" },
-      "inkWash": { "label": "Ink wash", "desc": "minimal, poetic" },
-      "oilPainting": { "label": "Oil painting", "desc": "thick paint" },
-      "cyberpunk": { "label": "Cyberpunk", "desc": "neon sci-fi" },
-      "pixelArt": { "label": "Pixel art", "desc": "retro pixels" }
+      "anime": {
+        "label": "Anime",
+        "desc": "2D illustration"
+      },
+      "ghibli": {
+        "label": "Ghibli style",
+        "desc": "hand-drawn, cozy"
+      },
+      "retroAnime": {
+        "label": "Retro anime",
+        "desc": "cel-shaded"
+      },
+      "photorealistic": {
+        "label": "Photorealistic",
+        "desc": "natural lighting"
+      },
+      "render3d": {
+        "label": "3D render",
+        "desc": "CG depth"
+      },
+      "pixar": {
+        "label": "Western cartoon",
+        "desc": "animation render"
+      },
+      "guofeng": {
+        "label": "Chinese illustration",
+        "desc": "classic vibe"
+      },
+      "watercolor": {
+        "label": "Watercolor",
+        "desc": "soft wash"
+      },
+      "inkWash": {
+        "label": "Ink wash",
+        "desc": "minimal, poetic"
+      },
+      "oilPainting": {
+        "label": "Oil painting",
+        "desc": "thick paint"
+      },
+      "cyberpunk": {
+        "label": "Cyberpunk",
+        "desc": "neon sci-fi"
+      },
+      "pixelArt": {
+        "label": "Pixel art",
+        "desc": "retro pixels"
+      }
     },
     "stylePrompts": {
       "anime": "Japanese anime style, 2D, refined illustration",
@@ -1073,18 +1111,54 @@
       "side": "Side view"
     },
     "styles": {
-      "anime": { "label": "Anime", "desc": "modern Japanese animation" },
-      "ghibli": { "label": "Ghibli style", "desc": "hand-drawn, healing tone" },
-      "retroAnime": { "label": "Retro anime", "desc": "cel-shaded nostalgia" },
-      "photorealistic": { "label": "Photorealistic", "desc": "real person, natural light" },
-      "render3d": { "label": "3D render", "desc": "game CG, depth" },
-      "pixar": { "label": "Western cartoon", "desc": "Pixar/Disney-like" },
-      "guofeng": { "label": "Chinese illustration", "desc": "classical costume style" },
-      "watercolor": { "label": "Watercolor", "desc": "soft wash, paper texture" },
-      "inkWash": { "label": "Ink wash", "desc": "Chinese ink, negative space" },
-      "oilPainting": { "label": "Oil painting", "desc": "thick texture, brush strokes" },
-      "cyberpunk": { "label": "Cyberpunk", "desc": "sci-fi neon" },
-      "pixelArt": { "label": "Pixel art", "desc": "retro game style" }
+      "anime": {
+        "label": "Anime",
+        "desc": "modern Japanese animation"
+      },
+      "ghibli": {
+        "label": "Ghibli style",
+        "desc": "hand-drawn, healing tone"
+      },
+      "retroAnime": {
+        "label": "Retro anime",
+        "desc": "cel-shaded nostalgia"
+      },
+      "photorealistic": {
+        "label": "Photorealistic",
+        "desc": "real person, natural light"
+      },
+      "render3d": {
+        "label": "3D render",
+        "desc": "game CG, depth"
+      },
+      "pixar": {
+        "label": "Western cartoon",
+        "desc": "Pixar/Disney-like"
+      },
+      "guofeng": {
+        "label": "Chinese illustration",
+        "desc": "classical costume style"
+      },
+      "watercolor": {
+        "label": "Watercolor",
+        "desc": "soft wash, paper texture"
+      },
+      "inkWash": {
+        "label": "Ink wash",
+        "desc": "Chinese ink, negative space"
+      },
+      "oilPainting": {
+        "label": "Oil painting",
+        "desc": "thick texture, brush strokes"
+      },
+      "cyberpunk": {
+        "label": "Cyberpunk",
+        "desc": "sci-fi neon"
+      },
+      "pixelArt": {
+        "label": "Pixel art",
+        "desc": "retro game style"
+      }
     },
     "stylePrompts": {
       "anime": "Japanese anime style, 2D, refined illustration",
@@ -1517,5 +1591,276 @@
       "lake": "Lake",
       "desert": "Desert"
     }
+  },
+  "promptPreset": {
+    "title": "Prompt presets",
+    "create": "New",
+    "import": "Import",
+    "export": "Export",
+    "all": "All",
+    "continue": "Continue",
+    "polish": "Polish",
+    "evolve": "Plot evolve",
+    "deconstruct": "Deconstruct",
+    "settingTree": "Setting tree",
+    "chat": "Chat",
+    "edit": "Edit",
+    "duplicate": "Duplicate",
+    "delete": "Delete",
+    "emptyHint": "No prompt presets yet",
+    "editPreset": "Edit preset",
+    "newPreset": "New preset",
+    "name": "Name",
+    "nameRequired": "Please enter a preset name",
+    "category": "Category",
+    "systemPrompt": "System prompt",
+    "userPrompt": "User prompt",
+    "temperature": "Temperature",
+    "maxTokens": "Max tokens",
+    "topP": "Top P",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saveSuccess": "Preset saved",
+    "saveError": "Failed to save preset",
+    "deleteConfirm": "Delete preset \"{name}\"?",
+    "deleteTitle": "Delete preset",
+    "deleteSuccess": "Preset deleted",
+    "deleteFailed": "Failed to delete preset",
+    "duplicateSuccess": "Preset duplicated",
+    "duplicateError": "Failed to duplicate preset",
+    "importSuccess": "Import succeeded",
+    "importError": "Import failed",
+    "exportSuccess": "Export succeeded",
+    "exportError": "Export failed",
+    "loadFailed": "Failed to load prompt presets",
+    "retry": "Retry",
+    "builtin": {
+      "maliangTomatoWebNovel": "Tomato web-novel structure",
+      "maliangNineLineMethod": "Nine-line method",
+      "maliangThreeActStructure": "Three-act structure",
+      "maliangShortVideoScript": "Short-video script",
+      "creationStarter": "Creation starter"
+    }
+  },
+  "embeddingProvider": {
+    "title": "Embedding models",
+    "add": "Add provider",
+    "addProvider": "Add embedding provider",
+    "editProvider": "Edit embedding provider",
+    "edit": "Edit",
+    "delete": "Delete",
+    "validate": "Validate",
+    "cancel": "Cancel",
+    "save": "Save",
+    "name": "Name",
+    "baseUrl": "Base URL",
+    "apiKey": "API Key",
+    "modelName": "Model name",
+    "dimension": "Dimensions",
+    "emptyHint": "No embedding providers yet",
+    "requiredFields": "Please fill name, Base URL, API Key and model",
+    "saveSuccess": "Embedding provider saved",
+    "saveError": "Failed to save embedding provider",
+    "setActiveError": "Failed to switch embedding provider",
+    "validateSuccess": "Validation passed",
+    "validateError": "Validation failed",
+    "deleteConfirm": "Delete this embedding provider?",
+    "deleteTitle": "Delete provider",
+    "deleteSuccess": "Deleted",
+    "deleteFailed": "Delete failed",
+    "loadModels": "Load models",
+    "loadFailed": "Failed to load embedding providers",
+    "loadModelsFailed": "Failed to load models",
+    "noModels": "No models found",
+    "needUrlAndKey": "Please fill Base URL and API Key first"
+  },
+  "aiChat": {
+    "title": "AI chat",
+    "selectPreset": "Select prompt preset",
+    "emptyHint": "Pick a preset and start chatting",
+    "inputPlaceholder": "Ask something. Ctrl + Enter to send",
+    "send": "Send",
+    "insert": "Insert",
+    "clear": "Clear",
+    "retry": "Retry",
+    "loadPresetsFailed": "Failed to load chat presets",
+    "presetUnavailable": "Preset unavailable",
+    "sendFailed": "Send failed",
+    "sendError": "Send error, please retry"
+  },
+  "settingTree": {
+    "title": "Setting tree",
+    "generate": "Generate",
+    "aiRegenerate": "Regenerate with AI",
+    "preview": "Preview",
+    "edit": "Edit",
+    "editNode": "Edit node",
+    "nodeName": "Node name",
+    "nodeDesc": "Node description",
+    "strategy": "Strategy",
+    "strategyFree": "Freeform",
+    "strategyXuanhuan": "Xuanhuan",
+    "strategyDushi": "Urban",
+    "strategyKehuan": "Sci-fi",
+    "creativity": "Creativity",
+    "creativityPlaceholder": "0 to 1, higher is freer",
+    "merge": "Merge",
+    "replace": "Replace all",
+    "apply": "Apply",
+    "cancel": "Cancel",
+    "save": "Save",
+    "generateSuccess": "Setting tree generated",
+    "generateFailed": "Failed to generate setting tree",
+    "generateError": "Setting tree generation error",
+    "regenerateSuccess": "Regenerated",
+    "regenerateFailed": "Regenerate failed",
+    "regenerateError": "Regenerate error",
+    "applySuccess": "Applied to settings",
+    "applyFailed": "Apply failed",
+    "applyError": "Apply error"
+  },
+  "settingSnapshot": {
+    "title": "Setting snapshots",
+    "create": "Create snapshot",
+    "compare": "Compare",
+    "diff": "Diff",
+    "diffTitle": "Snapshot diff",
+    "emptyHint": "No snapshots yet",
+    "restore": "Restore",
+    "delete": "Delete",
+    "selectLeft": "Select left snapshot",
+    "selectRight": "Select right snapshot",
+    "createSuccess": "Snapshot created",
+    "createFailed": "Failed to create snapshot",
+    "createError": "Create snapshot error",
+    "deleteConfirm": "Delete this snapshot?",
+    "deleteTitle": "Delete snapshot",
+    "deleteSuccess": "Snapshot deleted",
+    "deleteFailed": "Failed to delete snapshot",
+    "restoreConfirm": "Restore will overwrite current settings. Continue?",
+    "restoreTitle": "Restore snapshot",
+    "restoreSuccess": "Snapshot restored",
+    "restoreFailed": "Failed to restore snapshot",
+    "diffFailed": "Diff failed",
+    "diffError": "Diff error",
+    "loadFailed": "Failed to load snapshots"
+  },
+  "plotEvolution": {
+    "title": "Plot evolution",
+    "selectProvider": "Select AI service",
+    "modelSelect": "Select model",
+    "noProviderHint": "Configure a text AI service in system settings first",
+    "startEvolve": "Start",
+    "regenerate": "Regenerate",
+    "apply": "Apply to outline",
+    "conflict": "Conflict",
+    "emotion": "Emotion",
+    "keyEvents": "Key events",
+    "emptyHint": "No evolution result yet",
+    "evolveFailed": "Plot evolution failed",
+    "evolveError": "Plot evolution error",
+    "regenerateSuccess": "Regenerated",
+    "regenerateFailed": "Regenerate failed",
+    "regenerateError": "Regenerate error"
+  },
+  "agentQueue": {
+    "title": "Task queue",
+    "eyebrow": "Background jobs",
+    "refresh": "Refresh",
+    "queue": "Queue",
+    "waiting": "Waiting",
+    "running": "Running",
+    "failed": "Failed",
+    "worker": "Workers",
+    "recentJobs": "Recent jobs",
+    "allStates": "All states",
+    "stateWaiting": "Waiting",
+    "stateActive": "Running",
+    "stateCompleted": "Completed",
+    "stateFailed": "Failed",
+    "stateDelayed": "Delayed",
+    "statePaused": "Paused",
+    "stateWaitingChildren": "Waiting children",
+    "emptyJobs": "No queue jobs",
+    "detailTitle": "Job detail",
+    "selectJob": "Select a job",
+    "stop": "Stop",
+    "retry": "Retry",
+    "emptyDetail": "No job detail",
+    "status": "Status",
+    "name": "Name",
+    "attempts": "Attempts",
+    "backoff": "Backoff",
+    "progress": "Progress",
+    "startedAt": "Started",
+    "finishedAt": "Finished",
+    "failedReason": "Failure reason",
+    "jobData": "Job data",
+    "returnValue": "Result",
+    "notConnected": "Not connected",
+    "notLoaded": "Not loaded",
+    "none": "None",
+    "notRecorded": "Not recorded",
+    "notSet": "Not set",
+    "loadingJobs": "Loading jobs",
+    "loadQueueFailed": "Failed to load queue",
+    "jobsCount": "Loaded {count} jobs",
+    "noJobs": "No jobs loaded",
+    "filterMiss": "This job is not in the current filter. Please reselect.",
+    "loadQueueError": "Failed to read queue",
+    "jobNotFound": "Job not found.",
+    "loadDetailFailed": "Failed to load job detail",
+    "stopConfirm": "Stopping removes waiting jobs and sends a stop request to running jobs.",
+    "stopTitle": "Stop queue job",
+    "stopRequested": "Stop requested",
+    "stopped": "Job stopped",
+    "stopFailed": "Failed to stop job",
+    "retryConfirm": "The job will return to the waiting queue and run from the start.",
+    "retryTitle": "Retry queue job",
+    "retrySuccess": "Job re-queued",
+    "retryFailed": "Failed to retry job",
+    "queueJob": "Queue job",
+    "exponentialBackoff": "Exponential",
+    "backoffWait": "Wait",
+    "workersCount": "{count}"
+  },
+  "homeAi": {
+    "starterTitle": "Creation starter",
+    "starterKicker": "Setting tree + first three chapters",
+    "starterDesc": "Enter an idea, pick a prompt strategy, and Dreamloom generates a setting tree then the opening three chapters.",
+    "ideaPlaceholder": "Describe your novel idea, e.g. a young city programmer gains time-travel powers...",
+    "aiService": "AI service",
+    "selectAiService": "Select text AI service",
+    "model": "Model",
+    "selectModel": "Select or type a model",
+    "prompt": "Prompt",
+    "selectPrompt": "Select prompt",
+    "promptMarket": "Prompt market",
+    "market": "Market",
+    "generateSetting": "Generate",
+    "needProviderAndModel": "Please select a text AI service and model first",
+    "createStarterFailed": "Failed to create starter job",
+    "builtinPrompt": "Built-in prompt",
+    "promptTemplate": "Prompt",
+    "unnamedTemplate": "Untitled preset",
+    "emptyMaterials": "No reusable materials",
+    "emptyMaterialsHint": "Add materials in the library, or save prompt presets in AI workshop.",
+    "addMaterial": "Add materials"
+  },
+  "aiWorkshopUi": {
+    "promptTemplates": "Prompt templates",
+    "emptyPromptTemplates": "No prompt templates",
+    "promptTemplatesLoadFailed": "Invalid prompt template response",
+    "invalidApiKey": "Invalid API key. Check text model settings.",
+    "tokenUsage": "Token usage",
+    "defaultPrompt": "Default prompt"
+  },
+  "bookIdea": {
+    "selectProvider": "Select AI service",
+    "selectModel": "Select model",
+    "needModel": "Please configure and select an AI model first",
+    "saveProviderFailed": "Failed to save default AI service",
+    "loadProviderFailed": "Failed to load AI services",
+    "generateFailed": "Generation failed, please try again"
   }
 }

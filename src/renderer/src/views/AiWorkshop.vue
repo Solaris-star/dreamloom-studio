@@ -33,7 +33,7 @@
     >
       <div class="panel-title">
         <div>
-          <h2>Prompt 模板</h2>
+          <h2>{{ t('aiWorkshopUi.promptTemplates') }}</h2>
           <p>管理真实可用的提示词模板，写作时可以直接选用。</p>
         </div>
         <el-button
@@ -53,7 +53,7 @@
       </p>
       <el-empty
         v-else-if="!promptPresets.length"
-        description="暂无 Prompt 模板"
+        :description="t('aiWorkshopUi.emptyPromptTemplates')"
       />
       <div
         v-else
@@ -488,7 +488,7 @@
       </template>
       <div class="drawer-meta">
         <el-tag>{{ latestImageUrl ? '图像结果' : '文本结果' }}</el-tag>
-        <span>Token：{{ latestUsageText }}</span>
+        <span>{{ t('aiWorkshopUi.tokenUsage') }}：{{ latestUsageText }}</span>
       </div>
       <img
         v-if="latestImageUrl"
@@ -774,8 +774,8 @@ const aiPages = {
     description: '生成封面、人物图、场景图和道具图。'
   },
   prompts: {
-    label: 'Prompt 模板',
-    title: 'Prompt 模板',
+    label: '提示词模板',
+    title: '提示词模板',
     description: '管理可复用的提示词模板。'
   },
   history: {
@@ -1494,12 +1494,12 @@ async function loadPrompts() {
         ? { includeAllBookPresets: true }
         : payload
     )
-    if (result?.success !== true) throw new Error(result?.message || '读取 Prompt 模板失败')
-    if (!Array.isArray(result.presets)) throw new Error('Prompt 模板返回格式异常')
+    if (result?.success !== true) throw new Error(result?.message || '读取提示词模板失败')
+    if (!Array.isArray(result.presets)) throw new Error(t('aiWorkshopUi.promptTemplatesLoadFailed'))
     promptPresets.value = result.presets
   } catch (error) {
     promptPresets.value = []
-    promptLoadError.value = `读取 Prompt 模板失败：${error?.message || '读取失败'}`
+    promptLoadError.value = `读取提示词模板失败：${error?.message || '读取失败'}`
   }
 }
 
@@ -1977,9 +1977,9 @@ async function runImageTool() {
 
 function readableAiError(message = '') {
   const text = String(message || '').trim()
-  if (/invalid api key/i.test(text)) return 'API Key 无效，请到系统设置检查文本模型配置。'
-  if (/api key/i.test(text)) return `API Key 配置异常：${text}`
-  if (/provider/i.test(text)) return `AI Provider 配置异常：${text}`
+  if (/invalid api key/i.test(text)) return t('aiWorkshopUi.invalidApiKey')
+  if (/api key/i.test(text)) return `密钥配置异常：${text}`
+  if (/provider/i.test(text)) return `AI 服务配置异常：${text}`
   return text || '生成失败'
 }
 

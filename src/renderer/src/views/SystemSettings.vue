@@ -462,7 +462,7 @@
                 <p class="brand-name-en">
                   Dreamloom Studio · DLS
                 </p>
-                <p>Version {{ currentVersion }}</p>
+                <p>版本 {{ currentVersion }}</p>
               </div>
             </div>
           </div>

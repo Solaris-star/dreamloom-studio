@@ -35,7 +35,7 @@
             <button
               class="model-trigger"
               type="button"
-              :title="`当前模型：${selectedProviderLabel || '未选择供应商'} / ${selectedModelDisplayName || '未选择具体模型'}`"
+              :title="`当前模型：${selectedProviderLabel || '未选择服务'} / ${selectedModelDisplayName || '未选择具体模型'}`"
               aria-label="选择 Agent 模型"
             >
               <span
@@ -51,16 +51,16 @@
             <header>
               <strong>选择模型</strong>
               <span>用途：{{ defaultModelTaskText }} · 当前：{{
-                selectedProviderLabel || '无供应商'
+                selectedProviderLabel || '无服务'
               }}
                 / {{ selectedModelDisplayName || '无模型' }}</span>
             </header>
-            <label>供应商</label>
+            <label>AI 服务</label>
             <el-select
               v-model="selectedProviderId"
               class="model-panel-select"
               size="small"
-              placeholder="供应商"
+              placeholder="AI 服务"
               :disabled="!providerOptions.length"
               @change="handleProviderChange"
             >
@@ -3740,7 +3740,7 @@ async function copyErrorDetail() {
 function errorReasonText(error) {
   const text = String(error?.message || '')
   if (!selectedModelId.value) return '未绑定模型'
-  if (text.includes('token') || text.includes('limit')) return 'token 超限'
+  if (text.includes('token') || text.includes('limit')) return '用量超限'
   if (text.includes('network') || text.includes('fetch') || text.includes('Failed to load'))
     return '网络错误'
   if (text.includes('刷新页面') || text.includes('temporarily') || text.includes('unavailable'))
@@ -3756,7 +3756,7 @@ function errorDetailText(error) {
 function errorReasonFromText(text = '') {
   const value = String(text || '')
   if (value.includes('未绑定')) return '未绑定模型'
-  if (value.includes('token') || value.includes('超限')) return 'token 超限'
+  if (value.includes('token') || value.includes('超限')) return '用量超限'
   if (value.includes('网络') || value.includes('fetch') || value.includes('Failed to load'))
     return '网络错误'
   return value.includes('模型') ? '模型请求失败' : value || '模型请求失败'
@@ -3948,7 +3948,7 @@ function promptMissingModel() {
   modelPanelVisible.value = true
   const message = availableModels.value.length
     ? '请选择 Agent 模型后再发送'
-    : '请先添加文本 AI Provider 和模型'
+    : '请先添加文本 AI 服务和模型'
   modelHintText.value = `${commandInput.value ? '已填入指令，' : ''}${message}`
   ElMessage.warning(message)
 }

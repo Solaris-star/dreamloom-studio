@@ -447,17 +447,43 @@ try {
   assert.equal(listAgentTasks(bookPath).tasks.length, 0)
   fs.writeFileSync(taskStorePath, objectStore, 'utf8')
 
+  // 损坏 JSON：隔离 .broken.* 并重建空 tasks.json，避免整本书 Agent 队列永久不可用
   fs.writeFileSync(taskStorePath, '{ broken json', 'utf8')
-  assert.throws(() => listAgentTasks(bookPath), /读取 Agent 任务记录失败/)
-  assert.throws(
-    () => createAgentTask(bookPath, { bookName: '风雪试剑', instruction: '继续写。' }),
-    /读取 Agent 任务记录失败/
+  const brokenList = listAgentTasks(bookPath)
+  assert.equal(brokenList.tasks.length, 0)
+  assert.ok(fs.existsSync(taskStorePath), '应重建 tasks.json')
+  assert.deepEqual(JSON.parse(fs.readFileSync(taskStorePath, 'utf8')), { tasks: [] })
+  const brokenSnapshots = fs
+    .readdirSync(join(bookPath, '.editor-agent'))
+    .filter((name) => name.startsWith('tasks.json.broken.'))
+  assert.ok(brokenSnapshots.length >= 1, '应隔离损坏文件到 .broken.*')
+  assert.equal(
+    fs.readFileSync(join(bookPath, '.editor-agent', brokenSnapshots[0]), 'utf8'),
+    '{ broken json'
   )
-  assert.equal(fs.readFileSync(taskStorePath, 'utf8'), '{ broken json')
 
-  fs.writeFileSync(taskStorePath, JSON.stringify({ tasks: { broken: true } }), 'utf8')
-  assert.throws(() => listAgentTasks(bookPath), /本地记录格式不正确/)
-  assert.equal(fs.readFileSync(taskStorePath, 'utf8'), JSON.stringify({ tasks: { broken: true } }))
+  // 隔离后应可继续创建任务
+  const recovered = createAgentTask(bookPath, { bookName: '风雪试剑', instruction: '继续写。' })
+  assert.ok(recovered?.id)
+  assert.equal(listAgentTasks(bookPath).tasks.length, 1)
+
+  // 格式错误（tasks 非数组）：同样隔离重建
+  const formatBrokenPayload = JSON.stringify({ tasks: { broken: true } })
+  fs.writeFileSync(taskStorePath, formatBrokenPayload, 'utf8')
+  const formatBrokenList = listAgentTasks(bookPath)
+  assert.equal(formatBrokenList.tasks.length, 0)
+  assert.deepEqual(JSON.parse(fs.readFileSync(taskStorePath, 'utf8')), { tasks: [] })
+  const formatBrokenSnapshots = fs
+    .readdirSync(join(bookPath, '.editor-agent'))
+    .filter((name) => name.startsWith('tasks.json.broken.'))
+  assert.ok(formatBrokenSnapshots.length >= 1, '格式错误也应隔离到 .broken.*')
+  const quarantinedPayloads = formatBrokenSnapshots.map((name) =>
+    fs.readFileSync(join(bookPath, '.editor-agent', name), 'utf8')
+  )
+  assert.ok(
+    quarantinedPayloads.some((payload) => payload === formatBrokenPayload),
+    '隔离快照应包含格式错误原文'
+  )
 } finally {
   fs.rmSync(rootDir, { recursive: true, force: true })
 }
