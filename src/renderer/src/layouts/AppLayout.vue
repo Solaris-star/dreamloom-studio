@@ -79,25 +79,22 @@
           </div>
         </nav>
 
-        <!-- 折叠/展开快捷按钮 -->
+        <!-- 折叠/展开快捷按钮：仅图标，避免长文案干扰 -->
         <div class="sidebar-collapse-control">
           <button
             v-motion-feedback
-            class="app-menu-item"
+            class="app-sidebar-toggle"
             type="button"
+            data-testid="sidebar-collapse-toggle"
             :aria-label="sidebarWidth < 100 ? '展开侧栏' : '收起侧栏'"
+            :title="sidebarWidth < 100 ? '展开侧栏' : '收起侧栏'"
             @click="toggleSidebarCollapse"
           >
-            <span
-              class="app-menu-icon"
+            <component
+              :is="sidebarWidth < 100 ? PanelLeftOpen : PanelLeftClose"
+              v-bind="iconProps"
               aria-hidden="true"
-            >
-              <component
-                :is="sidebarWidth < 100 ? ChevronRight : ChevronLeft"
-                v-bind="iconProps"
-              />
-            </span>
-            <span class="app-menu-label">{{ sidebarWidth < 100 ? '展开' : '收起' }}</span>
+            />
           </button>
         </div>
 
@@ -154,11 +151,11 @@ import {
   BookOpenText,
   Library,
   Map as MapIcon,
+  PanelLeftClose,
+  PanelLeftOpen,
   Settings,
   Sparkles,
-  TrendingUp,
-  ChevronLeft,
-  ChevronRight
+  TrendingUp
 } from 'lucide-vue-next'
 import { ElMessage } from 'element-plus'
 import { readBooksDir } from '@renderer/service/books'
@@ -613,6 +610,48 @@ function isEditorRouteElement(el) {
   max-width: 86px;
   opacity: 1;
   white-space: nowrap;
+}
+
+.sidebar-collapse-control {
+  display: flex;
+  justify-content: center;
+  margin: 4px 10px 10px;
+}
+
+.app-sidebar-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--theme-control-radius, 10px);
+  background: transparent;
+  color: var(--wabi-ink-soft, #6b655c);
+  cursor: pointer;
+  transition:
+    background-color var(--theme-transition-duration, 180ms) ease,
+    border-color var(--theme-transition-duration, 180ms) ease,
+    color var(--theme-transition-duration, 180ms) ease,
+    transform var(--theme-transition-duration, 180ms) ease,
+    box-shadow var(--theme-transition-duration, 180ms) ease;
+
+  &:hover {
+    border-color: rgba(111, 122, 104, 0.22);
+    background: rgba(251, 250, 246, 0.72);
+    color: var(--wabi-moss-dark, #424f3c);
+    transform: var(--theme-button-transform-hover, translateY(-1px));
+  }
+
+  &:active {
+    transform: var(--theme-button-transform-active, translateY(0));
+  }
+
+  &:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--el-color-primary, #52634b) 42%, transparent);
+    outline-offset: 2px;
+  }
 }
 
 .app-submenu {

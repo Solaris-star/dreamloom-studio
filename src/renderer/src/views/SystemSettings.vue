@@ -166,35 +166,43 @@
               <p class="section-hint">
                 {{ t('home.systemSettings.colorThemeHint') }}
               </p>
-              <div class="theme-board">
+              <div
+                class="theme-list"
+                role="listbox"
+                :aria-label="t('home.systemSettings.tabs.theme')"
+                data-testid="theme-color-list"
+              >
                 <button
                   v-for="theme in availableThemes"
                   :key="theme.key"
-                  class="theme-card"
+                  class="theme-row"
                   :class="{ active: themeStore.currentTheme === theme.key }"
                   type="button"
+                  role="option"
+                  :aria-selected="themeStore.currentTheme === theme.key"
                   :aria-label="`切换到${theme.name}`"
                   data-testid="theme-color-option"
                   :data-theme-option="theme.key"
                   @click="handleThemeChange(theme.key)"
                 >
                   <span
-                    class="theme-preview"
+                    class="theme-swatch"
                     :style="getPreviewStyle(theme.key)"
                     aria-hidden="true"
                   >
-                    <i class="preview-paper" />
-                    <i class="preview-line line-one" />
-                    <i class="preview-line line-two" />
-                    <i class="preview-dot dot-one" />
-                    <i class="preview-dot dot-two" />
+                    <i class="swatch-bg" />
+                    <i class="swatch-paper" />
+                    <i class="swatch-accent" />
                   </span>
-                  <span class="theme-label">{{ theme.name }}</span>
+                  <span class="theme-row-meta">
+                    <span class="theme-label">{{ theme.name }}</span>
+                    <span class="theme-row-hint">{{ themeRowHint(theme.key) }}</span>
+                  </span>
                   <Check
                     v-if="themeStore.currentTheme === theme.key"
                     class="theme-check"
                     :size="18"
-                    :stroke-width="2"
+                    :stroke-width="2.2"
                   />
                 </button>
               </div>
@@ -943,6 +951,19 @@ function getPreviewStyle(themeKey) {
   }
 }
 
+function themeRowHint(themeKey) {
+  const hints = {
+    light: '明亮干净',
+    parchment: '书卷纸感',
+    dark: '低光护眼',
+    yellow: '暖色护眼',
+    blue: '冷静专注',
+    green: '柔和自然',
+    purple: '沉浸氛围'
+  }
+  return hints[themeKey] || '配色主题'
+}
+
 function getStylePreviewStyle(styleKey) {
   const meta = themeStore.getVisualStyleMeta(styleKey)
   const preview = meta?.preview || {}
@@ -1196,132 +1217,110 @@ async function handleVisualStyleChange(style) {
   }
 }
 
-.theme-board {
+.theme-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(156px, 1fr));
-  gap: 14px;
+  gap: 8px;
 }
 
-.theme-card {
+.theme-row {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 20px;
+  align-items: center;
   gap: 12px;
-  min-height: 154px;
-  padding: 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--theme-card-radius, 8px);
-  background: var(--theme-surface-background-strong);
-  color: var(--color-text);
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border, var(--border-color));
+  border-radius: var(--theme-control-radius, 10px);
+  background: var(--theme-surface-background-strong, var(--bg-soft));
+  color: var(--color-text, var(--text-base));
   cursor: pointer;
   font: inherit;
   text-align: left;
   transition:
-    border-color 0.22s ease,
-    background-color 0.22s ease,
-    box-shadow 0.22s ease,
-    transform 0.22s ease;
+    border-color var(--theme-transition-duration, 180ms) ease,
+    background-color var(--theme-transition-duration, 180ms) ease,
+    box-shadow var(--theme-transition-duration, 180ms) ease,
+    transform var(--theme-transition-duration, 180ms) ease;
 
   &:hover {
-    border-color: var(--color-border-strong);
-    transform: translateY(-1px);
+    border-color: var(--color-border-strong, var(--border-color));
+    transform: var(--theme-button-transform-hover, translateY(-1px));
+  }
+
+  &:active {
+    transform: var(--theme-button-transform-active, translateY(0));
   }
 
   &.active {
-    border-color: var(--color-primary) !important;
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 42%, transparent);
-    transition-property: background-color, box-shadow, transform;
-  }
-
-  .theme-preview {
-    position: relative;
-    width: 100%;
-    height: 92px;
-    overflow: hidden;
-    border: 1px solid var(--preview-line);
-    border-radius: var(--theme-control-radius, 8px);
-    background:
-      linear-gradient(
-        90deg,
-        color-mix(in srgb, var(--preview-line) 24%, transparent) 1px,
-        transparent 1px
-      ),
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--preview-line) 16%, transparent) 1px,
-        transparent 1px
-      ),
-      var(--preview-bg);
-    background-size:
-      22px 22px,
-      22px 22px,
-      auto;
-  }
-
-  .preview-paper {
-    position: absolute;
-    inset: 13px 12px;
-    border: 1px solid var(--preview-line);
-    border-radius: var(--theme-control-radius, 8px);
-    background: var(--preview-paper);
-  }
-
-  .preview-line,
-  .preview-dot {
-    position: absolute;
-    z-index: 1;
-    display: block;
-    background: var(--preview-ink);
-  }
-
-  .preview-line {
-    left: 28px;
-    height: 2px;
-    border-radius: 2px;
-  }
-
-  .line-one {
-    right: 42px;
-    top: 36px;
-  }
-
-  .line-two {
-    right: 58px;
-    top: 54px;
-    opacity: 0.52;
-  }
-
-  .preview-dot {
-    width: 16px;
-    height: 16px;
-    border-radius: 5px;
-  }
-
-  .dot-one {
-    right: 26px;
-    bottom: 24px;
-    background: var(--preview-primary);
-  }
-
-  .dot-two {
-    right: 48px;
-    bottom: 24px;
-    background: var(--preview-accent);
-  }
-
-  .theme-label {
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.2;
+    border-color: var(--color-primary, var(--primary-color)) !important;
+    box-shadow: inset 0 0 0 1px
+      color-mix(in srgb, var(--color-primary, var(--primary-color)) 36%, transparent);
   }
 
   .theme-check {
-    position: absolute;
-    right: 12px;
-    bottom: 12px;
-    color: var(--color-primary-strong);
+    color: var(--color-primary, var(--primary-color));
+    justify-self: end;
   }
+}
+
+.theme-swatch {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--preview-line) 70%, transparent);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.theme-swatch .swatch-bg,
+.theme-swatch .swatch-paper,
+.theme-swatch .swatch-accent {
+  position: absolute;
+  display: block;
+}
+
+.theme-swatch .swatch-bg {
+  inset: 0;
+  background: var(--preview-bg);
+}
+
+.theme-swatch .swatch-paper {
+  left: 7px;
+  top: 8px;
+  width: 18px;
+  height: 24px;
+  border-radius: 4px;
+  background: var(--preview-paper);
+  border: 1px solid color-mix(in srgb, var(--preview-line) 80%, transparent);
+}
+
+.theme-swatch .swatch-accent {
+  right: 7px;
+  bottom: 7px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--preview-primary);
+}
+
+.theme-row-meta {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.theme-label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.theme-row-hint {
+  color: var(--text-secondary, #6b655c);
+  font-size: 12px;
+  line-height: 1.3;
 }
 
 .section-hint {

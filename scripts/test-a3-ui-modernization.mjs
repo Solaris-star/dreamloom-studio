@@ -9,6 +9,21 @@ assert.match(home, /continue/)
 assert.match(home, /class="bento-strip"/)
 assert.match(home, /--theme-card-radius/)
 
+const settings = fs.readFileSync('src/renderer/src/views/SystemSettings.vue', 'utf8')
+assert.match(settings, /theme-list/)
+assert.match(settings, /theme-swatch/)
+assert.match(settings, /theme-row/)
+assert.match(settings, /themeRowHint/)
+assert.doesNotMatch(settings, /class="theme-card"/)
+
+const layout = fs.readFileSync('src/renderer/src/layouts/AppLayout.vue', 'utf8')
+assert.match(layout, /app-sidebar-toggle/)
+assert.match(layout, /PanelLeftOpen/)
+assert.match(layout, /PanelLeftClose/)
+assert.match(layout, /data-testid="sidebar-collapse-toggle"/)
+assert.doesNotMatch(layout, /ChevronLeft/)
+assert.doesNotMatch(layout, /收起<\/span>/)
+
 const empty = fs.readFileSync('src/renderer/src/components/ui/UiEmptyState.vue', 'utf8')
 assert.match(empty, /ui-empty-state/)
 assert.match(empty, /primaryText/)
@@ -40,10 +55,12 @@ assert.doesNotMatch(visualCss, /fonts\.googleapis\.com/)
 assert.match(visualCss, /visual-style-fonts\.css/)
 // Apple 设置页应去掉和纸纹理，并统一右栏主题卡
 assert.match(visualCss, /data-visual-style='apple'\] \.settings-nav/)
-assert.match(visualCss, /data-visual-style='apple'\] \.theme-card/)
+assert.match(visualCss, /data-visual-style='apple'\] \.theme-row/)
+assert.match(visualCss, /data-visual-style='apple'\] \.app-sidebar-toggle/)
 assert.match(visualCss, /background-image: none !important/)
 assert.match(visualCss, /#0071e3/)
 assert.match(visualCss, /settings-body/)
+assert.match(visualCss, /rgba\(246, 246, 246, 0\.82\)/)
 
 const fontCss = fs.readFileSync(
   'src/renderer/src/assets/fonts/visual-style-fonts.css',
