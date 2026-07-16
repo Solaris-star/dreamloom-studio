@@ -4,7 +4,7 @@
       <div class="hero-copy">
         <h1>市场灵感 / Trend Radar</h1>
         <p>
-          从公开热词、榜单趋势和作者活动中提炼可写题材。空数据时会展示明确标注的示例内容，不会伪造实时热度、销量或评价。
+          数据来自微博/百度等公开热搜与小说榜单的真实采集，不是手写假数据。空库时才会显示带【示例】标注的内置内容；过期缓存会标成「过期缓存」。
         </p>
       </div>
 
@@ -770,6 +770,9 @@
 </template>
 
 <script setup>
+
+defineOptions({ name: 'MarketInspiration' })
+
 import { computed, h, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -1689,11 +1692,14 @@ function statusCard(source, label, status) {
   const row = status.find((item) => item.source === source)
   if (!row) return { key: source, label, state: 'empty', text: '未配置' }
   const state = sourceConnectionState(row)
+  const baseText = sourceStateText(state, '已连接')
+  const when = row.lastSuccessAt || row.updatedAt || ''
+  const whenText = when ? formatDateTime(when) : ''
   return {
     key: source,
     label,
     state,
-    text: sourceStateText(state, '已连接')
+    text: whenText ? `${baseText} · ${whenText}` : baseText
   }
 }
 

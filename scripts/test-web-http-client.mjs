@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict'
 import {
   clearHttpClientCache,
+  getHttpLoadingState,
   invalidateHttpClientCache,
   postJson,
-  requestJson
+  requestJson,
+  subscribeHttpLoading
 } from '../src/renderer/src/service/webHttpClient.js'
 
 const originalFetch = globalThis.fetch
@@ -12,11 +14,29 @@ let fetchCount = 0
 try {
   clearHttpClientCache()
 
+  // 全局 loading 订阅
+  const loadingEvents = []
+  const unsubscribe = subscribeHttpLoading((state) => {
+    loadingEvents.push({ ...state })
+  })
+
   globalThis.fetch = async () => {
     fetchCount += 1
     return new Response(JSON.stringify({ success: true, data: 1 }))
   }
   assert.deepEqual(await requestJson('/api/test'), { success: true, data: 1 })
+  assert.equal(getHttpLoadingState().active, false)
+  assert.ok(loadingEvents.some((item) => item.active === true))
+  assert.equal(loadingEvents.at(-1)?.active, false)
+
+  // quiet 请求不进入全局 loading
+  loadingEvents.length = 0
+  await requestJson('/api/quiet', { quiet: true })
+  assert.equal(
+    loadingEvents.some((item) => item.active === true),
+    false
+  )
+  unsubscribe()
 
   globalThis.fetch = async () =>
     new Response(JSON.stringify({ success: false, message: '保存失败' }), { status: 200 })

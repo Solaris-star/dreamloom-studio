@@ -42,6 +42,7 @@ import { handleVersionSnapshotRoute } from './src/main/webApi/versionSnapshotRou
 import { handleBookChapterRoute } from './src/main/webApi/bookChapterRoutes.js'
 import { handleStudioContentRoute } from './src/main/webApi/studioContentRoutes.js'
 import { handleMarketRoute } from './src/main/webApi/marketRoutes.js'
+import { startMarketTrendScheduler } from './src/main/services/marketService.js'
 import { handleVectorRoute } from './src/main/webApi/vectorRoutes.js'
 import { handleSettingsRoute } from './src/main/webApi/settingsRoutes.js'
 import { handlePromptRoute } from './src/main/webApi/promptRoutes.js'
@@ -123,6 +124,18 @@ export function createWebServerPlugins() {
     .catch((error) => {
       console.warn('[web-api] auth state store init failed:', error?.message || error)
     })
+
+  // 市场灵感：web 进程启动时拉起热榜调度（可用 MARKET_TREND_SCHEDULER=0 关闭）
+  try {
+    if (!['0', 'false', 'no', 'off'].includes(String(process.env.MARKET_TREND_SCHEDULER || '').trim().toLowerCase())) {
+      const schedulerInfo = startMarketTrendScheduler(() => getActiveBooksDir())
+      console.log('[web-api] market trend scheduler started', schedulerInfo || {})
+    } else {
+      console.log('[web-api] market trend scheduler disabled by MARKET_TREND_SCHEDULER')
+    }
+  } catch (error) {
+    console.warn('[web-api] market trend scheduler failed to start', error?.message || error)
+  }
 
   const readAiHistoryRows = createWebAiHistoryReader(webStore.read)
 
@@ -570,5 +583,68 @@ export function createWebServerPlugins() {
     }
   }
 
-  return [webApiPlugin()]
+  /**
+   * 生产 preview / 开发静态资源缓存策略：
+   * - /assets/*（hash 文件名）长缓存 + immutable，避免 CF Tunnel 每次 REVALIDATED 回源
+   * - HTML 强制 no-cache，保证发版后入口总能拿到新 chunk 名
+   *
+   * 必须用 pre middleware：sirv 会直接 end 响应，post-hook 跑不到。
+   * 在 sirv 写头前劫持 setHeader/writeHead，把 no-cache 改写为 immutable。
+   */
+  function installStaticAssetCacheHeaders(server) {
+    server.middlewares.use((req, res, next) => {
+      const url = String(req.url || '').split('?')[0] || ''
+      const isHashedAsset =
+        url.startsWith('/assets/') ||
+        /\.[a-f0-9]{8,}\.(js|css|woff2?|ttf|png|jpe?g|webp|svg|ico)$/i.test(url)
+      const isHtml = url === '/' || url.endsWith('.html') || url === '/index.html'
+      if (!isHashedAsset && !isHtml) {
+        next()
+        return
+      }
+
+      const desired = isHashedAsset
+        ? 'public, max-age=31536000, immutable'
+        : 'no-cache'
+
+      const originalSetHeader = res.setHeader.bind(res)
+      res.setHeader = (name, value) => {
+        if (String(name).toLowerCase() === 'cache-control') {
+          return originalSetHeader('Cache-Control', desired)
+        }
+        return originalSetHeader(name, value)
+      }
+
+      const originalWriteHead = res.writeHead.bind(res)
+      res.writeHead = function patchedWriteHead(statusCode, reasonOrHeaders, maybeHeaders) {
+        if (typeof reasonOrHeaders === 'object' && reasonOrHeaders != null) {
+          const headers = { ...reasonOrHeaders, 'Cache-Control': desired }
+          return originalWriteHead(statusCode, headers)
+        }
+        if (typeof maybeHeaders === 'object' && maybeHeaders != null) {
+          const headers = { ...maybeHeaders, 'Cache-Control': desired }
+          return originalWriteHead(statusCode, reasonOrHeaders, headers)
+        }
+        originalSetHeader('Cache-Control', desired)
+        if (typeof reasonOrHeaders === 'string') {
+          return originalWriteHead(statusCode, reasonOrHeaders, maybeHeaders)
+        }
+        return originalWriteHead(statusCode, reasonOrHeaders, maybeHeaders)
+      }
+
+      originalSetHeader('Cache-Control', desired)
+      next()
+    })
+  }
+
+  function staticCachePlugin() {
+    return {
+      name: 'web-static-cache-headers',
+      enforce: 'pre',
+      configureServer: installStaticAssetCacheHeaders,
+      configurePreviewServer: installStaticAssetCacheHeaders
+    }
+  }
+
+  return [staticCachePlugin(), webApiPlugin()]
 }

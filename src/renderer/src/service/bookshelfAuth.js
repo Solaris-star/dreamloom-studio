@@ -1,4 +1,9 @@
-import { fetchJson, postJson } from './webHttpClient.js'
+import { fetchJson, invalidateHttpClientCache, postJson } from './webHttpClient.js'
+
+function bustAuthStatusCache() {
+  invalidateHttpClientCache('/api/auth/status')
+  invalidateHttpClientCache('/api/auth/keys')
+}
 
 function requireAuthStatus(result, action) {
   if (
@@ -19,8 +24,15 @@ function requireAuthStatus(result, action) {
   }
 }
 
-export async function getBookshelfAuthStatus() {
-  return requireAuthStatus(await fetchJson('/api/auth/status'), '读取书架认证状态')
+export async function getBookshelfAuthStatus(options = {}) {
+  // 路由守卫每次导航都会打；公网 tunnel 下无缓存会明显拖慢点页
+  return requireAuthStatus(
+    await fetchJson('/api/auth/status', {
+      cacheTtlMs: options.cacheTtlMs ?? 20_000,
+      ...options
+    }),
+    '读取书架认证状态'
+  )
 }
 
 export async function authenticateBookshelf(password) {
@@ -28,6 +40,7 @@ export async function authenticateBookshelf(password) {
   if (!value) {
     throw new Error('书架密码不能为空')
   }
+  bustAuthStatusCache()
   return requireAuthStatus(
     await postJson('/api/auth/login', { password: value }),
     '验证书架密码'
@@ -39,10 +52,12 @@ export async function logoutBookshelf() {
   if (result?.success !== true) {
     throw new Error(result?.message || '退出书架认证失败')
   }
+  bustAuthStatusCache()
   return true
 }
 
 export async function updateBookshelfAccessKey(currentKey, newKey) {
+  bustAuthStatusCache()
   return requireAuthStatus(
     await postJson('/api/auth/access-key', {
       currentKey: String(currentKey || ''),
@@ -68,6 +83,7 @@ export async function createGuestAccessKey({ label, plainKey } = {}) {
   if (result?.success !== true || !result.key || !result.plainKey) {
     throw new Error(result?.message || '创建访客密钥失败')
   }
+  bustAuthStatusCache()
   return result
 }
 
@@ -76,5 +92,6 @@ export async function revokeAccessKey(id) {
   if (result?.success !== true) {
     throw new Error(result?.message || '删除密钥失败')
   }
+  bustAuthStatusCache()
   return result
 }
