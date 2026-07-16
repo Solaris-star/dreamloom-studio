@@ -1,0 +1,30 @@
+[
+  {
+    "style": "classic",
+    "name": "经典和纸",
+    "settings": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/classic-settings.png",
+    "home": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/classic-home.png",
+    "dataAttr": "classic"
+  },
+  {
+    "style": "apple",
+    "name": "Apple 极简",
+    "settings": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/apple-settings.png",
+    "home": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/apple-home.png",
+    "dataAttr": "apple"
+  },
+  {
+    "style": "brutal",
+    "name": "粗犷野兽",
+    "settings": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/brutal-settings.png",
+    "home": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/brutal-home.png",
+    "dataAttr": "brutal"
+  },
+  {
+    "style": "pixel",
+    "name": "像素复古",
+    "settings": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/pixel-settings.png",
+    "home": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/pixel-home.png",
+    "dataAttr": "pixel"
+  }
+]
