@@ -576,7 +576,8 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  border-radius: $border-radius;
+  border-radius: var(--theme-card-radius, #{$border-radius});
+  padding: 4px;
 }
 .books-box-empty {
   flex: 1;
@@ -589,5 +590,9 @@ onBeforeUnmount(() => {
 }
 :deep(.el-drawer__body) {
   padding: 0;
+}
+:deep(.new-book-btn) {
+  border-radius: var(--theme-control-radius, 8px);
+  box-shadow: var(--theme-shadow-hard, none);
 }
 </style>

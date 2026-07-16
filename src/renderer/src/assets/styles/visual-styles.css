@@ -1,0 +1,1251 @@
+/* 视觉风格层：由 data-visual-style + CSS 变量驱动
+ * classic / apple / brutal / pixel
+ */
+
+/* 本地字体栈（无外网 CDN） */
+@import '../fonts/visual-style-fonts.css';
+
+:root {
+  --theme-card-radius: 12px;
+  --theme-control-radius: 8px;
+  --theme-pill-radius: 999px;
+  --theme-border-width: 1px;
+  --theme-border-style: solid;
+  --theme-shadow-card: 0 8px 24px rgba(58, 55, 49, 0.08);
+  --theme-shadow-raised: 0 12px 32px rgba(58, 55, 49, 0.12);
+  --theme-shadow-hard: none;
+  --theme-shadow-inset: inset 3px 0 0 rgba(111, 122, 104, 0.56);
+  --theme-font-ui: Inter, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --theme-font-display: Inter, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --theme-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --theme-font-size-ui: 14px;
+  --theme-letter-spacing: 0;
+  --theme-letter-spacing-display: -0.02em;
+  --theme-font-weight-ui: 500;
+  --theme-font-weight-strong: 600;
+  --theme-transition-duration: 180ms;
+  --theme-surface-blur: 0px;
+  --theme-surface-opacity: 1;
+  --theme-shell-grid: 32px;
+  --theme-shell-grid-opacity: 0.018;
+  --theme-button-transform-hover: translateY(-1px);
+  --theme-button-transform-active: translateY(0);
+  --theme-image-filter: none;
+  --theme-text-transform: none;
+  --theme-pixelate: 0;
+
+  --ui-radius-card: var(--theme-card-radius);
+  --ui-radius-control: var(--theme-control-radius);
+  --ui-radius-pill: var(--theme-pill-radius);
+  --ui-shadow-card: var(--theme-shadow-card);
+  --ui-border-width: var(--theme-border-width);
+}
+
+html[data-visual-style] body {
+  font-family: var(--theme-font-ui);
+  font-size: var(--theme-font-size-ui);
+  letter-spacing: var(--theme-letter-spacing);
+  transition:
+    background-color var(--theme-transition-duration) ease,
+    color var(--theme-transition-duration) ease;
+}
+
+/* A3 通用组件表面：卡片 / 按钮 / 输入 跟随风格 token */
+html[data-visual-style] .el-card,
+html[data-visual-style] .setting-card,
+html[data-visual-style] .theme-card,
+html[data-visual-style] .style-card {
+  border-radius: var(--theme-card-radius) !important;
+  border-width: var(--theme-border-width);
+  border-style: var(--theme-border-style);
+  box-shadow: var(--theme-shadow-card);
+  transition:
+    border-color var(--theme-transition-duration) ease,
+    box-shadow var(--theme-transition-duration) ease,
+    transform var(--theme-transition-duration) ease,
+    background-color var(--theme-transition-duration) ease;
+}
+
+html[data-visual-style] .el-button,
+html[data-visual-style] .app-menu-item,
+html[data-visual-style] .nav-item {
+  border-radius: var(--theme-control-radius) !important;
+  font-weight: var(--theme-font-weight-ui);
+  text-transform: var(--theme-text-transform);
+  transition:
+    transform var(--theme-transition-duration) ease,
+    box-shadow var(--theme-transition-duration) ease,
+    background-color var(--theme-transition-duration) ease,
+    border-color var(--theme-transition-duration) ease,
+    color var(--theme-transition-duration) ease;
+}
+
+html[data-visual-style] .el-button--primary {
+  border-width: var(--theme-border-width);
+  border-style: var(--theme-border-style);
+}
+
+html[data-visual-style] .el-input__wrapper,
+html[data-visual-style] .el-textarea__inner,
+html[data-visual-style] .el-select__wrapper {
+  border-radius: var(--theme-control-radius) !important;
+}
+
+html[data-visual-style] .el-dialog,
+html[data-visual-style] .el-drawer {
+  border-radius: var(--theme-card-radius) !important;
+  box-shadow: var(--theme-shadow-raised);
+}
+
+/* —— Apple 极简 —— */
+html[data-visual-style='apple'] body {
+  font-family: var(--theme-font-ui);
+  -webkit-font-smoothing: antialiased;
+  color: #1d1d1f;
+}
+
+html[data-visual-style='apple'] .app-shell {
+  background: #f5f5f7 !important;
+  background-image: none !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .app-sidebar {
+  background: rgba(246, 246, 246, 0.82) !important;
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: none !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .app-menu-item {
+  border: 0 !important;
+  border-radius: 8px !important;
+  color: #1d1d1f !important;
+  font-weight: 400 !important;
+  margin: 0 8px 2px !important;
+  padding: 8px 10px !important;
+}
+
+html[data-visual-style='apple'] .app-menu-item:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-color: transparent !important;
+  color: #1d1d1f !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html[data-visual-style='apple'] .app-menu-item.active {
+  box-shadow: none !important;
+  border-color: transparent !important;
+  background: rgba(0, 113, 227, 0.12) !important;
+  border-radius: 8px !important;
+  color: #0071e3 !important;
+  font-weight: 500 !important;
+}
+
+html[data-visual-style='apple'] .app-menu-item.active .app-menu-icon {
+  color: #0071e3 !important;
+}
+
+html[data-visual-style='apple'] .app-submenu-item.active {
+  background: rgba(0, 113, 227, 0.1) !important;
+  border-color: transparent !important;
+  color: #0071e3 !important;
+}
+
+html[data-visual-style='apple'] .sidebar-header {
+  margin: 0 10px 12px !important;
+}
+
+html[data-visual-style='apple'] .app-logo img {
+  filter: none !important;
+  height: 28px !important;
+}
+
+html[data-visual-style='apple'] .app-sidebar-toggle {
+  width: 28px !important;
+  height: 28px !important;
+  border: 0 !important;
+  border-radius: 7px !important;
+  color: #1d1d1f !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-visual-style='apple'] .app-sidebar-toggle:hover {
+  background: rgba(0, 0, 0, 0.06) !important;
+  transform: none !important;
+}
+
+html[data-visual-style='apple'] .app-sidebar-toggle:active {
+  background: rgba(0, 0, 0, 0.1) !important;
+  transform: scale(0.96) !important;
+}
+
+html[data-visual-style='apple'] .el-button--primary {
+  border-radius: var(--theme-pill-radius) !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: #0071e3 !important;
+  font-weight: 500;
+}
+
+/* 系统设置页：去掉和纸纹理，改成 Settings 白底分组 */
+html[data-visual-style='apple'] .system-settings {
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .settings-body {
+  gap: 0;
+  min-height: calc(100vh - 96px);
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: #fff;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.06);
+}
+
+html[data-visual-style='apple'] .settings-nav {
+  width: 220px !important;
+  background: #fbfbfd !important;
+  background-image: none !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.06) !important;
+  padding: 18px 12px !important;
+  gap: 2px !important;
+}
+
+html[data-visual-style='apple'] .settings-nav .nav-item {
+  height: 36px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  color: #1d1d1f !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  padding: 0 12px !important;
+}
+
+html[data-visual-style='apple'] .settings-nav .nav-item:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border-color: transparent !important;
+}
+
+html[data-visual-style='apple'] .settings-nav .nav-item.active {
+  background: rgba(0, 113, 227, 0.1) !important;
+  border-color: transparent !important;
+  color: #0071e3 !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+}
+
+html[data-visual-style='apple'] .settings-main {
+  background: #ffffff !important;
+}
+
+html[data-visual-style='apple'] .settings-main .content-wrapper {
+  max-width: 760px !important;
+  padding: 36px 40px 56px !important;
+}
+
+html[data-visual-style='apple'] .settings-section .section-title {
+  margin: 0 0 8px !important;
+  color: #1d1d1f !important;
+  font-size: 28px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+}
+
+html[data-visual-style='apple'] .section-title-spaced {
+  margin-top: 40px !important;
+  padding-top: 28px !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+html[data-visual-style='apple'] .section-hint {
+  margin: 0 0 20px !important;
+  color: #86868b !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+
+html[data-visual-style='apple'] .theme-board,
+html[data-visual-style='apple'] .style-board {
+  gap: 12px !important;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)) !important;
+}
+
+/* 配色主题：系统外观式 swatch + 名称列表 */
+html[data-visual-style='apple'] .theme-list {
+  gap: 6px !important;
+  padding: 6px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-radius: 14px !important;
+  background: #f5f5f7 !important;
+}
+
+html[data-visual-style='apple'] .theme-row {
+  min-height: 52px !important;
+  padding: 8px 10px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+  grid-template-columns: 36px minmax(0, 1fr) 18px !important;
+  gap: 12px !important;
+}
+
+html[data-visual-style='apple'] .theme-row:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+html[data-visual-style='apple'] .theme-row.active {
+  background: #ffffff !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.04),
+    0 4px 14px rgba(0, 0, 0, 0.06) !important;
+}
+
+html[data-visual-style='apple'] .theme-swatch {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55) !important;
+}
+
+html[data-visual-style='apple'] .theme-label {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .theme-row-hint {
+  font-size: 11px !important;
+  color: #86868b !important;
+}
+
+html[data-visual-style='apple'] .theme-row .theme-check {
+  color: #0071e3 !important;
+}
+
+/* 主题/风格卡：白卡片 + 极轻阴影，不要纸纹边框 */
+html[data-visual-style='apple'] .style-card {
+  min-height: 168px !important;
+  padding: 10px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-radius: 16px !important;
+  background: #f5f5f7 !important;
+  box-shadow: none !important;
+  color: #1d1d1f !important;
+  gap: 10px !important;
+}
+
+html[data-visual-style='apple'] .style-card:hover {
+  transform: none !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  background: #f0f0f2 !important;
+  box-shadow: none !important;
+}
+
+html[data-visual-style='apple'] .style-card.active {
+  border-color: #0071e3 !important;
+  background: #ffffff !important;
+  box-shadow:
+    0 0 0 3px rgba(0, 113, 227, 0.18),
+    0 8px 24px rgba(0, 0, 0, 0.06) !important;
+}
+
+html[data-visual-style='apple'] .style-card .style-preview {
+  height: 96px !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+html[data-visual-style='apple'] .style-card .style-label {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .style-card .style-desc {
+  font-size: 11px !important;
+  color: #86868b !important;
+  line-height: 1.35 !important;
+}
+
+html[data-visual-style='apple'] .style-card .theme-check {
+  color: #0071e3 !important;
+}
+
+/* 风格预览小窗：Apple 窗口感 */
+html[data-visual-style='apple'] .style-preview--apple,
+html[data-visual-style='apple'] .style-preview {
+  background: linear-gradient(180deg, #fbfbfd, #f2f2f7) !important;
+}
+
+html[data-visual-style='apple'] .style-preview-bar {
+  top: 12px !important;
+  left: 12px !important;
+  right: 12px !important;
+  height: 12px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: rgba(0, 0, 0, 0.06) !important;
+  box-shadow: none !important;
+}
+
+html[data-visual-style='apple'] .style-preview-card {
+  left: 12px !important;
+  top: 32px !important;
+  width: 52% !important;
+  height: 44px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: #ffffff !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08) !important;
+}
+
+html[data-visual-style='apple'] .style-preview-btn {
+  right: 14px !important;
+  bottom: 14px !important;
+  width: 30% !important;
+  height: 20px !important;
+  border: 0 !important;
+  border-radius: 980px !important;
+  background: #0071e3 !important;
+  box-shadow: none !important;
+}
+
+html[data-visual-style='apple'] .setting-card,
+html[data-visual-style='apple'] .security-card,
+html[data-visual-style='apple'] .el-card {
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-radius: 16px !important;
+  background: #f5f5f7 !important;
+  box-shadow: none !important;
+}
+
+/* 首页：去掉和纸标题/重阴影 Bento，改成 Apple 白卡 + SF 无衬线 */
+html[data-visual-style='apple'] .home-page {
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .dashboard-header h1 {
+  font-family:
+    system-ui,
+    -apple-system,
+    'SF Pro Display',
+    'Segoe UI',
+    'PingFang SC',
+    'Helvetica Neue',
+    sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.03em !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .dashboard-header .brand-en {
+  color: #86868b !important;
+  letter-spacing: 0.04em !important;
+  text-transform: none !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+}
+
+html[data-visual-style='apple'] .dashboard-header .headline {
+  color: #1d1d1f !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.02em !important;
+}
+
+html[data-visual-style='apple'] .dashboard-header .subline {
+  color: #86868b !important;
+}
+
+html[data-visual-style='apple'] .bento-tile {
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.04) !important;
+  color: #1d1d1f !important;
+  transform: none !important;
+}
+
+html[data-visual-style='apple'] .bento-tile:hover {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  background: #ffffff !important;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    0 12px 28px rgba(0, 0, 0, 0.06) !important;
+  transform: none !important;
+}
+
+html[data-visual-style='apple'] .bento-tile:active {
+  transform: scale(0.99) !important;
+}
+
+html[data-visual-style='apple'] .bento-tile--accent {
+  border-color: rgba(0, 113, 227, 0.22) !important;
+  background:
+    linear-gradient(180deg, rgba(0, 113, 227, 0.08), rgba(0, 113, 227, 0.02)),
+    #ffffff !important;
+}
+
+html[data-visual-style='apple'] .bento-tile__label {
+  color: #86868b !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.01em !important;
+}
+
+html[data-visual-style='apple'] .bento-tile__value {
+  color: #1d1d1f !important;
+  font-family:
+    system-ui,
+    -apple-system,
+    'SF Pro Display',
+    'Segoe UI',
+    'PingFang SC',
+    sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.03em !important;
+}
+
+html[data-visual-style='apple'] .bento-tile__hint {
+  color: #86868b !important;
+}
+
+html[data-visual-style='apple'] .dashboard-card {
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-radius: 18px !important;
+  background: #ffffff !important;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 10px 28px rgba(0, 0, 0, 0.04) !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .dashboard-card .card-title h2 {
+  color: #1d1d1f !important;
+  font-family:
+    system-ui,
+    -apple-system,
+    'SF Pro Display',
+    'Segoe UI',
+    'PingFang SC',
+    sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+}
+
+html[data-visual-style='apple'] .dashboard-card .starter-kicker,
+html[data-visual-style='apple'] .dashboard-card .starter-desc,
+html[data-visual-style='apple'] .dashboard-card .update-text {
+  color: #86868b !important;
+}
+
+html[data-visual-style='apple'] .creation-textarea {
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 12px !important;
+  background: #f5f5f7 !important;
+  box-shadow: none !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .creation-textarea:focus {
+  border-color: rgba(0, 113, 227, 0.45) !important;
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.14) !important;
+}
+
+html[data-visual-style='apple'] .prompt-market-button {
+  border: 0 !important;
+  border-radius: 980px !important;
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: #1d1d1f !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+}
+
+html[data-visual-style='apple'] .prompt-market-button:hover {
+  background: rgba(0, 0, 0, 0.1) !important;
+}
+
+html[data-visual-style='apple'] :deep(.starter-submit.el-button),
+html[data-visual-style='apple'] .starter-submit.el-button {
+  border: 0 !important;
+  border-radius: 980px !important;
+  background: #0071e3 !important;
+  box-shadow: none !important;
+  color: #fff !important;
+  font-weight: 500 !important;
+}
+
+html[data-visual-style='apple'] .starter-submit.el-button:hover {
+  background: #0077ed !important;
+  transform: none !important;
+}
+
+html[data-visual-style='apple'] .starter-submit.el-button::before {
+  display: none !important;
+}
+
+html[data-visual-style='apple'] .market-tabs button {
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #86868b !important;
+}
+
+html[data-visual-style='apple'] .market-tabs button.active {
+  background: rgba(0, 113, 227, 0.1) !important;
+  color: #0071e3 !important;
+  font-weight: 500 !important;
+}
+
+html[data-visual-style='apple'] .compact-empty,
+html[data-visual-style='apple'] .chart-empty {
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  border-radius: 12px !important;
+  background: #f5f5f7 !important;
+  color: #86868b !important;
+}
+
+html[data-visual-style='apple'] .compact-empty strong {
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .compact-empty button {
+  border: 0 !important;
+  border-radius: 980px !important;
+  background: #0071e3 !important;
+  color: #fff !important;
+}
+
+html[data-visual-style='apple'] .status-grid div {
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-radius: 12px !important;
+  background: #f5f5f7 !important;
+}
+
+html[data-visual-style='apple'] .status-grid b {
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .status-grid span {
+  color: #86868b !important;
+}
+
+html[data-visual-style='apple'] .app-sidebar-footer {
+  color: #86868b !important;
+  font-size: 11px !important;
+  letter-spacing: -0.01em !important;
+}
+
+html[data-visual-style='apple'] .app-menu-icon {
+  color: inherit !important;
+  opacity: 0.88;
+}
+
+html[data-visual-style='apple'] .app-menu-item.active .app-menu-icon {
+  opacity: 1;
+}
+
+/* 书架 / 创作库：去掉和纸渐变与宋体，收成 Apple 白卡 */
+html[data-visual-style='apple'] .creation-library-page {
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .library-header h1 {
+  font-family:
+    system-ui,
+    -apple-system,
+    'SF Pro Display',
+    'Segoe UI',
+    'PingFang SC',
+    'Helvetica Neue',
+    sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.03em !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .library-header p,
+html[data-visual-style='apple'] .eyebrow {
+  color: #86868b !important;
+  font-weight: 400 !important;
+}
+
+html[data-visual-style='apple'] .library-section-nav button {
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .library-section-nav button:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .library-section-nav button.active {
+  background: rgba(0, 113, 227, 0.12) !important;
+  color: #0071e3 !important;
+  font-weight: 500 !important;
+}
+
+html[data-visual-style='apple'] .bookshelf-toolbar,
+html[data-visual-style='apple'] .shelf-card,
+html[data-visual-style='apple'] .preview-card,
+html[data-visual-style='apple'] .card-panel {
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.04) !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .book-card {
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-radius: 14px !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html[data-visual-style='apple'] .book-card:hover,
+html[data-visual-style='apple'] .book-card.selected {
+  border-color: rgba(0, 113, 227, 0.28) !important;
+  background: rgba(0, 113, 227, 0.04) !important;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.05),
+    0 10px 24px rgba(0, 0, 0, 0.04) !important;
+  transform: none !important;
+}
+
+html[data-visual-style='apple'] .book-card.checked {
+  border-color: rgba(0, 113, 227, 0.34) !important;
+  box-shadow: inset 3px 0 0 #0071e3 !important;
+}
+
+html[data-visual-style='apple'] .book-select {
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: #86868b !important;
+}
+
+html[data-visual-style='apple'] .soft-empty {
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  border-radius: 12px !important;
+  background: #f5f5f7 !important;
+  color: #86868b !important;
+}
+
+html[data-visual-style='apple'] .soft-empty strong {
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .soft-empty button,
+html[data-visual-style='apple'] .bookshelf .new-book-btn,
+html[data-visual-style='apple'] .bookshelf :deep(.new-book-btn) {
+  border: 0 !important;
+  border-radius: 980px !important;
+  background: #0071e3 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+/* 旧书本组件：去掉宣纸题签/楷体，保留卡片轮廓 */
+html[data-visual-style='apple'] .book {
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 16px !important;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 10px 28px rgba(0, 0, 0, 0.06) !important;
+}
+
+html[data-visual-style='apple'] .book .title-block {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+
+html[data-visual-style='apple'] .book .vertical-title,
+html[data-visual-style='apple'] .book .subtitle,
+html[data-visual-style='apple'] .book .info,
+html[data-visual-style='apple'] .book .info .type,
+html[data-visual-style='apple'] .book .info .stats {
+  font-family:
+    system-ui,
+    -apple-system,
+    'SF Pro Text',
+    'PingFang SC',
+    'Helvetica Neue',
+    sans-serif !important;
+  letter-spacing: -0.01em !important;
+}
+
+html[data-visual-style='apple'] .book .vertical-title {
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .book .context-menu {
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  backdrop-filter: blur(16px);
+}
+
+/* 创作台：只收壳层，正文保持可读纸面 */
+html[data-visual-style='apple'] .studio-shell .app-main,
+html[data-visual-style='apple'] .editor-container {
+  background: #f5f5f7 !important;
+}
+
+html[data-visual-style='apple'] .studio-shell .editor-left-panel,
+html[data-visual-style='apple'] .studio-shell .editor-right-panel,
+html[data-visual-style='apple'] .studio-shell .editor-panel,
+html[data-visual-style='apple'] .studio-shell .el-splitter-panel {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+  box-shadow: none !important;
+}
+
+html[data-visual-style='apple'] .catalog-chapter {
+  border-radius: 8px !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .catalog-chapter:hover,
+html[data-visual-style='apple'] .catalog-chapter:focus-visible {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .catalog-chapter.current {
+  background: rgba(0, 113, 227, 0.12) !important;
+  color: #0071e3 !important;
+}
+
+html[data-visual-style='apple'] .studio-shell .ProseMirror,
+html[data-visual-style='apple'] .studio-shell .tiptap,
+html[data-visual-style='apple'] .editor-content .tiptap {
+  background: #ffffff !important;
+  color: #1d1d1f !important;
+  border-radius: 12px !important;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.04) !important;
+  font-family:
+    'PingFang SC',
+    'SF Pro Text',
+    system-ui,
+    sans-serif !important;
+}
+
+/* —— Apple 暗色（配色主题 dark 正交叠加） —— */
+html[data-visual-style='apple'][data-color-scheme='dark'] body,
+html[data-visual-style='apple'][data-color-scheme='dark'] .home-page,
+html[data-visual-style='apple'][data-color-scheme='dark'] .creation-library-page,
+html[data-visual-style='apple'][data-color-scheme='dark'] .system-settings {
+  color: #f5f5f7 !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .app-shell,
+html[data-visual-style='apple'][data-color-scheme='dark'] .studio-shell .app-main,
+html[data-visual-style='apple'][data-color-scheme='dark'] .editor-container {
+  background: #1c1c1e !important;
+  color: #f5f5f7 !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .app-sidebar {
+  background: rgba(28, 28, 30, 0.88) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #f5f5f7 !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .app-menu-item,
+html[data-visual-style='apple'][data-color-scheme='dark'] .app-sidebar-toggle {
+  color: #f5f5f7 !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .app-menu-item:hover,
+html[data-visual-style='apple'][data-color-scheme='dark'] .app-sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #f5f5f7 !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .app-menu-item.active,
+html[data-visual-style='apple'][data-color-scheme='dark'] .app-submenu-item.active,
+html[data-visual-style='apple'][data-color-scheme='dark'] .settings-nav .nav-item.active,
+html[data-visual-style='apple'][data-color-scheme='dark'] .library-section-nav button.active,
+html[data-visual-style='apple'][data-color-scheme='dark'] .catalog-chapter.current,
+html[data-visual-style='apple'][data-color-scheme='dark'] .market-tabs button.active {
+  background: rgba(10, 132, 255, 0.22) !important;
+  color: #0a84ff !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .app-menu-item.active .app-menu-icon {
+  color: #0a84ff !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .dashboard-header h1,
+html[data-visual-style='apple'][data-color-scheme='dark'] .library-header h1,
+html[data-visual-style='apple'][data-color-scheme='dark'] .dashboard-header .headline,
+html[data-visual-style='apple'][data-color-scheme='dark'] .bento-tile__value,
+html[data-visual-style='apple'][data-color-scheme='dark'] .dashboard-card .card-title h2 {
+  color: #f5f5f7 !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .dashboard-header .brand-en,
+html[data-visual-style='apple'][data-color-scheme='dark'] .dashboard-header .subline,
+html[data-visual-style='apple'][data-color-scheme='dark'] .library-header p,
+html[data-visual-style='apple'][data-color-scheme='dark'] .eyebrow,
+html[data-visual-style='apple'][data-color-scheme='dark'] .bento-tile__label,
+html[data-visual-style='apple'][data-color-scheme='dark'] .bento-tile__hint,
+html[data-visual-style='apple'][data-color-scheme='dark'] .app-sidebar-footer {
+  color: #98989d !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .bento-tile,
+html[data-visual-style='apple'][data-color-scheme='dark'] .dashboard-card,
+html[data-visual-style='apple'][data-color-scheme='dark'] .bookshelf-toolbar,
+html[data-visual-style='apple'][data-color-scheme='dark'] .shelf-card,
+html[data-visual-style='apple'][data-color-scheme='dark'] .preview-card,
+html[data-visual-style='apple'][data-color-scheme='dark'] .card-panel,
+html[data-visual-style='apple'][data-color-scheme='dark'] .book-card,
+html[data-visual-style='apple'][data-color-scheme='dark'] .settings-body,
+html[data-visual-style='apple'][data-color-scheme='dark'] .setting-card,
+html[data-visual-style='apple'][data-color-scheme='dark'] .security-card,
+html[data-visual-style='apple'][data-color-scheme='dark'] .el-card {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: #2c2c2e !important;
+  box-shadow: none !important;
+  color: #f5f5f7 !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .bento-tile--accent {
+  border-color: rgba(10, 132, 255, 0.34) !important;
+  background:
+    linear-gradient(180deg, rgba(10, 132, 255, 0.16), rgba(10, 132, 255, 0.04)),
+    #2c2c2e !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .book-card:hover,
+html[data-visual-style='apple'][data-color-scheme='dark'] .book-card.selected {
+  border-color: rgba(10, 132, 255, 0.36) !important;
+  background: rgba(10, 132, 255, 0.1) !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .settings-nav {
+  background: #1c1c1e !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .settings-main {
+  background: #1c1c1e !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .settings-nav .nav-item,
+html[data-visual-style='apple'][data-color-scheme='dark'] .theme-row,
+html[data-visual-style='apple'][data-color-scheme='dark'] .style-card {
+  color: #f5f5f7 !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .theme-row,
+html[data-visual-style='apple'][data-color-scheme='dark'] .style-card {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: #2c2c2e !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .theme-row.active,
+html[data-visual-style='apple'][data-color-scheme='dark'] .style-card.active {
+  border-color: rgba(10, 132, 255, 0.4) !important;
+  background: rgba(10, 132, 255, 0.12) !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .theme-label,
+html[data-visual-style='apple'][data-color-scheme='dark'] .style-label,
+html[data-visual-style='apple'][data-color-scheme='dark'] .section-title {
+  color: #f5f5f7 !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .theme-row-hint,
+html[data-visual-style='apple'][data-color-scheme='dark'] .style-desc,
+html[data-visual-style='apple'][data-color-scheme='dark'] .section-hint {
+  color: #98989d !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .creation-textarea,
+html[data-visual-style='apple'][data-color-scheme='dark'] .compact-empty,
+html[data-visual-style='apple'][data-color-scheme='dark'] .soft-empty,
+html[data-visual-style='apple'][data-color-scheme='dark'] .chart-empty {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: #1c1c1e !important;
+  color: #98989d !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .creation-textarea {
+  color: #f5f5f7 !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .el-button--primary,
+html[data-visual-style='apple'][data-color-scheme='dark'] .starter-submit.el-button,
+html[data-visual-style='apple'][data-color-scheme='dark'] .soft-empty button {
+  background: #0a84ff !important;
+  color: #fff !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .studio-shell .editor-left-panel,
+html[data-visual-style='apple'][data-color-scheme='dark'] .studio-shell .editor-right-panel,
+html[data-visual-style='apple'][data-color-scheme='dark'] .studio-shell .editor-panel {
+  background: #2c2c2e !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #f5f5f7 !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .studio-shell .ProseMirror,
+html[data-visual-style='apple'][data-color-scheme='dark'] .studio-shell .tiptap,
+html[data-visual-style='apple'][data-color-scheme='dark'] .editor-content .tiptap {
+  background: #1c1c1e !important;
+  color: #f5f5f7 !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .book .title-block {
+  background: rgba(44, 44, 46, 0.96) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .book .vertical-title {
+  color: #f5f5f7 !important;
+}
+
+html[data-visual-style='apple'][data-color-scheme='dark'] .book .context-menu {
+  background: rgba(44, 44, 46, 0.96) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #f5f5f7 !important;
+}
+
+/* —— 粗犷野兽 —— */
+html[data-visual-style='brutal'] .app-shell {
+  background:
+    linear-gradient(90deg, rgba(17, 17, 17, 0.04) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(17, 17, 17, 0.04) 1px, transparent 1px),
+    #fff8e7 !important;
+  background-size:
+    24px 24px,
+    24px 24px,
+    auto !important;
+}
+
+html[data-visual-style='brutal'] .app-sidebar {
+  background: #fffdf5 !important;
+  border-right: 3px solid #111 !important;
+  box-shadow: 8px 0 0 #111 !important;
+}
+
+html[data-visual-style='brutal'] .app-menu-item {
+  border: 2px solid transparent !important;
+  border-radius: 4px !important;
+  font-weight: 700 !important;
+}
+
+html[data-visual-style='brutal'] .app-menu-item:hover {
+  border-color: #111 !important;
+  background: #fff !important;
+  box-shadow: 3px 3px 0 #111;
+  transform: translate(-1px, -1px);
+}
+
+html[data-visual-style='brutal'] .app-menu-item.active {
+  border-color: #111 !important;
+  background: #ffe566 !important;
+  color: #111 !important;
+  box-shadow: 4px 4px 0 #111 !important;
+}
+
+html[data-visual-style='brutal'] .el-button {
+  border: 3px solid #111 !important;
+  border-radius: 4px !important;
+  box-shadow: 4px 4px 0 #111 !important;
+  font-weight: 800 !important;
+}
+
+html[data-visual-style='brutal'] .el-button:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #111 !important;
+}
+
+html[data-visual-style='brutal'] .el-button:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #111 !important;
+}
+
+html[data-visual-style='brutal'] .el-button--primary {
+  background: #e11d48 !important;
+  border-color: #111 !important;
+  color: #fff !important;
+}
+
+html[data-visual-style='brutal'] .el-card,
+html[data-visual-style='brutal'] .setting-card,
+html[data-visual-style='brutal'] .theme-card,
+html[data-visual-style='brutal'] .style-card {
+  border: 3px solid #111 !important;
+  border-radius: 4px !important;
+  box-shadow: 6px 6px 0 #111 !important;
+  background: #fff !important;
+}
+
+html[data-visual-style='brutal'] .theme-card.active,
+html[data-visual-style='brutal'] .style-card.active {
+  background: #ffe566 !important;
+  box-shadow: 8px 8px 0 #111 !important;
+}
+
+/* 创作台正文区：野兽风格也保持可读，不把硬阴影灌进编辑器 */
+html[data-visual-style='brutal'] .studio-shell .ProseMirror,
+html[data-visual-style='brutal'] .studio-shell .editor-panel,
+html[data-visual-style='brutal'] .studio-shell .tiptap {
+  box-shadow: none !important;
+  border-width: 1px !important;
+  font-weight: 400 !important;
+  letter-spacing: normal !important;
+}
+
+/* —— 像素复古 —— */
+html[data-visual-style='pixel'] body {
+  font-family: var(--theme-font-ui);
+  image-rendering: pixelated;
+}
+
+html[data-visual-style='pixel'] .app-shell {
+  background:
+    linear-gradient(90deg, rgba(65, 166, 246, 0.08) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(65, 166, 246, 0.08) 1px, transparent 1px),
+    #1a1c2c !important;
+  background-size:
+    16px 16px,
+    16px 16px,
+    auto !important;
+  color: #f4f4f4 !important;
+}
+
+html[data-visual-style='pixel'] .app-sidebar {
+  background: #262b44 !important;
+  border-right: 2px solid #3e445c !important;
+  box-shadow: 4px 0 0 rgba(0, 0, 0, 0.45) !important;
+  color: #f4f4f4 !important;
+}
+
+html[data-visual-style='pixel'] .app-menu-item {
+  border-radius: 0 !important;
+  border: 2px solid transparent !important;
+  font-size: 10px !important;
+  line-height: 1.6 !important;
+  color: #c8cdd8 !important;
+}
+
+html[data-visual-style='pixel'] .app-menu-item:hover {
+  border-color: #41a6f6 !important;
+  background: #2f3654 !important;
+  color: #fff !important;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+}
+
+html[data-visual-style='pixel'] .app-menu-item.active {
+  border-color: #41a6f6 !important;
+  background: #334066 !important;
+  color: #7df9ff !important;
+  box-shadow: 3px 3px 0 #0b1020 !important;
+}
+
+html[data-visual-style='pixel'] .el-button {
+  border-radius: 0 !important;
+  border: 2px solid #41a6f6 !important;
+  box-shadow: 3px 3px 0 #0b1020 !important;
+  font-family: var(--theme-font-ui) !important;
+  font-size: 10px !important;
+  letter-spacing: 0 !important;
+  text-transform: uppercase;
+}
+
+html[data-visual-style='pixel'] .el-button--primary {
+  background: #41a6f6 !important;
+  color: #0b1020 !important;
+}
+
+html[data-visual-style='pixel'] .el-card,
+html[data-visual-style='pixel'] .setting-card,
+html[data-visual-style='pixel'] .theme-card,
+html[data-visual-style='pixel'] .style-card {
+  border-radius: 0 !important;
+  border: 2px solid #3e445c !important;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.45) !important;
+  background: #262b44 !important;
+  color: #f4f4f4 !important;
+}
+
+html[data-visual-style='pixel'] .theme-card.active,
+html[data-visual-style='pixel'] .style-card.active {
+  border-color: #41a6f6 !important;
+  box-shadow: 4px 4px 0 #0b1020 !important;
+}
+
+/* 像素风格下设置页文字可读 */
+html[data-visual-style='pixel'] .system-settings,
+html[data-visual-style='pixel'] .section-title,
+html[data-visual-style='pixel'] .theme-label,
+html[data-visual-style='pixel'] .style-label {
+  color: #f4f4f4;
+}
+
+html[data-visual-style='pixel'] .settings-nav {
+  background: #1e2236 !important;
+  border-right: 2px solid #3e445c !important;
+}
+
+html[data-visual-style='pixel'] .settings-main {
+  background: #1a1c2c !important;
+}
+
+/* 创作台正文：像素风格也用可读字体，避免 1 万字点阵眼瞎 */
+html[data-visual-style='pixel'] .studio-shell .ProseMirror,
+html[data-visual-style='pixel'] .studio-shell .editor-panel,
+html[data-visual-style='pixel'] .studio-shell .tiptap {
+  font-family:
+    'PingFang SC',
+    'Microsoft YaHei',
+    Inter,
+    system-ui,
+    sans-serif !important;
+  font-size: 16px !important;
+  line-height: 1.75 !important;
+  letter-spacing: normal !important;
+  image-rendering: auto !important;
+  box-shadow: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-visual-style] * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

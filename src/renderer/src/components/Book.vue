@@ -246,19 +246,26 @@ onBeforeUnmount(() => {
   position: relative;
   width: 220px;
   height: 310px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.15);
+  border-radius: var(--theme-card-radius, 8px);
+  box-shadow: var(--theme-shadow-card, 0 2px 12px 0 rgba(0, 0, 0, 0.15));
   overflow: hidden; // 有封面图片时隐藏溢出
   display: flex;
   flex-direction: column;
   align-items: stretch;
   margin: 10px;
-  border: 2px solid #e5e2d7;
+  border: var(--theme-border-width, 2px) var(--theme-border-style, solid)
+    var(--border-color, #e5e2d7);
   box-sizing: border-box;
-  transition: transform 0.3s ease;
+  transition:
+    transform var(--theme-transition-duration, 0.3s) ease,
+    box-shadow var(--theme-transition-duration, 0.3s) ease;
   cursor: pointer;
   &:hover {
-    transform: scale(1.02);
+    transform: var(--theme-button-transform-hover, scale(1.02));
+    box-shadow: var(--theme-shadow-raised, 0 8px 24px rgba(0, 0, 0, 0.16));
+  }
+  &:active {
+    transform: var(--theme-button-transform-active, scale(1));
   }
 
   // 有封面图片时的样式
@@ -266,7 +273,7 @@ onBeforeUnmount(() => {
     overflow: hidden;
     .cover-bg {
       padding: 0; // 移除内边距，让图片占满整个区域
-      border-radius: 8px;
+      border-radius: var(--theme-card-radius, 8px);
     }
   }
 
@@ -276,9 +283,10 @@ onBeforeUnmount(() => {
     top: 0;
     width: 20px;
     height: 100%;
-    border-top-left-radius: 8px;
-    border-bottom-left-radius: 8px;
-    border-right: 2px solid #e5e2d7;
+    border-top-left-radius: var(--theme-card-radius, 8px);
+    border-bottom-left-radius: var(--theme-card-radius, 8px);
+    border-right: var(--theme-border-width, 2px) var(--theme-border-style, solid)
+      var(--border-color, #e5e2d7);
     z-index: 2;
     display: flex;
     flex-direction: column;
@@ -287,14 +295,14 @@ onBeforeUnmount(() => {
     .stitch {
       width: 20px;
       height: 2px;
-      background: #e5e2d7;
+      background: var(--border-color, #e5e2d7);
     }
   }
 
   .cover-bg {
     position: relative;
     flex: 1;
-    border-radius: 8px;
+    border-radius: var(--theme-card-radius, 8px);
     box-sizing: border-box;
     padding: 0 18px 0 32px;
     display: flex;

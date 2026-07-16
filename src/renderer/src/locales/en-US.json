@@ -444,7 +444,11 @@
       "booksDirNotDirectory": "The selected path is not a directory, please choose a folder",
       "booksDirNotReadable": "Directory is not readable, please check system permissions",
       "booksDirNotWritable": "Directory is not writable, please check system permissions",
-      "saveDirFailed": "Failed to save books directory, please try again"
+      "saveDirFailed": "Failed to save books directory, please try again",
+      "colorThemeHint": "Color themes change backgrounds and text colors. Combine freely with visual styles.",
+      "visualStyleTitle": "Visual Style",
+      "visualStyleHint": "Controls radius, shadows, borders, and overall vibe. The writing canvas stays readable under brutal/pixel shells.",
+      "visualStyleSwitchSuccess": "Switched to {styleName} style"
     }
   },
   "auth": {

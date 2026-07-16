@@ -163,35 +163,87 @@
               <h2 class="section-title">
                 {{ t('home.systemSettings.tabs.theme') }}
               </h2>
-              <div class="theme-board">
+              <p class="section-hint">
+                {{ t('home.systemSettings.colorThemeHint') }}
+              </p>
+              <div
+                class="theme-list"
+                role="listbox"
+                :aria-label="t('home.systemSettings.tabs.theme')"
+                data-testid="theme-color-list"
+              >
                 <button
                   v-for="theme in availableThemes"
                   :key="theme.key"
-                  class="theme-card"
+                  class="theme-row"
                   :class="{ active: themeStore.currentTheme === theme.key }"
                   type="button"
-                  :data-theme-option="theme.key"
+                  role="option"
+                  :aria-selected="themeStore.currentTheme === theme.key"
                   :aria-label="`切换到${theme.name}`"
+                  data-testid="theme-color-option"
+                  :data-theme-option="theme.key"
                   @click="handleThemeChange(theme.key)"
                 >
                   <span
-                    class="theme-preview"
+                    class="theme-swatch"
                     :style="getPreviewStyle(theme.key)"
                     aria-hidden="true"
                   >
-                    <i class="preview-paper" />
-                    <i class="preview-line line-one" />
-                    <i class="preview-line line-two" />
-                    <i class="preview-dot dot-one" />
-                    <i class="preview-dot dot-two" />
+                    <i class="swatch-bg" />
+                    <i class="swatch-paper" />
+                    <i class="swatch-accent" />
                   </span>
-                  <span class="theme-label">{{ theme.name }}</span>
-                  <span
-                    v-if="theme.description"
-                    class="theme-desc"
-                  >{{ theme.description }}</span>
+                  <span class="theme-row-meta">
+                    <span class="theme-label">{{ theme.name }}</span>
+                    <span class="theme-row-hint">{{ themeRowHint(theme.key) }}</span>
+                  </span>
                   <Check
                     v-if="themeStore.currentTheme === theme.key"
+                    class="theme-check"
+                    :size="18"
+                    :stroke-width="2.2"
+                  />
+                </button>
+              </div>
+
+              <h2 class="section-title section-title-spaced">
+                {{ t('home.systemSettings.visualStyleTitle') }}
+              </h2>
+              <p class="section-hint">
+                {{ t('home.systemSettings.visualStyleHint') }}
+              </p>
+              <div
+                class="style-board"
+                data-testid="visual-style-board"
+              >
+                <button
+                  v-for="style in availableVisualStyles"
+                  :key="style.key"
+                  class="style-card"
+                  :class="{ active: themeStore.currentVisualStyle === style.key }"
+                  type="button"
+                  :aria-label="`切换到${style.name}风格`"
+                  data-testid="visual-style-option"
+                  :data-visual-style-option="style.key"
+                  @click="handleVisualStyleChange(style.key)"
+                >
+                  <span
+                    class="style-preview"
+                    :class="`style-preview--${style.key}`"
+                    :style="getStylePreviewStyle(style.key)"
+                    aria-hidden="true"
+                  >
+                    <i class="style-preview-bar" />
+                    <i class="style-preview-card" />
+                    <i class="style-preview-btn" />
+                  </span>
+                  <span class="style-meta">
+                    <span class="style-label">{{ style.name }}</span>
+                    <span class="style-desc">{{ style.description }}</span>
+                  </span>
+                  <Check
+                    v-if="themeStore.currentVisualStyle === style.key"
                     class="theme-check"
                     :size="18"
                     :stroke-width="2"
@@ -462,7 +514,7 @@
                 <p class="brand-name-en">
                   Dreamloom Studio · DLS
                 </p>
-                <p>版本 {{ currentVersion }}</p>
+                <p>Version {{ currentVersion }}</p>
               </div>
             </div>
           </div>
@@ -637,6 +689,7 @@ const shortcutItems = [
 ]
 
 const availableThemes = computed(() => themeStore.getAvailableThemes())
+const availableVisualStyles = computed(() => themeStore.getAvailableVisualStyles())
 
 watch(
   () => route.path,
@@ -887,24 +940,67 @@ function formatSize(size) {
 }
 
 function getPreviewStyle(themeKey) {
-  const meta = themeStore.getAvailableThemes().find((item) => item.key === themeKey)
   const config = themeStore.getThemeConfig(themeKey)
   return {
-    '--preview-bg': meta?.previewPaper || config.bgPrimary,
-    '--preview-paper': meta?.preview || config.bgSoft,
-    '--preview-line': meta?.previewBorder || config.borderColor,
-    '--preview-ink': meta?.previewInk || config.textBase,
-    '--preview-primary': meta?.previewPrimary || config.primaryColor,
-    '--preview-accent': meta?.previewAccent || config.accentColor
+    '--preview-bg': config.bgPrimary,
+    '--preview-paper': config.bgSoft,
+    '--preview-line': config.borderColor,
+    '--preview-ink': config.textBase,
+    '--preview-primary': config.primaryColor,
+    '--preview-accent': config.accentColor
+  }
+}
+
+function themeRowHint(themeKey) {
+  const theme = themeStore.getAvailableThemes().find((item) => item.key === themeKey)
+  if (theme?.description) return theme.description
+  const hints = {
+    default: '跟随系统',
+    eyecare: '低饱和护眼',
+    light: '明亮干净',
+    parchment: '书卷纸感',
+    dark: '低光护眼',
+    yellow: '暖色护眼',
+    blue: '冷静专注',
+    green: '柔和自然',
+    purple: '沉浸氛围'
+  }
+  return hints[themeKey] || '配色主题'
+}
+
+function getStylePreviewStyle(styleKey) {
+  const meta = themeStore.getVisualStyleMeta(styleKey)
+  const preview = meta?.preview || {}
+  return {
+    '--style-bg': preview.bg || '#F5F3EF',
+    '--style-surface': preview.surface || '#FFFFFF',
+    '--style-ink': preview.ink || '#111111',
+    '--style-accent': preview.accent || '#52634B',
+    '--style-border': preview.border || '#D9D2C4'
   }
 }
 
 async function handleThemeChange(theme) {
   try {
     await themeStore.setTheme(theme)
-    ElMessage.success(`已切换到${themeStore.getThemeName(theme)}`)
+    ElMessage.success(
+      t('home.theme.switchSuccess', { themeName: themeStore.getThemeName(theme) })
+    )
   } catch (error) {
     showSettingsError(error, '保存主题失败')
+  }
+}
+
+async function handleVisualStyleChange(style) {
+  try {
+    await themeStore.setVisualStyle(style)
+    ElMessage.success(
+      t('home.systemSettings.visualStyleSwitchSuccess', {
+        styleName: themeStore.getVisualStyleName(style)
+      })
+    )
+  } catch (error) {
+    showSettingsError(error, '保存视觉风格失败')
   }
 }
 </script>
@@ -1125,24 +1221,141 @@ async function handleThemeChange(theme) {
   }
 }
 
-.theme-board {
+.theme-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(156px, 1fr));
+  gap: 8px;
+}
+
+.theme-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border, var(--border-color));
+  border-radius: var(--theme-control-radius, 10px);
+  background: var(--theme-surface-background-strong, var(--bg-soft));
+  color: var(--color-text, var(--text-base));
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition:
+    border-color var(--theme-transition-duration, 180ms) ease,
+    background-color var(--theme-transition-duration, 180ms) ease,
+    box-shadow var(--theme-transition-duration, 180ms) ease,
+    transform var(--theme-transition-duration, 180ms) ease;
+
+  &:hover {
+    border-color: var(--color-border-strong, var(--border-color));
+    transform: var(--theme-button-transform-hover, translateY(-1px));
+  }
+
+  &:active {
+    transform: var(--theme-button-transform-active, translateY(0));
+  }
+
+  &.active {
+    border-color: var(--color-primary, var(--primary-color)) !important;
+    box-shadow: inset 0 0 0 1px
+      color-mix(in srgb, var(--color-primary, var(--primary-color)) 36%, transparent);
+  }
+
+  .theme-check {
+    color: var(--color-primary, var(--primary-color));
+    justify-self: end;
+  }
+}
+
+.theme-swatch {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--preview-line) 70%, transparent);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.theme-swatch .swatch-bg,
+.theme-swatch .swatch-paper,
+.theme-swatch .swatch-accent {
+  position: absolute;
+  display: block;
+}
+
+.theme-swatch .swatch-bg {
+  inset: 0;
+  background: var(--preview-bg);
+}
+
+.theme-swatch .swatch-paper {
+  left: 7px;
+  top: 8px;
+  width: 18px;
+  height: 24px;
+  border-radius: 4px;
+  background: var(--preview-paper);
+  border: 1px solid color-mix(in srgb, var(--preview-line) 80%, transparent);
+}
+
+.theme-swatch .swatch-accent {
+  right: 7px;
+  bottom: 7px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--preview-primary);
+}
+
+.theme-row-meta {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.theme-label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.theme-row-hint {
+  color: var(--text-secondary, #6b655c);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.section-hint {
+  margin: -4px 0 16px;
+  color: var(--text-secondary, #6b655c);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.section-title-spaced {
+  margin-top: 32px;
+}
+
+.style-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
 }
 
-.theme-card {
+.style-card {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 12px;
-  min-height: 154px;
+  min-height: 168px;
   padding: 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border, var(--border-color));
   border-radius: var(--theme-card-radius, 8px);
-  background: var(--theme-surface-background-strong);
-  color: var(--color-text);
+  background: var(--theme-surface-background-strong, var(--bg-soft));
+  color: var(--color-text, var(--text-base));
   cursor: pointer;
   font: inherit;
   text-align: left;
@@ -1153,111 +1366,112 @@ async function handleThemeChange(theme) {
     transform 0.22s ease;
 
   &:hover {
-    border-color: var(--color-border-strong);
+    border-color: var(--color-border-strong, var(--border-color));
     transform: translateY(-1px);
   }
 
   &.active {
-    border-color: var(--color-primary) !important;
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 42%, transparent);
-    transition-property: background-color, box-shadow, transform;
+    border-color: var(--color-primary, var(--primary-color)) !important;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary, var(--primary-color)) 42%, transparent);
+  }
+}
+
+.style-preview {
+  position: relative;
+  width: 100%;
+  height: 88px;
+  overflow: hidden;
+  border: 1px solid var(--style-border);
+  border-radius: var(--theme-control-radius, 8px);
+  background: var(--style-bg);
+}
+
+.style-preview-bar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  height: 10px;
+  border-radius: 4px;
+  background: var(--style-surface);
+  border: 1px solid var(--style-border);
+  box-shadow: none;
+}
+
+.style-preview-card {
+  position: absolute;
+  left: 10px;
+  top: 28px;
+  width: 48%;
+  height: 46px;
+  border-radius: 6px;
+  background: var(--style-surface);
+  border: 1px solid var(--style-border);
+}
+
+.style-preview-btn {
+  position: absolute;
+  right: 12px;
+  bottom: 14px;
+  width: 34%;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--style-accent);
+  border: 1px solid var(--style-border);
+}
+
+.style-preview--apple {
+  .style-preview-bar,
+  .style-preview-card {
+    border: 0;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
   }
 
-  .theme-preview {
-    position: relative;
-    width: 100%;
-    height: 92px;
-    overflow: hidden;
-    border: 1px solid var(--preview-line);
-    border-radius: var(--theme-control-radius, 8px);
-    background:
-      linear-gradient(
-        90deg,
-        color-mix(in srgb, var(--preview-line) 24%, transparent) 1px,
-        transparent 1px
-      ),
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--preview-line) 16%, transparent) 1px,
-        transparent 1px
-      ),
-      var(--preview-bg);
-    background-size:
-      22px 22px,
-      22px 22px,
-      auto;
+  .style-preview-btn {
+    border: 0;
+    border-radius: 980px;
   }
+}
 
-  .preview-paper {
-    position: absolute;
-    inset: 13px 12px;
-    border: 1px solid var(--preview-line);
-    border-radius: var(--theme-control-radius, 8px);
-    background: var(--preview-paper);
-  }
-
-  .preview-line,
-  .preview-dot {
-    position: absolute;
-    z-index: 1;
-    display: block;
-    background: var(--preview-ink);
-  }
-
-  .preview-line {
-    left: 28px;
-    height: 2px;
+.style-preview--brutal {
+  .style-preview-bar,
+  .style-preview-card,
+  .style-preview-btn {
+    border: 2px solid #111;
     border-radius: 2px;
+    box-shadow: 3px 3px 0 #111;
   }
+}
 
-  .line-one {
-    right: 42px;
-    top: 36px;
-  }
+.style-preview--pixel {
+  image-rendering: pixelated;
 
-  .line-two {
-    right: 58px;
-    top: 54px;
-    opacity: 0.52;
+  .style-preview-bar,
+  .style-preview-card,
+  .style-preview-btn {
+    border: 2px solid var(--style-border);
+    border-radius: 0;
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.45);
   }
+}
 
-  .preview-dot {
-    width: 16px;
-    height: 16px;
-    border-radius: 5px;
-  }
+.style-meta {
+  display: grid;
+  gap: 4px;
+  padding-right: 22px;
+}
 
-  .dot-one {
-    right: 26px;
-    bottom: 24px;
-    background: var(--preview-primary);
-  }
+.style-label {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+}
 
-  .dot-two {
-    right: 48px;
-    bottom: 24px;
-    background: var(--preview-accent);
-  }
-
-  .theme-label {
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.2;
-  }
-
-  .theme-desc {
-    font-size: 12px;
-    line-height: 1.35;
-    color: var(--text-secondary, var(--color-text));
-    opacity: 0.86;
-  }
-
-  .theme-check {
-    position: absolute;
-    right: 12px;
-    bottom: 12px;
-    color: var(--color-primary, var(--el-color-primary));
-  }
+.style-desc {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary, #6b655c);
 }
 
 .security-card {

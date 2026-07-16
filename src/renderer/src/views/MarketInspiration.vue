@@ -1980,11 +1980,25 @@ button {
   justify-content: center;
   gap: 8px;
   min-width: 128px;
-  border: 1px solid rgba(111, 122, 104, 0.46);
+  border: var(--theme-border-width, 1px) var(--theme-border-style, solid)
+    rgba(111, 122, 104, 0.46);
+  border-radius: var(--theme-control-radius, 8px);
   background: var(--wabi-moss);
   color: #fbfaf6;
+  box-shadow: var(--theme-shadow-hard, none);
   cursor: pointer;
-  font-weight: 700;
+  font-weight: var(--theme-font-weight-strong, 700);
+  transition:
+    transform var(--theme-transition-duration, 180ms) ease,
+    box-shadow var(--theme-transition-duration, 180ms) ease;
+}
+
+.dark-button:hover {
+  transform: var(--theme-button-transform-hover, translateY(-1px));
+}
+
+.dark-button:active {
+  transform: var(--theme-button-transform-active, translateY(0));
 }
 
 .spin {
@@ -2000,15 +2014,11 @@ button {
 .error-banner {
   margin-bottom: 12px;
   padding: 10px 14px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(138, 115, 93, 0.1);
-  color: var(--wabi-earth);
-}
-
-.error-banner {
+  border: var(--theme-border-width, 1px) var(--theme-border-style, solid) var(--line);
+  border-radius: var(--theme-control-radius, 8px);
   background: rgba(154, 96, 74, 0.11);
   color: var(--wabi-rust);
+  box-shadow: var(--theme-shadow-card, none);
 }
 
 .result-banner {
@@ -2018,10 +2028,11 @@ button {
   gap: 14px;
   margin-bottom: 12px;
   padding: 12px 14px;
-  border: 1px solid rgba(111, 122, 104, 0.22);
-  border-radius: 10px;
+  border: var(--theme-border-width, 1px) var(--theme-border-style, solid)
+    rgba(111, 122, 104, 0.22);
+  border-radius: var(--theme-card-radius, 10px);
   background: rgba(251, 250, 246, 0.82);
-  box-shadow: var(--shadow);
+  box-shadow: var(--theme-shadow-card, var(--shadow));
 }
 
 .result-banner strong {
@@ -2039,12 +2050,14 @@ button {
 .result-banner button {
   flex: 0 0 auto;
   min-height: 36px;
-  border: 1px solid rgba(111, 122, 104, 0.34);
-  border-radius: 8px;
+  border: var(--theme-border-width, 1px) var(--theme-border-style, solid)
+    rgba(111, 122, 104, 0.34);
+  border-radius: var(--theme-control-radius, 8px);
   background: var(--wabi-moss);
   color: #fbfaf6;
   cursor: pointer;
   padding: 7px 12px;
+  box-shadow: var(--theme-shadow-hard, none);
 }
 
 .channel-toggle,

@@ -444,7 +444,11 @@
       "booksDirNotDirectory": "所选路径不是文件夹，请重新选择目录",
       "booksDirNotReadable": "目录不可读，请检查系统权限",
       "booksDirNotWritable": "目录不可写，请检查系统权限",
-      "saveDirFailed": "保存书籍目录失败，请重试"
+      "saveDirFailed": "保存书籍目录失败，请重试",
+      "colorThemeHint": "配色影响背景与文字颜色，可与视觉风格自由组合。",
+      "visualStyleTitle": "视觉风格",
+      "visualStyleHint": "控制圆角、阴影、边框与整体气质。创作台正文会保持可读，不会被野兽/像素壳层干扰。",
+      "visualStyleSwitchSuccess": "已切换到{styleName}风格"
     }
   },
   "auth": {

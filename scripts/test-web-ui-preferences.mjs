@@ -86,4 +86,19 @@ assert.match(localeSource, /getStoreValue\('config\.locale', ''\)/)
 assert.match(localeSource, /lowered\.startsWith\('zh'\)/)
 assert.match(localeSource, /lowered\.startsWith\('en'\)/)
 
+
+const visualStyleSource = fs.readFileSync(
+  'src/renderer/src/service/visualStyleService.js',
+  'utf8'
+)
+assert.match(visualStyleSource, /config\.visualStyle/)
+assert.match(visualStyleSource, /apple/)
+assert.match(visualStyleSource, /brutal/)
+assert.match(visualStyleSource, /pixel/)
+
+const themeStoreSource = fs.readFileSync('src/renderer/src/stores/theme.js', 'utf8')
+assert.match(themeStoreSource, /setVisualStyle/)
+assert.match(themeStoreSource, /VISUAL_STYLE_STORAGE_KEY/)
+assert.match(themeStoreSource, /currentVisualStyle/)
+
 console.log('Web 界面偏好设置测试通过')

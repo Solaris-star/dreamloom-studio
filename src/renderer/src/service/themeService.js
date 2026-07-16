@@ -440,6 +440,11 @@ function applyPalette(root, palette, themeKey) {
 
   root.dataset.theme = themeKey
   root.dataset.themeMode = palette.isDark ? 'dark' : 'light'
+  root.dataset.colorScheme = palette.isDark ? 'dark' : 'light'
+  if (typeof root.setAttribute === 'function') {
+    root.setAttribute('data-theme', themeKey)
+    root.setAttribute('data-color-scheme', palette.isDark ? 'dark' : 'light')
+  }
   set('color-scheme', palette.isDark ? 'dark' : 'light')
   if ('colorScheme' in root.style) {
     root.style.colorScheme = palette.isDark ? 'dark' : 'light'

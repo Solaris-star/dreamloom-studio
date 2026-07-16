@@ -20,19 +20,52 @@
       :aria-expanded="collapseAriaExpanded"
     >
       <div class="sidebar-content-wrapper">
-        <button
-          v-motion-feedback
-          class="app-logo"
-          type="button"
-          aria-label="首页"
-          title="首页"
-          @click="router.push('/dashboard')"
-        >
-          <img
-            :src="brandLogoUrl"
-            alt="织梦工坊"
+        <!-- Finder/Notes 布局：logo 与侧栏开关同排 -->
+        <div class="sidebar-header">
+          <button
+            v-motion-feedback
+            class="app-logo"
+            type="button"
+            aria-label="首页"
+            title="首页"
+            @click="router.push('/dashboard')"
           >
-        </button>
+            <img
+              :src="brandLogoUrl"
+              alt="织梦工坊"
+            >
+          </button>
+          <el-tooltip
+            :content="collapseToggleText"
+            placement="right"
+            :show-after="200"
+            :disabled="isMobileViewport"
+            :offset="12"
+            :show-arrow="false"
+            popper-class="app-nav-tooltip"
+          >
+            <button
+              v-motion-feedback
+              class="app-sidebar-toggle"
+              type="button"
+              data-testid="sidebar-collapse-toggle"
+              :aria-label="collapseToggleText"
+              aria-controls="app-main-nav"
+              :title="collapseToggleText"
+              @click="toggleSidebarCollapse"
+            >
+              <span
+                class="app-menu-icon"
+                aria-hidden="true"
+              >
+                <component
+                  :is="sidebarCollapsed ? PanelLeftOpen : PanelLeftClose"
+                  v-bind="toggleIconProps"
+                />
+              </span>
+            </button>
+          </el-tooltip>
+        </div>
 
         <nav
           id="app-main-nav"
@@ -101,39 +134,6 @@
             </div>
           </div>
         </nav>
-
-        <div class="sidebar-collapse-control">
-          <el-tooltip
-            :content="collapseToggleText"
-            placement="right"
-            :show-after="200"
-            :disabled="isMobileViewport"
-            :offset="12"
-            :show-arrow="false"
-            popper-class="app-nav-tooltip"
-          >
-            <button
-              v-motion-feedback
-              class="app-sidebar-toggle"
-              type="button"
-              data-testid="sidebar-collapse-toggle"
-              :aria-label="collapseToggleText"
-              aria-controls="app-main-nav"
-              :title="collapseToggleText"
-              @click="toggleSidebarCollapse"
-            >
-              <span
-                class="app-menu-icon"
-                aria-hidden="true"
-              >
-                <component
-                  :is="sidebarCollapsed ? PanelLeftOpen : PanelLeftClose"
-                  v-bind="toggleIconProps"
-                />
-              </span>
-            </button>
-          </el-tooltip>
-        </div>
 
         <div
           v-if="!sidebarCollapsed"
@@ -815,6 +815,47 @@ function isEditorRouteElement(el) {
   }
 }
 
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 10px 12px;
+}
+
+.sidebar-header .app-logo {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sidebar-header .app-sidebar-toggle {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--theme-control-radius, 10px);
+  background: transparent;
+  color: var(--wabi-ink-soft, #6b655c);
+  cursor: pointer;
+}
+
+.sidebar-header .app-sidebar-toggle:hover {
+  border-color: rgba(111, 122, 104, 0.22);
+  background: rgba(251, 250, 246, 0.72);
+  color: var(--wabi-moss-dark, #424f3c);
+}
+
+/* 侧栏开关已上移到 logo 旁，底部控制隐藏 */
+.sidebar-collapse-control {
+  display: none;
+}
+
 .sidebar-collapse-control {
   display: flex;
   justify-content: center;
@@ -918,6 +959,24 @@ function isEditorRouteElement(el) {
 }
 
 .app-sidebar.collapsed {
+  .sidebar-header {
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 4px 12px;
+  }
+
+  .sidebar-header .app-logo {
+    width: 36px;
+    max-width: 36px;
+    justify-content: center;
+  }
+
+  .sidebar-header .app-sidebar-toggle {
+    width: 32px;
+    height: 32px;
+  }
+
   .sidebar-content-wrapper {
     padding: 14px 4px;
   }
@@ -990,6 +1049,7 @@ function isEditorRouteElement(el) {
   }
 
   .app-logo,
+  .sidebar-header,
   .sidebar-collapse-control,
   .app-sidebar-footer,
   .sidebar-resizer {
