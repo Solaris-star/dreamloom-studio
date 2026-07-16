@@ -72,10 +72,10 @@ export const visualStyleConfigs = {
       cardRadius: '18px',
       controlRadius: '12px',
       pillRadius: '980px',
-      borderWidth: '0px',
+      borderWidth: '1px',
       borderStyle: 'solid',
-      shadowCard: 'rgba(0, 0, 0, 0.12) 0px 4px 24px 0px',
-      shadowRaised: 'rgba(0, 0, 0, 0.18) 3px 8px 32px 0px',
+      shadowCard: '0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.04)',
+      shadowRaised: '0 2px 8px rgba(0, 0, 0, 0.06), 0 12px 28px rgba(0, 0, 0, 0.06)',
       shadowHard: 'none',
       shadowInset: 'none',
       fontUi:

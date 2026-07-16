@@ -434,6 +434,232 @@ html[data-visual-style='apple'] .el-card {
   box-shadow: none !important;
 }
 
+/* 首页：去掉和纸标题/重阴影 Bento，改成 Apple 白卡 + SF 无衬线 */
+html[data-visual-style='apple'] .home-page {
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .dashboard-header h1 {
+  font-family:
+    system-ui,
+    -apple-system,
+    'SF Pro Display',
+    'Segoe UI',
+    'PingFang SC',
+    'Helvetica Neue',
+    sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.03em !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .dashboard-header .brand-en {
+  color: #86868b !important;
+  letter-spacing: 0.04em !important;
+  text-transform: none !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+}
+
+html[data-visual-style='apple'] .dashboard-header .headline {
+  color: #1d1d1f !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.02em !important;
+}
+
+html[data-visual-style='apple'] .dashboard-header .subline {
+  color: #86868b !important;
+}
+
+html[data-visual-style='apple'] .bento-tile {
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.04) !important;
+  color: #1d1d1f !important;
+  transform: none !important;
+}
+
+html[data-visual-style='apple'] .bento-tile:hover {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  background: #ffffff !important;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    0 12px 28px rgba(0, 0, 0, 0.06) !important;
+  transform: none !important;
+}
+
+html[data-visual-style='apple'] .bento-tile:active {
+  transform: scale(0.99) !important;
+}
+
+html[data-visual-style='apple'] .bento-tile--accent {
+  border-color: rgba(0, 113, 227, 0.22) !important;
+  background:
+    linear-gradient(180deg, rgba(0, 113, 227, 0.08), rgba(0, 113, 227, 0.02)),
+    #ffffff !important;
+}
+
+html[data-visual-style='apple'] .bento-tile__label {
+  color: #86868b !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.01em !important;
+}
+
+html[data-visual-style='apple'] .bento-tile__value {
+  color: #1d1d1f !important;
+  font-family:
+    system-ui,
+    -apple-system,
+    'SF Pro Display',
+    'Segoe UI',
+    'PingFang SC',
+    sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.03em !important;
+}
+
+html[data-visual-style='apple'] .bento-tile__hint {
+  color: #86868b !important;
+}
+
+html[data-visual-style='apple'] .dashboard-card {
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-radius: 18px !important;
+  background: #ffffff !important;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 10px 28px rgba(0, 0, 0, 0.04) !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .dashboard-card .card-title h2 {
+  color: #1d1d1f !important;
+  font-family:
+    system-ui,
+    -apple-system,
+    'SF Pro Display',
+    'Segoe UI',
+    'PingFang SC',
+    sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+}
+
+html[data-visual-style='apple'] .dashboard-card .starter-kicker,
+html[data-visual-style='apple'] .dashboard-card .starter-desc,
+html[data-visual-style='apple'] .dashboard-card .update-text {
+  color: #86868b !important;
+}
+
+html[data-visual-style='apple'] .creation-textarea {
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 12px !important;
+  background: #f5f5f7 !important;
+  box-shadow: none !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .creation-textarea:focus {
+  border-color: rgba(0, 113, 227, 0.45) !important;
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.14) !important;
+}
+
+html[data-visual-style='apple'] .prompt-market-button {
+  border: 0 !important;
+  border-radius: 980px !important;
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: #1d1d1f !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+}
+
+html[data-visual-style='apple'] .prompt-market-button:hover {
+  background: rgba(0, 0, 0, 0.1) !important;
+}
+
+html[data-visual-style='apple'] :deep(.starter-submit.el-button),
+html[data-visual-style='apple'] .starter-submit.el-button {
+  border: 0 !important;
+  border-radius: 980px !important;
+  background: #0071e3 !important;
+  box-shadow: none !important;
+  color: #fff !important;
+  font-weight: 500 !important;
+}
+
+html[data-visual-style='apple'] .starter-submit.el-button:hover {
+  background: #0077ed !important;
+  transform: none !important;
+}
+
+html[data-visual-style='apple'] .starter-submit.el-button::before {
+  display: none !important;
+}
+
+html[data-visual-style='apple'] .market-tabs button {
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #86868b !important;
+}
+
+html[data-visual-style='apple'] .market-tabs button.active {
+  background: rgba(0, 113, 227, 0.1) !important;
+  color: #0071e3 !important;
+  font-weight: 500 !important;
+}
+
+html[data-visual-style='apple'] .compact-empty,
+html[data-visual-style='apple'] .chart-empty {
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  border-radius: 12px !important;
+  background: #f5f5f7 !important;
+  color: #86868b !important;
+}
+
+html[data-visual-style='apple'] .compact-empty strong {
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .compact-empty button {
+  border: 0 !important;
+  border-radius: 980px !important;
+  background: #0071e3 !important;
+  color: #fff !important;
+}
+
+html[data-visual-style='apple'] .status-grid div {
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-radius: 12px !important;
+  background: #f5f5f7 !important;
+}
+
+html[data-visual-style='apple'] .status-grid b {
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .status-grid span {
+  color: #86868b !important;
+}
+
+html[data-visual-style='apple'] .app-sidebar-footer {
+  color: #86868b !important;
+  font-size: 11px !important;
+  letter-spacing: -0.01em !important;
+}
+
+html[data-visual-style='apple'] .app-menu-icon {
+  color: inherit !important;
+  opacity: 0.88;
+}
+
+html[data-visual-style='apple'] .app-menu-item.active .app-menu-icon {
+  opacity: 1;
+}
+
 /* —— 粗犷野兽 —— */
 html[data-visual-style='brutal'] .app-shell {
   background:

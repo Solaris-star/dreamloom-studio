@@ -17,12 +17,12 @@
     "name": "Apple 极简",
     "home": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/apple-home.png",
     "settings": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/apple-settings.png",
-    "homeBytes": 403298,
-    "settingsBytes": 165685,
+    "homeBytes": 134787,
+    "settingsBytes": 108344,
     "visual": "apple",
     "title": "系统设置 · 外观 | 织梦工坊 | Dreamloom Studio",
-    "bodyText": "跳到主要内容\n首页\n创作台\n地图设计\n创作库\nAI 工坊\n市场灵感\n数据中心\n系统设置\n收起\nvweb\n通用设置\n个人信息\n编辑器设置\nAI 设置\n向量模型\n提示词\n主题外观\n存储\n隐私安全\n通知\n快捷键\n数据管理\n关于\n主题外观\n\n配色影响背景与文字颜色，可与视觉风格自由组合。\n\n白色\n仿真\n夜色\n护眼\n蓝色\n绿色\n紫色\n视觉风格\n\n控制圆角、阴影、边框与整体气质。创作台正文会保持可读，不会被野",
-    "hasBento": false,
+    "bodyText": "updated",
+    "hasBento": true,
     "hasSettings": true
   },
   {

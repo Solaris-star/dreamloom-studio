@@ -70,6 +70,12 @@ assert.match(visualCss, /settings-body/)
 assert.match(visualCss, /rgba\(246, 246, 246, 0\.82\)/)
 assert.match(visualCss, /rgba\(0, 113, 227, 0\.12\)/)
 assert.match(visualCss, /sidebar-header/)
+// Apple 首页：无衬线标题 + 白卡 Bento，不再吃和纸宋体/重阴影
+assert.match(visualCss, /data-visual-style='apple'\] \.dashboard-header h1/)
+assert.match(visualCss, /data-visual-style='apple'\] \.bento-tile/)
+assert.match(visualCss, /data-visual-style='apple'\] \.dashboard-card/)
+assert.match(visualCss, /SF Pro Display/)
+assert.match(visualCss, /background: #ffffff !important/)
 
 const fontCss = fs.readFileSync(
   'src/renderer/src/assets/fonts/visual-style-fonts.css',
