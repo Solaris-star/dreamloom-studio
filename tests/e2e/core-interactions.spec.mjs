@@ -370,7 +370,7 @@ test('TXT 和 Markdown 可以生成完整章节预览', async ({ page }, testInf
     }
   ]
 
-  await page.goto('/#/import-export/import')
+  await page.goto('/#/knowledge?tab=import')
   const fileInput = page.locator('input[type="file"]').first()
   for (const item of cases) {
     await fileInput.setInputFiles({
@@ -395,7 +395,7 @@ test('空文件和超限文件会在页面直接提示且不请求预览', async
     await route.continue()
   })
 
-  await page.goto('/#/import-export/import')
+  await page.goto('/#/knowledge?tab=import')
   const fileInput = page.locator('input[type="file"]').first()
   await fileInput.setInputFiles({
     name: '空书.txt',
@@ -768,7 +768,7 @@ test('导入书籍期间不会重复提交', async ({ page }) => {
     })
   })
 
-  await page.goto('/#/import-export/import')
+  await page.goto('/#/knowledge?tab=import')
   await page.locator('input[type="file"]').setInputFiles({
     name: 'import-guard.txt',
     mimeType: 'text/plain',
@@ -776,7 +776,7 @@ test('导入书籍期间不会重复提交', async ({ page }) => {
   })
   await expect(page.getByText('导入防重复测试', { exact: true })).toBeVisible()
 
-  const importButton = page.getByRole('button', { name: '写入书库' })
+  const importButton = page.getByRole('button', { name: '写入书架' })
   await importButton.click()
   await expect(importButton).toBeDisabled()
   await importButton.dispatchEvent('click')
@@ -803,7 +803,7 @@ test('恢复备份需要确认且失败时不会显示成功', async ({ page }) 
     })
   })
 
-  await page.goto('/#/import-export/backup')
+  await page.goto('/#/knowledge?tab=backup')
   await page.locator('input[type="file"]').setInputFiles({
     name: 'restore-test.zip',
     mimeType: 'application/zip',
@@ -841,7 +841,10 @@ test('市场灵感写操作不会重复提交或保留旧成功结果', async ({
     opportunityScore: 75,
     suitableWriting: '长篇悬疑',
     hook: '旧信引出失踪案',
-    sourceStatus: 'fresh'
+    sourceStatus: 'fresh',
+    contentKind: 'live',
+    contentKindLabel: '外部实时',
+    isExample: false
   }
   const marketResponses = {
     dashboard: {
@@ -849,16 +852,19 @@ test('市场灵感写操作不会重复提交或保留旧成功结果', async ({
       sourceStatus: [],
       topOpportunities: [],
       recentTrends: [],
-      agentBrief: null
+      agentBrief: null,
+      dataMode: 'live',
+      emptyState: { reason: 'ok', title: '', description: '' }
     },
     overview: {
       success: true,
       writableDirections: [insight],
       genreDistribution: [],
       inspirationExpress: [],
-      opportunityIndex: { grade: 'A', summary: '适合创作' }
+      opportunityIndex: { grade: 'A', summary: '适合创作' },
+      dataMode: 'live'
     },
-    'hot-rank': { success: true, sources: [], items: [] },
+    'hot-rank': { success: true, sources: [], items: [], dataMode: 'live' },
     'keyword-cloud': {
       success: true,
       keywordClusters: [],
@@ -911,6 +917,152 @@ test('市场灵感写操作不会重复提交或保留旧成功结果', async ({
   await expect(page.getByText('市场灵感保存失败')).toBeVisible()
   await expect(page.locator('.result-banner')).toHaveCount(0)
   await expect.poll(() => saveRequests).toBe(2)
+})
+
+test('市场灵感空数据展示示例内容且不伪造热度', async ({ page }) => {
+  const exampleInsight = {
+    id: 'example_family_reversal',
+    title: '【示例】离婚当天绑定品牌系统',
+    channel: 'female',
+    tags: ['示例内容', '现言'],
+    heatScore: null,
+    growthScore: null,
+    opportunityScore: null,
+    suitableWriting: '示例写法',
+    hook: '离婚当天，她被通知三小时内搬出别墅。',
+    sourceStatus: 'example',
+    contentKind: 'example',
+    contentKindLabel: '示例内容',
+    isExample: true,
+    bookTitleIdeas: ['离婚后我靠新品牌翻身'],
+    loglineIdeas: ['示例简介'],
+    openingIdeas: ['示例开篇'],
+    readerEmotion: ['反击'],
+    conflict: '示例冲突',
+    storyPotential: '示例潜力',
+    source: '内置示例',
+    sourceSummary: '内置示例 · 非实时市场数据'
+  }
+  const marketResponses = {
+    dashboard: {
+      success: true,
+      sourceStatus: [],
+      topOpportunities: [],
+      recentTrends: [],
+      agentBrief: {
+        summary: '当前没有真实热词和平台榜单。',
+        directions: [
+          {
+            title: '【示例】离婚当天绑定品牌系统',
+            hook: exampleInsight.hook,
+            platforms: ['内置示例'],
+            isExample: true,
+            contentKind: 'example',
+            contentKindLabel: '示例内容'
+          }
+        ]
+      },
+      dataMode: 'example',
+      emptyState: {
+        reason: 'empty',
+        title: '暂无真实市场数据',
+        description: '当前书库还没有采集到公开热词或榜单。'
+      }
+    },
+    overview: {
+      success: true,
+      writableDirections: [exampleInsight],
+      genreDistribution: [{ name: '都市情感', count: 1, percent: null }],
+      inspirationExpress: [
+        {
+          id: exampleInsight.id,
+          title: exampleInsight.title,
+          channel: 'female',
+          genre: '都市情感',
+          score: null,
+          isExample: true,
+          contentKind: 'example',
+          contentKindLabel: '示例内容'
+        }
+      ],
+      opportunityIndex: {
+        grade: '示例',
+        score: null,
+        summary: '当前没有真实采集结果。下方是明确标注的示例内容，不是实时市场数据。',
+        isExampleOnly: true
+      },
+      dataMode: 'example',
+      emptyState: {
+        reason: 'empty',
+        title: '暂无真实市场数据',
+        description: '当前书库还没有采集到公开热词或榜单。'
+      }
+    },
+    'hot-rank': {
+      success: true,
+      sources: [],
+      items: [{ ...exampleInsight, rank: 1, rawTitle: '家庭反转题材写法示例' }],
+      dataMode: 'example'
+    },
+    'keyword-cloud': {
+      success: true,
+      keywordClusters: [],
+      popularCombinations: [
+        {
+          id: 'example_combo_1',
+          title: '【示例】都市情感 + 现言',
+          heatScore: null,
+          growthScore: null,
+          direction: exampleInsight.title,
+          keywords: ['都市情感', '现言'],
+          trend: [],
+          isExample: true
+        }
+      ],
+      defaultCombinationDetail: {
+        title: '【示例】都市情感 + 现言',
+        heatScore: null,
+        growthScore: null,
+        isExample: true,
+        contentKind: 'example',
+        contentKindLabel: '示例内容',
+        relatedKeywords: ['现言'],
+        writableDirections: [exampleInsight.title],
+        recommendedCharacters: [],
+        recommendedConflicts: [],
+        readerPleasure: [],
+        openingExample: exampleInsight.hook,
+        novelizedResult: {
+          direction: exampleInsight.title,
+          conflict: exampleInsight.conflict,
+          hook: exampleInsight.hook
+        }
+      },
+      dataMode: 'example'
+    },
+    'activities-board': { success: true, activities: [] }
+  }
+  for (const [endpoint, response] of Object.entries(marketResponses)) {
+    await page.route(`**/api/market/${endpoint}`, async (route) => {
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify(response)
+      })
+    })
+  }
+
+  await page.goto('/#/market/overview')
+  await expect(page.getByText('暂无真实市场数据')).toBeVisible()
+  await expect(page.getByText('【示例】离婚当天绑定品牌系统')).toBeVisible()
+  await expect(page.getByText('示例内容', { exact: true }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: '创建灵感' }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: '导入 / 添加' }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: '刷新灵感' })).toBeVisible()
+  await expect(page.locator('.direction-card .direction-head strong.is-example')).toContainText(
+    '示例内容'
+  )
+  await expect(page.locator('.opportunity-card')).toContainText('示例')
+  await expect(page.getByText('不是实时市场数据')).toBeVisible()
 })
 
 test('小说下载不会重复提交或写入失败章节', async ({ page }) => {
@@ -966,36 +1118,81 @@ test('小说下载不会重复提交或写入失败章节', async ({ page }) => 
     })
   })
   await page.route('**/api/books/create', async (route) => {
+    const payload = await route.request().postDataJSON()
     await route.fulfill({
       contentType: 'application/json',
-      body: JSON.stringify({ success: true })
+      body: JSON.stringify({
+        success: true,
+        bookName: payload.name || '下载保护测试',
+        bookPath: `/tmp/${payload.name || '下载保护测试'}`,
+        databaseSync: { success: true }
+      })
+    })
+  })
+  await page.route('**/api/books/dir', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, booksDir: '/tmp/e2e-books', configurable: true })
+    })
+  })
+  await page.route('**/api/books/set-dir', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, booksDir: '/tmp/e2e-books' })
+    })
+  })
+  await page.route('**/api/chapters/create', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        chapterName: '第2章',
+        filePath: '/tmp/e2e-books/下载保护测试/正文/正文/第2章.txt'
+      })
     })
   })
   await page.route('**/api/chapters/save', async (route) => {
-    savedChapters.push((await route.request().postDataJSON()).content)
+    const payload = await route.request().postDataJSON()
+    const content = String(payload.content || '')
+    const chapterName = payload.newName || payload.chapterName
+    savedChapters.push(content)
     await route.fulfill({
       contentType: 'application/json',
-      body: JSON.stringify({ success: true })
+      body: JSON.stringify({
+        success: true,
+        bookName: payload.bookName,
+        volumeName: payload.volumeName,
+        chapterName,
+        filePath: `/tmp/e2e-books/${payload.bookName}/正文/${payload.volumeName}/${chapterName}.txt`,
+        wordCount: content.replace(/[\s\n\r\t]/g, '').length,
+        databaseSync: { success: true, chapterName }
+      })
+    })
+  })
+  await page.route('**/api/books/list', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([{ id: 'dl-1', name: '下载保护测试', folderName: '下载保护测试' }])
     })
   })
 
-  await page.goto('/#/novel-download')
+  await page.goto('/#/knowledge?tab=download')
   await page.getByPlaceholder(/书名|作者/).fill('下载保护')
   await page.getByRole('button', { name: '搜索' }).click()
-  await page.getByRole('button', { name: '下载', exact: true }).click()
-  await expect(page.getByText('共 2 章')).toBeVisible()
+  await page.getByRole('button', { name: '选择' }).first().click()
+  await expect(page.getByText(/本次将处理 2/)).toBeVisible()
 
   const downloadButton = page.getByRole('button', { name: /下载并加入书架/ })
   await downloadButton.evaluate((button) => {
     button.click()
     button.click()
   })
-  const confirmDialog = page.getByRole('dialog', { name: /确认下载/ })
-  await confirmDialog.getByRole('button', { name: '确定' }).click()
+  const confirmDialog = page.getByRole('dialog', { name: /确认导入/ })
+  await confirmDialog.getByRole('button', { name: '导入' }).click()
 
   await expect(page.getByText(/已加入书架/)).toBeVisible()
   await expect.poll(() => downloadRequests).toBe(1)
-  expect(savedChapters).toEqual(['第一章\n\n可用正文'])
+  expect(savedChapters).toEqual(['可用正文'])
 })
 
 test('写作目标保存不会重复提交或误报成功', async ({ page }) => {
@@ -1472,10 +1669,13 @@ test('系统设置分类和主题按钮可以连续操作', async ({ page }) => 
   }
 
   await settingsNavigation.getByRole('button', { name: '主题外观', exact: true }).click()
-  const themeButton = page.getByRole('button', { name: '切换到绿色' })
+  const themeButton = page.getByRole('button', { name: '切换到护眼' })
   await themeButton.click()
   await expect(themeButton).toHaveClass(/active/)
-  await expect(page.getByText('已切换到绿色')).toBeVisible()
+  await expect(page.getByText('已切换到护眼')).toBeVisible()
+  await expect
+    .poll(async () => page.locator('html').getAttribute('data-theme'))
+    .toBe('eyecare')
   expect(runtimeErrors).toEqual([])
 })
 
@@ -1526,7 +1726,7 @@ test('书籍导出失败时不会重复提交或误报完成', async ({ page }) 
     })
   })
 
-  await page.goto('/#/import-export/export')
+  await page.goto('/#/knowledge?tab=export')
   await page.getByRole('combobox').click()
   await page.getByRole('option').first().click()
 
@@ -1562,7 +1762,7 @@ test('创建备份失败时不会重复提交或触发下载', async ({ page }) 
     })
   })
 
-  await page.goto('/#/import-export/backup')
+  await page.goto('/#/knowledge?tab=backup')
   const backupButton = page.getByRole('button', { name: '创建备份', exact: true })
   await expect(backupButton).toBeEnabled()
   await backupButton.click()

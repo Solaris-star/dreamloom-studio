@@ -952,7 +952,11 @@ function getPreviewStyle(themeKey) {
 }
 
 function themeRowHint(themeKey) {
+  const theme = themeStore.getAvailableThemes().find((item) => item.key === themeKey)
+  if (theme?.description) return theme.description
   const hints = {
+    default: '跟随系统',
+    eyecare: '低饱和护眼',
     light: '明亮干净',
     parchment: '书卷纸感',
     dark: '低光护眼',

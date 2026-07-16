@@ -32,7 +32,7 @@
           </div>
           <div class="provider-info">
             <div class="info-row">
-              <span class="info-label">Base URL:</span>
+              <span class="info-label">{{ t('embeddingProvider.baseUrl') }}:</span>
               <span class="info-value">{{ provider.baseUrl }}</span>
             </div>
             <div class="info-row">
@@ -95,10 +95,10 @@
         <el-form-item :label="t('embeddingProvider.name')">
           <el-input v-model="editingProvider.name" />
         </el-form-item>
-        <el-form-item label="Base URL">
+        <el-form-item :label="t('embeddingProvider.baseUrl')">
           <el-input v-model="editingProvider.baseUrl" />
         </el-form-item>
-        <el-form-item label="API Key">
+        <el-form-item :label="t('embeddingProvider.apiKey')">
           <el-input
             v-model="editingProvider.apiKey"
             type="password"
@@ -127,7 +127,7 @@
               :loading="loadingModels"
               @click="handleLoadModels"
             >
-              读取列表
+              {{ t('embeddingProvider.loadModels') }}
             </el-button>
           </div>
         </el-form-item>
@@ -212,7 +212,7 @@ async function loadProviders() {
     providerList.value = res.providers
   } catch (error) {
     providerList.value = []
-    ElMessage.error(error?.message || '读取 Embedding Provider 失败')
+    ElMessage.error(error?.message || t('embeddingProvider.loadFailed'))
   }
 }
 
@@ -229,7 +229,7 @@ function openEditDialog(provider) {
 async function handleLoadModels() {
   if (loadingModels.value) return
   if (!editingProvider.value.baseUrl?.trim() || !editingProvider.value.apiKey?.trim()) {
-    ElMessage.warning('请先填写 API 地址和 Key')
+    ElMessage.warning(t('embeddingProvider.needUrlAndKey'))
     return
   }
   loadingModels.value = true
@@ -240,11 +240,11 @@ async function handleLoadModels() {
     })
     availableModels.value = res.models
     if (!availableModels.value.length) {
-      ElMessage.warning('没有读取到模型')
+      ElMessage.warning(t('embeddingProvider.noModels'))
     }
   } catch (e) {
     availableModels.value = []
-    ElMessage.error(e?.message || '读取模型列表失败')
+    ElMessage.error(e?.message || t('embeddingProvider.loadModelsFailed'))
   } finally {
     loadingModels.value = false
   }

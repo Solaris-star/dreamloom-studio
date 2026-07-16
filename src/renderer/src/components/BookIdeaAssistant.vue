@@ -29,7 +29,7 @@
         <el-select
           v-model="selectedProviderId"
           class="provider-select"
-          placeholder="选择 Provider"
+          placeholder="选择 AI 服务"
           @change="handleProviderChange"
         >
           <el-option
@@ -159,6 +159,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { MagicStick } from '@element-plus/icons-vue'
 import { BOOK_TYPES, BOOK_TYPE_GROUPS } from '@renderer/constants/config'
 import { generateBookIdeasWithAI } from '@renderer/service/deepseek'
@@ -168,6 +169,7 @@ import {
   getActiveTextProvider
 } from '@renderer/service/aiProvider'
 
+const { t } = useI18n()
 const emit = defineEmits(['create-book'])
 
 const quickTags = ['强开局', '群像', '轻松', '悬疑', '成长', '爽文']
@@ -202,7 +204,7 @@ function handleProviderChange(providerId) {
     selectedModel.value = provider.models[0]
   }
   setActiveTextProvider(providerId).catch((error) => {
-    ElMessage.error(error?.message || '保存默认 AI 服务失败')
+    ElMessage.error(error?.message || t('bookIdea.saveProviderFailed'))
   })
 }
 
@@ -228,7 +230,7 @@ async function loadProviders() {
     selectedProviderId.value = ''
     selectedModel.value = ''
     modelOptions.value = []
-    ElMessage.error(error?.message || '读取 AI 服务失败')
+    ElMessage.error(error?.message || t('bookIdea.loadProviderFailed'))
   }
 }
 
@@ -259,7 +261,7 @@ function requireBookIdeaPlans(result) {
 async function handleGenerate() {
   const rawIdea = idea.value.trim()
   if (!selectedProviderId.value || !selectedModel.value) {
-    ElMessage.warning('请先配置并选择 AI 模型')
+    ElMessage.warning(t('bookIdea.needModel'))
     return
   }
   if (!rawIdea && !selectedType.value && !selectedTags.value.length) {
@@ -296,7 +298,7 @@ async function handleGenerate() {
     }))
     selectedIndex.value = 0
   } catch (error) {
-    ElMessage.error(error?.message || '生成失败，请稍后再试')
+    ElMessage.error(error?.message || t('bookIdea.generateFailed'))
   } finally {
     generating.value = false
   }

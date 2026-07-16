@@ -755,21 +755,72 @@ function collectFiles(rootDir, prefix = '') {
   return rows
 }
 
+function normalizeExportChapterTitles(input = {}) {
+  if (Array.isArray(input.chapterTitles)) {
+    return input.chapterTitles.map((title) => String(title || '').trim()).filter(Boolean)
+  }
+  if (Array.isArray(input.chapters)) {
+    return input.chapters
+      .map((item) => {
+        if (typeof item === 'string') return item.trim()
+        if (item && typeof item === 'object') return String(item.title || item.name || '').trim()
+        return ''
+      })
+      .filter(Boolean)
+  }
+  if (typeof input.chapterTitle === 'string' && input.chapterTitle.trim()) {
+    return [input.chapterTitle.trim()]
+  }
+  return []
+}
+
+function resolveExportChapters(book, input = {}) {
+  const allChapters = listBookChapters(book)
+  const requestedTitles = normalizeExportChapterTitles(input)
+  const scope = String(input.chapterScope || input.scope || 'all').toLowerCase()
+  if (!requestedTitles.length || scope === 'all' || scope === 'book') {
+    return allChapters
+  }
+
+  const selected = []
+  const missing = []
+  for (const title of requestedTitles) {
+    const match = allChapters.find(
+      (chapter) => chapter.title === title || `${chapter.volumeName}/${chapter.title}` === title
+    )
+    if (match) selected.push(match)
+    else missing.push(title)
+  }
+  if (!selected.length) {
+    throw new Error(missing.length ? `未找到要导出的章节：${missing[0]}` : '未选择可导出的章节')
+  }
+  return selected
+}
+
 export async function exportBook(booksDir, input = {}) {
   const format = String(input.format || 'txt').toLowerCase()
   const book = await getBook(booksDir, input.bookName)
   const exportDir = getExportDir(booksDir)
+  const chapters = resolveExportChapters(book, input)
+  const chapterScope =
+    normalizeExportChapterTitles(input).length &&
+    String(input.chapterScope || input.scope || '').toLowerCase() !== 'all'
+      ? 'chapters'
+      : 'all'
   let filePath
   let content = ''
   let downloadBase64 = ''
   let mimeType = 'text/plain;charset=utf-8'
 
   if (format === 'md' || format === 'markdown') {
-    content = formatBookAsMarkdown(book, listBookChapters(book))
+    content = formatBookAsMarkdown(book, chapters)
     filePath = uniqueFilePath(exportDir, `${book.name}.md`)
     fs.writeFileSync(filePath, content, 'utf-8')
     mimeType = 'text/markdown;charset=utf-8'
   } else if (format === 'project') {
+    if (chapterScope === 'chapters') {
+      throw new Error('项目包导出仅支持全部章节')
+    }
     const files = collectFiles(book.path, book.folderName)
     const zip = createZip(files)
     filePath = uniqueFilePath(exportDir, `${book.name}.zip`)
@@ -777,7 +828,7 @@ export async function exportBook(booksDir, input = {}) {
     downloadBase64 = zip.toString('base64')
     mimeType = 'application/zip'
   } else {
-    content = formatBookAsText(book, listBookChapters(book))
+    content = formatBookAsText(book, chapters)
     filePath = uniqueFilePath(exportDir, `${book.name}.txt`)
     fs.writeFileSync(filePath, content, 'utf-8')
   }
@@ -788,6 +839,8 @@ export async function exportBook(booksDir, input = {}) {
     title: `导出 ${book.name}`,
     bookName: book.name,
     format,
+    chapterScope,
+    chapterCount: chapters.length,
     filePath,
     size: stat.size
   })
@@ -800,6 +853,8 @@ export async function exportBook(booksDir, input = {}) {
     downloadBase64,
     mimeType,
     size: stat.size,
+    chapterScope,
+    chapterCount: chapters.length,
     task
   }
 }

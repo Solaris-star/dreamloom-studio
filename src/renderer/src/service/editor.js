@@ -930,13 +930,22 @@ function requireSavedChapterDocumentResult(response, expected = {}) {
   return { ...result, chapterName }
 }
 
+function coerceBannedWordsSource(raw) {
+  if (Array.isArray(raw)) return raw
+  if (raw && Array.isArray(raw.words)) return raw.words
+  if (raw && Array.isArray(raw.data)) return raw.data
+  return []
+}
+
 function normalizeBannedWords(words) {
   const seen = new Set()
-  return words
+  return coerceBannedWordsSource(words)
     .map((word) => String(word || '').trim())
     .filter((word) => {
-      if (!word || seen.has(word)) return false
-      seen.add(word)
+      if (!word) return false
+      const key = word.toLocaleLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
       return true
     })
 }
@@ -1176,9 +1185,8 @@ export async function listBannedWords(bookName) {
   if (!targetBookName) {
     throw new Error('读取禁词失败：缺少作品名')
   }
-  const words = normalizeBannedWords(
-    await getStoreValue(`bannedWords:${targetBookName}`, { words: [] })
-  )
+  const stored = await getStoreValue(`bannedWords:${targetBookName}`, { words: [] })
+  const words = normalizeBannedWords(stored)
   const response = { success: true, data: words, words }
   return requireBannedWordsResult(response, {
     bookName: targetBookName,
@@ -1196,10 +1204,11 @@ export async function addBannedWord(bookName, word) {
     throw new Error('添加禁词失败：缺少禁词')
   }
   const current = await listBannedWords(targetBookName)
-  if (current.words.includes(targetWord)) {
+  const exists = current.some((item) => item.toLocaleLowerCase() === targetWord.toLocaleLowerCase())
+  if (exists) {
     throw new Error('该禁词已存在')
   }
-  const words = [targetWord, ...current.words]
+  const words = normalizeBannedWords([targetWord, ...current])
   await setStoreValue(`bannedWords:${targetBookName}`, { words })
   const response = { success: true, data: words, words }
   return requireBannedWordsResult(response, {
@@ -1219,10 +1228,11 @@ export async function removeBannedWord(bookName, word) {
     throw new Error('删除禁词失败：缺少禁词')
   }
   const current = await listBannedWords(targetBookName)
-  if (!current.words.includes(targetWord)) {
+  const key = targetWord.toLocaleLowerCase()
+  if (!current.some((item) => item.toLocaleLowerCase() === key)) {
     throw new Error('禁词不存在')
   }
-  const words = current.words.filter((item) => item !== targetWord)
+  const words = current.filter((item) => item.toLocaleLowerCase() !== key)
   await setStoreValue(`bannedWords:${targetBookName}`, { words })
   const response = { success: true, data: words, words }
   return requireBannedWordsResult(response, {

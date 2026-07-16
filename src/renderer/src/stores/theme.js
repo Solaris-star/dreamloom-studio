@@ -2,6 +2,18 @@ import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { getStoreValue, setStoreValue } from '../service/webStore.js'
 import {
+  THEME_STORAGE_KEY,
+  DEFAULT_THEME_KEY,
+  themeConfigs,
+  THEME_ALIASES,
+  getSystemColorScheme,
+  resolveThemeKey,
+  getAvailableThemes as listAvailableThemes,
+  getThemeName as lookupThemeName,
+  getThemeConfig as lookupThemeConfig,
+  applyTheme
+} from '../service/themeService.js'
+import {
   VISUAL_STYLE_STORAGE_KEY,
   DEFAULT_VISUAL_STYLE,
   getAvailableVisualStyles as listVisualStyles,
@@ -11,324 +23,86 @@ import {
   applyVisualStyle
 } from '../service/visualStyleService.js'
 
-// 主题配置对象 - 统一管理所有主题的颜色配置
-const themeConfigs = {
-  light: {
-    name: '白色',
-    bgPrimary: '#F8F9FA',
-    bgSoft: '#FFFFFF',
-    bgMute: '#F1F3F5',
-    textBase: '#121212',
-    textGray: '#666666',
-    textGrayLight: '#999999',
-    textGrayLighter: '#CCCCCC',
-    textGrayLightest: '#F5F5F5',
-    accentColor: '#4A90E2',
-    primaryColor: '#4A90E2', // 主色调 - 蓝色
-    borderColor: '#E1E4E8',
-    borderColorSoft: '#E9ECEF',
-    successGreen: '#22C55E',
-    warningColor: '#F59E0B', // 警告色 - 橙色
-    dangerColor: '#EF4444', // 危险色 - 红色
-    infoColor: '#3B82F6' // 信息色 - 蓝色
-  },
-  parchment: {
-    name: '仿真',
-    bgPrimary: '#F3E6C8',
-    bgSoft: '#F8EDD5',
-    bgMute: '#E8D5AE',
-    textBase: '#3B2A1A',
-    textGray: '#6B5340',
-    textGrayLight: '#8A7058',
-    textGrayLighter: '#C4A882',
-    textGrayLightest: '#F8EDD5',
-    accentColor: '#8B5A2B',
-    primaryColor: '#A67C52',
-    borderColor: '#D2B48C',
-    borderColorSoft: '#E6D3B0',
-    successGreen: '#6B8E23',
-    warningColor: '#C27B2F',
-    dangerColor: '#B54A3A',
-    infoColor: '#5B7C99'
-  },
-  dark: {
-    name: '夜色',
-    bgPrimary: '#1A1A1A',
-    bgSoft: '#242424',
-    bgMute: '#2c2c2c',
-    textBase: '#E5E5E5',
-    textGray: '#666666',
-    textGrayLight: '#999999',
-    textGrayLighter: '#CCCCCC',
-    textGrayLightest: '#F5F5F5',
-    accentColor: '#64748B',
-    primaryColor: '#60A5FA', // 主色调 - 亮蓝色
-    borderColor: '#2D4059',
-    borderColorSoft: '#374151',
-    successGreen: '#10B981',
-    warningColor: '#FBBF24', // 警告色 - 亮橙色
-    dangerColor: '#F87171', // 危险色 - 亮红色
-    infoColor: '#60A5FA' // 信息色 - 亮蓝色
-  },
-  yellow: {
-    name: '护眼',
-    bgPrimary: '#FAF0E6',
-    bgSoft: '#F5E6D3',
-    bgMute: '#F0DCC0',
-    textBase: '#3A2F21',
-    textGray: '#666666',
-    textGrayLight: '#999999',
-    textGrayLighter: '#CCCCCC',
-    textGrayLightest: '#F5F5F5',
-    accentColor: '#5D4037',
-    primaryColor: '#8B6914', // 主色调 - 深黄色
-    borderColor: '#BCAAA4',
-    borderColorSoft: '#D1C4B8',
-    successGreen: '#689F38',
-    warningColor: '#D97706', // 警告色 - 深橙色
-    dangerColor: '#DC2626', // 危险色 - 深红色
-    infoColor: '#2563EB' // 信息色 - 蓝色
-  },
-  blue: {
-    name: '蓝色',
-    bgPrimary: '#EFF6FF',
-    bgSoft: '#DBEAFE',
-    bgMute: '#BFDBFE',
-    textBase: '#1E3A8A',
-    textGray: '#3B82F6',
-    textGrayLight: '#60A5FA',
-    textGrayLighter: '#93C5FD',
-    textGrayLightest: '#DBEAFE',
-    accentColor: '#1E40AF',
-    primaryColor: '#2563EB', // 主色调 - 蓝色
-    borderColor: '#93C5FD',
-    borderColorSoft: '#BFDBFE',
-    successGreen: '#10B981',
-    warningColor: '#F59E0B',
-    dangerColor: '#EF4444',
-    infoColor: '#3B82F6'
-  },
-  green: {
-    name: '绿色',
-    bgPrimary: '#F0FDF4',
-    bgSoft: '#DCFCE7',
-    bgMute: '#BBF7D0',
-    textBase: '#14532D',
-    textGray: '#16A34A',
-    textGrayLight: '#22C55E',
-    textGrayLighter: '#4ADE80',
-    textGrayLightest: '#DCFCE7',
-    accentColor: '#15803D',
-    primaryColor: '#16A34A', // 主色调 - 绿色
-    borderColor: '#86EFAC',
-    borderColorSoft: '#BBF7D0',
-    successGreen: '#10B981',
-    warningColor: '#F59E0B',
-    dangerColor: '#EF4444',
-    infoColor: '#3B82F6'
-  },
-  purple: {
-    name: '紫色',
-    bgPrimary: '#FAF5FF',
-    bgSoft: '#F3E8FF',
-    bgMute: '#E9D5FF',
-    textBase: '#581C87',
-    textGray: '#7C3AED',
-    textGrayLight: '#8B5CF6',
-    textGrayLighter: '#A78BFA',
-    textGrayLightest: '#E9D5FF',
-    accentColor: '#6D28D9',
-    primaryColor: '#7C3AED', // 主色调 - 紫色
-    borderColor: '#C4B5FD',
-    borderColorSoft: '#DDD6FE',
-    successGreen: '#10B981',
-    warningColor: '#F59E0B',
-    dangerColor: '#EF4444',
-    infoColor: '#3B82F6'
-  }
-}
-
-// 将颜色值转换为rgba格式的辅助函数
-const hexToRgba = (hex, alpha = 1) => {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`
-}
-
-const hexLuminance = (hex) => {
-  if (!hex || typeof hex !== 'string' || hex.length < 7) return 1
-  const r = parseInt(hex.slice(1, 3), 16) / 255
-  const g = parseInt(hex.slice(3, 5), 16) / 255
-  const b = parseInt(hex.slice(5, 7), 16) / 255
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b
-}
-
-const clampByte = (n) => Math.min(255, Math.max(0, Math.round(n)))
-
-const blendHex = (hex, toHex, t) => {
-  const r1 = parseInt(hex.slice(1, 3), 16)
-  const g1 = parseInt(hex.slice(3, 5), 16)
-  const b1 = parseInt(hex.slice(5, 7), 16)
-  const r2 = parseInt(toHex.slice(1, 3), 16)
-  const g2 = parseInt(toHex.slice(3, 5), 16)
-  const b2 = parseInt(toHex.slice(5, 7), 16)
-  return `#${clampByte(r1 + (r2 - r1) * t)
-    .toString(16)
-    .padStart(2, '0')}${clampByte(g1 + (g2 - g1) * t)
-    .toString(16)
-    .padStart(2, '0')}${clampByte(b1 + (b2 - b1) * t)
-    .toString(16)
-    .padStart(2, '0')}`
-}
-
-/** 纯白侧栏：与 neumorphism.io 白底预设一致 */
-const isNearWhiteSurface = (hex) => {
-  if (!hex || typeof hex !== 'string' || hex.length < 7) return false
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  return r >= 252 && g >= 252 && b >= 252
-}
-
-/** 侧栏菜单新拟态阴影：随 bgSoft 变化，供 Home 等使用 */
-const applyNeumorphicVars = (root, bgSoftHex) => {
-  const d = 20
-  const blur = 60
-  const dh = 22
-  const bh = 66
-
-  let softGray
-  let brightHighlight
-  if (isNearWhiteSurface(bgSoftHex)) {
-    softGray = '#d9d9d9'
-    brightHighlight = '#ffffff'
-  } else {
-    const lum = hexLuminance(bgSoftHex)
-    const darkSurface = lum < 0.45
-    const towardBlack = darkSurface ? 0.42 : 0.14
-    const towardWhite = darkSurface ? 0.14 : 0.28
-    softGray = blendHex(bgSoftHex, '#000000', towardBlack)
-    brightHighlight = blendHex(bgSoftHex, '#FFFFFF', towardWhite)
-  }
-
-  root.style.setProperty(
-    '--neu-shadow-raised',
-    `${d}px ${d}px ${blur}px ${softGray}, -${d}px -${d}px ${blur}px ${brightHighlight}`
-  )
-  root.style.setProperty(
-    '--neu-shadow-raised-hover',
-    `${dh}px ${dh}px ${bh}px ${softGray}, -${dh}px -${dh}px ${bh}px ${brightHighlight}`
-  )
-  root.style.setProperty(
-    '--neu-shadow-pressed',
-    `inset ${d}px ${d}px ${blur}px ${softGray}, inset -${d}px -${d}px ${blur}px ${brightHighlight}`
-  )
-}
-
-// 应用主题到DOM
-const applyTheme = (theme) => {
-  const root = document.documentElement
-  const config = themeConfigs[theme] || themeConfigs.light
-  const resolvedTheme = themeConfigs[theme] ? theme : 'light'
-  const colorScheme = resolvedTheme === 'dark' ? 'dark' : 'light'
-
-  // 供视觉风格层做 dark/light 正交适配（Apple 夜色等）
-  root.dataset.theme = resolvedTheme
-  root.dataset.colorScheme = colorScheme
-  root.setAttribute('data-theme', resolvedTheme)
-  root.setAttribute('data-color-scheme', colorScheme)
-
-  // 背景色
-  root.style.setProperty('--bg-primary', config.bgPrimary)
-  root.style.setProperty('--bg-primary-a5', hexToRgba(config.bgPrimary, 0.5))
-  root.style.setProperty('--bg-primary-a7', hexToRgba(config.bgPrimary, 0.7))
-  root.style.setProperty('--bg-soft', config.bgSoft)
-  root.style.setProperty('--bg-soft-a5', hexToRgba(config.bgSoft, 0.5))
-  root.style.setProperty('--bg-soft-a7', hexToRgba(config.bgSoft, 0.7))
-  root.style.setProperty('--bg-mute', config.bgMute)
-  root.style.setProperty('--bg-mute-a5', hexToRgba(config.bgMute, 0.5))
-  root.style.setProperty('--bg-mute-a7', hexToRgba(config.bgMute, 0.7))
-
-  // 文字颜色
-  root.style.setProperty('--text-base', config.textBase)
-  root.style.setProperty('--text-gray', config.textGray)
-  root.style.setProperty('--text-gray-light', config.textGrayLight)
-  root.style.setProperty('--text-gray-lighter', config.textGrayLighter)
-  root.style.setProperty('--text-gray-lightest', config.textGrayLightest)
-
-  // 功能颜色
-  root.style.setProperty('--accent-color', config.accentColor)
-  root.style.setProperty('--primary-color', config.primaryColor)
-  root.style.setProperty('--border-color', config.borderColor)
-  root.style.setProperty('--border-color-soft', config.borderColorSoft)
-  root.style.setProperty('--success-green', config.successGreen)
-  root.style.setProperty('--warning-color', config.warningColor)
-  root.style.setProperty('--danger-color', config.dangerColor)
-  root.style.setProperty('--info-color', config.infoColor)
-
-  // Element Plus 的默认蓝色配白字对比度不足，控件主色保持为 WCAG AA 可读色。
-  root.style.setProperty('--el-color-primary', '#52634b')
-  root.style.setProperty('--el-color-primary-rgb', '82, 99, 75')
-  root.style.setProperty('--el-color-primary-light-3', '#84917f')
-  root.style.setProperty('--el-color-primary-light-5', '#a9b1a5')
-  root.style.setProperty('--el-color-primary-light-7', '#cdd2ca')
-  root.style.setProperty('--el-color-primary-light-8', '#dee1dc')
-  root.style.setProperty('--el-color-primary-light-9', '#eef0ed')
-  root.style.setProperty('--el-color-primary-dark-2', '#424f3c')
-
-  applyNeumorphicVars(root, config.bgSoft)
-}
-
 export const useThemeStore = defineStore('theme', () => {
-  const currentTheme = ref('light')
+  const currentTheme = ref(DEFAULT_THEME_KEY)
   const currentVisualStyle = ref(DEFAULT_VISUAL_STYLE)
+  const resolvedMode = ref(getSystemColorScheme())
+  let mediaQuery = null
+  let mediaHandler = null
 
-  // 获取所有可用主题
-  const getAvailableThemes = () => {
-    return Object.keys(themeConfigs).map((key) => ({
-      key,
-      name: themeConfigs[key].name
-    }))
-  }
-
-  // 获取主题名称
-  const getThemeName = (theme) => {
-    return themeConfigs[theme]?.name || '白色'
-  }
-
+  const getAvailableThemes = () => listAvailableThemes()
+  const getThemeName = (theme) => lookupThemeName(theme)
+  const getThemeConfig = (theme) => lookupThemeConfig(theme, resolvedMode.value)
   const getAvailableVisualStyles = () => listVisualStyles()
   const getVisualStyleName = (style) => lookupVisualStyleName(style)
   const getVisualStyleMeta = (style) => lookupVisualStyleMeta(style)
 
-  // 初始化主题 + 视觉风格
-  const initTheme = async () => {
-    const theme = await getStoreValue('config.theme', 'light')
-    if (theme && themeConfigs[theme]) {
-      currentTheme.value = theme
-      applyTheme(theme)
-    } else {
-      // 如果主题不存在，使用默认主题
-      applyTheme('light')
+  const detachSystemListener = () => {
+    if (mediaQuery && mediaHandler) {
+      if (typeof mediaQuery.removeEventListener === 'function') {
+        mediaQuery.removeEventListener('change', mediaHandler)
+      } else if (typeof mediaQuery.removeListener === 'function') {
+        mediaQuery.removeListener(mediaHandler)
+      }
     }
-
-    const style = await getStoreValue(VISUAL_STYLE_STORAGE_KEY, DEFAULT_VISUAL_STYLE)
-    const resolvedStyle = resolveVisualStyleKey(style)
-    currentVisualStyle.value = resolvedStyle
-    applyVisualStyle(resolvedStyle)
+    mediaQuery = null
+    mediaHandler = null
   }
 
-  // 切换主题
-  const setTheme = async (theme) => {
-    if (!themeConfigs[theme]) {
-      console.warn(`主题 "${theme}" 不存在，使用默认主题`)
-      theme = 'light'
+  const attachSystemListener = () => {
+    detachSystemListener()
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    mediaHandler = (event) => {
+      resolvedMode.value = event.matches ? 'dark' : 'light'
+      if (currentTheme.value === 'default') {
+        applyTheme('default', resolvedMode.value)
+        applyVisualStyle(currentVisualStyle.value)
+      }
     }
-    currentTheme.value = theme
-    applyTheme(theme)
-    // 配色切换后重放视觉风格 token，避免被旧 applyTheme 覆盖圆角/阴影
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', mediaHandler)
+    } else if (typeof mediaQuery.addListener === 'function') {
+      mediaQuery.addListener(mediaHandler)
+    }
+  }
+
+  const initTheme = async () => {
+    resolvedMode.value = getSystemColorScheme()
+    attachSystemListener()
+    try {
+      const stored = await getStoreValue(THEME_STORAGE_KEY, DEFAULT_THEME_KEY)
+      const theme = resolveThemeKey(stored)
+      currentTheme.value = theme
+      applyTheme(theme, resolvedMode.value)
+      if (stored !== theme) {
+        await setStoreValue(THEME_STORAGE_KEY, theme)
+      }
+    } catch (error) {
+      console.warn('读取主题偏好失败，使用默认主题', error)
+      currentTheme.value = DEFAULT_THEME_KEY
+      applyTheme(DEFAULT_THEME_KEY, resolvedMode.value)
+    }
+
+    try {
+      const style = await getStoreValue(VISUAL_STYLE_STORAGE_KEY, DEFAULT_VISUAL_STYLE)
+      const resolvedStyle = resolveVisualStyleKey(style)
+      currentVisualStyle.value = resolvedStyle
+      applyVisualStyle(resolvedStyle)
+    } catch (error) {
+      console.warn('读取视觉风格失败，使用默认风格', error)
+      currentVisualStyle.value = DEFAULT_VISUAL_STYLE
+      applyVisualStyle(DEFAULT_VISUAL_STYLE)
+    }
+  }
+
+  const setTheme = async (theme) => {
+    const next = resolveThemeKey(theme)
+    currentTheme.value = next
+    applyTheme(next, resolvedMode.value)
+    // 配色切换后重放视觉风格 token，避免被 applyTheme 覆盖圆角/阴影
     applyVisualStyle(currentVisualStyle.value)
-    await setStoreValue('config.theme', theme)
+    await setStoreValue(THEME_STORAGE_KEY, next)
   }
 
   const setVisualStyle = async (style) => {
@@ -338,9 +112,8 @@ export const useThemeStore = defineStore('theme', () => {
     await setStoreValue(VISUAL_STYLE_STORAGE_KEY, resolved)
   }
 
-  // 监听主题变化
   watch(currentTheme, (newTheme) => {
-    applyTheme(newTheme)
+    applyTheme(newTheme, resolvedMode.value)
     applyVisualStyle(currentVisualStyle.value)
   })
 
@@ -348,14 +121,10 @@ export const useThemeStore = defineStore('theme', () => {
     applyVisualStyle(newStyle)
   })
 
-  // 获取主题配置
-  const getThemeConfig = (theme) => {
-    return themeConfigs[theme] || themeConfigs.light
-  }
-
   return {
     currentTheme,
     currentVisualStyle,
+    resolvedMode,
     initTheme,
     setTheme,
     setVisualStyle,
@@ -365,6 +134,19 @@ export const useThemeStore = defineStore('theme', () => {
     getVisualStyleName,
     getVisualStyleMeta,
     getThemeConfig,
-    themeConfigs
+    themeConfigs,
+    THEME_ALIASES,
+    resolveThemeKey,
+    applyTheme
   }
 })
+
+export {
+  themeConfigs,
+  THEME_ALIASES,
+  THEME_STORAGE_KEY,
+  DEFAULT_THEME_KEY,
+  resolveThemeKey,
+  applyTheme,
+  getSystemColorScheme
+} from '../service/themeService.js'

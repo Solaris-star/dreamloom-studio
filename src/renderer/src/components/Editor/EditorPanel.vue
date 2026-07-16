@@ -45,8 +45,18 @@
         inline-prompt
         style="--el-switch-off-color: #999999"
         class="character-highlight-switch"
+        :aria-label="t('editorPanel.characterHighlight')"
         @change="handleCharacterHighlightChange"
       />
+      <button
+        v-if="editorStore.file?.type === 'chapter' && characterHighlightEnabled"
+        type="button"
+        class="hint-count-btn character-hint-count"
+        :title="t('editorPanel.characterHighlightCountTip')"
+        @click="jumpToNextCharacterHint"
+      >
+        {{ characterHintCount }}
+      </button>
       <!-- 禁词提示开关 -->
       <el-switch
         v-if="editorStore.file?.type === 'chapter'"
@@ -56,8 +66,18 @@
         inline-prompt
         style="--el-switch-off-color: #999999"
         class="banned-words-hint-switch"
+        :aria-label="t('editorPanel.bannedWordsHint')"
         @change="handleBannedWordsHintChange"
       />
+      <button
+        v-if="editorStore.file?.type === 'chapter' && bannedWordsHintEnabled"
+        type="button"
+        class="hint-count-btn banned-hint-count"
+        :title="t('editorPanel.bannedWordsHintCountTip')"
+        @click="jumpToNextBannedWordHint"
+      >
+        {{ bannedWordHintCount }}
+      </button>
     </div>
     <!-- 正文内容编辑区（含右上角 AI 润色按钮） -->
     <div class="editor-content-wrap">
@@ -303,6 +323,7 @@
       :is-composing="isComposing"
       :get-font-family="getFontFamily"
       :auto-save-content="autoSaveContent"
+      @content-updated="handleChapterContentUpdated"
     />
     <NoteEditorContent
       ref="noteEditorContentRef"
@@ -388,6 +409,7 @@ import {
 } from '../../service/chapterVersionRestore'
 import { continueWriteWithAI, polishTextWithAI } from '../../service/editorText'
 import { getStoreValue, setStoreValue } from '../../service/webStore'
+import { textHintPluginKey } from '@renderer/extensions/TextHintDecorations'
 import { useI18n } from 'vue-i18n'
 import { useEditorStore } from '@renderer/stores/editor'
 import SearchPanel from '@renderer/components/Editor/SearchPanel.vue'
@@ -494,7 +516,11 @@ const noteEditorContentRef = ref(null)
 // 人物高亮相关状态
 const characterHighlightEnabled = ref(false) // 人物高亮开关状态，默认关闭
 const characters = ref([]) // 人物数据列表
-const defaultHighlightColor = '#ffeb3b' // 默认高亮颜色（黄色）
+const characterHintCount = ref(0)
+const characterHintCursor = ref(-1)
+const defaultHighlightColor = '#c9b36a' // 默认柔和高亮色
+let characterHighlightTimer = null
+let characterHighlightDebounceTimer = null
 
 /**
  * 将人物高亮颜色变淡，避免过于刺眼
@@ -509,7 +535,7 @@ function lightenHighlightColor(hex) {
   const r = (n >> 16) & 0xff
   const g = (n >> 8) & 0xff
   const b = n & 0xff
-  const mix = 0.58 // 约 58% 向白色混合，使高亮更淡
+  const mix = 0.62 // 向白色混合，保证浅色/护眼/暗色主题都可读
   const r2 = Math.round(r + (255 - r) * mix)
   const g2 = Math.round(g + (255 - g) * mix)
   const b2 = Math.round(b + (255 - b) * mix)
@@ -519,6 +545,11 @@ function lightenHighlightColor(hex) {
 // 禁词提示相关状态
 const bannedWordsHintEnabled = ref(false) // 禁词提示开关状态，默认关闭
 const bannedWords = ref([]) // 禁词数据列表
+const bannedWordHintCount = ref(0)
+const bannedWordHintCursor = ref(-1)
+let bannedWordsHintTimer = null
+let bannedWordsHintDebounceTimer = null
+const TEXT_HINT_DEBOUNCE_MS = 280
 
 async function handleTitleBlur() {
   const fileType = editorStore.file?.type
@@ -1982,23 +2013,75 @@ async function loadCharacters() {
   }
 }
 
+function buildCharacterHints() {
+  if (!characterHighlightEnabled.value || editorStore.file?.type !== 'chapter') return []
+  return characters.value
+    .filter((item) => String(item?.name || '').trim())
+    .map((item) => ({
+      text: String(item.name).trim(),
+      color: lightenHighlightColor(item.markerColor || defaultHighlightColor)
+    }))
+}
+
+function buildBannedWordHints() {
+  if (!bannedWordsHintEnabled.value || editorStore.file?.type !== 'chapter') return []
+  return bannedWords.value.map((item) => String(item || '').trim()).filter(Boolean)
+}
+
+function refreshTextHintCounts() {
+  if (!editor.value) {
+    characterHintCount.value = 0
+    bannedWordHintCount.value = 0
+    return
+  }
+  const state = textHintPluginKey.getState(editor.value.state)
+  const matches = state?.matches || { characters: [], bannedWords: [] }
+  characterHintCount.value = Array.isArray(matches.characters) ? matches.characters.length : 0
+  bannedWordHintCount.value = Array.isArray(matches.bannedWords) ? matches.bannedWords.length : 0
+}
+
+function jumpToHintMatch(type) {
+  if (!editor.value) return
+  const state = textHintPluginKey.getState(editor.value.state)
+  const list =
+    type === 'character'
+      ? state?.matches?.characters || []
+      : state?.matches?.bannedWords || []
+  if (!list.length) return
+  const cursorRef = type === 'character' ? characterHintCursor : bannedWordHintCursor
+  const nextIndex = (cursorRef.value + 1) % list.length
+  cursorRef.value = nextIndex
+  const match = list[nextIndex]
+  if (!match) return
+  editor.value.chain().focus().setTextSelection({ from: match.from, to: match.to }).scrollIntoView().run()
+}
+
+function jumpToNextCharacterHint() {
+  jumpToHintMatch('character')
+}
+
+function jumpToNextBannedWordHint() {
+  jumpToHintMatch('banned-word')
+}
+
 // 清除所有人物高亮（不改变光标位置）
 function clearCharacterHighlights() {
+  characterHintCount.value = 0
+  characterHintCursor.value = -1
   updateTextHintDecorations({ characters: [] })
 }
 
 // 应用人物高亮（不改变光标位置）
 function applyCharacterHighlights() {
-  const hints =
-    characterHighlightEnabled.value && editorStore.file?.type === 'chapter'
-      ? characters.value
-          .filter((item) => String(item?.name || '').trim())
-          .map((item) => ({
-            text: item.name.trim(),
-            color: lightenHighlightColor(item.markerColor || defaultHighlightColor)
-          }))
-      : []
-  updateTextHintDecorations({ characters: hints })
+  updateTextHintDecorations({ characters: buildCharacterHints() })
+}
+
+function scheduleCharacterHighlightRefresh() {
+  if (characterHighlightDebounceTimer) clearTimeout(characterHighlightDebounceTimer)
+  characterHighlightDebounceTimer = setTimeout(() => {
+    characterHighlightDebounceTimer = null
+    if (characterHighlightEnabled.value) applyCharacterHighlights()
+  }, TEXT_HINT_DEBOUNCE_MS)
 }
 
 // 加载人物高亮开关状态（按书籍）
@@ -2081,19 +2164,26 @@ async function handleCharacterHighlightChange(enabled) {
 
 // 启动人物高亮定时器
 function startCharacterHighlightTimer() {
+  stopCharacterHighlightTimer()
   applyCharacterHighlights()
+  characterHighlightTimer = true
 }
 
 // 停止人物高亮定时器
 function stopCharacterHighlightTimer() {
-  return undefined
+  if (characterHighlightDebounceTimer) {
+    clearTimeout(characterHighlightDebounceTimer)
+    characterHighlightDebounceTimer = null
+  }
+  characterHighlightTimer = null
 }
 
 // 加载禁词数据
 async function loadBannedWords() {
   if (!props.bookName) return
   try {
-    bannedWords.value = await listBannedWords(props.bookName)
+    const words = await listBannedWords(props.bookName)
+    bannedWords.value = Array.isArray(words) ? words : []
   } catch (error) {
     console.error('加载禁词数据失败:', error)
     bannedWords.value = []
@@ -2102,36 +2192,38 @@ async function loadBannedWords() {
 
 // 清除所有禁词划线（不改变光标位置）
 function clearBannedWordsStrikes() {
+  bannedWordHintCount.value = 0
+  bannedWordHintCursor.value = -1
   updateTextHintDecorations({ bannedWords: [] })
 }
 
 // 应用禁词划线（不改变光标位置）
 function applyBannedWordsStrikes() {
-  const hints =
-    bannedWordsHintEnabled.value && editorStore.file?.type === 'chapter'
-      ? bannedWords.value.map((item) => String(item || '').trim()).filter(Boolean)
-      : []
-  updateTextHintDecorations({ bannedWords: hints })
+  updateTextHintDecorations({ bannedWords: buildBannedWordHints() })
+}
+
+function scheduleBannedWordsHintRefresh() {
+  if (bannedWordsHintDebounceTimer) clearTimeout(bannedWordsHintDebounceTimer)
+  bannedWordsHintDebounceTimer = setTimeout(() => {
+    bannedWordsHintDebounceTimer = null
+    if (bannedWordsHintEnabled.value) applyBannedWordsStrikes()
+  }, TEXT_HINT_DEBOUNCE_MS)
+}
+
+function handleChapterContentUpdated() {
+  if (editorStore.file?.type !== 'chapter') return
+  if (characterHighlightEnabled.value) scheduleCharacterHighlightRefresh()
+  if (bannedWordsHintEnabled.value) scheduleBannedWordsHintRefresh()
 }
 
 function updateTextHintDecorations(patch = {}) {
   if (!editor.value?.commands?.setTextHints) return
   const current = {
-    characters:
-      characterHighlightEnabled.value && editorStore.file?.type === 'chapter'
-        ? characters.value
-            .filter((item) => String(item?.name || '').trim())
-            .map((item) => ({
-              text: item.name.trim(),
-              color: lightenHighlightColor(item.markerColor || defaultHighlightColor)
-            }))
-        : [],
-    bannedWords:
-      bannedWordsHintEnabled.value && editorStore.file?.type === 'chapter'
-        ? bannedWords.value.map((item) => String(item || '').trim()).filter(Boolean)
-        : []
+    characters: buildCharacterHints(),
+    bannedWords: buildBannedWordHints()
   }
   editor.value.commands.setTextHints({ ...current, ...patch })
+  nextTick(() => refreshTextHintCounts())
 }
 
 // 加载禁词提示开关状态（按书籍）
@@ -2212,14 +2304,33 @@ async function handleBannedWordsHintChange(enabled) {
   }
 }
 
+async function refreshBannedWordHints(nextWords) {
+  if (Array.isArray(nextWords)) {
+    bannedWords.value = nextWords.map((item) => String(item || '').trim()).filter(Boolean)
+  } else {
+    await loadBannedWords()
+  }
+  if (!bannedWordsHintEnabled.value || editorStore.file?.type !== 'chapter') {
+    bannedWordHintCount.value = 0
+    return
+  }
+  applyBannedWordsStrikes()
+}
+
 // 启动禁词提示定时器
 function startBannedWordsHintTimer() {
+  stopBannedWordsHintTimer()
   applyBannedWordsStrikes()
+  bannedWordsHintTimer = true
 }
 
 // 停止禁词提示定时器
 function stopBannedWordsHintTimer() {
-  return undefined
+  if (bannedWordsHintDebounceTimer) {
+    clearTimeout(bannedWordsHintDebounceTimer)
+    bannedWordsHintDebounceTimer = null
+  }
+  bannedWordsHintTimer = null
 }
 
 /** keep-alive 从子页回到编辑器时恢复人物高亮/禁词定时器（停用阶段已停掉，避免后台空跑） */
@@ -2267,6 +2378,7 @@ defineExpose({
   handlePolishCommand,
   handleContinueClick,
   handleAISceneImageClick,
+  refreshBannedWordHints,
   saveBeforeLeave: () => saveEditorBeforeLeave(editorStore.file, () => saveFile(false))
 })
 </script>
@@ -2302,6 +2414,33 @@ defineExpose({
   flex-shrink: 0;
 }
 
+.hint-count-btn {
+  flex-shrink: 0;
+  min-width: 28px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-soft);
+  color: var(--text-base);
+  font-size: 12px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.hint-count-btn:hover {
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+}
+
+.character-hint-count {
+  background: color-mix(in srgb, #c9b36a 22%, var(--bg-soft));
+}
+
+.banned-hint-count {
+  background: color-mix(in srgb, #c2413a 16%, var(--bg-soft));
+}
+
 .save-state {
   flex-shrink: 0;
   white-space: nowrap;
@@ -2330,7 +2469,8 @@ defineExpose({
   }
 
   .character-highlight-switch,
-  .banned-words-hint-switch {
+  .banned-words-hint-switch,
+  .hint-count-btn {
     display: none;
   }
 }
@@ -2370,17 +2510,29 @@ defineExpose({
 }
 
 :deep(.character-hint-decoration) {
-  border-radius: 2px;
+  border-radius: 3px;
+  padding: 0 1px;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
+  background-color: var(--character-hint-color, #f3e2a8);
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--character-hint-color, #f3e2a8) 70%, #000 10%);
 }
 
 :deep(.banned-word-decoration) {
   text-decoration-line: underline;
   text-decoration-style: wavy;
-  text-decoration-color: #c2413a;
-  text-decoration-thickness: 1px;
+  text-decoration-color: var(--banned-word-color, #c2413a);
+  text-decoration-thickness: 1.5px;
   text-underline-offset: 3px;
+  background: color-mix(in srgb, var(--banned-word-color, #c2413a) 12%, transparent);
+  border-radius: 2px;
+  cursor: help;
+}
+
+:deep(.banned-word-decoration:focus),
+:deep(.banned-word-decoration:hover) {
+  outline: 1px solid color-mix(in srgb, var(--banned-word-color, #c2413a) 55%, transparent);
+  outline-offset: 1px;
 }
 
 /* 编辑区右上角固定容器，保证按钮始终在编辑区右上角 */

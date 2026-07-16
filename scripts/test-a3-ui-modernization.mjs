@@ -44,7 +44,9 @@ const marketEmpty = fs.readFileSync(
   'src/renderer/src/components/Market/MarketEmptyState.js',
   'utf8'
 )
-assert.match(marketEmpty, /UiEmptyState/)
+// main 线市场空态保留 reason/offline 动作；UiEmptyState 用于书架等其他入口
+assert.match(marketEmpty, /market-empty/)
+assert.match(marketEmpty, /reason/)
 
 const book = fs.readFileSync('src/renderer/src/components/Book.vue', 'utf8')
 assert.match(book, /--theme-card-radius/)
@@ -85,9 +87,14 @@ assert.match(visualCss, /#0a84ff/)
 assert.match(visualCss, /#1c1c1e/)
 
 const themeStore = fs.readFileSync('src/renderer/src/stores/theme.js', 'utf8')
-assert.match(themeStore, /data-color-scheme/)
-assert.match(themeStore, /dataset\.colorScheme/)
-assert.match(themeStore, /dataset\.theme/)
+assert.match(themeStore, /setVisualStyle/)
+assert.match(themeStore, /VISUAL_STYLE_STORAGE_KEY/)
+assert.match(themeStore, /themeService/)
+
+const themeService = fs.readFileSync('src/renderer/src/service/themeService.js', 'utf8')
+assert.match(themeService, /data-color-scheme/)
+assert.match(themeService, /dataset\.colorScheme/)
+assert.match(themeService, /dataset\.theme/)
 
 const fontCss = fs.readFileSync(
   'src/renderer/src/assets/fonts/visual-style-fonts.css',

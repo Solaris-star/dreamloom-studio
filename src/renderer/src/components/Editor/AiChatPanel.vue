@@ -237,9 +237,11 @@ async function scrollToBottom() {
   height: 100%;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
-  transition: width 0.2s;
+  border-left: 1px solid var(--border-color, var(--el-border-color-lighter));
+  background: var(--bg-soft, var(--el-bg-color));
+  color: var(--text-base);
+  transition: width 0.2s, background-color var(--theme-transition-duration, 0s) ease,
+    border-color var(--theme-transition-duration, 0s) ease;
 
   &.collapsed {
     width: 40px;
@@ -252,17 +254,18 @@ async function scrollToBottom() {
   justify-content: space-between;
   padding: 10px 12px;
   cursor: pointer;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--border-color, var(--el-border-color-lighter));
   user-select: none;
+  background: var(--bg-soft);
 
   .header-title {
     font-size: 14px;
     font-weight: 600;
-    color: var(--el-text-color-primary);
+    color: var(--text-base, var(--el-text-color-primary));
   }
 
   .header-toggle {
-    color: var(--el-text-color-secondary);
+    color: var(--text-secondary, var(--el-text-color-secondary));
   }
 }
 
@@ -276,7 +279,8 @@ async function scrollToBottom() {
 
 .chat-preset-row {
   padding: 8px 12px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--border-color, var(--el-border-color-lighter));
+  background: var(--bg-soft);
 }
 
 .chat-preset-error {
@@ -320,8 +324,8 @@ async function scrollToBottom() {
     justify-content: flex-start;
 
     .message-bubble {
-      background: var(--el-fill-color-light);
-      color: var(--el-text-color-regular);
+      background: var(--bg-mute, var(--el-fill-color-light));
+      color: var(--text-base, var(--el-text-color-regular));
     }
   }
 
@@ -339,14 +343,15 @@ async function scrollToBottom() {
 .chat-empty {
   text-align: center;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary, var(--el-text-color-secondary));
   padding: 20px 0;
 }
 
 .chat-input-area {
   flex-shrink: 0;
   padding: 8px 12px;
-  border-top: 1px solid var(--el-border-color-lighter);
+  border-top: 1px solid var(--border-color, var(--el-border-color-lighter));
+  background: var(--bg-soft);
 }
 
 .chat-input-actions {

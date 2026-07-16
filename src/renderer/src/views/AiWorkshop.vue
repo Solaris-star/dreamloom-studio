@@ -33,7 +33,7 @@
     >
       <div class="panel-title">
         <div>
-          <h2>Prompt 模板</h2>
+          <h2>{{ t('aiWorkshopUi.promptTemplates') }}</h2>
           <p>管理真实可用的提示词模板，写作时可以直接选用。</p>
         </div>
         <el-button
@@ -53,7 +53,7 @@
       </p>
       <el-empty
         v-else-if="!promptPresets.length"
-        description="暂无 Prompt 模板"
+        :description="t('aiWorkshopUi.emptyPromptTemplates')"
       />
       <div
         v-else
@@ -488,7 +488,7 @@
       </template>
       <div class="drawer-meta">
         <el-tag>{{ latestImageUrl ? '图像结果' : '文本结果' }}</el-tag>
-        <span>Token：{{ latestUsageText }}</span>
+        <span>{{ t('aiWorkshopUi.tokenUsage') }}：{{ latestUsageText }}</span>
       </div>
       <img
         v-if="latestImageUrl"
@@ -556,7 +556,7 @@
 </template>
 
 <script setup>
-import { computed, defineComponent, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, defineComponent, h, nextTick, onBeforeUnmount, onMounted, onActivated, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
@@ -732,8 +732,14 @@ const props = defineProps({
   }
 })
 
+defineOptions({ name: 'AiWorkshop' })
+
 const route = useRoute()
 const { t, te } = useI18n()
+const workshopHydrated = ref(false)
+const workshopLastLoadedAt = ref(0)
+const WORKSHOP_SOFT_TTL_MS = 45_000
+const HISTORY_PAGE_SIZE = 40
 
 const builtinPromptPresetI18nKeys = {
   'maliang-setting-tomato-web-novel': 'promptPreset.builtin.maliangTomatoWebNovel',
@@ -774,8 +780,8 @@ const aiPages = {
     description: '生成封面、人物图、场景图和道具图。'
   },
   prompts: {
-    label: 'Prompt 模板',
-    title: 'Prompt 模板',
+    label: '提示词模板',
+    title: '提示词模板',
     description: '管理可复用的提示词模板。'
   },
   history: {
@@ -1384,7 +1390,7 @@ watch(
 )
 
 onMounted(async () => {
-  await Promise.all([loadPrompts(), loadHistory(), loadContextData(), loadActiveProvider()])
+  await ensureWorkshopData()
   if (route.query.jobId) {
     activeTab.value = 'creation'
     activeToolKey.value = 'starter'
@@ -1395,6 +1401,20 @@ onMounted(async () => {
     selectDefaultPromptPreset()
   }
 })
+
+onActivated(async () => {
+  await ensureWorkshopData({ soft: true })
+})
+
+async function ensureWorkshopData({ soft = false } = {}) {
+  if (soft && workshopHydrated.value) {
+    const age = Date.now() - workshopLastLoadedAt.value
+    if (age < WORKSHOP_SOFT_TTL_MS) return
+  }
+  await Promise.all([loadPrompts(), loadHistory(), loadContextData(), loadActiveProvider()])
+  workshopHydrated.value = true
+  workshopLastLoadedAt.value = Date.now()
+}
 
 onBeforeUnmount(() => {
   stopGenerationTimer()
@@ -1494,21 +1514,21 @@ async function loadPrompts() {
         ? { includeAllBookPresets: true }
         : payload
     )
-    if (result?.success !== true) throw new Error(result?.message || '读取 Prompt 模板失败')
-    if (!Array.isArray(result.presets)) throw new Error('Prompt 模板返回格式异常')
+    if (result?.success !== true) throw new Error(result?.message || '读取提示词模板失败')
+    if (!Array.isArray(result.presets)) throw new Error(t('aiWorkshopUi.promptTemplatesLoadFailed'))
     promptPresets.value = result.presets
   } catch (error) {
     promptPresets.value = []
-    promptLoadError.value = `读取 Prompt 模板失败：${error?.message || '读取失败'}`
+    promptLoadError.value = `读取提示词模板失败：${error?.message || '读取失败'}`
   }
 }
 
 async function loadHistory() {
   historyLoadError.value = ''
   try {
-    const result = await listAiHistory({})
+    const result = await listAiHistory({ limit: HISTORY_PAGE_SIZE })
     if (!Array.isArray(result?.items)) throw new Error('生成历史返回格式异常')
-    historyItems.value = result.items
+    historyItems.value = result.items.slice(0, HISTORY_PAGE_SIZE)
   } catch (error) {
     historyItems.value = []
     historyLoadError.value = `读取生成历史失败：${error?.message || '读取失败'}`
@@ -1977,9 +1997,9 @@ async function runImageTool() {
 
 function readableAiError(message = '') {
   const text = String(message || '').trim()
-  if (/invalid api key/i.test(text)) return 'API Key 无效，请到系统设置检查文本模型配置。'
-  if (/api key/i.test(text)) return `API Key 配置异常：${text}`
-  if (/provider/i.test(text)) return `AI Provider 配置异常：${text}`
+  if (/invalid api key/i.test(text)) return t('aiWorkshopUi.invalidApiKey')
+  if (/api key/i.test(text)) return `密钥配置异常：${text}`
+  if (/provider/i.test(text)) return `AI 服务配置异常：${text}`
   return text || '生成失败'
 }
 

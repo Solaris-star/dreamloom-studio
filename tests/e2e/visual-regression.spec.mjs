@@ -149,3 +149,36 @@ test('手机创作台视觉基准', async ({ page }, testInfo) => {
   await expect(page.getByRole('dialog', { name: '创作工具' })).toBeVisible()
   await expectPageScreenshot(page, 'mobile-editor-tools.png')
 })
+
+test('宽屏创作台主题切换视觉基准', async ({ page, request }, testInfo) => {
+  test.skip(testInfo.project.name !== 'wide', '仅生成宽屏主题视觉基准')
+  const bookName = testBookName('wide')
+  await openEditor(page, bookName)
+
+  const themes = [
+    ['dark', 'wide-editor-theme-dark.png'],
+    ['eyecare', 'wide-editor-theme-eyecare.png'],
+    ['parchment', 'wide-editor-theme-parchment.png'],
+    ['light', 'wide-editor-theme-light.png']
+  ]
+
+  for (const [themeKey, screenshotName] of themes) {
+    await page.getByTestId('editor-theme').click()
+    await page.locator(`[data-theme-option="${themeKey}"]`).click()
+    await expect
+      .poll(async () => page.locator('html').getAttribute('data-theme'))
+      .toBe(themeKey)
+    await expect(page.locator('.ProseMirror')).toContainText(/夜雨落在青石长街上|天亮以后/)
+    await expectPageScreenshot(page, screenshotName)
+  }
+
+  await page.reload()
+  await expect(page.getByLabel('创作台快捷操作')).toBeVisible()
+  await expect
+    .poll(async () => page.locator('html').getAttribute('data-theme'))
+    .toBe('light')
+
+  const stored = await request.post('/api/store/get', { data: { key: 'config.theme' } })
+  const storedJson = await stored.json()
+  expect(storedJson.value).toBe('light')
+})

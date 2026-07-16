@@ -1,7 +1,10 @@
 <template>
   <div
     class="app-shell"
-    :class="{ 'studio-shell': isStudioRoute }"
+    :class="{
+      'studio-shell': isStudioRoute,
+      'sidebar-collapsed': sidebarCollapsed
+    }"
     :style="{
       '--sidebar-width': sidebarWidth + 'px',
       gridTemplateColumns: 'var(--sidebar-width) minmax(0, 1fr)'
@@ -13,16 +16,18 @@
     >跳到主要内容</a>
     <aside
       class="app-sidebar"
-      :class="{ collapsed: sidebarWidth < 100 }"
+      :class="{ collapsed: sidebarCollapsed }"
+      :aria-expanded="collapseAriaExpanded"
     >
       <div class="sidebar-content-wrapper">
-        <!-- Finder/Notes 布局：logo 与收缩按钮同排 -->
+        <!-- Finder/Notes 布局：logo 与侧栏开关同排 -->
         <div class="sidebar-header">
           <button
             v-motion-feedback
             class="app-logo"
             type="button"
             aria-label="首页"
+            title="首页"
             @click="router.push('/dashboard')"
           >
             <img
@@ -30,24 +35,40 @@
               alt="织梦工坊"
             >
           </button>
-          <button
-            v-motion-feedback
-            class="app-sidebar-toggle"
-            type="button"
-            data-testid="sidebar-collapse-toggle"
-            :aria-label="sidebarWidth < 100 ? '展开侧栏' : '收起侧栏'"
-            :title="sidebarWidth < 100 ? '展开侧栏' : '收起侧栏'"
-            @click="toggleSidebarCollapse"
+          <el-tooltip
+            :content="collapseToggleText"
+            placement="right"
+            :show-after="200"
+            :disabled="isMobileViewport"
+            :offset="12"
+            :show-arrow="false"
+            popper-class="app-nav-tooltip"
           >
-            <component
-              :is="sidebarWidth < 100 ? PanelLeftOpen : PanelLeftClose"
-              v-bind="iconProps"
-              aria-hidden="true"
-            />
-          </button>
+            <button
+              v-motion-feedback
+              class="app-sidebar-toggle"
+              type="button"
+              data-testid="sidebar-collapse-toggle"
+              :aria-label="collapseToggleText"
+              aria-controls="app-main-nav"
+              :title="collapseToggleText"
+              @click="toggleSidebarCollapse"
+            >
+              <span
+                class="app-menu-icon"
+                aria-hidden="true"
+              >
+                <component
+                  :is="sidebarCollapsed ? PanelLeftOpen : PanelLeftClose"
+                  v-bind="toggleIconProps"
+                />
+              </span>
+            </button>
+          </el-tooltip>
         </div>
 
         <nav
+          id="app-main-nav"
           class="app-menu"
           aria-label="主导航"
         >
@@ -56,28 +77,45 @@
             :key="item.key"
             class="app-menu-group"
           >
-            <button
-              v-motion-feedback
-              class="app-menu-item"
-              :class="{ active: isActive(item) }"
-              :aria-current="isActive(item) ? 'page' : undefined"
-              type="button"
-              @click="handleNavigate(item)"
+            <el-tooltip
+              :content="item.label"
+              placement="right"
+              :show-after="280"
+              :disabled="!sidebarCollapsed || isMobileViewport"
+              :offset="12"
+              :show-arrow="false"
+              popper-class="app-nav-tooltip"
             >
-              <span
-                class="app-menu-icon"
-                aria-hidden="true"
+              <button
+                v-motion-feedback
+                class="app-menu-item"
+                :class="{ active: isActive(item) }"
+                :aria-current="isActive(item) ? 'page' : undefined"
+                :aria-label="item.label"
+                :title="sidebarCollapsed ? item.label : undefined"
+                type="button"
+                :data-testid="`nav-item-${item.key}`"
+                @click="handleNavigate(item)"
               >
-                <component
-                  :is="item.icon"
-                  v-bind="iconProps"
-                />
-              </span>
-              <span class="app-menu-label">{{ item.label }}</span>
-            </button>
+                <span
+                  class="app-menu-icon"
+                  aria-hidden="true"
+                >
+                  <component
+                    :is="item.icon"
+                    v-bind="iconProps"
+                  />
+                </span>
+                <span class="app-menu-label">{{ item.label }}</span>
+              </button>
+            </el-tooltip>
 
             <div
-              v-if="subItemsFor(item).length && isActive(item)"
+              v-if="
+                subItemsFor(item).length &&
+                  isActive(item) &&
+                  (!sidebarCollapsed || isMobileViewport)
+              "
               class="app-submenu"
               :aria-label="`${item.label}子导航`"
             >
@@ -97,13 +135,17 @@
           </div>
         </nav>
 
-        <div class="app-sidebar-footer">
+        <div
+          v-if="!sidebarCollapsed"
+          class="app-sidebar-footer"
+        >
           <span>v{{ currentVersion || '-' }}</span>
         </div>
       </div>
-      <!-- Sidebar Resizer -->
       <div
+        v-if="!sidebarCollapsed"
         class="sidebar-resizer"
+        aria-hidden="true"
         @mousedown="startSidebarResize"
       />
     </aside>
@@ -128,7 +170,7 @@
         >
           <keep-alive
             :include="cachedRouteNames"
-            :max="5"
+            :max="8"
           >
             <component
               :is="Component"
@@ -142,12 +184,12 @@
 </template>
 
 <script setup>
-import { computed, markRaw, ref } from 'vue'
+import { computed, markRaw, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   BarChart2,
   BookOpen,
-  BookOpenText,
+  Home,
   Library,
   Map as MapIcon,
   PanelLeftClose,
@@ -158,6 +200,18 @@ import {
 } from 'lucide-vue-next'
 import { ElMessage } from 'element-plus'
 import { readBooksDir } from '@renderer/service/books'
+import {
+  MOBILE_MEDIA_QUERY,
+  SIDEBAR_COLLAPSED_WIDTH,
+  SIDEBAR_EXPANDED_MAX,
+  SIDEBAR_EXPANDED_MIN,
+  collapseToggleLabel,
+  isSidebarCollapsed,
+  nextSidebarWidthOnToggle,
+  readSidebarWidth,
+  rememberExpandedWidth,
+  writeSidebarWidth
+} from '@renderer/service/sidebarLayout'
 import { getStoreValue, setStoreValue } from '@renderer/service/webStore'
 import { pageBeforeEnter, pageEnter, pageLeave } from '@renderer/composables/useMotion'
 import brandLogoUrl from '@renderer/assets/images/logo_web.webp'
@@ -166,32 +220,40 @@ const route = useRoute()
 const router = useRouter()
 const currentVersion = ref(import.meta.env.VITE_APP_VERSION || 'web')
 const iconProps = { size: 20, strokeWidth: 2 }
-const cachedRouteNames = ['Editor']
+const toggleIconProps = { size: 18, strokeWidth: 2 }
+/** 与视图 `defineOptions({ name })` 一致；勿缓存 Auth / NotFound / 权限敏感页 */
+const cachedRouteNames = [
+  'Editor',
+  'Dashboard',
+  'CreationLibrary',
+  'AiWorkshop',
+  'OutlineManager'
+]
+const isMobileViewport = ref(false)
 
-const sidebarWidth = ref(Number(localStorage.getItem('sidebarWidth')) || 156)
+let mobileMediaQuery = null
 
+const sidebarWidth = ref(readSidebarWidth())
+const sidebarCollapsed = computed(() => isSidebarCollapsed(sidebarWidth.value))
+const collapseToggleText = computed(() => collapseToggleLabel(sidebarCollapsed.value))
+const collapseAriaExpanded = computed(() => (sidebarCollapsed.value ? 'false' : 'true'))
+
+// 主导航入口：中文文案、高频优先；不挂导入导出 / 小说下载
 const navigationItems = [
   {
     key: 'dashboard',
     label: '首页',
     path: '/dashboard',
     match: ['/dashboard'],
-    icon: markRaw(Library)
+    icon: markRaw(Home)
   },
   { key: 'editor', label: '创作台', path: '/editor', match: ['/editor'], icon: markRaw(BookOpen) },
-  {
-    key: 'maps',
-    label: '地图设计',
-    path: '/map-list',
-    match: ['/map-list', '/map-design'],
-    icon: markRaw(MapIcon)
-  },
   {
     key: 'knowledgeLibrary',
     label: '创作库',
     path: '/knowledge',
     match: ['/knowledge', '/knowledge-library', '/creative-library', '/books'],
-    icon: markRaw(BookOpenText)
+    icon: markRaw(Library)
   },
   {
     key: 'aiWorkshop',
@@ -199,6 +261,13 @@ const navigationItems = [
     path: '/ai/creation-starter',
     match: ['/ai'],
     icon: markRaw(Sparkles)
+  },
+  {
+    key: 'maps',
+    label: '地图设计',
+    path: '/map-list',
+    match: ['/map-list', '/map-design'],
+    icon: markRaw(MapIcon)
   },
   {
     key: 'market',
@@ -223,24 +292,48 @@ const navigationItems = [
   }
 ]
 
+// 侧栏子项只保留高频入口；完整分区仍由页面内二级导航承载
 const aiSubItems = [
   { label: '创作起笔', path: '/ai/creation-starter' },
   { label: '文本处理', path: '/ai/text-tools' },
   { label: '剧情规划', path: '/ai/plot' },
-  { label: '人物世界', path: '/ai/world' },
-  { label: '图像生成', path: '/ai/image' },
-  { label: '任务队列', path: '/ai/queue' },
-  { label: '提示词调用', path: '/ai/prompts' },
-  { label: '生成历史', path: '/ai/history' }
+  { label: '任务队列', path: '/ai/queue' }
 ]
 
 const knowledgeSubItems = [
   { label: '作品书架', path: '/knowledge' },
   { label: '素材箱', path: '/knowledge/materials' },
   { label: '图库', path: '/knowledge/images' },
-  { label: '提示词', path: '/knowledge/prompts' },
-  { label: '回收站', path: '/knowledge/trash' }
+  { label: '提示词', path: '/knowledge/prompts' }
 ]
+
+function persistSidebarWidth(width) {
+  sidebarWidth.value = writeSidebarWidth(width)
+}
+
+function syncMobileViewport() {
+  isMobileViewport.value = Boolean(mobileMediaQuery?.matches)
+}
+
+onMounted(() => {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
+  mobileMediaQuery = window.matchMedia(MOBILE_MEDIA_QUERY)
+  syncMobileViewport()
+  if (typeof mobileMediaQuery.addEventListener === 'function') {
+    mobileMediaQuery.addEventListener('change', syncMobileViewport)
+  } else if (typeof mobileMediaQuery.addListener === 'function') {
+    mobileMediaQuery.addListener(syncMobileViewport)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (!mobileMediaQuery) return
+  if (typeof mobileMediaQuery.removeEventListener === 'function') {
+    mobileMediaQuery.removeEventListener('change', syncMobileViewport)
+  } else if (typeof mobileMediaQuery.removeListener === 'function') {
+    mobileMediaQuery.removeListener(syncMobileViewport)
+  }
+})
 
 const isKnowledgeLibraryRoute = computed(
   () =>
@@ -402,6 +495,7 @@ async function writeLastActiveBookId(id) {
 }
 
 function startSidebarResize(e) {
+  if (sidebarCollapsed.value || isMobileViewport.value) return
   e.preventDefault()
   const startX = e.clientX
   const startWidth = sidebarWidth.value
@@ -411,12 +505,13 @@ function startSidebarResize(e) {
     const targetWidth = startWidth + delta
 
     if (targetWidth < 100) {
-      sidebarWidth.value = 64
-      localStorage.setItem('sidebarWidth', '64')
+      persistSidebarWidth(SIDEBAR_COLLAPSED_WIDTH)
     } else {
-      const clampedWidth = Math.max(120, Math.min(320, targetWidth))
-      sidebarWidth.value = clampedWidth
-      localStorage.setItem('sidebarWidth', String(clampedWidth))
+      const clampedWidth = Math.max(
+        SIDEBAR_EXPANDED_MIN,
+        Math.min(SIDEBAR_EXPANDED_MAX, targetWidth)
+      )
+      persistSidebarWidth(Math.round(clampedWidth))
     }
   }
 
@@ -430,20 +525,54 @@ function startSidebarResize(e) {
 }
 
 function toggleSidebarCollapse() {
-  if (sidebarWidth.value < 100) {
-    sidebarWidth.value = 156
-    localStorage.setItem('sidebarWidth', '156')
-  } else {
-    sidebarWidth.value = 64
-    localStorage.setItem('sidebarWidth', '64')
+  if (isMobileViewport.value) return
+  if (!sidebarCollapsed.value) {
+    rememberExpandedWidth(sidebarWidth.value)
   }
+  persistSidebarWidth(nextSidebarWidthOnToggle(sidebarWidth.value))
 }
 
 function routeViewKey(viewRoute) {
-  if (viewRoute?.name === 'Editor' || viewRoute?.name === 'EditorHome') {
-    return viewRoute.fullPath
+  const name = viewRoute?.name
+  // 编辑器按作品缓存，避免不同书籍状态串扰
+  if (name === 'Editor' || name === 'EditorHome') {
+    const bookId =
+      viewRoute.params?.bookId ||
+      (typeof viewRoute.query?.name === 'string' ? viewRoute.query.name : '') ||
+      'default'
+    return `Editor:${encodeURIComponent(String(bookId))}`
   }
 
+  // 多路由共用同一组件：用稳定 key 复用实例，section/mode 走 props 更新
+  if (
+    name === 'KnowledgeBookshelf' ||
+    name === 'KnowledgeMaterials' ||
+    name === 'KnowledgeImages' ||
+    name === 'KnowledgePrompts' ||
+    name === 'KnowledgeTrash'
+  ) {
+    return 'CreationLibrary'
+  }
+
+  if (
+    name === 'AiCreationStarter' ||
+    name === 'AiTextTools' ||
+    name === 'AiPlot' ||
+    name === 'AiWorld' ||
+    name === 'AiImage' ||
+    name === 'AiPrompts' ||
+    name === 'AiHistory'
+  ) {
+    return 'AiWorkshop'
+  }
+
+  if (name === 'Dashboard') return 'Dashboard'
+  if (name === 'OutlineManager') {
+    const book = typeof viewRoute.query?.name === 'string' ? viewRoute.query.name : ''
+    return `OutlineManager:${encodeURIComponent(book || 'default')}`
+  }
+
+  // 其余页面不进 keep-alive include；key 用 fullPath 即可
   return viewRoute?.fullPath || viewRoute?.path || 'route-view'
 }
 
@@ -468,7 +597,8 @@ function pageMotionOptions(el) {
 }
 
 function isSmallViewport() {
-  return typeof window !== 'undefined' && window.matchMedia?.('(max-width: 760px)').matches
+  if (mobileMediaQuery) return isMobileViewport.value
+  return typeof window !== 'undefined' && window.matchMedia?.(MOBILE_MEDIA_QUERY).matches
 }
 
 function isEditorRouteElement(el) {
@@ -485,15 +615,16 @@ function isEditorRouteElement(el) {
   overflow: hidden;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 82% 10%, rgba(111, 122, 104, 0.07), transparent 30%),
-    radial-gradient(circle at 35% 95%, rgba(138, 115, 93, 0.06), transparent 34%),
-    linear-gradient(90deg, rgba(58, 55, 49, 0.018) 1px, transparent 1px), #f5f3ef;
+    radial-gradient(circle at 82% 10%, color-mix(in srgb, var(--primary-color, #6f7a68) 12%, transparent), transparent 30%),
+    radial-gradient(circle at 35% 95%, color-mix(in srgb, var(--accent-color, #8a735d) 10%, transparent), transparent 34%),
+    linear-gradient(90deg, color-mix(in srgb, var(--text-base, #3a3731) 4%, transparent) 1px, transparent 1px),
+    var(--theme-app-background, var(--bg-primary, #f5f3ef));
   background-size:
     auto,
     auto,
     32px 32px,
     auto;
-  color: var(--wabi-ink);
+  color: var(--wabi-ink, var(--text-base, #2c2a26));
 }
 
 .skip-link {
@@ -520,14 +651,21 @@ function isEditorRouteElement(el) {
 }
 
 .app-sidebar {
-  position: relative; /* ensure absolute positioning of resizer */
+  position: relative;
   width: var(--sidebar-width);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--wabi-line);
+  border-right: 1px solid var(--wabi-line, var(--border-color, #e1e4e8));
   background:
-    linear-gradient(180deg, rgba(251, 250, 246, 0.96), rgba(240, 236, 227, 0.86)), var(--wabi-paper);
-  box-shadow: 10px 0 28px rgba(58, 55, 49, 0.04);
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bg-soft, #ffffff) 96%, transparent),
+      color-mix(in srgb, var(--bg-mute, #f1f3f5) 86%, transparent)
+    ),
+    var(--wabi-paper, var(--bg-soft, #fbfaf6));
+  box-shadow: 10px 0 28px color-mix(in srgb, var(--text-base, #3a3731) 8%, transparent);
+  color: var(--wabi-ink, var(--text-base, #2c2a26));
+  transition: width 0.18s ease;
 }
 
 .sidebar-content-wrapper {
@@ -540,35 +678,26 @@ function isEditorRouteElement(el) {
   box-sizing: border-box;
 }
 
-.sidebar-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin: 0 10px 14px;
-  min-height: 40px;
-}
-
 .app-logo {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  min-width: 0;
-  width: auto;
-  max-width: calc(100% - 44px);
-  margin: 0;
+  display: block;
+  width: 96px;
+  margin: 0 auto 16px;
   padding: 0;
   border: 0;
   background: transparent;
   cursor: pointer;
+  border-radius: 8px;
 
   img {
     display: block;
-    width: auto;
-    max-width: 100%;
-    height: 32px;
-    object-fit: contain;
+    width: 100%;
+    height: auto;
     filter: saturate(0.48) sepia(0.08) contrast(0.94);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(111, 122, 104, 0.55);
+    outline-offset: 2px;
   }
 }
 
@@ -576,6 +705,9 @@ function isEditorRouteElement(el) {
   display: flex;
   flex: 1;
   flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .app-menu-group {
@@ -588,6 +720,7 @@ function isEditorRouteElement(el) {
   display: flex;
   align-items: center;
   gap: 9px;
+  width: calc(100% - 20px);
   margin: 0 10px 8px;
   padding: 10px 12px;
   border: 1px solid transparent;
@@ -617,6 +750,11 @@ function isEditorRouteElement(el) {
     font-weight: 600;
     box-shadow: inset 3px 0 0 rgba(111, 122, 104, 0.56);
   }
+
+  &:focus-visible {
+    outline: 2px solid rgba(111, 122, 104, 0.55);
+    outline-offset: 2px;
+  }
 }
 
 .app-menu-label {
@@ -624,47 +762,8 @@ function isEditorRouteElement(el) {
   max-width: 86px;
   opacity: 1;
   white-space: nowrap;
-}
-
-.sidebar-collapse-control {
-  display: none;
-}
-
-.app-sidebar-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: var(--theme-control-radius, 10px);
-  background: transparent;
-  color: var(--wabi-ink-soft, #6b655c);
-  cursor: pointer;
-  transition:
-    background-color var(--theme-transition-duration, 180ms) ease,
-    border-color var(--theme-transition-duration, 180ms) ease,
-    color var(--theme-transition-duration, 180ms) ease,
-    transform var(--theme-transition-duration, 180ms) ease,
-    box-shadow var(--theme-transition-duration, 180ms) ease;
-
-  &:hover {
-    border-color: rgba(111, 122, 104, 0.22);
-    background: rgba(251, 250, 246, 0.72);
-    color: var(--wabi-moss-dark, #424f3c);
-    transform: var(--theme-button-transform-hover, translateY(-1px));
-  }
-
-  &:active {
-    transform: var(--theme-button-transform-active, translateY(0));
-  }
-
-  &:focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--el-color-primary, #52634b) 42%, transparent);
-    outline-offset: 2px;
-  }
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .app-submenu {
@@ -699,14 +798,96 @@ function isEditorRouteElement(el) {
     background: var(--theme-active-background);
     font-weight: 600;
   }
+
+  &:focus-visible {
+    outline: 2px solid rgba(111, 122, 104, 0.55);
+    outline-offset: 1px;
+  }
 }
 
 .app-menu-icon {
   display: inline-flex;
+  flex-shrink: 0;
   color: inherit;
 
   :deep(svg) {
     stroke: currentColor;
+  }
+}
+
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 10px 12px;
+}
+
+.sidebar-header .app-logo {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sidebar-header .app-sidebar-toggle {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--theme-control-radius, 10px);
+  background: transparent;
+  color: var(--wabi-ink-soft, #6b655c);
+  cursor: pointer;
+}
+
+.sidebar-header .app-sidebar-toggle:hover {
+  border-color: rgba(111, 122, 104, 0.22);
+  background: rgba(251, 250, 246, 0.72);
+  color: var(--wabi-moss-dark, #424f3c);
+}
+
+/* 侧栏开关已上移到 logo 旁，底部控制隐藏 */
+.sidebar-collapse-control {
+  display: none;
+}
+
+.sidebar-collapse-control {
+  display: flex;
+  justify-content: center;
+  padding: 4px 10px 8px;
+  margin-top: 4px;
+}
+
+.app-sidebar-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--wabi-ink-soft);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+
+  &:hover {
+    border-color: rgba(111, 122, 104, 0.22);
+    background: rgba(251, 250, 246, 0.72);
+    color: var(--wabi-moss-dark);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(111, 122, 104, 0.55);
+    outline-offset: 2px;
   }
 }
 
@@ -752,6 +933,88 @@ function isEditorRouteElement(el) {
   overflow: hidden;
 }
 
+.sidebar-resizer {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+
+  &::after {
+    content: '';
+    width: 2px;
+    height: 100%;
+    background-color: transparent;
+    transition: background-color 0.2s ease;
+  }
+
+  &:hover::after,
+  &:active::after {
+    background-color: rgba(111, 122, 104, 0.55);
+  }
+}
+
+.app-sidebar.collapsed {
+  .sidebar-header {
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 4px 12px;
+  }
+
+  .sidebar-header .app-logo {
+    width: 36px;
+    max-width: 36px;
+    justify-content: center;
+  }
+
+  .sidebar-header .app-sidebar-toggle {
+    width: 32px;
+    height: 32px;
+  }
+
+  .sidebar-content-wrapper {
+    padding: 14px 4px;
+  }
+
+  .app-logo {
+    width: 36px;
+    margin-bottom: 12px;
+  }
+
+  .app-menu-item {
+    justify-content: center;
+    width: calc(100% - 8px);
+    padding: 10px;
+    margin: 0 4px 8px;
+
+    .app-menu-icon {
+      margin: 0;
+    }
+  }
+
+  .app-menu-label {
+    display: none;
+  }
+
+  .app-submenu {
+    display: none;
+  }
+
+  .sidebar-collapse-control {
+    padding-inline: 4px;
+  }
+
+  .app-sidebar-toggle {
+    width: 40px;
+    height: 40px;
+  }
+}
+
 @media (max-width: 760px) {
   .app-shell {
     display: grid;
@@ -762,24 +1025,26 @@ function isEditorRouteElement(el) {
     overflow-x: clip;
   }
 
-  .app-sidebar {
+  .app-sidebar,
+  .app-sidebar.collapsed {
     position: fixed;
     z-index: 100;
     right: 0;
     bottom: 0;
     left: 0;
     display: block;
-    width: 100%;
-    height: 64px;
-    border-top: 1px solid var(--wabi-line);
+    width: 100% !important;
+    height: calc(64px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--wabi-line, var(--border-color, #e1e4e8));
     border-right: 0;
-    background: rgba(251, 250, 246, 0.98);
-    box-shadow: 0 -8px 24px rgba(58, 55, 49, 0.08);
+    background: color-mix(in srgb, var(--bg-soft, #fbfaf6) 98%, transparent);
+    box-shadow: 0 -8px 24px color-mix(in srgb, var(--text-base, #3a3731) 10%, transparent);
+    transition: none;
   }
 
   .sidebar-content-wrapper {
     height: 64px;
-    padding: 0;
+    padding: 0 !important;
     overflow: visible;
   }
 
@@ -788,7 +1053,7 @@ function isEditorRouteElement(el) {
   .sidebar-collapse-control,
   .app-sidebar-footer,
   .sidebar-resizer {
-    display: none;
+    display: none !important;
   }
 
   .app-menu {
@@ -810,15 +1075,17 @@ function isEditorRouteElement(el) {
     flex: 0 0 72px;
   }
 
-  .app-menu-item {
+  .app-menu-item,
+  .app-sidebar.collapsed .app-menu-item {
     flex: 1;
     flex-direction: column;
     justify-content: center;
     gap: 3px;
+    width: 100%;
     min-width: 72px;
     min-height: 64px;
-    margin: 0;
-    padding: 7px 4px 6px;
+    margin: 0 !important;
+    padding: 7px 4px 6px !important;
     border: 0;
     border-radius: 0;
     font-size: 11px;
@@ -829,17 +1096,18 @@ function isEditorRouteElement(el) {
     box-shadow: inset 0 -3px 0 rgba(111, 122, 104, 0.68);
   }
 
-  .app-menu-label {
-    display: block;
+  .app-menu-label,
+  .app-sidebar.collapsed .app-menu-label {
+    display: block !important;
     max-width: 68px;
   }
 
   .app-submenu {
     position: fixed;
     right: 0;
-    bottom: 64px;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
     left: 0;
-    display: flex;
+    display: flex !important;
     gap: 4px;
     margin: 0;
     padding: 8px 10px;
@@ -865,7 +1133,7 @@ function isEditorRouteElement(el) {
     height: auto;
     min-width: 0;
     overflow: visible;
-    padding: 16px 16px 80px;
+    padding: 16px 16px calc(80px + env(safe-area-inset-bottom, 0px));
   }
 
   .app-main.studio-main {
@@ -886,87 +1154,28 @@ function isEditorRouteElement(el) {
   :global(.el-overlay-message-box),
   :global(.el-overlay-dialog) {
     box-sizing: border-box;
-    padding-bottom: 64px;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   }
 
   .app-main.map-design-main {
     --map-design-left-offset: 0px;
   }
 }
+</style>
 
-.sidebar-resizer {
-  position: absolute;
-  top: 0;
-  right: -3px;
-  width: 6px;
-  height: 100%;
-  cursor: col-resize;
-  z-index: 100;
-  display: flex;
-  justify-content: center;
-
-  &::after {
-    content: '';
-    width: 2px;
-    height: 100%;
-    background-color: transparent;
-    transition: background-color 0.2s ease;
-  }
-
-  &:hover::after,
-  &:active::after {
-    background-color: rgba(99, 102, 241, 0.6); // primary theme highlight color
-  }
-}
-
-.app-sidebar.collapsed {
-  .sidebar-content-wrapper {
-    padding: 14px 4px;
-  }
-
-  .sidebar-header {
-    flex-direction: column;
-    justify-content: center;
-    gap: 8px;
-    margin: 0 4px 12px;
-  }
-
-  .app-logo {
-    width: 36px;
-    max-width: 36px;
-    margin: 0;
-    justify-content: center;
-
-    img {
-      width: 28px;
-      height: 28px;
-    }
-  }
-
-  .app-sidebar-toggle {
-    width: 32px;
-    height: 32px;
-  }
-
-  .app-menu-item {
-    justify-content: center;
-    padding: 10px;
-    margin: 0 4px 8px;
-
-    .app-menu-icon {
-      margin: 0;
-    }
-  }
-
-  .app-menu-label {
-    display: none;
-  }
-
-  .app-submenu {
-    display: none;
-  }
-  .app-sidebar-footer {
-    display: none;
-  }
+<style lang="scss">
+/* tooltip 挂到 body，需非 scoped；右偏移避免遮挡正文 */
+.app-nav-tooltip.el-popper {
+  z-index: 120 !important;
+  max-width: 140px;
+  padding: 6px 10px;
+  border: 1px solid rgba(111, 122, 104, 0.22);
+  border-radius: 8px;
+  background: rgba(251, 250, 246, 0.98);
+  box-shadow: 0 8px 20px rgba(58, 55, 49, 0.12);
+  color: var(--wabi-ink, #3a3731);
+  font-size: 12px;
+  line-height: 1.4;
+  pointer-events: none;
 }
 </style>

@@ -1,5 +1,8 @@
 <template>
-  <div class="import-export-page">
+  <div
+    class="import-export-page"
+    :class="{ embedded }"
+  >
     <div
       v-if="!embedded"
       class="module-local-actions"
@@ -20,10 +23,28 @@
       >
         <div class="panel-title">
           <div>
-            <h2>导入</h2>
-            <p>选择文件后自动解析书名和章节，确认无误后写入书库。</p>
+            <h2>导入作品</h2>
+            <p>选择文件后自动解析书名和章节，确认无误后写入书架。</p>
           </div>
           <FileUp :size="22" />
+        </div>
+
+        <div
+          v-if="importError"
+          class="read-error-card"
+          role="alert"
+        >
+          <strong>导入失败</strong>
+          <span>{{ importError }}</span>
+          <el-button
+            type="primary"
+            plain
+            :disabled="!importForm.base64 || importing || previewing"
+            :loading="previewing"
+            @click="retryImport"
+          >
+            重试
+          </el-button>
         </div>
 
         <div class="form-grid">
@@ -51,9 +72,21 @@
               :loading="importing"
               @click="handleImportBook"
             >
-              写入书库
+              写入书架
             </el-button>
           </div>
+        </div>
+
+        <div
+          v-if="importing || previewing"
+          class="status-box"
+        >
+          <el-progress
+            :percentage="importing ? 70 : 35"
+            :stroke-width="8"
+            :indeterminate="true"
+          />
+          <span>{{ importing ? '正在写入书架…' : '正在解析文件…' }}</span>
         </div>
 
         <div
@@ -77,6 +110,13 @@
             </article>
           </div>
         </div>
+        <div
+          v-else-if="!importForm.fileName && !importError"
+          class="soft-empty"
+        >
+          <strong>还没有选择导入文件</strong>
+          <span>支持 TXT / Markdown / DOCX，单文件不超过 50 MB。</span>
+        </div>
       </section>
 
       <section
@@ -85,8 +125,8 @@
       >
         <div class="panel-title">
           <div>
-            <h2>导出</h2>
-            <p>导出当前书籍为 TXT、Markdown，或生成完整项目包。</p>
+            <h2>导出作品</h2>
+            <p>导出当前作品为 TXT、Markdown，或生成完整项目包。</p>
           </div>
           <FileDown :size="22" />
         </div>
@@ -108,12 +148,31 @@
           </el-button>
         </div>
 
+        <div
+          v-if="exportError"
+          class="read-error-card"
+          role="alert"
+        >
+          <strong>导出失败</strong>
+          <span>{{ exportError }}</span>
+          <el-button
+            type="primary"
+            plain
+            :disabled="!exportForm.bookName || !!booksLoadError || exporting"
+            :loading="exporting"
+            @click="handleExport"
+          >
+            重试
+          </el-button>
+        </div>
+
         <div class="form-grid">
           <el-select
             v-model="exportForm.bookName"
             filterable
-            placeholder="选择书籍"
-            :disabled="!!booksLoadError"
+            placeholder="选择作品"
+            :disabled="!!booksLoadError || exporting"
+            @change="handleExportBookChange"
           >
             <el-option
               v-for="book in books"
@@ -122,7 +181,11 @@
               :value="book.name"
             />
           </el-select>
-          <el-radio-group v-model="exportForm.format">
+          <el-radio-group
+            v-model="exportForm.format"
+            :disabled="exporting"
+            @change="handleExportFormatChange"
+          >
             <el-radio-button label="txt">
               TXT
             </el-radio-button>
@@ -133,14 +196,67 @@
               项目包
             </el-radio-button>
           </el-radio-group>
+          <el-radio-group
+            v-model="exportForm.chapterScope"
+            :disabled="exporting || exportForm.format === 'project'"
+          >
+            <el-radio-button label="all">
+              全部章节
+            </el-radio-button>
+            <el-radio-button label="chapters">
+              指定章节
+            </el-radio-button>
+          </el-radio-group>
+          <el-select
+            v-if="exportForm.chapterScope === 'chapters' && exportForm.format !== 'project'"
+            v-model="exportForm.chapterTitles"
+            multiple
+            filterable
+            collapse-tags
+            collapse-tags-tooltip
+            placeholder="选择要导出的章节"
+            :loading="loadingChapters"
+            :disabled="exporting || !exportForm.bookName || !!chaptersLoadError"
+          >
+            <el-option
+              v-for="chapter in exportChapters"
+              :key="`${chapter.volumeName}/${chapter.title}`"
+              :label="chapter.label"
+              :value="chapter.title"
+            />
+          </el-select>
+          <div
+            v-if="chaptersLoadError"
+            class="inline-hint error"
+          >
+            {{ chaptersLoadError }}
+            <button
+              type="button"
+              @click="loadExportChapters(exportForm.bookName)"
+            >
+              重试
+            </button>
+          </div>
           <el-button
             type="primary"
-            :disabled="!exportForm.bookName || !!booksLoadError || exporting"
+            :disabled="!canExport || exporting"
             :loading="exporting"
             @click="handleExport"
           >
-            导出
+            {{ exporting ? '正在生成…' : '导出' }}
           </el-button>
+        </div>
+
+        <div
+          v-if="exporting"
+          class="status-box"
+        >
+          <el-progress
+            :percentage="exportProgress"
+            :stroke-width="8"
+            :status="exportProgress === 100 ? 'success' : undefined"
+          />
+          <span>{{ exportStatusText }}</span>
         </div>
 
         <div
@@ -149,7 +265,15 @@
         >
           <b>{{ lastExport.fileName }}</b>
           <span>{{ formatSize(lastExport.size) }}</span>
+          <span v-if="lastExport.chapterCount">{{ lastExport.chapterCount }} 章</span>
           <small :title="lastExport.filePath">{{ lastExport.filePath }}</small>
+        </div>
+        <div
+          v-else-if="!books.length && !booksLoadError"
+          class="soft-empty"
+        >
+          <strong>书架还没有作品</strong>
+          <span>先创建、导入或下载作品后，再来导出。</span>
         </div>
       </section>
 
@@ -160,7 +284,7 @@
         <div class="panel-title">
           <div>
             <h2>备份与恢复</h2>
-            <p>备份会生成 zip，恢复时可加入当前书库，也可写入新目录。</p>
+            <p>备份会生成 zip，恢复时可加入当前书架，也可写入新目录。</p>
           </div>
           <ArchiveRestore :size="22" />
         </div>
@@ -322,7 +446,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArchiveRestore, FileDown, FileUp, History, RefreshCw, Upload } from 'lucide-vue-next'
@@ -338,14 +462,25 @@ import {
   restoreLibraryBackup
 } from '../service/importExport'
 import { readBooksDir } from '../service/books'
+import { listChapterTree } from '../service/editor'
 
 const route = useRoute()
 const props = defineProps({
   embedded: {
     type: Boolean,
     default: false
+  },
+  section: {
+    type: String,
+    default: ''
+  },
+  initialBookName: {
+    type: String,
+    default: ''
   }
 })
+const emit = defineEmits(['imported', 'exported', 'restored'])
+
 const books = ref([])
 const tasks = ref([])
 const preview = ref(null)
@@ -359,7 +494,14 @@ const inspecting = ref(false)
 const restoring = ref(false)
 const loadingBooks = ref(false)
 const loadingTasks = ref(false)
+const loadingChapters = ref(false)
 const booksLoadError = ref('')
+const chaptersLoadError = ref('')
+const importError = ref('')
+const exportError = ref('')
+const exportProgress = ref(0)
+const exportStatusText = ref('')
+const exportChapters = ref([])
 
 const importForm = reactive({
   fileName: '',
@@ -369,7 +511,9 @@ const importForm = reactive({
 
 const exportForm = reactive({
   bookName: '',
-  format: 'txt'
+  format: 'txt',
+  chapterScope: 'all',
+  chapterTitles: []
 })
 
 const backupForm = reactive({
@@ -388,12 +532,24 @@ const restoreForm = reactive({
 const MAX_IMPORT_FILE_SIZE = 50 * 1024 * 1024
 
 const activeSection = computed(() => {
+  if (props.section && ['import', 'export', 'backup', 'jobs', 'all'].includes(props.section)) {
+    return props.section
+  }
   if (props.embedded) return 'all'
   const tab = String(route.query.tab || '')
   if (['import', 'export', 'backup', 'jobs'].includes(tab)) return tab
   const segment = route.path.split('/').filter(Boolean).at(-1)
   if (['import', 'export', 'backup', 'jobs'].includes(segment)) return segment
   return 'import'
+})
+
+const canExport = computed(() => {
+  if (!exportForm.bookName || booksLoadError.value || exporting.value) return false
+  if (exportForm.format === 'project') return true
+  if (exportForm.chapterScope === 'chapters') {
+    return exportForm.chapterTitles.length > 0 && !chaptersLoadError.value
+  }
+  return true
 })
 
 function showSection(section) {
@@ -484,6 +640,7 @@ async function handleImportFileChange(event) {
   const file = event.target.files?.[0]
   if (!file || previewing.value || importing.value) return
   preview.value = null
+  importError.value = ''
   importForm.fileName = file.name
   importForm.base64 = ''
   try {
@@ -496,7 +653,8 @@ async function handleImportFileChange(event) {
     importForm.base64 = await readFileAsBase64(file)
     await handlePreviewImport()
   } catch (error) {
-    ElMessage.error(error?.message || '读取导入文件失败')
+    importError.value = error?.message || '读取导入文件失败'
+    ElMessage.error(importError.value)
   } finally {
     event.target.value = ''
   }
@@ -529,12 +687,14 @@ function importPayload() {
 async function handlePreviewImport() {
   if (previewing.value || importing.value || !importForm.base64) return
   previewing.value = true
+  importError.value = ''
   try {
     const result = requirePreviewResult(await previewImportBook(importPayload()))
     preview.value = result
     ElMessage.success('章节预览已生成')
   } catch (error) {
-    ElMessage.error(error?.message || '预览失败')
+    importError.value = error?.message || '预览失败'
+    ElMessage.error(importError.value)
   } finally {
     previewing.value = false
   }
@@ -543,16 +703,78 @@ async function handlePreviewImport() {
 async function handleImportBook() {
   if (importing.value || previewing.value || !preview.value) return
   importing.value = true
+  importError.value = ''
   try {
     const result = requireImportedBookResult(await importBookFromFile(importPayload()))
     ElMessage.success(`已导入：${result.bookName}`)
     preview.value = null
     importForm.base64 = ''
+    importForm.fileName = ''
+    emit('imported', result)
     await loadData()
   } catch (error) {
-    ElMessage.error(error?.message || '导入失败')
+    importError.value = error?.message || '导入失败'
+    ElMessage.error(importError.value)
   } finally {
     importing.value = false
+  }
+}
+
+async function retryImport() {
+  if (!importForm.base64) return
+  if (preview.value) {
+    await handleImportBook()
+    return
+  }
+  await handlePreviewImport()
+}
+
+function flattenChapterOptions(tree = []) {
+  const rows = []
+  for (const volume of tree || []) {
+    const volumeName = volume?.name || volume?.title || '正文'
+    const children = Array.isArray(volume?.children) ? volume.children : []
+    for (const chapter of children) {
+      const title = chapter?.name || chapter?.title
+      if (!title) continue
+      rows.push({
+        volumeName,
+        title,
+        label: `${volumeName} / ${title}`
+      })
+    }
+  }
+  return rows
+}
+
+async function loadExportChapters(bookName) {
+  const target = String(bookName || '').trim()
+  exportChapters.value = []
+  chaptersLoadError.value = ''
+  if (!target) return
+  loadingChapters.value = true
+  try {
+    const tree = await listChapterTree(target)
+    exportChapters.value = flattenChapterOptions(tree)
+  } catch (error) {
+    chaptersLoadError.value = error?.message || '读取章节失败'
+  } finally {
+    loadingChapters.value = false
+  }
+}
+
+async function handleExportBookChange(bookName) {
+  exportForm.chapterTitles = []
+  exportError.value = ''
+  if (exportForm.chapterScope === 'chapters') {
+    await loadExportChapters(bookName)
+  }
+}
+
+function handleExportFormatChange(format) {
+  if (format === 'project') {
+    exportForm.chapterScope = 'all'
+    exportForm.chapterTitles = []
   }
 }
 
@@ -562,19 +784,45 @@ async function handleExport() {
     ElMessage.error(booksLoadError.value)
     return
   }
+  if (!canExport.value) {
+    ElMessage.warning(
+      exportForm.chapterScope === 'chapters' ? '请选择要导出的章节' : '请选择作品'
+    )
+    return
+  }
   exporting.value = true
+  exportError.value = ''
+  exportProgress.value = 18
+  exportStatusText.value = '正在准备导出…'
   try {
-    const result = requireDownloadResult(await exportBookFile({ ...exportForm }), '导出失败')
+    const payload = {
+      bookName: exportForm.bookName,
+      format: exportForm.format,
+      chapterScope: exportForm.format === 'project' ? 'all' : exportForm.chapterScope
+    }
+    if (payload.chapterScope === 'chapters') {
+      payload.chapterTitles = [...exportForm.chapterTitles]
+    }
+    exportProgress.value = 48
+    exportStatusText.value = '正在生成文件…'
+    const result = requireDownloadResult(await exportBookFile(payload), '导出失败')
+    exportProgress.value = 88
+    exportStatusText.value = '正在下载文件…'
     lastExport.value = result
     if (result.downloadBase64) {
       downloadBase64File(result.fileName, result.downloadBase64, result.mimeType)
     } else {
       downloadTextFile(result.fileName, result.content, result.mimeType)
     }
+    exportProgress.value = 100
+    exportStatusText.value = '导出完成'
     ElMessage.success('导出完成')
+    emit('exported', result)
     await loadTasks()
   } catch (error) {
-    ElMessage.error(error?.message || '导出失败')
+    exportError.value = error?.message || '导出失败'
+    exportStatusText.value = exportError.value
+    ElMessage.error(exportError.value)
   } finally {
     exporting.value = false
   }
@@ -663,6 +911,7 @@ async function handleRestoreBackup() {
       ElMessage.success(`已恢复到：${result.targetDir}`)
     }
     restoreSummary.value = null
+    emit('restored', result)
     await loadData()
   } catch (error) {
     ElMessage.error(error?.message || '恢复失败')
@@ -691,8 +940,16 @@ async function loadBooks() {
   } finally {
     loadingBooks.value = false
   }
-  if (!exportForm.bookName && books.value[0]) exportForm.bookName = books.value[0].name
-  if (!backupForm.bookName && books.value[0]) backupForm.bookName = books.value[0].name
+  const preferred =
+    String(props.initialBookName || '').trim() ||
+    String(route.query.name || route.query.bookName || '').trim()
+  if (preferred && books.value.some((book) => book.name === preferred)) {
+    exportForm.bookName = preferred
+    backupForm.bookName = preferred
+  } else {
+    if (!exportForm.bookName && books.value[0]) exportForm.bookName = books.value[0].name
+    if (!backupForm.bookName && books.value[0]) backupForm.bookName = books.value[0].name
+  }
 }
 
 async function retryLoadBooks() {
@@ -747,12 +1004,45 @@ function formatDate(value) {
   return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString()
 }
 
+watch(
+  () => [activeSection.value, exportForm.chapterScope, exportForm.bookName],
+  async ([section, chapterScope, bookName]) => {
+    if (section !== 'export' && section !== 'all') return
+    if (chapterScope !== 'chapters' || !bookName) return
+    if (exportChapters.value.length && !chaptersLoadError.value) return
+    await loadExportChapters(bookName)
+  }
+)
+
+watch(
+  () => props.initialBookName,
+  (value) => {
+    const name = String(value || '').trim()
+    if (!name) return
+    if (books.value.some((book) => book.name === name)) {
+      exportForm.bookName = name
+      backupForm.bookName = name
+    }
+  }
+)
+
 onMounted(loadData)
 </script>
 
 <style lang="scss" scoped>
 .import-export-page {
   color: var(--text-base);
+
+  &.embedded {
+    .tool-layout {
+      gap: 14px;
+    }
+
+    .panel {
+      box-shadow: none;
+      border: 1px solid var(--border-color);
+    }
+  }
 }
 
 .module-local-actions {
@@ -856,11 +1146,57 @@ onMounted(loadData)
 }
 
 .preview-box,
-.result-box {
+.result-box,
+.status-box,
+.soft-empty {
   margin-top: 16px;
   background: var(--bg-primary);
   border-radius: 8px;
   padding: 14px;
+}
+
+.status-box {
+  display: grid;
+  gap: 8px;
+
+  span {
+    color: var(--text-gray);
+    font-size: 13px;
+  }
+}
+
+.soft-empty {
+  display: grid;
+  gap: 6px;
+
+  strong {
+    font-size: 14px;
+  }
+
+  span {
+    color: var(--text-gray);
+    line-height: 1.6;
+  }
+}
+
+.inline-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-gray);
+
+  &.error {
+    color: #7b3f31;
+  }
+
+  button {
+    border: 0;
+    background: transparent;
+    color: var(--primary-color);
+    cursor: pointer;
+    padding: 0;
+  }
 }
 
 .restore-book-list {

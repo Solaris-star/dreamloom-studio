@@ -3,9 +3,9 @@
     <header class="queue-header">
       <div>
         <p class="queue-eyebrow">
-          BullMQ / Redis
+          {{ t('agentQueue.eyebrow') }}
         </p>
-        <h1>Agent 任务队列</h1>
+        <h1>{{ t('agentQueue.title') }}</h1>
       </div>
       <div class="queue-actions">
         <el-button
@@ -13,7 +13,7 @@
           :loading="loading"
           @click="refreshQueue"
         >
-          刷新
+          {{ t('agentQueue.refresh') }}
         </el-button>
       </div>
     </header>
@@ -31,23 +31,23 @@
       aria-live="polite"
     >
       <article class="summary-cell">
-        <span>队列</span>
+        <span>{{ t('agentQueue.queue') }}</span>
         <strong>{{ queueNameText }}</strong>
       </article>
       <article class="summary-cell">
-        <span>等待</span>
+        <span>{{ t('agentQueue.waiting') }}</span>
         <strong>{{ countText('waiting') }}</strong>
       </article>
       <article class="summary-cell">
-        <span>运行</span>
+        <span>{{ t('agentQueue.running') }}</span>
         <strong>{{ countText('active') }}</strong>
       </article>
       <article class="summary-cell">
-        <span>失败</span>
+        <span>{{ t('agentQueue.failed') }}</span>
         <strong>{{ countText('failed') }}</strong>
       </article>
       <article class="summary-cell">
-        <span>Worker</span>
+        <span>{{ t('agentQueue.worker') }}</span>
         <strong>{{ workerText }}</strong>
       </article>
     </section>
@@ -56,7 +56,7 @@
       <section class="queue-panel">
         <div class="panel-head">
           <div>
-            <h2>最近任务</h2>
+            <h2>{{ t('agentQueue.recentJobs') }}</h2>
             <p>{{ jobsSummaryText }}</p>
           </div>
           <el-select
@@ -66,27 +66,27 @@
             @change="refreshQueue"
           >
             <el-option
-              label="全部状态"
+              :label="t('agentQueue.allStates')"
               value="all"
             />
             <el-option
-              label="等待中"
+              :label="t('agentQueue.stateWaiting')"
               value="waiting"
             />
             <el-option
-              label="运行中"
+              :label="t('agentQueue.stateActive')"
               value="active"
             />
             <el-option
-              label="已完成"
+              :label="t('agentQueue.stateCompleted')"
               value="completed"
             />
             <el-option
-              label="失败"
+              :label="t('agentQueue.stateFailed')"
               value="failed"
             />
             <el-option
-              label="延时"
+              :label="t('agentQueue.stateDelayed')"
               value="delayed"
             />
           </el-select>
@@ -94,7 +94,7 @@
 
         <el-empty
           v-if="!loading && !jobs.length && !errorText"
-          description="暂无队列任务"
+          :description="t('agentQueue.emptyJobs')"
         />
         <div
           v-else
@@ -123,8 +123,8 @@
       <aside class="queue-panel detail-panel">
         <div class="panel-head">
           <div>
-            <h2>任务详情</h2>
-            <p>{{ selectedJobId || '请选择一个任务' }}</p>
+            <h2>{{ t('agentQueue.detailTitle') }}</h2>
+            <p>{{ selectedJobId || t('agentQueue.selectJob') }}</p>
           </div>
           <el-button
             v-if="canCancelSelectedJob"
@@ -134,7 +134,7 @@
             :loading="cancelling"
             @click="cancelSelectedJob"
           >
-            停止
+            {{ t('agentQueue.stop') }}
           </el-button>
           <el-button
             v-if="canRetrySelectedJob"
@@ -144,7 +144,7 @@
             :loading="retrying"
             @click="retrySelectedJob"
           >
-            重试
+            {{ t('agentQueue.retry') }}
           </el-button>
         </div>
 
@@ -162,7 +162,7 @@
         />
         <el-empty
           v-else-if="!selectedJob"
-          description="暂无任务详情"
+          :description="t('agentQueue.emptyDetail')"
         />
         <div
           v-else
@@ -170,31 +170,31 @@
         >
           <dl class="detail-list">
             <div>
-              <dt>状态</dt>
+              <dt>{{ t('agentQueue.status') }}</dt>
               <dd>{{ stateText(selectedJob.state) }}</dd>
             </div>
             <div>
-              <dt>名称</dt>
-              <dd>{{ selectedJob.name || '未记录' }}</dd>
+              <dt>{{ t('agentQueue.name') }}</dt>
+              <dd>{{ selectedJob.name || t('agentQueue.notRecorded') }}</dd>
             </div>
             <div>
-              <dt>尝试次数</dt>
+              <dt>{{ t('agentQueue.attempts') }}</dt>
               <dd>{{ attemptsText(selectedJob) }}</dd>
             </div>
             <div>
-              <dt>等待设置</dt>
+              <dt>{{ t('agentQueue.backoff') }}</dt>
               <dd>{{ backoffText(selectedJob) }}</dd>
             </div>
             <div>
-              <dt>进度</dt>
+              <dt>{{ t('agentQueue.progress') }}</dt>
               <dd>{{ valueText(selectedJob.progress) }}</dd>
             </div>
             <div>
-              <dt>开始时间</dt>
+              <dt>{{ t('agentQueue.startedAt') }}</dt>
               <dd>{{ formatTime(selectedJob.processedOn) }}</dd>
             </div>
             <div>
-              <dt>结束时间</dt>
+              <dt>{{ t('agentQueue.finishedAt') }}</dt>
               <dd>{{ formatTime(selectedJob.finishedOn) }}</dd>
             </div>
           </dl>
@@ -203,12 +203,12 @@
             v-if="selectedJob.failedReason"
             class="detail-note"
           >
-            <h3>失败原因</h3>
+            <h3>{{ t('agentQueue.failedReason') }}</h3>
             <p>{{ selectedJob.failedReason }}</p>
           </section>
 
           <section class="detail-note">
-            <h3>任务参数</h3>
+            <h3>{{ t('agentQueue.jobData') }}</h3>
             <pre>{{ prettyJson(selectedJob.data) }}</pre>
           </section>
 
@@ -216,7 +216,7 @@
             v-if="selectedJob.returnvalue"
             class="detail-note"
           >
-            <h3>返回结果</h3>
+            <h3>{{ t('agentQueue.returnValue') }}</h3>
             <pre>{{ prettyJson(selectedJob.returnvalue) }}</pre>
           </section>
         </div>
@@ -228,6 +228,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { RefreshCw, RotateCcw, Square } from 'lucide-vue-next'
 import {
   cancelAgentQueueJob,
@@ -237,6 +238,7 @@ import {
   retryAgentQueueJob
 } from '@renderer/service/editor'
 
+const { t, locale } = useI18n()
 const loading = ref(false)
 const detailLoading = ref(false)
 const cancelling = ref(false)
@@ -249,20 +251,22 @@ const errorText = ref('')
 const detailError = ref('')
 const selectedType = ref('all')
 
-const queueNameText = computed(() => queueStatus.value?.queueName || '未连接')
+const queueNameText = computed(() => queueStatus.value?.queueName || t('agentQueue.notConnected'))
 const workerText = computed(() => {
-  if (!queueStatus.value) return '未读取'
+  if (!queueStatus.value) return t('agentQueue.notLoaded')
   const count = Number(queueStatus.value.workerCount || 0)
-  return count > 0 ? `${count} 个` : '无'
+  return count > 0 ? t('agentQueue.workersCount', { count }) : t('agentQueue.none')
 })
 const canCancelSelectedJob = computed(
   () => selectedJob.value && !['completed', 'failed'].includes(selectedJob.value.state)
 )
 const canRetrySelectedJob = computed(() => selectedJob.value?.state === 'failed')
 const jobsSummaryText = computed(() => {
-  if (loading.value) return '正在读取 Redis 任务'
-  if (errorText.value) return '队列读取失败'
-  return jobs.value.length ? `读取到 ${jobs.value.length} 个 Redis 任务` : '没有读取到 Redis 任务'
+  if (loading.value) return t('agentQueue.loadingJobs')
+  if (errorText.value) return t('agentQueue.loadQueueFailed')
+  return jobs.value.length
+    ? t('agentQueue.jobsCount', { count: jobs.value.length })
+    : t('agentQueue.noJobs')
 })
 
 onMounted(refreshQueue)
@@ -287,14 +291,14 @@ async function refreshQueue() {
       } else {
         selectedJobId.value = ''
         selectedJob.value = null
-        detailError.value = '当前筛选结果中没有这个任务，请重新选择。'
+        detailError.value = t('agentQueue.filterMiss')
       }
     }
   } catch (error) {
     queueStatus.value = null
     jobs.value = []
     selectedJob.value = null
-    errorText.value = error?.message || '读取队列失败'
+    errorText.value = error?.message || t('agentQueue.loadQueueError')
   } finally {
     loading.value = false
   }
@@ -310,12 +314,12 @@ async function loadJob(jobId, options = {}) {
   try {
     const response = await getAgentQueueJob(id)
     if (!response?.job) {
-      detailError.value = '未在 Redis 队列中找到这个任务。'
+      detailError.value = t('agentQueue.jobNotFound')
       return
     }
     selectedJob.value = response.job
   } catch (error) {
-    detailError.value = error?.message || '读取任务详情失败'
+    detailError.value = error?.message || t('agentQueue.loadDetailFailed')
     if (!options.quiet) ElMessage.error(detailError.value)
   } finally {
     detailLoading.value = false
@@ -326,15 +330,11 @@ async function cancelSelectedJob() {
   if (!selectedJobId.value || !selectedJob.value || cancelling.value) return
   cancelling.value = true
   try {
-    await ElMessageBox.confirm(
-      '停止会移除等待中的任务，运行中的任务会向 worker 发出停止请求。',
-      '停止队列任务',
-      {
-        type: 'warning',
-        confirmButtonText: '停止',
-        cancelButtonText: '取消'
-      }
-    )
+    await ElMessageBox.confirm(t('agentQueue.stopConfirm'), t('agentQueue.stopTitle'), {
+      type: 'warning',
+      confirmButtonText: t('agentQueue.stop'),
+      cancelButtonText: t('common.cancel')
+    })
   } catch {
     cancelling.value = false
     return
@@ -344,11 +344,13 @@ async function cancelSelectedJob() {
       jobId: selectedJobId.value,
       bookName: selectedJob.value.data?.bookName || ''
     })
-    ElMessage.success(result.cancellationRequested ? '已请求停止任务' : '任务已停止')
+    ElMessage.success(
+      result.cancellationRequested ? t('agentQueue.stopRequested') : t('agentQueue.stopped')
+    )
     await refreshQueue()
     if (selectedJobId.value) await loadJob(selectedJobId.value, { quiet: true })
   } catch (error) {
-    ElMessage.error(error?.message || '停止任务失败')
+    ElMessage.error(error?.message || t('agentQueue.stopFailed'))
   } finally {
     cancelling.value = false
   }
@@ -358,10 +360,10 @@ async function retrySelectedJob() {
   if (!selectedJobId.value || selectedJob.value?.state !== 'failed' || retrying.value) return
   retrying.value = true
   try {
-    await ElMessageBox.confirm('任务会回到等待队列，并从头重新执行。', '重试队列任务', {
+    await ElMessageBox.confirm(t('agentQueue.retryConfirm'), t('agentQueue.retryTitle'), {
       type: 'warning',
-      confirmButtonText: '重试',
-      cancelButtonText: '取消'
+      confirmButtonText: t('agentQueue.retry'),
+      cancelButtonText: t('common.cancel')
     })
   } catch {
     retrying.value = false
@@ -372,10 +374,10 @@ async function retrySelectedJob() {
       jobId: selectedJobId.value,
       bookName: selectedJob.value.data?.bookName || ''
     })
-    ElMessage.success('任务已重新加入队列')
+    ElMessage.success(t('agentQueue.retrySuccess'))
     await refreshQueue()
   } catch (error) {
-    ElMessage.error(error?.message || '重试任务失败')
+    ElMessage.error(error?.message || t('agentQueue.retryFailed'))
   } finally {
     retrying.value = false
   }
@@ -388,20 +390,20 @@ function countText(key) {
 
 function stateText(state = '') {
   const map = {
-    waiting: '等待中',
-    active: '运行中',
-    delayed: '延时',
-    completed: '已完成',
-    failed: '失败',
-    paused: '已暂停',
-    waiting_children: '等待子任务'
+    waiting: t('agentQueue.stateWaiting'),
+    active: t('agentQueue.stateActive'),
+    delayed: t('agentQueue.stateDelayed'),
+    completed: t('agentQueue.stateCompleted'),
+    failed: t('agentQueue.stateFailed'),
+    paused: t('agentQueue.statePaused'),
+    waiting_children: t('agentQueue.stateWaitingChildren')
   }
-  return map[state] || state || '未记录'
+  return map[state] || state || t('agentQueue.notRecorded')
 }
 
 function jobTitle(job = {}) {
   const data = job.data || {}
-  return data.chapterName || data.chapter || data.bookName || job.name || job.id || '队列任务'
+  return data.chapterName || data.chapter || data.bookName || job.name || job.id || t('agentQueue.queueJob')
 }
 
 function attemptsText(job = {}) {
@@ -412,21 +414,24 @@ function attemptsText(job = {}) {
 
 function backoffText(job = {}) {
   const backoff = job.backoff || null
-  if (!backoff || typeof backoff !== 'object') return '未设置'
+  if (!backoff || typeof backoff !== 'object') return t('agentQueue.notSet')
   const delay = Number(backoff.delay || 0)
-  const type = backoff.type === 'exponential' ? '指数等待' : backoff.type || '等待'
+  const type =
+    backoff.type === 'exponential'
+      ? t('agentQueue.exponentialBackoff')
+      : backoff.type || t('agentQueue.backoffWait')
   if (!Number.isFinite(delay) || delay <= 0) return type
   return `${type} ${delay}ms`
 }
 
 function valueText(value) {
-  if (value == null || value === '') return '未记录'
+  if (value == null || value === '') return t('agentQueue.notRecorded')
   if (typeof value === 'string') return value
   return prettyJson(value)
 }
 
 function prettyJson(value) {
-  if (value == null || value === '') return '未记录'
+  if (value == null || value === '') return t('agentQueue.notRecorded')
   if (typeof value === 'string') return value
   try {
     return JSON.stringify(value, null, 2)
@@ -436,10 +441,11 @@ function prettyJson(value) {
 }
 
 function formatTime(value) {
-  if (!value) return '未记录'
+  if (!value) return t('agentQueue.notRecorded')
   const timestamp = typeof value === 'number' ? value : Date.parse(value)
-  if (!Number.isFinite(timestamp)) return '未记录'
-  return new Date(timestamp).toLocaleString('zh-CN')
+  if (!Number.isFinite(timestamp)) return t('agentQueue.notRecorded')
+  const localeTag = String(locale.value || 'zh-CN').startsWith('en') ? 'en-US' : 'zh-CN'
+  return new Date(timestamp).toLocaleString(localeTag)
 }
 </script>
 
