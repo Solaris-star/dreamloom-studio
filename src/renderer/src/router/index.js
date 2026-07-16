@@ -37,11 +37,32 @@ const settingsSectionTitleMap = {
   about: '系统设置 · 关于'
 }
 
-const importExportSectionTitleMap = {
-  import: '导入导出 · 导入',
-  export: '导入导出 · 导出',
-  backup: '导入导出 · 备份',
-  jobs: '导入导出 · 任务'
+const bookshelfTabTitleMap = {
+  works: '创作库 · 作品书架',
+  import: '作品书架 · 导入作品',
+  export: '作品书架 · 导出作品',
+  download: '作品书架 · 下载小说',
+  backup: '作品书架 · 备份恢复',
+  jobs: '作品书架 · 任务记录'
+}
+
+function bookshelfTabFromQuery(query = {}) {
+  const tab = String(query?.tab || '').trim()
+  if (['works', 'import', 'export', 'download', 'backup', 'jobs'].includes(tab)) return tab
+  if (query?.import === 'novel') return 'download'
+  if (query?.import === 'local') return 'import'
+  return 'works'
+}
+
+function redirectToBookshelfTab(tab, query = {}) {
+  const nextQuery = { ...query }
+  delete nextQuery.import
+  if (tab && tab !== 'works') nextQuery.tab = tab
+  else delete nextQuery.tab
+  return {
+    path: '/knowledge',
+    query: nextQuery
+  }
 }
 
 function withTitle(route, title) {
@@ -181,14 +202,11 @@ const legacyWorkbenchRoutes = [
     },
     '组织设计'
   ),
-  withTitle(
-    {
-      path: 'novel-download',
-      name: 'NovelDownload',
-      component: () => import('@renderer/views/NovelDownload.vue')
-    },
-    '小说下载'
-  ),
+  {
+    path: 'novel-download',
+    name: 'NovelDownload',
+    redirect: (to) => redirectToBookshelfTab('download', to.query)
+  },
   withTitle(
     {
       path: 'user-guide',
@@ -284,7 +302,8 @@ const knowledgeRoutes = [
       name: 'KnowledgeBookshelf',
       component: () => import('@renderer/views/CreationLibrary.vue')
     },
-    '创作库 · 作品书架'
+    (to) =>
+      titleFromMap(bookshelfTabFromQuery(to.query), bookshelfTabTitleMap, '创作库 · 作品书架')
   ),
   withTitle(
     {
@@ -416,21 +435,12 @@ const settingsRoutes = [
 const importExportRoutes = [
   {
     path: 'import-export',
-    component: () => import('@renderer/layouts/ImportExportLayout.vue'),
-    children: [
-      {
-        path: '',
-        redirect: '/import-export/import'
-      },
-      withTitle(
-        {
-          path: ':section(import|export|backup|jobs)',
-          name: 'ImportExport',
-          component: () => import('@renderer/views/ImportExport.vue')
-        },
-        (to) => titleFromMap(to.params.section || 'import', importExportSectionTitleMap, '导入导出')
-      )
-    ]
+    redirect: (to) => redirectToBookshelfTab('import', to.query)
+  },
+  {
+    path: 'import-export/:section(import|export|backup|jobs)',
+    name: 'ImportExport',
+    redirect: (to) => redirectToBookshelfTab(to.params.section || 'import', to.query)
   }
 ]
 
