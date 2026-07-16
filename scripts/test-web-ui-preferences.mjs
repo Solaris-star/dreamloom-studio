@@ -70,10 +70,30 @@ assert.equal((await history.loadAiCoverFormHistory('另一本书')).length, 0)
 const themeSource = fs.readFileSync('src/renderer/src/stores/theme.js', 'utf8')
 assert.match(themeSource, /getStoreValue\('config\.theme', 'light'\)/)
 assert.match(themeSource, /if \(!themeConfigs\[theme\]\)/)
+assert.match(themeSource, /VISUAL_STYLE_STORAGE_KEY/)
+assert.match(themeSource, /setVisualStyle/)
+
+const visualStyleSource = fs.readFileSync(
+  'src/renderer/src/service/visualStyleService.js',
+  'utf8'
+)
+assert.match(visualStyleSource, /config\.visualStyle/)
+assert.match(visualStyleSource, /apple/)
+assert.match(visualStyleSource, /brutal/)
+assert.match(visualStyleSource, /pixel/)
 
 const localeSource = fs.readFileSync('src/renderer/src/i18n/index.js', 'utf8')
 assert.match(localeSource, /getStoreValue\('config\.locale', ''\)/)
 assert.match(localeSource, /lowered\.startsWith\('zh'\)/)
 assert.match(localeSource, /lowered\.startsWith\('en'\)/)
+
+const zhLocale = JSON.parse(fs.readFileSync('src/renderer/src/locales/zh-CN.json', 'utf8'))
+assert.equal(typeof zhLocale.home.systemSettings.visualStyleTitle, 'string')
+assert.equal(typeof zhLocale.home.systemSettings.visualStyleHint, 'string')
+assert.match(zhLocale.home.systemSettings.visualStyleSwitchSuccess, /\{styleName\}/)
+
+const enLocale = JSON.parse(fs.readFileSync('src/renderer/src/locales/en-US.json', 'utf8'))
+assert.equal(typeof enLocale.home.systemSettings.visualStyleTitle, 'string')
+assert.match(enLocale.home.systemSettings.visualStyleSwitchSuccess, /\{styleName\}/)
 
 console.log('Web 界面偏好设置测试通过')

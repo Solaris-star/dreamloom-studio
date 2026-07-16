@@ -163,6 +163,9 @@
               <h2 class="section-title">
                 {{ t('home.systemSettings.tabs.theme') }}
               </h2>
+              <p class="section-hint">
+                {{ t('home.systemSettings.colorThemeHint') }}
+              </p>
               <div class="theme-board">
                 <button
                   v-for="theme in availableThemes"
@@ -171,6 +174,8 @@
                   :class="{ active: themeStore.currentTheme === theme.key }"
                   type="button"
                   :aria-label="`切换到${theme.name}`"
+                  data-testid="theme-color-option"
+                  :data-theme-option="theme.key"
                   @click="handleThemeChange(theme.key)"
                 >
                   <span
@@ -187,6 +192,50 @@
                   <span class="theme-label">{{ theme.name }}</span>
                   <Check
                     v-if="themeStore.currentTheme === theme.key"
+                    class="theme-check"
+                    :size="18"
+                    :stroke-width="2"
+                  />
+                </button>
+              </div>
+
+              <h2 class="section-title section-title-spaced">
+                {{ t('home.systemSettings.visualStyleTitle') }}
+              </h2>
+              <p class="section-hint">
+                {{ t('home.systemSettings.visualStyleHint') }}
+              </p>
+              <div
+                class="style-board"
+                data-testid="visual-style-board"
+              >
+                <button
+                  v-for="style in availableVisualStyles"
+                  :key="style.key"
+                  class="style-card"
+                  :class="{ active: themeStore.currentVisualStyle === style.key }"
+                  type="button"
+                  :aria-label="`切换到${style.name}风格`"
+                  data-testid="visual-style-option"
+                  :data-visual-style-option="style.key"
+                  @click="handleVisualStyleChange(style.key)"
+                >
+                  <span
+                    class="style-preview"
+                    :class="`style-preview--${style.key}`"
+                    :style="getStylePreviewStyle(style.key)"
+                    aria-hidden="true"
+                  >
+                    <i class="style-preview-bar" />
+                    <i class="style-preview-card" />
+                    <i class="style-preview-btn" />
+                  </span>
+                  <span class="style-meta">
+                    <span class="style-label">{{ style.name }}</span>
+                    <span class="style-desc">{{ style.description }}</span>
+                  </span>
+                  <Check
+                    v-if="themeStore.currentVisualStyle === style.key"
                     class="theme-check"
                     :size="18"
                     :stroke-width="2"
@@ -632,6 +681,7 @@ const shortcutItems = [
 ]
 
 const availableThemes = computed(() => themeStore.getAvailableThemes())
+const availableVisualStyles = computed(() => themeStore.getAvailableVisualStyles())
 
 watch(
   () => route.path,
@@ -893,12 +943,39 @@ function getPreviewStyle(themeKey) {
   }
 }
 
+function getStylePreviewStyle(styleKey) {
+  const meta = themeStore.getVisualStyleMeta(styleKey)
+  const preview = meta?.preview || {}
+  return {
+    '--style-bg': preview.bg || '#F5F3EF',
+    '--style-surface': preview.surface || '#FFFFFF',
+    '--style-ink': preview.ink || '#111111',
+    '--style-accent': preview.accent || '#52634B',
+    '--style-border': preview.border || '#D9D2C4'
+  }
+}
+
 async function handleThemeChange(theme) {
   try {
     await themeStore.setTheme(theme)
-    ElMessage.success(`已切换到${themeStore.getThemeName(theme)}`)
+    ElMessage.success(
+      t('home.theme.switchSuccess', { themeName: themeStore.getThemeName(theme) })
+    )
   } catch (error) {
     showSettingsError(error, '保存主题失败')
+  }
+}
+
+async function handleVisualStyleChange(style) {
+  try {
+    await themeStore.setVisualStyle(style)
+    ElMessage.success(
+      t('home.systemSettings.visualStyleSwitchSuccess', {
+        styleName: themeStore.getVisualStyleName(style)
+      })
+    )
+  } catch (error) {
+    showSettingsError(error, '保存视觉风格失败')
   }
 }
 </script>
@@ -1245,6 +1322,153 @@ async function handleThemeChange(theme) {
     bottom: 12px;
     color: var(--color-primary-strong);
   }
+}
+
+.section-hint {
+  margin: -4px 0 16px;
+  color: var(--text-secondary, #6b655c);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.section-title-spaced {
+  margin-top: 32px;
+}
+
+.style-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.style-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  min-height: 168px;
+  padding: 12px;
+  border: 1px solid var(--color-border, var(--border-color));
+  border-radius: var(--theme-card-radius, 8px);
+  background: var(--theme-surface-background-strong, var(--bg-soft));
+  color: var(--color-text, var(--text-base));
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition:
+    border-color 0.22s ease,
+    background-color 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.22s ease;
+
+  &:hover {
+    border-color: var(--color-border-strong, var(--border-color));
+    transform: translateY(-1px);
+  }
+
+  &.active {
+    border-color: var(--color-primary, var(--primary-color)) !important;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary, var(--primary-color)) 42%, transparent);
+  }
+}
+
+.style-preview {
+  position: relative;
+  width: 100%;
+  height: 88px;
+  overflow: hidden;
+  border: 1px solid var(--style-border);
+  border-radius: var(--theme-control-radius, 8px);
+  background: var(--style-bg);
+}
+
+.style-preview-bar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  height: 10px;
+  border-radius: 4px;
+  background: var(--style-surface);
+  border: 1px solid var(--style-border);
+  box-shadow: none;
+}
+
+.style-preview-card {
+  position: absolute;
+  left: 10px;
+  top: 28px;
+  width: 48%;
+  height: 46px;
+  border-radius: 6px;
+  background: var(--style-surface);
+  border: 1px solid var(--style-border);
+}
+
+.style-preview-btn {
+  position: absolute;
+  right: 12px;
+  bottom: 14px;
+  width: 34%;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--style-accent);
+  border: 1px solid var(--style-border);
+}
+
+.style-preview--apple {
+  .style-preview-bar,
+  .style-preview-card {
+    border: 0;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+  }
+
+  .style-preview-btn {
+    border: 0;
+    border-radius: 980px;
+  }
+}
+
+.style-preview--brutal {
+  .style-preview-bar,
+  .style-preview-card,
+  .style-preview-btn {
+    border: 2px solid #111;
+    border-radius: 2px;
+    box-shadow: 3px 3px 0 #111;
+  }
+}
+
+.style-preview--pixel {
+  image-rendering: pixelated;
+
+  .style-preview-bar,
+  .style-preview-card,
+  .style-preview-btn {
+    border: 2px solid var(--style-border);
+    border-radius: 0;
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.45);
+  }
+}
+
+.style-meta {
+  display: grid;
+  gap: 4px;
+  padding-right: 22px;
+}
+
+.style-label {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.style-desc {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary, #6b655c);
 }
 
 .security-card {

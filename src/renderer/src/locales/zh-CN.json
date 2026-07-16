@@ -442,7 +442,11 @@
       "booksDirNotDirectory": "所选路径不是文件夹，请重新选择目录",
       "booksDirNotReadable": "目录不可读，请检查系统权限",
       "booksDirNotWritable": "目录不可写，请检查系统权限",
-      "saveDirFailed": "保存书籍目录失败，请重试"
+      "saveDirFailed": "保存书籍目录失败，请重试",
+      "colorThemeHint": "配色影响背景与文字颜色，可与视觉风格自由组合。",
+      "visualStyleTitle": "视觉风格",
+      "visualStyleHint": "控制圆角、阴影、边框与整体气质。创作台正文会保持可读，不会被野兽/像素壳层干扰。",
+      "visualStyleSwitchSuccess": "已切换到{styleName}风格"
     }
   },
   "auth": {
@@ -950,18 +954,54 @@
       "night": "夜晚/弱光"
     },
     "styles": {
-      "anime": { "label": "日系动画", "desc": "二次元插画" },
-      "ghibli": { "label": "吉卜力风格", "desc": "手绘、治愈" },
-      "retroAnime": { "label": "复古日漫", "desc": "赛璐璐" },
-      "photorealistic": { "label": "写实摄影", "desc": "自然光影" },
-      "render3d": { "label": "3D 渲染", "desc": "CG 立体感" },
-      "pixar": { "label": "欧美卡通", "desc": "动画渲染" },
-      "guofeng": { "label": "国风插画", "desc": "古风场景" },
-      "watercolor": { "label": "水彩插画", "desc": "柔和晕染" },
-      "inkWash": { "label": "水墨画", "desc": "留白意境" },
-      "oilPainting": { "label": "厚涂插画", "desc": "油画质感" },
-      "cyberpunk": { "label": "赛博朋克", "desc": "霓虹科幻" },
-      "pixelArt": { "label": "像素艺术", "desc": "复古像素" }
+      "anime": {
+        "label": "日系动画",
+        "desc": "二次元插画"
+      },
+      "ghibli": {
+        "label": "吉卜力风格",
+        "desc": "手绘、治愈"
+      },
+      "retroAnime": {
+        "label": "复古日漫",
+        "desc": "赛璐璐"
+      },
+      "photorealistic": {
+        "label": "写实摄影",
+        "desc": "自然光影"
+      },
+      "render3d": {
+        "label": "3D 渲染",
+        "desc": "CG 立体感"
+      },
+      "pixar": {
+        "label": "欧美卡通",
+        "desc": "动画渲染"
+      },
+      "guofeng": {
+        "label": "国风插画",
+        "desc": "古风场景"
+      },
+      "watercolor": {
+        "label": "水彩插画",
+        "desc": "柔和晕染"
+      },
+      "inkWash": {
+        "label": "水墨画",
+        "desc": "留白意境"
+      },
+      "oilPainting": {
+        "label": "厚涂插画",
+        "desc": "油画质感"
+      },
+      "cyberpunk": {
+        "label": "赛博朋克",
+        "desc": "霓虹科幻"
+      },
+      "pixelArt": {
+        "label": "像素艺术",
+        "desc": "复古像素"
+      }
     },
     "stylePrompts": {
       "anime": "日本动画风格，二次元，精致插画",
@@ -1071,18 +1111,54 @@
       "side": "侧面/侧身"
     },
     "styles": {
-      "anime": { "label": "日系动画", "desc": "现代日本动画、二次元" },
-      "ghibli": { "label": "吉卜力风格", "desc": "手绘动画、治愈系" },
-      "retroAnime": { "label": "复古日漫", "desc": "赛璐璐、怀旧动画" },
-      "photorealistic": { "label": "写实摄影", "desc": "真人、自然光影" },
-      "render3d": { "label": "3D 渲染", "desc": "游戏 CG、立体感" },
-      "pixar": { "label": "欧美卡通", "desc": "皮克斯/迪士尼风" },
-      "guofeng": { "label": "国风插画", "desc": "古风、古典服饰" },
-      "watercolor": { "label": "水彩插画", "desc": "柔和晕染、纸感" },
-      "inkWash": { "label": "水墨画", "desc": "中国水墨、留白" },
-      "oilPainting": { "label": "厚涂插画", "desc": "油画质感、笔触" },
-      "cyberpunk": { "label": "赛博朋克", "desc": "科幻、霓虹" },
-      "pixelArt": { "label": "像素艺术", "desc": "复古游戏风" }
+      "anime": {
+        "label": "日系动画",
+        "desc": "现代日本动画、二次元"
+      },
+      "ghibli": {
+        "label": "吉卜力风格",
+        "desc": "手绘动画、治愈系"
+      },
+      "retroAnime": {
+        "label": "复古日漫",
+        "desc": "赛璐璐、怀旧动画"
+      },
+      "photorealistic": {
+        "label": "写实摄影",
+        "desc": "真人、自然光影"
+      },
+      "render3d": {
+        "label": "3D 渲染",
+        "desc": "游戏 CG、立体感"
+      },
+      "pixar": {
+        "label": "欧美卡通",
+        "desc": "皮克斯/迪士尼风"
+      },
+      "guofeng": {
+        "label": "国风插画",
+        "desc": "古风、古典服饰"
+      },
+      "watercolor": {
+        "label": "水彩插画",
+        "desc": "柔和晕染、纸感"
+      },
+      "inkWash": {
+        "label": "水墨画",
+        "desc": "中国水墨、留白"
+      },
+      "oilPainting": {
+        "label": "厚涂插画",
+        "desc": "油画质感、笔触"
+      },
+      "cyberpunk": {
+        "label": "赛博朋克",
+        "desc": "科幻、霓虹"
+      },
+      "pixelArt": {
+        "label": "像素艺术",
+        "desc": "复古游戏风"
+      }
     },
     "stylePrompts": {
       "anime": "日本动画风格，二次元，精致插画",

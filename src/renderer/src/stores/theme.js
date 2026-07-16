@@ -1,6 +1,15 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { getStoreValue, setStoreValue } from '../service/webStore.js'
+import {
+  VISUAL_STYLE_STORAGE_KEY,
+  DEFAULT_VISUAL_STYLE,
+  getAvailableVisualStyles as listVisualStyles,
+  getVisualStyleName as lookupVisualStyleName,
+  getVisualStyleMeta as lookupVisualStyleMeta,
+  resolveVisualStyleKey,
+  applyVisualStyle
+} from '../service/visualStyleService.js'
 
 // 主题配置对象 - 统一管理所有主题的颜色配置
 const themeConfigs = {
@@ -265,6 +274,7 @@ const applyTheme = (theme) => {
 
 export const useThemeStore = defineStore('theme', () => {
   const currentTheme = ref('light')
+  const currentVisualStyle = ref(DEFAULT_VISUAL_STYLE)
 
   // 获取所有可用主题
   const getAvailableThemes = () => {
@@ -279,7 +289,11 @@ export const useThemeStore = defineStore('theme', () => {
     return themeConfigs[theme]?.name || '白色'
   }
 
-  // 初始化主题
+  const getAvailableVisualStyles = () => listVisualStyles()
+  const getVisualStyleName = (style) => lookupVisualStyleName(style)
+  const getVisualStyleMeta = (style) => lookupVisualStyleMeta(style)
+
+  // 初始化主题 + 视觉风格
   const initTheme = async () => {
     const theme = await getStoreValue('config.theme', 'light')
     if (theme && themeConfigs[theme]) {
@@ -289,6 +303,11 @@ export const useThemeStore = defineStore('theme', () => {
       // 如果主题不存在，使用默认主题
       applyTheme('light')
     }
+
+    const style = await getStoreValue(VISUAL_STYLE_STORAGE_KEY, DEFAULT_VISUAL_STYLE)
+    const resolvedStyle = resolveVisualStyleKey(style)
+    currentVisualStyle.value = resolvedStyle
+    applyVisualStyle(resolvedStyle)
   }
 
   // 切换主题
@@ -299,12 +318,26 @@ export const useThemeStore = defineStore('theme', () => {
     }
     currentTheme.value = theme
     applyTheme(theme)
+    // 配色切换后重放视觉风格 token，避免被旧 applyTheme 覆盖圆角/阴影
+    applyVisualStyle(currentVisualStyle.value)
     await setStoreValue('config.theme', theme)
+  }
+
+  const setVisualStyle = async (style) => {
+    const resolved = resolveVisualStyleKey(style)
+    currentVisualStyle.value = resolved
+    applyVisualStyle(resolved)
+    await setStoreValue(VISUAL_STYLE_STORAGE_KEY, resolved)
   }
 
   // 监听主题变化
   watch(currentTheme, (newTheme) => {
     applyTheme(newTheme)
+    applyVisualStyle(currentVisualStyle.value)
+  })
+
+  watch(currentVisualStyle, (newStyle) => {
+    applyVisualStyle(newStyle)
   })
 
   // 获取主题配置
@@ -314,10 +347,15 @@ export const useThemeStore = defineStore('theme', () => {
 
   return {
     currentTheme,
+    currentVisualStyle,
     initTheme,
     setTheme,
+    setVisualStyle,
     getAvailableThemes,
+    getAvailableVisualStyles,
     getThemeName,
+    getVisualStyleName,
+    getVisualStyleMeta,
     getThemeConfig,
     themeConfigs
   }

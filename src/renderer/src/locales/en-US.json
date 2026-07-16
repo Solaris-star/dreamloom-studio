@@ -442,7 +442,11 @@
       "booksDirNotDirectory": "The selected path is not a directory, please choose a folder",
       "booksDirNotReadable": "Directory is not readable, please check system permissions",
       "booksDirNotWritable": "Directory is not writable, please check system permissions",
-      "saveDirFailed": "Failed to save books directory, please try again"
+      "saveDirFailed": "Failed to save books directory, please try again",
+      "colorThemeHint": "Color themes change backgrounds and text colors. Combine freely with visual styles.",
+      "visualStyleTitle": "Visual Style",
+      "visualStyleHint": "Controls radius, shadows, borders, and overall vibe. The writing canvas stays readable under brutal/pixel shells.",
+      "visualStyleSwitchSuccess": "Switched to {styleName} style"
     }
   },
   "auth": {
@@ -950,18 +954,54 @@
       "night": "Night / low light"
     },
     "styles": {
-      "anime": { "label": "Anime", "desc": "2D illustration" },
-      "ghibli": { "label": "Ghibli style", "desc": "hand-drawn, cozy" },
-      "retroAnime": { "label": "Retro anime", "desc": "cel-shaded" },
-      "photorealistic": { "label": "Photorealistic", "desc": "natural lighting" },
-      "render3d": { "label": "3D render", "desc": "CG depth" },
-      "pixar": { "label": "Western cartoon", "desc": "animation render" },
-      "guofeng": { "label": "Chinese illustration", "desc": "classic vibe" },
-      "watercolor": { "label": "Watercolor", "desc": "soft wash" },
-      "inkWash": { "label": "Ink wash", "desc": "minimal, poetic" },
-      "oilPainting": { "label": "Oil painting", "desc": "thick paint" },
-      "cyberpunk": { "label": "Cyberpunk", "desc": "neon sci-fi" },
-      "pixelArt": { "label": "Pixel art", "desc": "retro pixels" }
+      "anime": {
+        "label": "Anime",
+        "desc": "2D illustration"
+      },
+      "ghibli": {
+        "label": "Ghibli style",
+        "desc": "hand-drawn, cozy"
+      },
+      "retroAnime": {
+        "label": "Retro anime",
+        "desc": "cel-shaded"
+      },
+      "photorealistic": {
+        "label": "Photorealistic",
+        "desc": "natural lighting"
+      },
+      "render3d": {
+        "label": "3D render",
+        "desc": "CG depth"
+      },
+      "pixar": {
+        "label": "Western cartoon",
+        "desc": "animation render"
+      },
+      "guofeng": {
+        "label": "Chinese illustration",
+        "desc": "classic vibe"
+      },
+      "watercolor": {
+        "label": "Watercolor",
+        "desc": "soft wash"
+      },
+      "inkWash": {
+        "label": "Ink wash",
+        "desc": "minimal, poetic"
+      },
+      "oilPainting": {
+        "label": "Oil painting",
+        "desc": "thick paint"
+      },
+      "cyberpunk": {
+        "label": "Cyberpunk",
+        "desc": "neon sci-fi"
+      },
+      "pixelArt": {
+        "label": "Pixel art",
+        "desc": "retro pixels"
+      }
     },
     "stylePrompts": {
       "anime": "Japanese anime style, 2D, refined illustration",
@@ -1071,18 +1111,54 @@
       "side": "Side view"
     },
     "styles": {
-      "anime": { "label": "Anime", "desc": "modern Japanese animation" },
-      "ghibli": { "label": "Ghibli style", "desc": "hand-drawn, healing tone" },
-      "retroAnime": { "label": "Retro anime", "desc": "cel-shaded nostalgia" },
-      "photorealistic": { "label": "Photorealistic", "desc": "real person, natural light" },
-      "render3d": { "label": "3D render", "desc": "game CG, depth" },
-      "pixar": { "label": "Western cartoon", "desc": "Pixar/Disney-like" },
-      "guofeng": { "label": "Chinese illustration", "desc": "classical costume style" },
-      "watercolor": { "label": "Watercolor", "desc": "soft wash, paper texture" },
-      "inkWash": { "label": "Ink wash", "desc": "Chinese ink, negative space" },
-      "oilPainting": { "label": "Oil painting", "desc": "thick texture, brush strokes" },
-      "cyberpunk": { "label": "Cyberpunk", "desc": "sci-fi neon" },
-      "pixelArt": { "label": "Pixel art", "desc": "retro game style" }
+      "anime": {
+        "label": "Anime",
+        "desc": "modern Japanese animation"
+      },
+      "ghibli": {
+        "label": "Ghibli style",
+        "desc": "hand-drawn, healing tone"
+      },
+      "retroAnime": {
+        "label": "Retro anime",
+        "desc": "cel-shaded nostalgia"
+      },
+      "photorealistic": {
+        "label": "Photorealistic",
+        "desc": "real person, natural light"
+      },
+      "render3d": {
+        "label": "3D render",
+        "desc": "game CG, depth"
+      },
+      "pixar": {
+        "label": "Western cartoon",
+        "desc": "Pixar/Disney-like"
+      },
+      "guofeng": {
+        "label": "Chinese illustration",
+        "desc": "classical costume style"
+      },
+      "watercolor": {
+        "label": "Watercolor",
+        "desc": "soft wash, paper texture"
+      },
+      "inkWash": {
+        "label": "Ink wash",
+        "desc": "Chinese ink, negative space"
+      },
+      "oilPainting": {
+        "label": "Oil painting",
+        "desc": "thick texture, brush strokes"
+      },
+      "cyberpunk": {
+        "label": "Cyberpunk",
+        "desc": "sci-fi neon"
+      },
+      "pixelArt": {
+        "label": "Pixel art",
+        "desc": "retro game style"
+      }
     },
     "stylePrompts": {
       "anime": "Japanese anime style, 2D, refined illustration",
