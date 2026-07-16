@@ -1,16 +1,30 @@
 import { defineComponent, h } from 'vue'
+import UiEmptyState from '../ui/UiEmptyState.vue'
 
 export default defineComponent({
   name: 'MarketEmptyState',
   props: {
     title: { type: String, default: '暂无数据。' },
-    description: { type: String, default: '' }
+    description: { type: String, default: '' },
+    primaryText: { type: String, default: '' },
+    secondaryText: { type: String, default: '' }
   },
-  setup(props) {
+  emits: ['primary', 'secondary'],
+  setup(props, { emit, slots }) {
     return () =>
-      h('div', { class: 'market-empty' }, [
-        h('strong', props.title),
-        props.description ? h('p', props.description) : null
-      ])
+      h(
+        UiEmptyState,
+        {
+          class: 'market-empty',
+          title: props.title,
+          description: props.description,
+          primaryText: props.primaryText,
+          secondaryText: props.secondaryText,
+          variant: 'panel',
+          onPrimary: () => emit('primary'),
+          onSecondary: () => emit('secondary')
+        },
+        slots
+      )
   }
 })

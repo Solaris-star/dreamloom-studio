@@ -2,8 +2,8 @@
  * classic / apple / brutal / pixel
  */
 
-/* 字体：Apple 用系统栈；brutal/pixel 可选加载 */
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@500;700;800&display=swap');
+/* 本地字体栈（无外网 CDN） */
+@import '../fonts/visual-style-fonts.css';
 
 :root {
   --theme-card-radius: 12px;

@@ -15,6 +15,29 @@
       </div>
     </header>
 
+    <section
+      class="bento-strip"
+      aria-label="今日速览"
+      data-testid="home-bento-strip"
+    >
+      <button
+        v-for="tile in bentoTiles"
+        :key="tile.key"
+        type="button"
+        class="bento-tile"
+        :class="[`bento-tile--${tile.size || 'sm'}`, { 'bento-tile--accent': tile.accent }]"
+        :data-bento-key="tile.key"
+        @click="tile.onClick?.()"
+      >
+        <span class="bento-tile__label">{{ tile.label }}</span>
+        <strong class="bento-tile__value">{{ tile.value }}</strong>
+        <span
+          v-if="tile.hint"
+          class="bento-tile__hint"
+        >{{ tile.hint }}</span>
+      </button>
+    </section>
+
     <section class="dashboard-main-grid">
       <article
         ref="starterCardRef"
@@ -629,6 +652,67 @@ const marketUpdateText = computed(() => {
   if (diff < 60 * 1000) return '刚刚更新'
   return `自动更新 · ${Math.max(1, Math.round(diff / 60000))} 分钟前`
 })
+
+const primaryContinueBook = computed(() => recentBooks.value[0] || null)
+
+const bentoTiles = computed(() => {
+  const continueBook = primaryContinueBook.value
+  const continueName = continueBook
+    ? continueBook.name || continueBook.folderName || '未命名作品'
+    : '还没有作品'
+  const hotspot = marketHotspots.value[0]
+  const hotspotLabel = hotspot
+    ? hotspot.keyword || hotspot.title || '查看灵感'
+    : '去刷热榜'
+
+  return [
+    {
+      key: 'today-words',
+      label: '今日字数',
+      value: formatNumber(todayStatus.value?.todayWords || 0),
+      hint: statsLoading.value ? '同步中' : '新增',
+      size: 'md',
+      accent: true,
+      onClick: () => router.push('/analytics/overview')
+    },
+    {
+      key: 'streak',
+      label: '连续写作',
+      value: `${formatNumber(todayStatus.value?.streakDays || 0)} 天`,
+      hint: '保持节奏',
+      size: 'sm',
+      onClick: () => router.push('/analytics/overview')
+    },
+    {
+      key: 'continue',
+      label: '继续写',
+      value: continueName,
+      hint: continueBook ? todayBookWordsText(continueBook) : '去书架新建',
+      size: 'lg',
+      onClick: () => {
+        if (continueBook) openBook(continueBook)
+        else router.push('/knowledge-library/creative')
+      }
+    },
+    {
+      key: 'market',
+      label: '灵感热点',
+      value: hotspotLabel,
+      hint: marketUpdateText.value,
+      size: 'sm',
+      onClick: () => router.push('/market/overview')
+    },
+    {
+      key: 'ai',
+      label: 'AI 调用',
+      value: formatNumber(todayStatus.value?.totalAiCalls || 0),
+      hint: `${formatNumber(todayStatus.value?.totalAiTokens || 0)} tokens`,
+      size: 'sm',
+      onClick: () => router.push('/ai/queue')
+    }
+  ]
+})
+
 const trendRows = computed(() =>
   last7Days.value.map((item, index) => ({
     key: item.date || index,
@@ -1086,6 +1170,97 @@ function isCreativeReferenceItem(item = {}) {
   font-size: clamp(14px, 0.9vw, 16px);
 }
 
+.bento-strip {
+  display: grid;
+  grid-template-columns:
+    minmax(140px, 1.1fr)
+    minmax(120px, 0.9fr)
+    minmax(200px, 1.6fr)
+    minmax(140px, 1.1fr)
+    minmax(120px, 0.9fr);
+  gap: 12px;
+  margin: 0 0 clamp(18px, 1.6vw, 24px);
+}
+
+.bento-tile {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  min-height: 96px;
+  padding: 14px 16px;
+  border: var(--theme-border-width, 1px) var(--theme-border-style, solid) var(--wabi-line);
+  border-radius: var(--theme-card-radius, 12px);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.42), transparent 56%),
+    linear-gradient(180deg, rgba(251, 250, 246, 0.96), rgba(240, 236, 227, 0.88));
+  box-shadow: var(--theme-shadow-card, var(--wabi-shadow-soft));
+  color: var(--wabi-ink);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition:
+    transform var(--theme-transition-duration, 180ms) ease,
+    box-shadow var(--theme-transition-duration, 180ms) ease,
+    border-color var(--theme-transition-duration, 180ms) ease,
+    background-color var(--theme-transition-duration, 180ms) ease;
+
+  &:hover {
+    transform: var(--theme-button-transform-hover, translateY(-1px));
+    box-shadow: var(--theme-shadow-raised, var(--wabi-shadow-soft));
+  }
+
+  &:active {
+    transform: var(--theme-button-transform-active, translateY(0));
+  }
+
+  &:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--primary-color, #52634b) 55%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+.bento-tile--accent {
+  border-color: color-mix(in srgb, var(--primary-color, #52634b) 42%, var(--wabi-line));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--primary-color, #52634b) 12%, #fff), transparent 60%),
+    linear-gradient(180deg, rgba(251, 250, 246, 0.98), rgba(236, 240, 232, 0.9));
+}
+
+.bento-tile__label {
+  color: var(--wabi-muted);
+  font-size: 12px;
+  font-weight: var(--theme-font-weight-ui, 500);
+  letter-spacing: 0.02em;
+}
+
+.bento-tile__value {
+  color: var(--wabi-ink);
+  font-family: var(--theme-font-display, inherit);
+  font-size: clamp(18px, 1.3vw, 24px);
+  font-weight: var(--theme-font-weight-strong, 600);
+  letter-spacing: var(--theme-letter-spacing-display, -0.02em);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bento-tile--lg .bento-tile__value {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.bento-tile__hint {
+  color: var(--wabi-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .dashboard-main-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 380px;
@@ -1158,12 +1333,12 @@ function isCreativeReferenceItem(item = {}) {
 
 .dashboard-card {
   min-width: 0;
-  border: 1px solid var(--wabi-line);
-  border-radius: 12px;
+  border: var(--theme-border-width, 1px) var(--theme-border-style, solid) var(--wabi-line);
+  border-radius: var(--theme-card-radius, 12px);
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.36), transparent 54%),
     linear-gradient(180deg, rgba(251, 250, 246, 0.95), rgba(240, 236, 227, 0.84));
-  box-shadow: var(--wabi-shadow-soft);
+  box-shadow: var(--theme-shadow-card, var(--wabi-shadow-soft));
   padding: clamp(22px, 2vw, 30px);
 }
 
@@ -1670,6 +1845,10 @@ function isCreativeReferenceItem(item = {}) {
 }
 
 @media (max-width: 1279px) {
+  .bento-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .dashboard-main-grid,
   .dashboard-bottom-grid {
     grid-template-columns: 1fr;
@@ -1686,6 +1865,10 @@ function isCreativeReferenceItem(item = {}) {
 }
 
 @media (max-width: 1023px) {
+  .bento-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .dashboard-main-grid,
   .dashboard-side-stack,
   .dashboard-bottom-grid {
@@ -1707,6 +1890,15 @@ function isCreativeReferenceItem(item = {}) {
     width: 100%;
   }
 
+  .bento-strip {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .bento-tile {
+    min-height: 84px;
+  }
+
   .dashboard-main-grid,
   .dashboard-side-stack,
   .dashboard-bottom-grid {
@@ -1714,7 +1906,7 @@ function isCreativeReferenceItem(item = {}) {
   }
 
   .dashboard-card {
-    border-radius: 16px;
+    border-radius: var(--theme-card-radius, 16px);
   }
 
   .writing-row,
