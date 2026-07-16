@@ -18,11 +18,18 @@ assert.doesNotMatch(settings, /class="theme-card"/)
 
 const layout = fs.readFileSync('src/renderer/src/layouts/AppLayout.vue', 'utf8')
 assert.match(layout, /app-sidebar-toggle/)
+assert.match(layout, /sidebar-header/)
 assert.match(layout, /PanelLeftOpen/)
 assert.match(layout, /PanelLeftClose/)
 assert.match(layout, /data-testid="sidebar-collapse-toggle"/)
 assert.doesNotMatch(layout, /ChevronLeft/)
 assert.doesNotMatch(layout, /收起<\/span>/)
+// 收缩按钮应在 logo 旁 header 内，而非底部 collapse-control
+assert.match(layout, /class="sidebar-header"/)
+assert.ok(
+  layout.indexOf('sidebar-header') < layout.indexOf('app-menu'),
+  'sidebar-header 应在主导航之前'
+)
 
 const empty = fs.readFileSync('src/renderer/src/components/ui/UiEmptyState.vue', 'utf8')
 assert.match(empty, /ui-empty-state/)
@@ -61,6 +68,8 @@ assert.match(visualCss, /background-image: none !important/)
 assert.match(visualCss, /#0071e3/)
 assert.match(visualCss, /settings-body/)
 assert.match(visualCss, /rgba\(246, 246, 246, 0\.82\)/)
+assert.match(visualCss, /rgba\(0, 113, 227, 0\.12\)/)
+assert.match(visualCss, /sidebar-header/)
 
 const fontCss = fs.readFileSync(
   'src/renderer/src/assets/fonts/visual-style-fonts.css',

@@ -139,17 +139,36 @@ html[data-visual-style='apple'] .app-menu-item:hover {
 html[data-visual-style='apple'] .app-menu-item.active {
   box-shadow: none !important;
   border-color: transparent !important;
-  background: rgba(0, 0, 0, 0.08) !important;
+  background: rgba(0, 113, 227, 0.12) !important;
   border-radius: 8px !important;
-  color: #1d1d1f !important;
+  color: #0071e3 !important;
   font-weight: 500 !important;
 }
 
+html[data-visual-style='apple'] .app-menu-item.active .app-menu-icon {
+  color: #0071e3 !important;
+}
+
+html[data-visual-style='apple'] .app-submenu-item.active {
+  background: rgba(0, 113, 227, 0.1) !important;
+  border-color: transparent !important;
+  color: #0071e3 !important;
+}
+
+html[data-visual-style='apple'] .sidebar-header {
+  margin: 0 10px 12px !important;
+}
+
+html[data-visual-style='apple'] .app-logo img {
+  filter: none !important;
+  height: 28px !important;
+}
+
 html[data-visual-style='apple'] .app-sidebar-toggle {
-  width: 32px !important;
-  height: 32px !important;
+  width: 28px !important;
+  height: 28px !important;
   border: 0 !important;
-  border-radius: 8px !important;
+  border-radius: 7px !important;
   color: #1d1d1f !important;
   background: transparent !important;
   box-shadow: none !important;
@@ -163,10 +182,6 @@ html[data-visual-style='apple'] .app-sidebar-toggle:hover {
 html[data-visual-style='apple'] .app-sidebar-toggle:active {
   background: rgba(0, 0, 0, 0.1) !important;
   transform: scale(0.96) !important;
-}
-
-html[data-visual-style='apple'] .app-logo img {
-  filter: none !important;
 }
 
 html[data-visual-style='apple'] .el-button--primary {

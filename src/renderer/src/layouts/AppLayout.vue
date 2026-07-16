@@ -16,18 +16,36 @@
       :class="{ collapsed: sidebarWidth < 100 }"
     >
       <div class="sidebar-content-wrapper">
-        <button
-          v-motion-feedback
-          class="app-logo"
-          type="button"
-          aria-label="首页"
-          @click="router.push('/dashboard')"
-        >
-          <img
-            :src="brandLogoUrl"
-            alt="织梦工坊"
+        <!-- Finder/Notes 布局：logo 与收缩按钮同排 -->
+        <div class="sidebar-header">
+          <button
+            v-motion-feedback
+            class="app-logo"
+            type="button"
+            aria-label="首页"
+            @click="router.push('/dashboard')"
           >
-        </button>
+            <img
+              :src="brandLogoUrl"
+              alt="织梦工坊"
+            >
+          </button>
+          <button
+            v-motion-feedback
+            class="app-sidebar-toggle"
+            type="button"
+            data-testid="sidebar-collapse-toggle"
+            :aria-label="sidebarWidth < 100 ? '展开侧栏' : '收起侧栏'"
+            :title="sidebarWidth < 100 ? '展开侧栏' : '收起侧栏'"
+            @click="toggleSidebarCollapse"
+          >
+            <component
+              :is="sidebarWidth < 100 ? PanelLeftOpen : PanelLeftClose"
+              v-bind="iconProps"
+              aria-hidden="true"
+            />
+          </button>
+        </div>
 
         <nav
           class="app-menu"
@@ -78,25 +96,6 @@
             </div>
           </div>
         </nav>
-
-        <!-- 折叠/展开快捷按钮：仅图标，避免长文案干扰 -->
-        <div class="sidebar-collapse-control">
-          <button
-            v-motion-feedback
-            class="app-sidebar-toggle"
-            type="button"
-            data-testid="sidebar-collapse-toggle"
-            :aria-label="sidebarWidth < 100 ? '展开侧栏' : '收起侧栏'"
-            :title="sidebarWidth < 100 ? '展开侧栏' : '收起侧栏'"
-            @click="toggleSidebarCollapse"
-          >
-            <component
-              :is="sidebarWidth < 100 ? PanelLeftOpen : PanelLeftClose"
-              v-bind="iconProps"
-              aria-hidden="true"
-            />
-          </button>
-        </div>
 
         <div class="app-sidebar-footer">
           <span>v{{ currentVersion || '-' }}</span>
@@ -541,10 +540,23 @@ function isEditorRouteElement(el) {
   box-sizing: border-box;
 }
 
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 10px 14px;
+  min-height: 40px;
+}
+
 .app-logo {
-  display: block;
-  width: 96px;
-  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  max-width: calc(100% - 44px);
+  margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
@@ -552,8 +564,10 @@ function isEditorRouteElement(el) {
 
   img {
     display: block;
-    width: 100%;
-    height: auto;
+    width: auto;
+    max-width: 100%;
+    height: 32px;
+    object-fit: contain;
     filter: saturate(0.48) sepia(0.08) contrast(0.94);
   }
 }
@@ -613,17 +627,16 @@ function isEditorRouteElement(el) {
 }
 
 .sidebar-collapse-control {
-  display: flex;
-  justify-content: center;
-  margin: 4px 10px 10px;
+  display: none;
 }
 
 .app-sidebar-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
   padding: 0;
   border: 1px solid transparent;
   border-radius: var(--theme-control-radius, 10px);
@@ -771,6 +784,7 @@ function isEditorRouteElement(el) {
   }
 
   .app-logo,
+  .sidebar-header,
   .sidebar-collapse-control,
   .app-sidebar-footer,
   .sidebar-resizer {
@@ -910,9 +924,28 @@ function isEditorRouteElement(el) {
     padding: 14px 4px;
   }
 
+  .sidebar-header {
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 4px 12px;
+  }
+
   .app-logo {
     width: 36px;
-    margin-bottom: 12px;
+    max-width: 36px;
+    margin: 0;
+    justify-content: center;
+
+    img {
+      width: 28px;
+      height: 28px;
+    }
+  }
+
+  .app-sidebar-toggle {
+    width: 32px;
+    height: 32px;
   }
 
   .app-menu-item {
