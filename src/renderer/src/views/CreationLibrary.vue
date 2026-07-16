@@ -1699,7 +1699,8 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch, nextTick } from 'vue'
+import { computed, onMounted, onActivated, reactive, ref, watch, nextTick } from 'vue'
+import { useCancellableLoad } from '@renderer/composables/useCancellableLoad'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
@@ -1761,6 +1762,11 @@ const props = defineProps({
 const route = useRoute()
 const router = useRouter()
 const mainStore = useMainStore()
+
+const { begin: beginLibraryLoad, end: endLibraryLoad } = useCancellableLoad()
+const libraryHydrated = ref(false)
+const libraryLastLoadedAt = ref(0)
+const LIBRARY_SOFT_TTL_MS = 45_000
 
 const loading = ref(false)
 const isDraggingImage = ref(false)
@@ -2340,8 +2346,9 @@ onMounted(() => {
   if (typeof window !== 'undefined') {
     window.addEventListener('resize', updateMobileBookshelf)
   }
-  loadLibrary()
+  ensureLibraryData()
 })
+onActivated(() => ensureLibraryData({ soft: true }))
 
 function updateMobileBookshelf() {
   if (typeof window === 'undefined') {
@@ -2546,7 +2553,16 @@ function scrollToNovelImport() {
   }, 80)
 }
 
+async function ensureLibraryData({ soft = false } = {}) {
+  if (soft && libraryHydrated.value) {
+    const age = Date.now() - libraryLastLoadedAt.value
+    if (age < LIBRARY_SOFT_TTL_MS) return
+  }
+  await loadLibrary()
+}
+
 async function loadLibrary() {
+  const session = beginLibraryLoad()
   loading.value = true
   try {
     const [bookResult, assetResult, promptResult, knowledgeResult] = await Promise.allSettled([
@@ -2555,6 +2571,7 @@ async function loadLibrary() {
       listPromptPresets({ includeAllBookPresets: true }),
       listKnowledgeItems({ sortBy: 'updatedAt' })
     ])
+    if (!session.isCurrent()) return
     if (bookResult.status === 'fulfilled') {
       try {
         await loadChapterCounts(bookResult.value || [])
@@ -2571,6 +2588,7 @@ async function loadLibrary() {
       wordCountMap.value = {}
       selectedBookKey.value = ''
     }
+    if (!session.isCurrent()) return
     applyLibraryRows(assetResult, {
       normalize: normalizeAssetRows,
       fallback: '读取图片失败',
@@ -2612,8 +2630,15 @@ async function loadLibrary() {
       }
     })
   } catch (error) {
-    ElMessage.error(error?.message || '加载创作库失败')
+    if (session.isCurrent()) {
+      ElMessage.error(error?.message || '加载创作库失败')
+    }
   } finally {
+    if (session.isCurrent()) {
+      libraryHydrated.value = true
+      libraryLastLoadedAt.value = Date.now()
+    }
+    endLibraryLoad(session.token)
     loading.value = false
   }
 }

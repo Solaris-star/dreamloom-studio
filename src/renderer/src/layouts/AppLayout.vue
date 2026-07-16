@@ -170,7 +170,7 @@
         >
           <keep-alive
             :include="cachedRouteNames"
-            :max="5"
+            :max="8"
           >
             <component
               :is="Component"
@@ -221,7 +221,14 @@ const router = useRouter()
 const currentVersion = ref(import.meta.env.VITE_APP_VERSION || 'web')
 const iconProps = { size: 20, strokeWidth: 2 }
 const toggleIconProps = { size: 18, strokeWidth: 2 }
-const cachedRouteNames = ['Editor']
+/** 与视图 `defineOptions({ name })` 一致；勿缓存 Auth / NotFound / 权限敏感页 */
+const cachedRouteNames = [
+  'Editor',
+  'Dashboard',
+  'CreationLibrary',
+  'AiWorkshop',
+  'OutlineManager'
+]
 const isMobileViewport = ref(false)
 
 let mobileMediaQuery = null
@@ -526,10 +533,46 @@ function toggleSidebarCollapse() {
 }
 
 function routeViewKey(viewRoute) {
-  if (viewRoute?.name === 'Editor' || viewRoute?.name === 'EditorHome') {
-    return viewRoute.fullPath
+  const name = viewRoute?.name
+  // 编辑器按作品缓存，避免不同书籍状态串扰
+  if (name === 'Editor' || name === 'EditorHome') {
+    const bookId =
+      viewRoute.params?.bookId ||
+      (typeof viewRoute.query?.name === 'string' ? viewRoute.query.name : '') ||
+      'default'
+    return `Editor:${encodeURIComponent(String(bookId))}`
   }
 
+  // 多路由共用同一组件：用稳定 key 复用实例，section/mode 走 props 更新
+  if (
+    name === 'KnowledgeBookshelf' ||
+    name === 'KnowledgeMaterials' ||
+    name === 'KnowledgeImages' ||
+    name === 'KnowledgePrompts' ||
+    name === 'KnowledgeTrash'
+  ) {
+    return 'CreationLibrary'
+  }
+
+  if (
+    name === 'AiCreationStarter' ||
+    name === 'AiTextTools' ||
+    name === 'AiPlot' ||
+    name === 'AiWorld' ||
+    name === 'AiImage' ||
+    name === 'AiPrompts' ||
+    name === 'AiHistory'
+  ) {
+    return 'AiWorkshop'
+  }
+
+  if (name === 'Dashboard') return 'Dashboard'
+  if (name === 'OutlineManager') {
+    const book = typeof viewRoute.query?.name === 'string' ? viewRoute.query.name : ''
+    return `OutlineManager:${encodeURIComponent(book || 'default')}`
+  }
+
+  // 其余页面不进 keep-alive include；key 用 fullPath 即可
   return viewRoute?.fullPath || viewRoute?.path || 'route-view'
 }
 

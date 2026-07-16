@@ -486,9 +486,8 @@ onBeforeUnmount(detachWindowListeners)
 }
 
 .editor-quick-actions {
-  position: fixed;
-  z-index: 120;
-  /* 具体 left/top 由组件内拖拽状态与 localStorage 接管 */
+/* 位置由 FloatingQuickActions 内部 fixed + 本地偏好控制 */
+    z-index: 120;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -619,6 +618,10 @@ onBeforeUnmount(detachWindowListeners)
   display: none !important;
 }
 
+@media (min-width: 768px) {
+  /* 宽屏位置由悬浮组件内部计算，避免与 AI 栏硬编码冲突 */
+}
+
 @media (max-width: 767px) {
   .editor-container {
     /* 更矮的底栏：按钮 34 + padding + safe-area */
@@ -627,12 +630,7 @@ onBeforeUnmount(detachWindowListeners)
   }
 
   .editor-quick-actions {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    top: auto;
-    transform: none;
+    /* 窄屏底部导航条由组件内部 fixed 处理 */
   }
 
   :deep(.editor-left-panel),
