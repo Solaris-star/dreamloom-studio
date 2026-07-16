@@ -19,7 +19,7 @@ const FEATURE_PAGES = [
   { key: 'materials', path: '/#/knowledge/materials', title: /素材/ },
   { key: 'settings', path: '/#/settings/general', title: /系统设置|设置/ },
   { key: 'ai-queue', path: '/#/ai/queue', title: /任务队列/ },
-  { key: 'import-export', path: '/#/import-export/import', title: /导入导出/ },
+  { key: 'import-export', path: '/#/knowledge?tab=import', title: /导入作品|作品书架/ },
   { key: 'outline', path: null, title: /大纲/ }, // filled with book
   { key: 'editor', path: null, title: /创作台|织梦/ }
 ]

@@ -25,7 +25,7 @@ export const pageOpenCases = [
   { routeName: 'MarketInspiration', path: '/#/market/overview', title: '市场灵感' },
   { routeName: 'Analytics', path: '/#/analytics/overview', title: '数据中心' },
   { routeName: 'SystemSettings', path: '/#/settings/general', title: '系统设置' },
-  { routeName: 'ImportExport', path: '/#/import-export/import', title: '导入导出' },
+  { routeName: 'ImportExport', path: '/#/import-export/import', title: '作品书架 · 导入作品' },
   { routeName: 'Timeline', path: '/#/timeline?name=__book__', title: '时间线' },
   {
     routeName: 'CharacterProfile',
@@ -73,7 +73,7 @@ export const pageOpenCases = [
   {
     routeName: 'NovelDownload',
     path: '/#/novel-download?name=__book__',
-    title: '小说下载'
+    title: '作品书架 · 下载小说'
   },
   { routeName: 'UserGuide', path: '/#/user-guide?name=__book__', title: '写作指南' },
   { routeName: 'NotFound', path: '/#/route-that-does-not-exist', title: '页面不存在' }

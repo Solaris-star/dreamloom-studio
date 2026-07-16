@@ -52,7 +52,72 @@
       @dragover.prevent
       @drop.prevent="handleBookshelfDrop"
     >
-      <div class="bookshelf-toolbar">
+      <div class="bookshelf-workspace-header">
+        <div>
+          <p class="eyebrow">
+            作品书架
+          </p>
+          <h1>{{ bookshelfTabMeta.title }}</h1>
+          <p>{{ bookshelfTabMeta.description }}</p>
+        </div>
+        <div class="bookshelf-primary-actions">
+          <el-button
+            v-motion-feedback
+            type="primary"
+            @click="openCreateBookDrawer"
+          >
+            <Plus :size="16" />
+            新建作品
+          </el-button>
+          <el-button
+            v-motion-feedback
+            @click="setBookshelfTab('import')"
+          >
+            <UploadCloud :size="16" />
+            导入
+          </el-button>
+          <el-button
+            v-motion-feedback
+            @click="setBookshelfTab('download')"
+          >
+            <Download :size="16" />
+            下载
+          </el-button>
+          <el-button
+            v-motion-feedback
+            :disabled="!selectedBook && !books.length"
+            @click="openExportTab(selectedBook)"
+          >
+            <Archive :size="16" />
+            导出
+          </el-button>
+        </div>
+      </div>
+
+      <nav
+        class="bookshelf-tab-nav"
+        aria-label="作品书架分区"
+      >
+        <button
+          v-for="tab in bookshelfTabs"
+          :key="tab.key"
+          type="button"
+          :class="{ active: bookshelfTab === tab.key }"
+          :aria-current="bookshelfTab === tab.key ? 'page' : undefined"
+          @click="setBookshelfTab(tab.key)"
+        >
+          <component
+            :is="tab.icon"
+            :size="15"
+          />
+          <span>{{ tab.label }}</span>
+        </button>
+      </nav>
+
+      <div
+        v-if="bookshelfTab === 'works'"
+        class="bookshelf-toolbar"
+      >
         <el-input
           v-model="keyword"
           clearable
@@ -96,7 +161,85 @@
         </el-popover>
       </div>
 
+      <section
+        v-if="bookshelfTab === 'import'"
+        class="bookshelf-tool-panel"
+      >
+        <ImportExport
+          embedded
+          section="import"
+          @imported="handleImportExportImported"
+        />
+      </section>
+
+      <section
+        v-else-if="bookshelfTab === 'export'"
+        class="bookshelf-tool-panel"
+      >
+        <ImportExport
+          embedded
+          section="export"
+          :initial-book-name="exportInitialBookName"
+          @exported="handleImportExportExported"
+        />
+      </section>
+
+      <section
+        v-else-if="bookshelfTab === 'download'"
+        class="bookshelf-tool-panel"
+      >
+        <div class="bookshelf-download-search card-panel">
+          <el-select
+            v-model="toolbarSourceId"
+            placeholder="选择书源"
+            class="toolbar-source-select"
+          >
+            <el-option
+              v-for="source in novelSources"
+              :key="source.id"
+              :label="source.name"
+              :value="source.id"
+            />
+          </el-select>
+          <el-input
+            v-model="keyword"
+            clearable
+            placeholder="搜索网络小说书名或作者"
+            @keyup.enter.prevent="handleUnifiedSearch"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+          <el-button
+            type="primary"
+            :loading="novelSearching"
+            @click="handleUnifiedSearch"
+          >
+            搜索
+          </el-button>
+        </div>
+        <NovelImportPanel
+          ref="novelImportRef"
+          @imported="handleNovelImported"
+        />
+      </section>
+
+      <section
+        v-else-if="bookshelfTab === 'backup' || bookshelfTab === 'jobs'"
+        class="bookshelf-tool-panel"
+      >
+        <ImportExport
+          embedded
+          :section="bookshelfTab"
+          :initial-book-name="exportInitialBookName"
+          @imported="handleImportExportImported"
+          @restored="handleImportExportRestored"
+        />
+      </section>
+
       <main
+        v-else
         class="bookshelf-layout"
         :class="{ 'has-preview': selectedBook }"
       >
@@ -370,6 +513,12 @@
               @click="openStudio(selectedBook)"
             >
               打开创作台
+            </el-button>
+            <el-button
+              v-motion-feedback
+              @click="openExportTab(selectedBook)"
+            >
+              导出作品
             </el-button>
             <el-button
               v-if="isDownloadedBook(selectedBook)"
@@ -1466,6 +1615,8 @@
       width="700px"
       destroy-on-close
       align-center
+      class="add-book-dialog"
+      :fullscreen="isMobileBookshelf"
     >
       <el-tabs
         v-model="activeImportTab"
@@ -1491,6 +1642,17 @@
         </el-tab-pane>
       </el-tabs>
     </el-dialog>
+
+    <BookFormDrawer
+      v-model="createBookDrawerVisible"
+      :form="createBookForm"
+      :is-edit="false"
+      :rules="createBookRules"
+      :book-type-cascader-options="bookTypeCascaderOptions"
+      :preset-colors="createBookPresetColors"
+      @update:form="Object.assign(createBookForm, $event)"
+      @confirm="handleCreateBookConfirm"
+    />
 
     <!-- 图片大图预览弹窗 -->
     <el-dialog
@@ -1548,6 +1710,7 @@ import {
   Download,
   FileImage,
   FileText,
+  History,
   Search as SearchIcon,
   SlidersHorizontal,
   Trash2,
@@ -1557,10 +1720,13 @@ import {
 } from 'lucide-vue-next'
 import LocalBookImportPanel from '@renderer/components/LocalBookImportPanel.vue'
 import NovelImportPanel from '@renderer/components/NovelImportPanel.vue'
+import BookFormDrawer from '@renderer/components/BookFormDrawer.vue'
+import ImportExport from '@renderer/views/ImportExport.vue'
 import { useMainStore } from '@renderer/stores'
-import { deleteBook, readBooksDir } from '@renderer/service/books'
+import { createBook, deleteBook, readBooksDir } from '@renderer/service/books'
 import { selectBrowserImage } from '@renderer/service/browserImagePicker'
 import { listChapterTree } from '@renderer/service/editor'
+import { BOOK_TYPES, BOOK_TYPE_GROUPS } from '@renderer/constants/config'
 import {
   attachAssetToBook,
   deleteAsset,
@@ -1652,6 +1818,38 @@ const novelImportRef = ref(null)
 const localBookImportRef = ref(null)
 const addBookDialogVisible = ref(false)
 const activeImportTab = ref('server')
+const createBookDrawerVisible = ref(false)
+const isMobileBookshelf = ref(false)
+const exportInitialBookName = ref('')
+const createBookForm = reactive({
+  name: '',
+  type: '',
+  targetCount: 1000000,
+  intro: '',
+  originalName: '',
+  password: '',
+  confirmPassword: '',
+  coverColor: '#22345c',
+  coverImagePath: '',
+  coverImagePreview: ''
+})
+const createBookRules = {
+  name: [
+    { required: true, message: '请输入作品名称', trigger: 'blur' },
+    { max: 15, message: '作品名称不能超过 15 字', trigger: 'blur' }
+  ],
+  type: [{ required: true, message: '请选择作品类型', trigger: 'change' }],
+  targetCount: [{ required: true, message: '请输入目标字数', trigger: 'blur' }],
+  intro: [{ required: true, message: '请输入作品简介', trigger: 'blur' }]
+}
+const createBookPresetColors = [
+  { label: '深蓝', value: '#22345c' },
+  { label: '深绿', value: '#2d4a3e' },
+  { label: '深红', value: '#4a2d2d' },
+  { label: '深紫', value: '#3d2d4a' },
+  { label: '深棕', value: '#4a3d2d' },
+  { label: '深灰', value: '#3d3d3d' }
+]
 const toolbarSourceId = computed({
   get: () => novelImportRef.value?.currentSourceId || '',
   set: (value) => {
@@ -1803,6 +2001,51 @@ const librarySectionLinks = [
   { key: 'trash', label: '回收站', path: '/knowledge/trash', icon: Trash2 }
 ]
 
+const bookshelfTabs = [
+  { key: 'works', label: '我的作品', icon: BookOpen },
+  { key: 'import', label: '导入作品', icon: UploadCloud },
+  { key: 'export', label: '导出作品', icon: Archive },
+  { key: 'download', label: '下载小说', icon: Download },
+  { key: 'backup', label: '备份恢复', icon: History },
+  { key: 'jobs', label: '任务记录', icon: FileText }
+]
+
+const bookshelfTabMetaMap = {
+  works: {
+    title: '我的作品',
+    description: '统一管理创作、导入与下载的书籍。'
+  },
+  import: {
+    title: '导入作品',
+    description: '从本地文件导入，写入后会自动刷新书架。'
+  },
+  export: {
+    title: '导出作品',
+    description: '导出当前作品，支持全部章节或指定章节。'
+  },
+  download: {
+    title: '下载小说',
+    description: '搜索书源并下载到书架，失败可重试。'
+  },
+  backup: {
+    title: '备份恢复',
+    description: '备份整个书库或单本书，并支持恢复。'
+  },
+  jobs: {
+    title: '任务记录',
+    description: '查看最近的导入、导出和备份任务。'
+  }
+}
+
+const bookTypeCascaderOptions = BOOK_TYPE_GROUPS.map((group) => ({
+  label: group.groupLabel,
+  value: group.groupLabel,
+  children: (group.options || []).map((item) => ({
+    value: item.value,
+    label: item.label
+  }))
+}))
+
 const activeSection = computed(() => {
   if (props.section) return props.section
   const path = route.path
@@ -1812,6 +2055,18 @@ const activeSection = computed(() => {
   if (path.endsWith('/trash')) return 'trash'
   return 'bookshelf'
 })
+
+const bookshelfTab = computed(() => {
+  const tab = String(route.query.tab || '').trim()
+  if (['works', 'import', 'export', 'download', 'backup', 'jobs'].includes(tab)) return tab
+  if (route.query.import === 'novel') return 'download'
+  if (route.query.import === 'local') return 'import'
+  return 'works'
+})
+
+const bookshelfTabMeta = computed(
+  () => bookshelfTabMetaMap[bookshelfTab.value] || bookshelfTabMetaMap.works
+)
 
 const pageMeta = computed(() => sectionMeta[activeSection.value] || sectionMeta.bookshelf)
 const books = computed(() => mainStore.books || [])
@@ -2018,12 +2273,13 @@ watch(
 watch(
   () => route.query.import,
   (value) => {
-    if (activeSection.value === 'bookshelf' && value === 'novel') {
+    if (activeSection.value !== 'bookshelf') return
+    if (value === 'novel') {
       searchMode.value = 'source'
-      scrollToNovelImport()
-    } else if (activeSection.value === 'bookshelf' && value === 'local') {
+      setBookshelfTab('download')
+    } else if (value === 'local') {
       searchMode.value = 'local'
-      scrollToNovelImport()
+      setBookshelfTab('import')
     }
   },
   { immediate: true }
@@ -2079,7 +2335,216 @@ watch(imageFilter, () => resetListPage('images'))
 watch(promptFilter, () => resetListPage('prompts'))
 watch(trashFilter, () => resetListPage('trash'))
 
-onMounted(loadLibrary)
+onMounted(() => {
+  updateMobileBookshelf()
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', updateMobileBookshelf)
+  }
+  loadLibrary()
+})
+
+function updateMobileBookshelf() {
+  if (typeof window === 'undefined') {
+    isMobileBookshelf.value = false
+    return
+  }
+  isMobileBookshelf.value = window.innerWidth <= 760
+}
+
+function setBookshelfTab(tab = 'works', extraQuery = {}) {
+  if (activeSection.value !== 'bookshelf' && route.path !== '/knowledge') {
+    router.push({
+      path: '/knowledge',
+      query: {
+        ...(tab && tab !== 'works' ? { tab } : {}),
+        ...extraQuery
+      }
+    })
+    return
+  }
+  const nextQuery = { ...route.query, ...extraQuery }
+  delete nextQuery.import
+  if (!tab || tab === 'works') delete nextQuery.tab
+  else nextQuery.tab = tab
+  const currentTab = bookshelfTab.value
+  const sameTab = (tab || 'works') === currentTab
+  const sameQuery = JSON.stringify(nextQuery) === JSON.stringify(route.query)
+  if (sameTab && sameQuery) return
+  router.push({ path: '/knowledge', query: nextQuery })
+}
+
+function openExportTab(book = null) {
+  const name = book ? bookTitle(book) : ''
+  exportInitialBookName.value = name || exportInitialBookName.value || ''
+  setBookshelfTab('export', name ? { name } : {})
+}
+
+function openCreateBookDrawer() {
+  Object.assign(createBookForm, {
+    name: '',
+    type: '',
+    targetCount: 1000000,
+    intro: '',
+    originalName: '',
+    password: '',
+    confirmPassword: '',
+    coverColor: '#22345c',
+    coverImagePath: '',
+    coverImagePreview: ''
+  })
+  createBookDrawerVisible.value = true
+}
+
+async function handleCreateBookConfirm() {
+  try {
+    const bookId = `${Date.now()}${Math.floor(Math.random() * 10000)}`
+    const typeName = BOOK_TYPES.find((item) => item.value === createBookForm.type)?.label || ''
+    const result = await createBook({
+      id: bookId,
+      name: createBookForm.name,
+      type: createBookForm.type,
+      typeName,
+      targetCount: Number(createBookForm.targetCount || 0),
+      intro: createBookForm.intro,
+      password: createBookForm.password || null,
+      coverColor: createBookForm.coverColor || '#22345c',
+      coverUrl: null,
+      coverImagePath: createBookForm.coverImagePath || null
+    })
+    if (result?.success === false) {
+      throw new Error(result?.message || '创建作品失败')
+    }
+    ElMessage.success('作品已创建')
+    createBookDrawerVisible.value = false
+    bookFilter.value = 'creative'
+    await loadLibrary()
+    selectedBookKey.value = String(result?.bookName || createBookForm.name || bookId)
+    setBookshelfTab('works')
+  } catch (error) {
+    ElMessage.error(error?.message || '创建作品失败')
+  }
+}
+
+function openAddBookDialog(preferredTab = 'server') {
+  if (preferredTab === 'local') {
+    setBookshelfTab('import')
+    addBookDialogVisible.value = true
+    activeImportTab.value = 'local'
+    return
+  }
+  setBookshelfTab('download')
+  activeImportTab.value = 'server'
+  addBookDialogVisible.value = false
+}
+
+function handleBookshelfDrop(event) {
+  const files = Array.from(event.dataTransfer?.files || [])
+  const supported = files.filter((f) => {
+    const ext = f.name.split('.').pop()?.toLowerCase()
+    return ['txt', 'md', 'markdown', 'docx'].includes(ext)
+  })
+  if (supported.length > 0) {
+    setBookshelfTab('import')
+    addBookDialogVisible.value = true
+    activeImportTab.value = 'local'
+    nextTick(() => {
+      if (localBookImportRef.value) {
+        localBookImportRef.value.parseFiles(supported)
+      }
+    })
+  } else {
+    ElMessage.warning('拖入文件格式不支持，仅支持 TXT、MD、DOCX 文本格式')
+  }
+}
+
+async function handleNovelImported(book) {
+  addBookDialogVisible.value = false
+  bookFilter.value = 'downloaded'
+  searchMode.value = 'shelf'
+  await loadLibrary()
+  if (book?.id || book?.name) {
+    selectedBookKey.value = String(book.id || book.name)
+  }
+  setBookshelfTab('works')
+}
+
+async function handleLocalBookImported(book) {
+  addBookDialogVisible.value = false
+  bookFilter.value = 'imported'
+  searchMode.value = 'shelf'
+  await loadLibrary()
+  if (book?.id || book?.name) {
+    selectedBookKey.value = String(book.id || book.name)
+  }
+  setBookshelfTab('works')
+}
+
+async function handleImportExportImported(result) {
+  bookFilter.value = 'imported'
+  await loadLibrary()
+  if (result?.bookName) {
+    selectedBookKey.value = String(result.bookName)
+  }
+  setBookshelfTab('works')
+}
+
+async function handleImportExportRestored() {
+  await loadLibrary()
+  setBookshelfTab('works')
+}
+
+function handleImportExportExported() {
+  // 导出失败时页面保留在导出 tab；成功仅提示，不强制跳转
+}
+
+async function handleUnifiedSearch() {
+  if (searchMode.value === 'local' || bookshelfTab.value === 'import') {
+    setBookshelfTab('import')
+    await waitForImportPanel()
+    localBookImportRef.value?.openFilePicker()
+    return
+  }
+  if (searchMode.value !== 'source' && bookshelfTab.value !== 'download') {
+    searchMode.value = 'source'
+    setBookshelfTab('download')
+    await waitForImportPanel()
+  }
+  if (!novelImportRef.value) return
+  syncNovelKeyword()
+  await novelImportRef.value.handleSearch()
+}
+
+function switchSearchMode(mode) {
+  searchMode.value = mode
+  if (mode === 'source') {
+    setBookshelfTab('download')
+    syncNovelKeyword()
+  } else if (mode === 'local') {
+    setBookshelfTab('import')
+  }
+}
+
+function syncNovelKeyword() {
+  requestAnimationFrame(() => {
+    novelImportRef.value?.setKeyword(keyword.value)
+  })
+}
+
+function waitForImportPanel() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve)
+    })
+  })
+}
+
+function scrollToNovelImport() {
+  setTimeout(() => {
+    document
+      .querySelector('.bookshelf-tool-panel, .bookshelf-import-card')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, 80)
+}
 
 async function loadLibrary() {
   loading.value = true
@@ -2254,94 +2719,6 @@ function paginationSummary(key, total) {
 
 function shouldShowPagination(key, total) {
   return Number(total || 0) > Number(listPageSize[key] || 24)
-}
-
-function openAddBookDialog() {
-  addBookDialogVisible.value = true
-  activeImportTab.value = 'server'
-}
-
-function handleBookshelfDrop(event) {
-  const files = Array.from(event.dataTransfer?.files || [])
-  const supported = files.filter((f) => {
-    const ext = f.name.split('.').pop()?.toLowerCase()
-    return ['txt', 'md', 'markdown', 'docx'].includes(ext)
-  })
-  if (supported.length > 0) {
-    addBookDialogVisible.value = true
-    activeImportTab.value = 'local'
-    nextTick(() => {
-      if (localBookImportRef.value) {
-        localBookImportRef.value.parseFiles(supported)
-      }
-    })
-  } else {
-    ElMessage.warning('拖入文件格式不支持，仅支持 TXT, MD, DOCX 文本格式')
-  }
-}
-
-async function handleNovelImported(book) {
-  addBookDialogVisible.value = false
-  bookFilter.value = 'downloaded'
-  searchMode.value = 'shelf'
-  await loadLibrary()
-  if (book?.id || book?.name) {
-    selectedBookKey.value = String(book.id || book.name)
-  }
-}
-
-async function handleLocalBookImported(book) {
-  addBookDialogVisible.value = false
-  bookFilter.value = 'imported'
-  searchMode.value = 'shelf'
-  await loadLibrary()
-  if (book?.id || book?.name) {
-    selectedBookKey.value = String(book.id || book.name)
-  }
-}
-
-async function handleUnifiedSearch() {
-  if (searchMode.value === 'local') {
-    await waitForImportPanel()
-    localBookImportRef.value?.openFilePicker()
-    return
-  }
-  if (searchMode.value !== 'source') {
-    searchMode.value = 'source'
-    await waitForImportPanel()
-  }
-  if (!novelImportRef.value) return
-  syncNovelKeyword()
-  await novelImportRef.value.handleSearch()
-}
-
-function switchSearchMode(mode) {
-  searchMode.value = mode
-  if (mode === 'source') {
-    syncNovelKeyword()
-  }
-}
-
-function syncNovelKeyword() {
-  requestAnimationFrame(() => {
-    novelImportRef.value?.setKeyword(keyword.value)
-  })
-}
-
-function waitForImportPanel() {
-  return new Promise((resolve) => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(resolve)
-    })
-  })
-}
-
-function scrollToNovelImport() {
-  setTimeout(() => {
-    document
-      .querySelector('.bookshelf-import-card')
-      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, 80)
 }
 
 function selectBook(book) {
@@ -3957,6 +4334,79 @@ function dateValue(value) {
   }
 }
 
+.bookshelf-workspace-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+
+  h1 {
+    margin: 4px 0 6px;
+    font-size: 24px;
+    line-height: 1.3;
+  }
+
+  p {
+    margin: 0;
+    color: var(--text-gray);
+    line-height: 1.6;
+  }
+}
+
+.bookshelf-primary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.bookshelf-tab-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-soft);
+    color: var(--text-base);
+    border-radius: 999px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: 0.18s ease;
+
+    &.active {
+      border-color: color-mix(in srgb, var(--primary-color) 55%, var(--border-color));
+      background: color-mix(in srgb, var(--primary-color) 12%, var(--bg-soft));
+      color: var(--primary-color);
+    }
+  }
+}
+
+.bookshelf-tool-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.bookshelf-download-search {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+
+  :deep(.el-input) {
+    min-width: 180px;
+    flex: 1 1 260px;
+  }
+
+  :deep(.el-button) {
+    flex: 0 0 auto;
+  }
+}
+
 .search-mode {
   display: inline-flex;
   flex: 0 0 auto;
@@ -4744,8 +5194,28 @@ function dateValue(value) {
 @media (max-width: 760px) {
   .library-header,
   .section-title,
-  .panel-toolbar {
+  .panel-toolbar,
+  .bookshelf-workspace-header {
     display: grid;
+  }
+
+  .bookshelf-primary-actions {
+    justify-content: stretch;
+
+    :deep(.el-button) {
+      flex: 1 1 calc(50% - 8px);
+    }
+  }
+
+  .bookshelf-tab-nav {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+
+    button {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
   }
 
   .bookshelf-toolbar {
@@ -5114,15 +5584,11 @@ function dateValue(value) {
     font-size: 13px;
     color: var(--wabi-text, #86827a);
   }
-
-  .lightbox-actions {
-    display: flex;
-    gap: 10px;
-  }
 }
 
-.images-grid {
-  position: relative;
+.lightbox-actions {
+  display: flex;
+  gap: 10px;
 }
 
 .image-drag-overlay {

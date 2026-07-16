@@ -370,7 +370,7 @@ test('TXT 和 Markdown 可以生成完整章节预览', async ({ page }, testInf
     }
   ]
 
-  await page.goto('/#/import-export/import')
+  await page.goto('/#/knowledge?tab=import')
   const fileInput = page.locator('input[type="file"]').first()
   for (const item of cases) {
     await fileInput.setInputFiles({
@@ -395,7 +395,7 @@ test('空文件和超限文件会在页面直接提示且不请求预览', async
     await route.continue()
   })
 
-  await page.goto('/#/import-export/import')
+  await page.goto('/#/knowledge?tab=import')
   const fileInput = page.locator('input[type="file"]').first()
   await fileInput.setInputFiles({
     name: '空书.txt',
@@ -768,7 +768,7 @@ test('导入书籍期间不会重复提交', async ({ page }) => {
     })
   })
 
-  await page.goto('/#/import-export/import')
+  await page.goto('/#/knowledge?tab=import')
   await page.locator('input[type="file"]').setInputFiles({
     name: 'import-guard.txt',
     mimeType: 'text/plain',
@@ -776,7 +776,7 @@ test('导入书籍期间不会重复提交', async ({ page }) => {
   })
   await expect(page.getByText('导入防重复测试', { exact: true })).toBeVisible()
 
-  const importButton = page.getByRole('button', { name: '写入书库' })
+  const importButton = page.getByRole('button', { name: '写入书架' })
   await importButton.click()
   await expect(importButton).toBeDisabled()
   await importButton.dispatchEvent('click')
@@ -803,7 +803,7 @@ test('恢复备份需要确认且失败时不会显示成功', async ({ page }) 
     })
   })
 
-  await page.goto('/#/import-export/backup')
+  await page.goto('/#/knowledge?tab=backup')
   await page.locator('input[type="file"]').setInputFiles({
     name: 'restore-test.zip',
     mimeType: 'application/zip',
@@ -966,36 +966,81 @@ test('小说下载不会重复提交或写入失败章节', async ({ page }) => 
     })
   })
   await page.route('**/api/books/create', async (route) => {
+    const payload = await route.request().postDataJSON()
     await route.fulfill({
       contentType: 'application/json',
-      body: JSON.stringify({ success: true })
+      body: JSON.stringify({
+        success: true,
+        bookName: payload.name || '下载保护测试',
+        bookPath: `/tmp/${payload.name || '下载保护测试'}`,
+        databaseSync: { success: true }
+      })
+    })
+  })
+  await page.route('**/api/books/dir', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, booksDir: '/tmp/e2e-books', configurable: true })
+    })
+  })
+  await page.route('**/api/books/set-dir', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, booksDir: '/tmp/e2e-books' })
+    })
+  })
+  await page.route('**/api/chapters/create', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        chapterName: '第2章',
+        filePath: '/tmp/e2e-books/下载保护测试/正文/正文/第2章.txt'
+      })
     })
   })
   await page.route('**/api/chapters/save', async (route) => {
-    savedChapters.push((await route.request().postDataJSON()).content)
+    const payload = await route.request().postDataJSON()
+    const content = String(payload.content || '')
+    const chapterName = payload.newName || payload.chapterName
+    savedChapters.push(content)
     await route.fulfill({
       contentType: 'application/json',
-      body: JSON.stringify({ success: true })
+      body: JSON.stringify({
+        success: true,
+        bookName: payload.bookName,
+        volumeName: payload.volumeName,
+        chapterName,
+        filePath: `/tmp/e2e-books/${payload.bookName}/正文/${payload.volumeName}/${chapterName}.txt`,
+        wordCount: content.replace(/[\s\n\r\t]/g, '').length,
+        databaseSync: { success: true, chapterName }
+      })
+    })
+  })
+  await page.route('**/api/books/list', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([{ id: 'dl-1', name: '下载保护测试', folderName: '下载保护测试' }])
     })
   })
 
-  await page.goto('/#/novel-download')
+  await page.goto('/#/knowledge?tab=download')
   await page.getByPlaceholder(/书名|作者/).fill('下载保护')
   await page.getByRole('button', { name: '搜索' }).click()
-  await page.getByRole('button', { name: '下载', exact: true }).click()
-  await expect(page.getByText('共 2 章')).toBeVisible()
+  await page.getByRole('button', { name: '选择' }).first().click()
+  await expect(page.getByText(/本次将处理 2/)).toBeVisible()
 
   const downloadButton = page.getByRole('button', { name: /下载并加入书架/ })
   await downloadButton.evaluate((button) => {
     button.click()
     button.click()
   })
-  const confirmDialog = page.getByRole('dialog', { name: /确认下载/ })
-  await confirmDialog.getByRole('button', { name: '确定' }).click()
+  const confirmDialog = page.getByRole('dialog', { name: /确认导入/ })
+  await confirmDialog.getByRole('button', { name: '导入' }).click()
 
   await expect(page.getByText(/已加入书架/)).toBeVisible()
   await expect.poll(() => downloadRequests).toBe(1)
-  expect(savedChapters).toEqual(['第一章\n\n可用正文'])
+  expect(savedChapters).toEqual(['可用正文'])
 })
 
 test('写作目标保存不会重复提交或误报成功', async ({ page }) => {
@@ -1526,7 +1571,7 @@ test('书籍导出失败时不会重复提交或误报完成', async ({ page }) 
     })
   })
 
-  await page.goto('/#/import-export/export')
+  await page.goto('/#/knowledge?tab=export')
   await page.getByRole('combobox').click()
   await page.getByRole('option').first().click()
 
@@ -1562,7 +1607,7 @@ test('创建备份失败时不会重复提交或触发下载', async ({ page }) 
     })
   })
 
-  await page.goto('/#/import-export/backup')
+  await page.goto('/#/knowledge?tab=backup')
   const backupButton = page.getByRole('button', { name: '创建备份', exact: true })
   await expect(backupButton).toBeEnabled()
   await backupButton.click()
