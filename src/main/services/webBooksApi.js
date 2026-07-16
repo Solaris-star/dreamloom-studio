@@ -826,6 +826,7 @@ export async function createBook(bookInfo, booksDir) {
     downloaded: Boolean(bookInfo.downloaded),
     importedFrom: bookInfo.importedFrom || '',
     bookRole: normalizeBookRole(bookInfo),
+    ownerId: bookInfo.ownerId || null,
     password: bookInfo.password || null,
     coverColor: bookInfo.coverColor || '#22345c',
     coverUrl,
@@ -878,6 +879,45 @@ export async function createBook(bookInfo, booksDir) {
     }),
     bookIdeaRun,
     coverWarning
+  }
+}
+
+export function getBookOwnerId(meta = {}) {
+  const value = meta?.ownerId
+  if (value === undefined || value === null || value === '') return null
+  return String(value)
+}
+
+export function canAccessBook(meta = {}, session = {}) {
+  if (!session || session.role !== 'guest') return true
+  const ownerId = getBookOwnerId(meta)
+  return Boolean(ownerId && ownerId === String(session.ownerId || session.keyId || ''))
+}
+
+export function filterBooksForSession(books = [], session = {}) {
+  if (!Array.isArray(books)) return []
+  if (!session || session.role !== 'guest') return books
+  return books.filter((book) => canAccessBook(book, session))
+}
+
+export function assertBookAccess(meta = {}, session = {}, bookName = '') {
+  if (canAccessBook(meta, session)) return true
+  const error = new Error(bookName ? `无权访问作品：${bookName}` : '无权访问该作品')
+  error.statusCode = 403
+  throw error
+}
+
+export async function readBookMeta(booksDir, bookName) {
+  if (!booksDir || !bookName) return null
+  try {
+    const bookPath = getExistingBookPath(booksDir, bookName)
+    if (!bookPath) return null
+    const metaPath = join(bookPath, 'mazi.json')
+    if (!fs.existsSync(metaPath)) return null
+    const meta = await readJson(metaPath, null)
+    return meta && typeof meta === 'object' ? meta : null
+  } catch {
+    return null
   }
 }
 
