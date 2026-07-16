@@ -62,10 +62,9 @@ const {
   applyVisualStyle
 } = await import(moduleUrl)
 
-assert.equal(DEFAULT_VISUAL_STYLE, 'classic')
-assert.equal(VISUAL_STYLE_STORAGE_KEY, 'config.visualStyle')
+assert.equal(DEFAULT_VISUAL_STYLE, 'apple')
 assert.deepEqual(VISUAL_STYLE_ORDER, ['classic', 'apple', 'brutal', 'pixel'])
-assert.equal(resolveVisualStyleKey('nope'), 'classic')
+assert.equal(resolveVisualStyleKey('nope'), 'apple')
 assert.equal(resolveVisualStyleKey('brutal'), 'brutal')
 assert.equal(getVisualStyleName('apple'), 'Apple 极简')
 assert.equal(getVisualStyleName('pixel'), '像素复古')

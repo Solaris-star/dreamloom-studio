@@ -80,6 +80,41 @@ html[data-visual-style] .nav-item {
     color var(--theme-transition-duration) ease;
 }
 
+/* 通用 hover 位移/缩放：读视觉风格 token，避免只剩颜色变化 */
+html[data-visual-style] .el-button:hover:not(.is-disabled):not(:disabled),
+html[data-visual-style] .app-menu-item:hover,
+html[data-visual-style] .nav-item:hover,
+html[data-visual-style] .app-sidebar-toggle:hover {
+  transform: var(--theme-button-transform-hover);
+}
+
+html[data-visual-style] .el-button:active:not(.is-disabled):not(:disabled),
+html[data-visual-style] .app-menu-item:active,
+html[data-visual-style] .nav-item:active,
+html[data-visual-style] .app-sidebar-toggle:active {
+  transform: var(--theme-button-transform-active);
+}
+
+/* 图标 hover 轻弹：lucide / svg-icon / iconfont 统一 */
+html[data-visual-style] .app-menu-icon,
+html[data-visual-style] .app-menu-item svg,
+html[data-visual-style] .nav-item svg,
+html[data-visual-style] .svg-icon,
+html[data-visual-style] .iconfont {
+  transition:
+    transform var(--theme-transition-duration) ease,
+    color var(--theme-transition-duration) ease,
+    opacity var(--theme-transition-duration) ease;
+  transform-origin: center;
+}
+
+html[data-visual-style] .app-menu-item:hover .app-menu-icon,
+html[data-visual-style] .app-menu-item:hover svg,
+html[data-visual-style] .nav-item:hover svg,
+html[data-visual-style] .app-sidebar-toggle:hover svg {
+  transform: scale(1.08);
+}
+
 html[data-visual-style] .el-button--primary {
   border-width: var(--theme-border-width);
   border-style: var(--theme-border-style);
@@ -133,7 +168,7 @@ html[data-visual-style='apple'] .app-menu-item:hover {
   border-color: transparent !important;
   color: #1d1d1f !important;
   box-shadow: none !important;
-  transform: none !important;
+  /* 保留通用图标/按钮 hover 动效，不再强行 transform:none */
 }
 
 html[data-visual-style='apple'] .app-menu-item.active {
@@ -859,6 +894,95 @@ html[data-visual-style='apple'] .editor-content .tiptap {
 }
 
 /* —— Apple 暗色（配色主题 dark 正交叠加） —— */
+
+
+/* —— Apple content surface fix (full-ui) ——
+ * 侧栏已经 Apple 化后，右侧正文/卡片仍可能吃到和纸 scoped 背景；
+ * 这里强制主内容区与常见表面跟 Apple 白卡语言一致。
+ */
+html[data-visual-style='apple'] .app-main {
+  background: #f5f5f7 !important;
+  background-image: none !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .app-main > * {
+  color: inherit;
+}
+
+html[data-visual-style='apple'] .system-settings,
+html[data-visual-style='apple'] .settings-body,
+html[data-visual-style='apple'] .settings-main,
+html[data-visual-style='apple'] .settings-main .content-wrapper,
+html[data-visual-style='apple'] .dashboard-page,
+html[data-visual-style='apple'] .home-page,
+html[data-visual-style='apple'] .creation-library,
+html[data-visual-style='apple'] .market-page,
+html[data-visual-style='apple'] .ai-workshop,
+html[data-visual-style='apple'] .statistics-page {
+  background: transparent !important;
+  background-image: none !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .settings-nav {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+html[data-visual-style='apple'] .settings-nav .nav-item:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .settings-nav .nav-item.active {
+  background: rgba(0, 113, 227, 0.12) !important;
+  border-color: transparent !important;
+  color: #0071e3 !important;
+  box-shadow: none !important;
+}
+
+html[data-visual-style='apple'] .setting-card,
+html[data-visual-style='apple'] .el-card,
+html[data-visual-style='apple'] .dashboard-card,
+html[data-visual-style='apple'] .bento-tile,
+html[data-visual-style='apple'] .book-card,
+html[data-visual-style='apple'] .shelf-card,
+html[data-visual-style='apple'] .preview-card,
+html[data-visual-style='apple'] .detail-card,
+html[data-visual-style='apple'] .ui-surface,
+html[data-visual-style='apple'] .theme-board,
+html[data-visual-style='apple'] .style-board {
+  background: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.04) !important;
+  color: #1d1d1f !important;
+}
+
+html[data-visual-style='apple'] .section-title,
+html[data-visual-style='apple'] .dashboard-header h1,
+html[data-visual-style='apple'] .page-title,
+html[data-visual-style='apple'] h1,
+html[data-visual-style='apple'] h2 {
+  font-family: var(--theme-font-display) !important;
+  color: #1d1d1f !important;
+  letter-spacing: var(--theme-letter-spacing-display);
+}
+
+html[data-visual-style='apple'] .el-button--primary {
+  background: #0071e3 !important;
+  border-color: #0071e3 !important;
+  color: #fff !important;
+  border-radius: 980px !important;
+}
+
+html[data-visual-style='apple'] .el-button--primary:hover {
+  background: #0077ed !important;
+  border-color: #0077ed !important;
+}
+
 html[data-visual-style='apple'][data-color-scheme='dark'] body,
 html[data-visual-style='apple'][data-color-scheme='dark'] .home-page,
 html[data-visual-style='apple'][data-color-scheme='dark'] .creation-library-page,

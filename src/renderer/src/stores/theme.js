@@ -85,7 +85,14 @@ export const useThemeStore = defineStore('theme', () => {
     }
 
     try {
-      const style = await getStoreValue(VISUAL_STYLE_STORAGE_KEY, DEFAULT_VISUAL_STYLE)
+      const migrated = await getStoreValue('config.visualStyle.appleDefault.v1', false)
+      let style = await getStoreValue(VISUAL_STYLE_STORAGE_KEY, DEFAULT_VISUAL_STYLE)
+      // 一次性把旧默认 classic 迁到 apple；之后用户手动选择仍会保留
+      if (!migrated) {
+        style = DEFAULT_VISUAL_STYLE
+        await setStoreValue(VISUAL_STYLE_STORAGE_KEY, DEFAULT_VISUAL_STYLE)
+        await setStoreValue('config.visualStyle.appleDefault.v1', true)
+      }
       const resolvedStyle = resolveVisualStyleKey(style)
       currentVisualStyle.value = resolvedStyle
       applyVisualStyle(resolvedStyle)

@@ -1699,6 +1699,9 @@
 </template>
 
 <script setup>
+
+defineOptions({ name: 'CreationLibrary' })
+
 import { computed, onMounted, onActivated, reactive, ref, watch, nextTick } from 'vue'
 import { useCancellableLoad } from '@renderer/composables/useCancellableLoad'
 import { useRoute, useRouter } from 'vue-router'

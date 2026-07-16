@@ -5,6 +5,63 @@ const inflightRequests = new Map()
 /** 短期响应缓存 */
 const responseCache = new Map()
 
+/** 全局请求 loading 订阅（导航/页面切换时的统一过渡） */
+let activeRequestCount = 0
+const loadingListeners = new Set()
+
+function notifyHttpLoading() {
+  const snapshot = {
+    active: activeRequestCount > 0,
+    count: activeRequestCount
+  }
+  loadingListeners.forEach((listener) => {
+    try {
+      listener(snapshot)
+    } catch {
+      // ignore subscriber errors
+    }
+  })
+}
+
+/**
+ * 订阅全局 HTTP 加载状态。
+ * @param {(state: { active: boolean, count: number }) => void} listener
+ * @returns {() => void} unsubscribe
+ */
+export function subscribeHttpLoading(listener) {
+  if (typeof listener !== 'function') return () => {}
+  loadingListeners.add(listener)
+  listener({ active: activeRequestCount > 0, count: activeRequestCount })
+  return () => {
+    loadingListeners.delete(listener)
+  }
+}
+
+export function getHttpLoadingState() {
+  return {
+    active: activeRequestCount > 0,
+    count: activeRequestCount
+  }
+}
+
+/**
+ * @param {boolean} quiet 为 true 时不进入全局 loading（轮询/预取/后台刷新）
+ */
+function trackGlobalLoading(quiet = false) {
+  if (quiet) {
+    return () => {}
+  }
+  activeRequestCount += 1
+  notifyHttpLoading()
+  let released = false
+  return () => {
+    if (released) return
+    released = true
+    activeRequestCount = Math.max(0, activeRequestCount - 1)
+    notifyHttpLoading()
+  }
+}
+
 function buildRequestKey(url, options = {}) {
   const method = String(options.method || 'GET').toUpperCase()
   const body = typeof options.body === 'string' ? options.body : ''
@@ -99,42 +156,59 @@ async function executeRequest(url, options = {}) {
  *   timeoutMs?: number
  *   cacheTtlMs?: number
  *   dedupe?: boolean
+ *   quiet?: boolean
+ *   globalLoading?: boolean
  * }} [options]
+ *
+ * quiet / globalLoading:false → 不触发全局加载条（后台轮询、预取）
  */
 export async function requestJson(url, options = {}) {
-  const { cacheTtlMs = 0, dedupe = true, ...fetchOptions } = options
+  const {
+    cacheTtlMs = 0,
+    dedupe = true,
+    quiet = false,
+    globalLoading,
+    ...fetchOptions
+  } = options
 
-  const key = buildRequestKey(url, fetchOptions)
-  const cached = readCache(key, cacheTtlMs)
-  if (cached !== null) return cached
+  const showGlobalLoading = globalLoading === false ? false : !quiet
+  const releaseLoading = trackGlobalLoading(!showGlobalLoading)
 
-  if (fetchOptions.signal?.aborted) {
-    throw Object.assign(new Error('请求已取消'), {
-      name: 'AbortError',
-      code: 'REQUEST_CANCELLED'
-    })
+  try {
+    const key = buildRequestKey(url, fetchOptions)
+    const cached = readCache(key, cacheTtlMs)
+    if (cached !== null) return cached
+
+    if (fetchOptions.signal?.aborted) {
+      throw Object.assign(new Error('请求已取消'), {
+        name: 'AbortError',
+        code: 'REQUEST_CANCELLED'
+      })
+    }
+
+    if (dedupe && inflightRequests.has(key)) {
+      return inflightRequests.get(key)
+    }
+
+    const pending = executeRequest(url, fetchOptions)
+      .then((data) => {
+        writeCache(key, data, cacheTtlMs)
+        return data
+      })
+      .finally(() => {
+        if (inflightRequests.get(key) === pending) {
+          inflightRequests.delete(key)
+        }
+      })
+
+    if (dedupe) {
+      inflightRequests.set(key, pending)
+    }
+
+    return await pending
+  } finally {
+    releaseLoading()
   }
-
-  if (dedupe && inflightRequests.has(key)) {
-    return inflightRequests.get(key)
-  }
-
-  const pending = executeRequest(url, fetchOptions)
-    .then((data) => {
-      writeCache(key, data, cacheTtlMs)
-      return data
-    })
-    .finally(() => {
-      if (inflightRequests.get(key) === pending) {
-        inflightRequests.delete(key)
-      }
-    })
-
-  if (dedupe) {
-    inflightRequests.set(key, pending)
-  }
-
-  return pending
 }
 
 export function postJson(url, payload, options = {}) {

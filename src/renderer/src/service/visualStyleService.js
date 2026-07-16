@@ -9,7 +9,7 @@
  */
 
 export const VISUAL_STYLE_STORAGE_KEY = 'config.visualStyle'
-export const DEFAULT_VISUAL_STYLE = 'classic'
+export const DEFAULT_VISUAL_STYLE = 'apple'
 
 export const VISUAL_STYLE_ORDER = ['classic', 'apple', 'brutal', 'pixel']
 

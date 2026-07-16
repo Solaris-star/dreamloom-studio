@@ -620,6 +620,9 @@
 </template>
 
 <script setup>
+
+defineOptions({ name: 'Analytics' })
+
 import { ref, onMounted, onBeforeUnmount, reactive, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'

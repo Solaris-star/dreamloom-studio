@@ -530,6 +530,37 @@ router.beforeEach(async (to, from, next) => {
 // 每次导航成功（含首次解析、push/replace、浏览器前进后退）都同步 document.title
 router.afterEach((to) => {
   applyDocumentTitle(to)
+  // 预取相邻/高频路由，降低后续切换的懒加载等待
+  if (typeof window !== 'undefined') {
+    const candidates = [
+      '/dashboard',
+      '/editor',
+      '/knowledge',
+      '/ai/creation-starter',
+      '/market/overview',
+      '/analytics/overview',
+      '/settings/general'
+    ]
+    const run = () => {
+      candidates.forEach((path) => {
+        try {
+          const resolved = router.resolve(path)
+          ;(resolved.matched || []).forEach((record) => {
+            Object.values(record.components || {}).forEach((comp) => {
+              if (typeof comp === 'function') Promise.resolve(comp()).catch(() => {})
+            })
+          })
+        } catch {
+          // ignore
+        }
+      })
+    }
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(run, { timeout: 2000 })
+    } else {
+      window.setTimeout(run, 500)
+    }
+  }
 })
 
 if (typeof window !== 'undefined') {

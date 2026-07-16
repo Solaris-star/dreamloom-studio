@@ -95,6 +95,8 @@
                 :title="sidebarCollapsed ? item.label : undefined"
                 type="button"
                 :data-testid="`nav-item-${item.key}`"
+                @mouseenter="prefetchNavItem(item)"
+                @focus="prefetchNavItem(item)"
                 @click="handleNavigate(item)"
               >
                 <span
@@ -127,6 +129,8 @@
                 :class="{ active: isSubActive(subItem) }"
                 :aria-current="isSubActive(subItem) ? 'page' : undefined"
                 type="button"
+                @mouseenter="prefetchPath(subItem.path)"
+                @focus="prefetchPath(subItem.path)"
                 @click="router.push(subItem.path)"
               >
                 {{ subItem.label }}
@@ -161,23 +165,20 @@
       }"
     >
       <router-view v-slot="{ Component, route: viewRoute }">
-        <transition
-          mode="out-in"
-          :css="false"
-          @before-enter="handlePageBeforeEnter"
-          @enter="handlePageEnter"
-          @leave="handlePageLeave"
+        <!--
+          不要再包 out-in + gsap transition：
+          keep-alive 复用节点时 leave 动画会把 opacity/visibility 留在 0，
+          再点回来右侧整页空白，只能硬刷恢复。
+        -->
+        <keep-alive
+          :include="cachedRouteNames"
+          :max="8"
         >
-          <keep-alive
-            :include="cachedRouteNames"
-            :max="8"
-          >
-            <component
-              :is="Component"
-              :key="routeViewKey(viewRoute)"
-            />
-          </keep-alive>
-        </transition>
+          <component
+            :is="Component"
+            :key="routeViewKey(viewRoute)"
+          />
+        </keep-alive>
       </router-view>
     </main>
   </div>
@@ -200,6 +201,7 @@ import {
 } from 'lucide-vue-next'
 import { ElMessage } from 'element-plus'
 import { readBooksDir } from '@renderer/service/books'
+import { useMainStore } from '@renderer/stores'
 import {
   MOBILE_MEDIA_QUERY,
   SIDEBAR_COLLAPSED_WIDTH,
@@ -213,11 +215,11 @@ import {
   writeSidebarWidth
 } from '@renderer/service/sidebarLayout'
 import { getStoreValue, setStoreValue } from '@renderer/service/webStore'
-import { pageBeforeEnter, pageEnter, pageLeave } from '@renderer/composables/useMotion'
 import brandLogoUrl from '@renderer/assets/images/logo_web.webp'
 
 const route = useRoute()
 const router = useRouter()
+const mainStore = useMainStore()
 const currentVersion = ref(import.meta.env.VITE_APP_VERSION || 'web')
 const iconProps = { size: 20, strokeWidth: 2 }
 const toggleIconProps = { size: 18, strokeWidth: 2 }
@@ -227,11 +229,26 @@ const cachedRouteNames = [
   'Dashboard',
   'CreationLibrary',
   'AiWorkshop',
-  'OutlineManager'
+  'OutlineManager',
+  'SystemSettings',
+  'MarketInspiration',
+  'Analytics'
 ]
 const isMobileViewport = ref(false)
+const prefetchedRoutes = new Set()
+const NAV_PREFETCH_PATHS = [
+  '/dashboard',
+  '/editor',
+  '/knowledge',
+  '/ai/creation-starter',
+  '/market/overview',
+  '/analytics/overview',
+  '/settings/general',
+  '/map-list'
+]
 
 let mobileMediaQuery = null
+let idlePrefetchHandle = 0
 
 const sidebarWidth = ref(readSidebarWidth())
 const sidebarCollapsed = computed(() => isSidebarCollapsed(sidebarWidth.value))
@@ -324,6 +341,16 @@ onMounted(() => {
   } else if (typeof mobileMediaQuery.addListener === 'function') {
     mobileMediaQuery.addListener(syncMobileViewport)
   }
+
+  // 空闲时预取高频路由 chunk，首次点击不再干等懒加载
+  const runIdlePrefetch = () => {
+    NAV_PREFETCH_PATHS.forEach((path) => prefetchPath(path))
+  }
+  if (typeof window.requestIdleCallback === 'function') {
+    idlePrefetchHandle = window.requestIdleCallback(runIdlePrefetch, { timeout: 2500 })
+  } else {
+    idlePrefetchHandle = window.setTimeout(runIdlePrefetch, 800)
+  }
 })
 
 onBeforeUnmount(() => {
@@ -332,6 +359,13 @@ onBeforeUnmount(() => {
     mobileMediaQuery.removeEventListener('change', syncMobileViewport)
   } else if (typeof mobileMediaQuery.removeListener === 'function') {
     mobileMediaQuery.removeListener(syncMobileViewport)
+  }
+  if (typeof window !== 'undefined') {
+    if (typeof window.cancelIdleCallback === 'function' && idlePrefetchHandle) {
+      window.cancelIdleCallback(idlePrefetchHandle)
+    } else if (idlePrefetchHandle) {
+      window.clearTimeout(idlePrefetchHandle)
+    }
   }
 })
 
@@ -366,6 +400,8 @@ function subItemsFor(item) {
 }
 
 async function handleNavigate(item) {
+  prefetchNavItem(item)
+
   if (item.key === 'editor') {
     await openEditorEntry()
     return
@@ -381,8 +417,57 @@ async function handleNavigate(item) {
   }
 }
 
+function prefetchNavItem(item) {
+  if (!item) return
+  if (item.path) prefetchPath(item.path)
+  if (item.key === 'editor') {
+    prefetchPath('/editor')
+    // 预热书架列表，创作台入口不再被首次 list 卡住
+    void readBooksDir().catch(() => {})
+  }
+  if (item.key === 'maps') {
+    prefetchPath('/map-list')
+    void readBooksDir().catch(() => {})
+  }
+  subItemsFor(item).forEach((sub) => prefetchPath(sub.path))
+}
+
+function prefetchPath(path) {
+  const target = String(path || '').trim()
+  if (!target || prefetchedRoutes.has(target)) return
+  prefetchedRoutes.add(target)
+  try {
+    const resolved = router.resolve(target)
+    const matched = resolved?.matched || []
+    matched.forEach((record) => {
+      const components = record.components || {}
+      Object.values(components).forEach((comp) => {
+        if (typeof comp === 'function') {
+          Promise.resolve(comp()).catch(() => {})
+        }
+      })
+    })
+  } catch {
+    prefetchedRoutes.delete(target)
+  }
+}
+
+function getCachedBooks() {
+  const books = mainStore.books
+  return Array.isArray(books) ? books : []
+}
+
 async function openEditorEntry() {
   if (isStudioRoute.value && (route.params.bookId || route.query.name)) return
+
+  // 先用本地 pinia 缓存瞬间跳转；没有缓存再等接口
+  const cachedBooks = getCachedBooks()
+  if (cachedBooks.length) {
+    await navigateToEditorBook(cachedBooks)
+    // 后台刷新书架，不阻塞跳转
+    void readBooksDir().catch(() => {})
+    return
+  }
 
   let books
   try {
@@ -393,6 +478,10 @@ async function openEditorEntry() {
     return
   }
 
+  await navigateToEditorBook(books)
+}
+
+async function navigateToEditorBook(books = []) {
   try {
     const lastActiveBookId = await readLastActiveBookId()
     const lastBook = books.find((book) => bookMatchesId(book, lastActiveBookId))
@@ -422,25 +511,12 @@ async function openEditorEntry() {
 async function openMapEntry() {
   if ((route.path === '/map-list' || route.path === '/map-design') && route.query.name) return
 
-  let books
-  try {
-    books = await readBooksDir()
-  } catch (error) {
-    console.warn('读取书架失败，无法进入地图设计:', error)
-    ElMessage.error(error?.message || '读取书架失败')
-    return
-  }
-
-  try {
+  const tryNavigate = async (books) => {
     const lastActiveBookId = await readLastActiveBookId()
     const lastBook = books.find((book) => bookMatchesId(book, lastActiveBookId))
     const targetBook = lastBook || books[0]
 
-    if (!targetBook) {
-      ElMessage.warning('请先创建一个作品，再进入地图设计')
-      await router.push('/knowledge')
-      return
-    }
+    if (!targetBook) return false
 
     const id = getBookRouteId(targetBook)
     if (id) await writeLastActiveBookId(id)
@@ -448,13 +524,28 @@ async function openMapEntry() {
     const query = buildBookQuery(targetBook)
     if (!query.name) {
       ElMessage.error('作品名称为空，无法进入地图设计')
-      return
+      return true
     }
 
     await router.push({
       path: '/map-list',
       query
     })
+    return true
+  }
+
+  try {
+    const cachedBooks = getCachedBooks()
+    if (cachedBooks.length && (await tryNavigate(cachedBooks))) {
+      void readBooksDir().catch(() => {})
+      return
+    }
+
+    const books = await readBooksDir()
+    if (await tryNavigate(books)) return
+
+    ElMessage.warning('请先创建一个作品，再进入地图设计')
+    await router.push('/knowledge')
   } catch (error) {
     console.warn('打开地图设计失败:', error)
     ElMessage.error(error?.message || '打开地图设计失败')
@@ -567,6 +658,11 @@ function routeViewKey(viewRoute) {
   }
 
   if (name === 'Dashboard') return 'Dashboard'
+  if (name === 'SystemSettings') return 'SystemSettings'
+  if (name === 'MarketInspiration' || name === 'MarketOverview' || name === 'MarketRankings') {
+    return 'MarketInspiration'
+  }
+  if (name === 'Analytics') return 'Analytics'
   if (name === 'OutlineManager') {
     const book = typeof viewRoute.query?.name === 'string' ? viewRoute.query.name : ''
     return `OutlineManager:${encodeURIComponent(book || 'default')}`
@@ -574,35 +670,6 @@ function routeViewKey(viewRoute) {
 
   // 其余页面不进 keep-alive include；key 用 fullPath 即可
   return viewRoute?.fullPath || viewRoute?.path || 'route-view'
-}
-
-function handlePageBeforeEnter(el) {
-  pageBeforeEnter(el, pageMotionOptions(el))
-}
-
-function handlePageEnter(el, done) {
-  pageEnter(el, done, pageMotionOptions(el))
-}
-
-function handlePageLeave(el, done) {
-  pageLeave(el, done, pageMotionOptions(el))
-}
-
-function pageMotionOptions(el) {
-  const compact = isSmallViewport() || isStudioRoute.value || isEditorRouteElement(el)
-  return {
-    compact,
-    fallbackMs: compact ? 180 : 420
-  }
-}
-
-function isSmallViewport() {
-  if (mobileMediaQuery) return isMobileViewport.value
-  return typeof window !== 'undefined' && window.matchMedia?.(MOBILE_MEDIA_QUERY).matches
-}
-
-function isEditorRouteElement(el) {
-  return Boolean(el?.classList?.contains('editor-page') || el?.querySelector?.('.editor-page'))
 }
 </script>
 

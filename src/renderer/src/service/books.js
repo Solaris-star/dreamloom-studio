@@ -1,7 +1,16 @@
 // 书籍相关操作服务
 
 import { useMainStore } from '../stores/index.js'
-import { fetchJson, postJson } from './webHttpClient.js'
+import { fetchJson, invalidateHttpClientCache, postJson } from './webHttpClient.js'
+
+/** 书架列表软缓存：导航/首页反复进页时避免每次公网 ~1s */
+const BOOKS_LIST_CACHE_TTL_MS = 30_000
+const BOOKS_DIR_CACHE_TTL_MS = 60_000
+
+function bustBooksListCache() {
+  invalidateHttpClientCache('/api/books/list')
+  invalidateHttpClientCache('/api/books/dir')
+}
 
 function requireBookList(result) {
   if (!Array.isArray(result)) {
@@ -25,8 +34,11 @@ export async function getBookDir() {
   return (await getBookDirectoryInfo()).booksDir
 }
 
-export async function getBookDirectoryInfo() {
-  const result = await fetchJson('/api/books/dir')
+export async function getBookDirectoryInfo(options = {}) {
+  const result = await fetchJson('/api/books/dir', {
+    cacheTtlMs: options.cacheTtlMs ?? BOOKS_DIR_CACHE_TTL_MS,
+    ...options
+  })
   if (
     result?.success !== true ||
     typeof result.booksDir !== 'string' ||
@@ -47,6 +59,7 @@ export async function setBookDir(dir) {
   if (result?.success !== true || result.booksDir !== booksDir) {
     throw new Error(result?.message || '保存书库目录失败：接口返回格式不正确')
   }
+  bustBooksListCache()
   return result.booksDir
 }
 
@@ -56,9 +69,10 @@ export async function setBookDir(dir) {
  * @returns {Promise<any>}
  */
 export function createBook(bookInfo) {
-  return postJson('/api/books/create', bookInfo).then((result) =>
-    requireBookWriteResult(result, '创建作品失败')
-  )
+  return postJson('/api/books/create', bookInfo).then((result) => {
+    bustBooksListCache()
+    return requireBookWriteResult(result, '创建作品失败')
+  })
 }
 
 /**
@@ -67,19 +81,25 @@ export function createBook(bookInfo) {
  * @returns {Promise<any>}
  */
 export function updateBook(bookInfo) {
-  return postJson('/api/books/edit', bookInfo).then((result) =>
-    requireBookWriteResult(result, '更新作品失败')
-  )
+  return postJson('/api/books/edit', bookInfo).then((result) => {
+    bustBooksListCache()
+    return requireBookWriteResult(result, '更新作品失败')
+  })
 }
 
 /**
  * 读取书籍目录下所有书籍，并自动存入 pinia
  * @returns {Promise<Array>}
  */
-export async function readBooksDir() {
+export async function readBooksDir(options = {}) {
   const mainStore = useMainStore()
   try {
-    const books = requireBookList(await postJson('/api/books/list', {}))
+    const books = requireBookList(
+      await postJson('/api/books/list', {}, {
+        cacheTtlMs: options.cacheTtlMs ?? BOOKS_LIST_CACHE_TTL_MS,
+        ...options
+      })
+    )
     mainStore.setBooks(books)
     return books
   } catch (error) {
@@ -95,5 +115,6 @@ export async function readBooksDir() {
  */
 export async function deleteBook(name) {
   const result = await postJson('/api/books/delete', { name })
+  bustBooksListCache()
   return requireBookWriteResult(result, '删除作品失败')
 }

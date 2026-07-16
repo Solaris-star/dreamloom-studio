@@ -641,6 +641,9 @@
 </template>
 
 <script setup>
+
+defineOptions({ name: 'SystemSettings' })
+
 import { computed, ref, onMounted, markRaw, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
