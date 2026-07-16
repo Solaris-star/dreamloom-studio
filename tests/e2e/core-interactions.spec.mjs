@@ -841,7 +841,10 @@ test('市场灵感写操作不会重复提交或保留旧成功结果', async ({
     opportunityScore: 75,
     suitableWriting: '长篇悬疑',
     hook: '旧信引出失踪案',
-    sourceStatus: 'fresh'
+    sourceStatus: 'fresh',
+    contentKind: 'live',
+    contentKindLabel: '外部实时',
+    isExample: false
   }
   const marketResponses = {
     dashboard: {
@@ -849,16 +852,19 @@ test('市场灵感写操作不会重复提交或保留旧成功结果', async ({
       sourceStatus: [],
       topOpportunities: [],
       recentTrends: [],
-      agentBrief: null
+      agentBrief: null,
+      dataMode: 'live',
+      emptyState: { reason: 'ok', title: '', description: '' }
     },
     overview: {
       success: true,
       writableDirections: [insight],
       genreDistribution: [],
       inspirationExpress: [],
-      opportunityIndex: { grade: 'A', summary: '适合创作' }
+      opportunityIndex: { grade: 'A', summary: '适合创作' },
+      dataMode: 'live'
     },
-    'hot-rank': { success: true, sources: [], items: [] },
+    'hot-rank': { success: true, sources: [], items: [], dataMode: 'live' },
     'keyword-cloud': {
       success: true,
       keywordClusters: [],
@@ -905,7 +911,154 @@ test('市场灵感写操作不会重复提交或保留旧成功结果', async ({
   })
   await expect.poll(() => saveRequests, { timeout: 1_000 }).toBe(1)
   await expect(page.locator('.result-banner').getByText('已存入灵感库', { exact: true })).toBeVisible()
-  await expect.poll(() => saveRequests).toBe(1)
+  await expect.poll(() => saveRequests).
+test('市场灵感空数据展示示例内容且不伪造热度', async ({ page }) => {
+  const exampleInsight = {
+    id: 'example_family_reversal',
+    title: '【示例】离婚当天绑定品牌系统',
+    channel: 'female',
+    tags: ['示例内容', '现言'],
+    heatScore: null,
+    growthScore: null,
+    opportunityScore: null,
+    suitableWriting: '示例写法',
+    hook: '离婚当天，她被通知三小时内搬出别墅。',
+    sourceStatus: 'example',
+    contentKind: 'example',
+    contentKindLabel: '示例内容',
+    isExample: true,
+    bookTitleIdeas: ['离婚后我靠新品牌翻身'],
+    loglineIdeas: ['示例简介'],
+    openingIdeas: ['示例开篇'],
+    readerEmotion: ['反击'],
+    conflict: '示例冲突',
+    storyPotential: '示例潜力',
+    source: '内置示例',
+    sourceSummary: '内置示例 · 非实时市场数据'
+  }
+  const marketResponses = {
+    dashboard: {
+      success: true,
+      sourceStatus: [],
+      topOpportunities: [],
+      recentTrends: [],
+      agentBrief: {
+        summary: '当前没有真实热词和平台榜单。',
+        directions: [
+          {
+            title: '【示例】离婚当天绑定品牌系统',
+            hook: exampleInsight.hook,
+            platforms: ['内置示例'],
+            isExample: true,
+            contentKind: 'example',
+            contentKindLabel: '示例内容'
+          }
+        ]
+      },
+      dataMode: 'example',
+      emptyState: {
+        reason: 'empty',
+        title: '暂无真实市场数据',
+        description: '当前书库还没有采集到公开热词或榜单。'
+      }
+    },
+    overview: {
+      success: true,
+      writableDirections: [exampleInsight],
+      genreDistribution: [{ name: '都市情感', count: 1, percent: null }],
+      inspirationExpress: [
+        {
+          id: exampleInsight.id,
+          title: exampleInsight.title,
+          channel: 'female',
+          genre: '都市情感',
+          score: null,
+          isExample: true,
+          contentKind: 'example',
+          contentKindLabel: '示例内容'
+        }
+      ],
+      opportunityIndex: {
+        grade: '示例',
+        score: null,
+        summary: '当前没有真实采集结果。下方是明确标注的示例内容，不是实时市场数据。',
+        isExampleOnly: true
+      },
+      dataMode: 'example',
+      emptyState: {
+        reason: 'empty',
+        title: '暂无真实市场数据',
+        description: '当前书库还没有采集到公开热词或榜单。'
+      }
+    },
+    'hot-rank': {
+      success: true,
+      sources: [],
+      items: [{ ...exampleInsight, rank: 1, rawTitle: '家庭反转题材写法示例' }],
+      dataMode: 'example'
+    },
+    'keyword-cloud': {
+      success: true,
+      keywordClusters: [],
+      popularCombinations: [
+        {
+          id: 'example_combo_1',
+          title: '【示例】都市情感 + 现言',
+          heatScore: null,
+          growthScore: null,
+          direction: exampleInsight.title,
+          keywords: ['都市情感', '现言'],
+          trend: [],
+          isExample: true
+        }
+      ],
+      defaultCombinationDetail: {
+        title: '【示例】都市情感 + 现言',
+        heatScore: null,
+        growthScore: null,
+        isExample: true,
+        contentKind: 'example',
+        contentKindLabel: '示例内容',
+        relatedKeywords: ['现言'],
+        writableDirections: [exampleInsight.title],
+        recommendedCharacters: [],
+        recommendedConflicts: [],
+        readerPleasure: [],
+        openingExample: exampleInsight.hook,
+        novelizedResult: {
+          direction: exampleInsight.title,
+          conflict: exampleInsight.conflict,
+          hook: exampleInsight.hook
+        }
+      },
+      dataMode: 'example'
+    },
+    'activities-board': { success: true, activities: [] }
+  }
+  for (const [endpoint, response] of Object.entries(marketResponses)) {
+    await page.route(`**/api/market/${endpoint}`, async (route) => {
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify(response)
+      })
+    })
+  }
+
+  await page.goto('/#/market/overview')
+  await expect(page.getByText('暂无真实市场数据')).toBeVisible()
+  await expect(page.getByText('【示例】离婚当天绑定品牌系统')).toBeVisible()
+  await expect(page.getByText('示例内容', { exact: true }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: '创建灵感' }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: '导入 / 添加' }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: '刷新灵感' })).toBeVisible()
+  await expect(page.locator('.direction-card .direction-head strong.is-example')).toContainText(
+    '示例内容'
+  )
+  await expect(page.locator('.opportunity-card')).toContainText('示例')
+  await expect(page.getByText('不是实时市场数据')).toBeVisible()
+})
+
+toBe(1)
 
   await saveButton.click()
   await expect(page.getByText('市场灵感保存失败')).toBeVisible()

@@ -39,8 +39,10 @@ function asStringArray(value) {
 }
 
 function asNumber(value, fallback = 0) {
+  if (value == null || value === '') return fallback
   const number = Number(value)
-  return Number.isFinite(number) ? Math.max(0, Math.min(100, Math.round(number))) : fallback
+  if (!Number.isFinite(number)) return fallback
+  return Math.max(0, Math.min(100, Math.round(number)))
 }
 
 function normalizeChannel(value = 'all') {
@@ -58,6 +60,7 @@ function typeFromGenre(genre = '') {
 }
 
 function asInsight(value = {}) {
+  const contentKind = String(value.contentKind || (value.isExample ? 'example' : value.isUserContent ? 'user' : 'live'))
   return {
     id: String(value.id || '').trim(),
     title: String(value.title || value.originalTitle || '未命名灵感').trim(),
@@ -67,9 +70,18 @@ function asInsight(value = {}) {
     channel: normalizeChannel(value.channel || 'all'),
     genre: String(value.genre || '').trim(),
     tags: asStringArray(value.tags),
-    heatScore: asNumber(value.heatScore, 60),
-    growthScore: asNumber(value.growthScore, 50),
-    opportunityScore: asNumber(value.opportunityScore, 60),
+    heatScore:
+      value.heatScore == null || value.heatScore === ''
+        ? null
+        : asNumber(value.heatScore),
+    growthScore:
+      value.growthScore == null || value.growthScore === ''
+        ? null
+        : asNumber(value.growthScore),
+    opportunityScore:
+      value.opportunityScore == null || value.opportunityScore === ''
+        ? null
+        : asNumber(value.opportunityScore),
     summary: String(value.summary || '').trim(),
     readerEmotion: asStringArray(value.readerEmotion),
     storyPotential: String(value.storyPotential || '').trim(),
@@ -79,18 +91,39 @@ function asInsight(value = {}) {
     loglineIdeas: asStringArray(value.loglineIdeas),
     openingIdeas: asStringArray(value.openingIdeas),
     rawIds: asStringArray(value.rawIds),
-    rawPayload: value.rawPayload && typeof value.rawPayload === 'object' ? value.rawPayload : {}
+    rawPayload: value.rawPayload && typeof value.rawPayload === 'object' ? value.rawPayload : {},
+    contentKind,
+    contentKindLabel:
+      value.contentKindLabel ||
+      ({ live: '外部实时', cached: '缓存结果', stale: '过期缓存', example: '示例内容', user: '用户内容' }[
+        contentKind
+      ] || '外部实时'),
+    isExample: contentKind === 'example' || Boolean(value.isExample),
+    isLive: contentKind === 'live',
+    isStale: contentKind === 'stale',
+    isUserContent: contentKind === 'user' || Boolean(value.isUserContent)
   }
 }
 
-function findInsight(booksDir, id, channel = 'all') {
-  const dashboard = marketTrendService.getMarketDashboard(booksDir, { channel, limit: 120 })
+async function findInsight(booksDir, id, channel = 'all') {
+  if (id && String(id).startsWith('example_')) {
+    const examples = marketTrendService.listExampleInsights
+      ? marketTrendService.listExampleInsights(channel)
+      : []
+    const hit = examples.find((item) => item.id === id)
+    if (hit) return hit
+  }
+  const dashboard = await marketTrendService.getMarketDashboard(booksDir, { channel, limit: 120 })
   const pools = [
     ...(dashboard.insights || []),
     ...(dashboard.overview?.writableDirections || []),
     ...(dashboard.hotRank?.items || [])
   ]
-  return pools.find((item) => item.id === id) || pools[0] || null
+  if (id) {
+    const hit = pools.find((item) => item.id === id)
+    if (hit) return hit
+  }
+  return null
 }
 
 function insightToKnowledgeItem(insightInput) {
@@ -293,6 +326,9 @@ function normalizeHotspot(raw = {}) {
   const createdAt = raw.createdAt || nowIso()
   const updatedAt = raw.updatedAt || createdAt
   const keyword = String(raw.keyword || raw.title || '').trim()
+  const contentKind = String(
+    raw.contentKind || (raw.isExample ? 'example' : raw.isUserContent !== false ? 'user' : 'live')
+  )
   return {
     id: String(raw.id || `market_hotspot_${randomUUID()}`),
     keyword,
@@ -306,16 +342,33 @@ function normalizeHotspot(raw = {}) {
     sourceTitles: asStringArray(raw.sourceTitles),
     sourceIntros: asStringArray(raw.sourceIntros),
     tags: asStringArray(raw.tags),
-    heatScore: asNumber(raw.heatScore),
-    growthScore: asNumber(raw.growthScore),
-    competitionScore: asNumber(raw.competitionScore),
-    opportunityScore: asNumber(raw.opportunityScore),
+    heatScore:
+      raw.heatScore == null || raw.heatScore === '' ? null : asNumber(raw.heatScore),
+    growthScore:
+      raw.growthScore == null || raw.growthScore === '' ? null : asNumber(raw.growthScore),
+    competitionScore:
+      raw.competitionScore == null || raw.competitionScore === ''
+        ? null
+        : asNumber(raw.competitionScore),
+    opportunityScore:
+      raw.opportunityScore == null || raw.opportunityScore === ''
+        ? null
+        : asNumber(raw.opportunityScore),
     capturedAt: raw.capturedAt || createdAt,
     trendTopicId: String(raw.trendTopicId || '').trim(),
     trendSource: String(raw.trendSource || '').trim(),
     extra: raw.extra && typeof raw.extra === 'object' ? raw.extra : {},
     knowledgeItemId: raw.knowledgeItemId || '',
     topicCardId: raw.topicCardId || '',
+    contentKind,
+    contentKindLabel:
+      raw.contentKindLabel ||
+      ({ live: '外部实时', cached: '缓存结果', stale: '过期缓存', example: '示例内容', user: '用户内容' }[
+        contentKind
+      ] || '用户内容'),
+    isExample: contentKind === 'example',
+    isUserContent: contentKind === 'user',
+    isLive: contentKind === 'live',
     createdAt,
     updatedAt
   }
@@ -605,9 +658,26 @@ export async function listHotspots(booksDir, filter = {}) {
 
 export async function createHotspot(booksDir, input = {}) {
   const rows = (await readRows(booksDir, HOTSPOTS_FILE)).map(normalizeHotspot)
-  const item = normalizeHotspot(input)
+  const contentKind = input.contentKind || 'user'
+  const item = normalizeHotspot({
+    ...input,
+    contentKind,
+    isUserContent: contentKind === 'user',
+    sourceName: input.sourceName || (contentKind === 'user' ? '用户自建' : input.sourceName),
+    tags: uniqueStringTags(input.tags)
+  })
   await writeRows(booksDir, HOTSPOTS_FILE, [item, ...rows])
   return { success: true, item }
+}
+
+function uniqueStringTags(...groups) {
+  const values = []
+  for (const group of groups) {
+    for (const item of asStringArray(group)) {
+      if (!values.includes(item)) values.push(item)
+    }
+  }
+  return values
 }
 
 export async function updateHotspot(booksDir, id, patch = {}) {
@@ -778,14 +848,16 @@ export async function getMarketActivities(booksDir, filter = {}) {
   return await marketTrendService.buildActivities(booksDir, filter)
 }
 
-export function saveInsightToKnowledge(booksDir, input = {}) {
-  const insight = input.insight || findInsight(booksDir, input.insightId, input.channel || 'all')
+export async function saveInsightToKnowledge(booksDir, input = {}) {
+  const insight =
+    input.insight || (await findInsight(booksDir, input.insightId, input.channel || 'all'))
   if (!insight) return { success: false, message: '灵感不存在' }
   return knowledgeBaseService.createKnowledgeItem(booksDir, insightToKnowledgeItem(insight))
 }
 
 export async function generateOutlineFromInsight(booksDir, input = {}) {
-  const insight = input.insight || findInsight(booksDir, input.insightId, input.channel || 'all')
+  const insight =
+    input.insight || (await findInsight(booksDir, input.insightId, input.channel || 'all'))
   if (!insight) return { success: false, message: '灵感不存在' }
   const outline = buildOutlineDraft(insight)
   if (input.mode === 'save_only') {
@@ -804,8 +876,9 @@ export async function generateOutlineFromInsight(booksDir, input = {}) {
   return { success: true, outline }
 }
 
-export function applyInsightToBook(booksDir, input = {}) {
-  const insight = input.insight || findInsight(booksDir, input.insightId, input.channel || 'all')
+export async function applyInsightToBook(booksDir, input = {}) {
+  const insight =
+    input.insight || (await findInsight(booksDir, input.insightId, input.channel || 'all'))
   const bookName = String(input.bookId || input.bookName || '').trim()
   if (!insight) return { success: false, message: '灵感不存在' }
   if (!bookName) return { success: false, message: '请选择作品' }
@@ -827,7 +900,7 @@ export function applyInsightToBook(booksDir, input = {}) {
     title: `${insight.title}（${sectionName}）`,
     summary: insight.hook,
     content: [
-      `该灵感来自市场灵感 / 来源：${insight.source} / 生成时间：${nowIso()}`,
+      `该灵感来自市场灵感 / 来源：${insight.source} / 类型：${insight.contentKindLabel || insight.contentKind || '未知'} / 生成时间：${nowIso()}`,
       `题材：${insight.genre}`,
       `核心冲突：${insight.conflict}`,
       `开篇方向：${insight.hook}`
@@ -852,7 +925,8 @@ export async function createBookFromInsight(booksDir, input = {}) {
   if (!booksDir || typeof booksDir !== 'string') {
     return { success: false, message: '请先设置书籍目录' }
   }
-  const insight = input.insight || findInsight(booksDir, input.insightId, input.channel || 'all')
+  const insight =
+    input.insight || (await findInsight(booksDir, input.insightId, input.channel || 'all'))
   if (!insight) return { success: false, message: '灵感不存在' }
   const title = String(
     input.selectedTitle || insight.bookTitleIdeas?.[0] || insight.title || '市场灵感新书'
@@ -898,7 +972,7 @@ export async function createBookFromInsight(booksDir, input = {}) {
     outline,
     insight
   )
-  const saved = saveInsightToKnowledge(booksDir, { insight })
+  const saved = await saveInsightToKnowledge(booksDir, { insight })
   if (saved?.item?.id) {
     knowledgeBaseService.updateKnowledgeItem(booksDir, saved.item.id, {
       status: 'converted_to_book',

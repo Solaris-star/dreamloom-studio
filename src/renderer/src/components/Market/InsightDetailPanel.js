@@ -4,6 +4,19 @@ import InfoRow from './InfoRow'
 import MarketActionBar from './MarketActionBar'
 import MarketEmptyState from './MarketEmptyState'
 
+function scoreText(value) {
+  return value == null || value === '' ? '—' : String(value)
+}
+
+function kindLabel(insight) {
+  if (!insight) return ''
+  if (insight.contentKindLabel) return insight.contentKindLabel
+  if (insight.isExample) return '示例内容'
+  if (insight.isUserContent) return '用户内容'
+  if (insight.isStale) return '过期缓存'
+  return '外部实时'
+}
+
 export default defineComponent({
   name: 'InsightDetailPanel',
   props: {
@@ -18,9 +31,13 @@ export default defineComponent({
         h('div', { class: 'panel-title' }, [
           h('div', [h('h2', props.title), h('p', '点击左侧方向查看详情')]),
           props.insight
-            ? h('b', { class: 'heat-mark' }, [
-                h(Flame, { size: 15, strokeWidth: 2 }),
-                String(props.insight.heatScore || 0)
+            ? h('b', { class: ['heat-mark', props.insight.isExample ? 'is-example' : ''] }, [
+                props.insight.isExample || props.insight.heatScore == null
+                  ? null
+                  : h(Flame, { size: 15, strokeWidth: 2 }),
+                props.insight.isExample || props.insight.heatScore == null
+                  ? kindLabel(props.insight)
+                  : scoreText(props.insight.heatScore)
               ])
             : null
         ]),
@@ -30,11 +47,18 @@ export default defineComponent({
               h(
                 'div',
                 { class: 'tag-line' },
-                (props.insight.tags || []).slice(0, 6).map((tag) => h('span', tag))
+                [
+                  h('span', { class: 'content-kind-chip' }, kindLabel(props.insight)),
+                  ...(props.insight.tags || []).slice(0, 6).map((tag) => h('span', tag))
+                ]
               ),
               h(InfoRow, {
                 label: '热点来源',
                 items: [props.insight.sourceSummary || props.insight.source]
+              }),
+              h(InfoRow, {
+                label: '内容类型',
+                items: [kindLabel(props.insight)]
               }),
               h(InfoRow, { label: '读者情绪', items: props.insight.readerEmotion || [] }),
               h(InfoRow, { label: '核心冲突', items: [props.insight.conflict] }),
