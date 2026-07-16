@@ -76,6 +76,18 @@ assert.match(visualCss, /data-visual-style='apple'\] \.bento-tile/)
 assert.match(visualCss, /data-visual-style='apple'\] \.dashboard-card/)
 assert.match(visualCss, /SF Pro Display/)
 assert.match(visualCss, /background: #ffffff !important/)
+// 书架 / 创作台 / Apple 暗色
+assert.match(visualCss, /data-visual-style='apple'\] \.creation-library-page/)
+assert.match(visualCss, /data-visual-style='apple'\] \.book-card/)
+assert.match(visualCss, /data-visual-style='apple'\] \.studio-shell \.ProseMirror/)
+assert.match(visualCss, /data-visual-style='apple'\]\[data-color-scheme='dark'\]/)
+assert.match(visualCss, /#0a84ff/)
+assert.match(visualCss, /#1c1c1e/)
+
+const themeStore = fs.readFileSync('src/renderer/src/stores/theme.js', 'utf8')
+assert.match(themeStore, /data-color-scheme/)
+assert.match(themeStore, /dataset\.colorScheme/)
+assert.match(themeStore, /dataset\.theme/)
 
 const fontCss = fs.readFileSync(
   'src/renderer/src/assets/fonts/visual-style-fonts.css',

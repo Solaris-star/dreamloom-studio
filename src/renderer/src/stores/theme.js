@@ -230,6 +230,14 @@ const applyNeumorphicVars = (root, bgSoftHex) => {
 const applyTheme = (theme) => {
   const root = document.documentElement
   const config = themeConfigs[theme] || themeConfigs.light
+  const resolvedTheme = themeConfigs[theme] ? theme : 'light'
+  const colorScheme = resolvedTheme === 'dark' ? 'dark' : 'light'
+
+  // 供视觉风格层做 dark/light 正交适配（Apple 夜色等）
+  root.dataset.theme = resolvedTheme
+  root.dataset.colorScheme = colorScheme
+  root.setAttribute('data-theme', resolvedTheme)
+  root.setAttribute('data-color-scheme', colorScheme)
 
   // 背景色
   root.style.setProperty('--bg-primary', config.bgPrimary)

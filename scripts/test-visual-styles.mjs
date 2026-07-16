@@ -112,6 +112,14 @@ assert.match(css, /data-visual-style='apple'/)
 assert.match(css, /data-visual-style='pixel'/)
 assert.match(css, /studio-shell \.ProseMirror/)
 assert.match(css, /prefers-reduced-motion/)
+assert.match(css, /creation-library-page/)
+assert.match(css, /data-color-scheme='dark'/)
+assert.match(css, /#0a84ff/)
+
+// theme store 应输出 data-theme / data-color-scheme，供 Apple 暗色正交叠加
+assert.match(themeSource, /data-color-scheme/)
+assert.match(themeSource, /dataset\.colorScheme/)
+assert.match(themeSource, /dataset\.theme/)
 
 for (const key of VISUAL_STYLE_ORDER) {
   assert.ok(visualStyleConfigs[key], `缺少风格 ${key}`)
