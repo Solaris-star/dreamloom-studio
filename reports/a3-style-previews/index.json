@@ -2,29 +2,53 @@
   {
     "style": "classic",
     "name": "经典和纸",
-    "settings": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/classic-settings.png",
     "home": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/classic-home.png",
-    "dataAttr": "classic"
+    "settings": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/classic-settings.png",
+    "homeBytes": 463133,
+    "settingsBytes": 191647,
+    "visual": "classic",
+    "title": "系统设置 · 外观 | 织梦工坊 | Dreamloom Studio",
+    "bodyText": "跳到主要内容\n首页\n创作台\n地图设计\n创作库\nAI 工坊\n市场灵感\n数据中心\n系统设置\n收起\nvweb\n通用设置\n个人信息\n编辑器设置\nAI 设置\n向量模型\n提示词\n主题外观\n存储\n隐私安全\n通知\n快捷键\n数据管理\n关于\n主题外观\n\n配色影响背景与文字颜色，可与视觉风格自由组合。\n\n白色\n仿真\n夜色\n护眼\n蓝色\n绿色\n紫色\n视觉风格\n\n控制圆角、阴影、边框与整体气质。创作台正文会保持可读，不会被野",
+    "hasBento": false,
+    "hasSettings": true
   },
   {
     "style": "apple",
     "name": "Apple 极简",
-    "settings": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/apple-settings.png",
     "home": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/apple-home.png",
-    "dataAttr": "apple"
+    "settings": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/apple-settings.png",
+    "homeBytes": 403298,
+    "settingsBytes": 165685,
+    "visual": "apple",
+    "title": "系统设置 · 外观 | 织梦工坊 | Dreamloom Studio",
+    "bodyText": "跳到主要内容\n首页\n创作台\n地图设计\n创作库\nAI 工坊\n市场灵感\n数据中心\n系统设置\n收起\nvweb\n通用设置\n个人信息\n编辑器设置\nAI 设置\n向量模型\n提示词\n主题外观\n存储\n隐私安全\n通知\n快捷键\n数据管理\n关于\n主题外观\n\n配色影响背景与文字颜色，可与视觉风格自由组合。\n\n白色\n仿真\n夜色\n护眼\n蓝色\n绿色\n紫色\n视觉风格\n\n控制圆角、阴影、边框与整体气质。创作台正文会保持可读，不会被野",
+    "hasBento": false,
+    "hasSettings": true
   },
   {
     "style": "brutal",
     "name": "粗犷野兽",
-    "settings": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/brutal-settings.png",
     "home": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/brutal-home.png",
-    "dataAttr": "brutal"
+    "settings": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/brutal-settings.png",
+    "homeBytes": 371119,
+    "settingsBytes": 135764,
+    "visual": "brutal",
+    "title": "系统设置 · 外观 | 织梦工坊 | Dreamloom Studio",
+    "bodyText": "跳到主要内容\n首页\n创作台\n地图设计\n创作库\nAI 工坊\n市场灵感\n数据中心\n系统设置\n收起\nvweb\n通用设置\n个人信息\n编辑器设置\nAI 设置\n向量模型\n提示词\n主题外观\n存储\n隐私安全\n通知\n快捷键\n数据管理\n关于\n主题外观\n\n配色影响背景与文字颜色，可与视觉风格自由组合。\n\n白色\n仿真\n夜色\n护眼\n蓝色\n绿色\n紫色\n视觉风格\n\n控制圆角、阴影、边框与整体气质。创作台正文会保持可读，不会被野",
+    "hasBento": false,
+    "hasSettings": true
   },
   {
     "style": "pixel",
     "name": "像素复古",
-    "settings": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/pixel-settings.png",
     "home": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/pixel-home.png",
-    "dataAttr": "pixel"
+    "settings": "/Users/solaris/AI/dreamloom-studio-a3-styles/reports/a3-style-previews/pixel-settings.png",
+    "homeBytes": 325486,
+    "settingsBytes": 105706,
+    "visual": "pixel",
+    "title": "系统设置 · 外观 | 织梦工坊 | Dreamloom Studio",
+    "bodyText": "跳到主要内容\n首页\n创作台\n地图设计\n创作库\nAI 工坊\n市场灵感\n数据中心\n系统设置\n收起\nvweb\n通用设置\n个人信息\n编辑器设置\nAI 设置\n向量模型\n提示词\n主题外观\n存储\n隐私安全\n通知\n快捷键\n数据管理\n关于\n主题外观\n\n配色影响背景与文字颜色，可与视觉风格自由组合。\n\n白色\n仿真\n夜色\n护眼\n蓝色\n绿色\n紫色\n视觉风格\n\n控制圆角、阴影、边框与整体气质。创作台正文会保持可读，不会被野",
+    "hasBento": false,
+    "hasSettings": true
   }
 ]
