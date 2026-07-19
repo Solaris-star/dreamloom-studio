@@ -43,28 +43,15 @@
       </ul>
     </section>
 
-    <!-- 搜索卡片 -->
+    <!-- 搜索卡片：全源聚合，不选手源 -->
     <section class="search-card">
       <div class="search-inner">
-        <el-select
-          v-model="currentSourceId"
-          :placeholder="t('novelDownload.sourcePlaceholder')"
-          class="source-select"
-          size="large"
-        >
-          <el-option
-            v-for="s in sources"
-            :key="s.id"
-            :label="s.name"
-            :value="s.id"
-          />
-        </el-select>
         <el-input
           v-model="keyword"
           :placeholder="t('novelDownload.keywordPlaceholder')"
           clearable
           size="large"
-          class="keyword-input"
+          class="keyword-input keyword-input-full"
           @keyup.enter.prevent="handleSearch"
         >
           <template #prefix>
@@ -206,6 +193,12 @@
             :stroke-width="8"
             :status="progressPercent === 100 ? 'success' : undefined"
           />
+          <p
+            v-if="downloadProgress.currentTitle"
+            class="progress-title"
+          >
+            {{ downloadProgress.currentTitle }}
+          </p>
         </div>
       </div>
     </section>
@@ -239,14 +232,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Search, FolderOpened, Document, Reading } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import {
   exportDownloadedNovelTextFile,
-  getNovelSources,
   searchNovel,
   getNovelChapterList,
   downloadNovelChapters,
@@ -260,8 +252,6 @@ import { BOOK_TYPES } from '@renderer/constants/config'
 const router = useRouter()
 const { t } = useI18n()
 
-const sources = ref([])
-const currentSourceId = ref('')
 const keyword = ref('')
 const searching = ref(false)
 const searchResult = ref([])
@@ -270,10 +260,11 @@ const chapterList = ref([])
 const downloading = ref(false)
 const confirmingAction = ref(false)
 const selectingBookUrl = ref('')
-const downloadProgress = ref({ current: 0, total: 0 })
+const downloadProgress = ref({ current: 0, total: 0, currentTitle: '' })
 const errorMsg = ref('')
 let searchRequestId = 0
 let selectionRequestId = 0
+let downloadAbortController = null
 
 const progressPercent = computed(() => {
   const { current, total } = downloadProgress.value
@@ -285,15 +276,11 @@ function goBack() {
   router.push('/')
 }
 
-async function loadSources() {
-  try {
-    sources.value = await getNovelSources()
-    if (sources.value.length > 0 && !currentSourceId.value) {
-      currentSourceId.value = sources.value[0].id
-    }
-  } catch (e) {
-    console.error(e)
-    errorMsg.value = t('novelDownload.fetchSourcesFailed')
+function applyDownloadProgress(p = {}) {
+  downloadProgress.value = {
+    current: Number(p.current) || 0,
+    total: Number(p.total) || downloadProgress.value.total || 0,
+    currentTitle: p.currentTitle || ''
   }
 }
 
@@ -311,7 +298,8 @@ async function handleSearch() {
   chapterList.value = []
   const requestId = ++searchRequestId
   try {
-    const res = await searchNovel(k, currentSourceId.value)
+    // 全源聚合，不选手源
+    const res = await searchNovel(k, 'all')
     if (requestId !== searchRequestId) return
     if (res.success && res.list?.length) {
       searchResult.value = res.list
@@ -362,14 +350,17 @@ function clearSelection() {
   selectedBook.value = null
   chapterList.value = []
   downloading.value = false
-  downloadProgress.value = { current: 0, total: 0 }
+  downloadProgress.value = { current: 0, total: 0, currentTitle: '' }
 }
 
-// 监听主进程下发的下载进度
-function onDownloadProgress(e) {
-  if (e.detail) {
-    downloadProgress.value = { current: e.detail.current, total: e.detail.total }
-  }
+async function runChapterDownload(book) {
+  downloadAbortController = new AbortController()
+  const res = await downloadNovelChapters(chapterList.value, book.sourceId, {
+    onProgress: applyDownloadProgress,
+    pollMs: 700,
+    signal: downloadAbortController.signal
+  })
+  return res
 }
 
 async function handleDownloadToBookshelf() {
@@ -404,11 +395,11 @@ async function handleDownloadToBookshelf() {
   }
 
   downloading.value = true
-  downloadProgress.value = { current: 0, total: chapterList.value.length }
+  downloadProgress.value = { current: 0, total: chapterList.value.length, currentTitle: '' }
   errorMsg.value = ''
 
   try {
-    const res = await downloadNovelChapters(chapterList.value, book.sourceId)
+    const res = await runChapterDownload(book)
     const chapters = normalizeDownloadedChapters(res.chapters)
     if (!chapters.length) {
       ElMessage.error(res.message || t('novelDownload.downloadFailed'))
@@ -464,6 +455,7 @@ async function handleDownloadToBookshelf() {
     console.error(e)
     ElMessage.error(e.message || t('novelDownload.downloadOrAddFailed'))
   } finally {
+    downloadAbortController = null
     downloading.value = false
   }
 }
@@ -491,10 +483,10 @@ async function handleExportTxt() {
   }
 
   downloading.value = true
-  downloadProgress.value = { current: 0, total: chapterList.value.length }
+  downloadProgress.value = { current: 0, total: chapterList.value.length, currentTitle: '' }
 
   try {
-    const res = await downloadNovelChapters(chapterList.value, book.sourceId)
+    const res = await runChapterDownload(book)
     const chapters = normalizeDownloadedChapters(res.chapters)
     if (!chapters.length) {
       ElMessage.error(res.message || t('novelDownload.downloadFailed'))
@@ -517,17 +509,16 @@ async function handleExportTxt() {
     console.error(e)
     ElMessage.error(e.message || t('novelDownload.exportFailed'))
   } finally {
+    downloadAbortController = null
     downloading.value = false
   }
 }
 
-onMounted(() => {
-  loadSources()
-  window.addEventListener('novel-download-progress', onDownloadProgress)
-})
-
 onUnmounted(() => {
-  window.removeEventListener('novel-download-progress', onDownloadProgress)
+  if (downloadAbortController) {
+    downloadAbortController.abort()
+    downloadAbortController = null
+  }
 })
 </script>
 
@@ -661,6 +652,10 @@ $radius-card: 12px;
   max-width: 400px;
 }
 
+.keyword-input-full {
+  max-width: none;
+}
+
 .search-btn {
   padding-left: 20px;
   padding-right: 20px;
@@ -766,6 +761,15 @@ $radius-card: 12px;
 .progress-wrap {
   margin-top: 18px;
   max-width: 420px;
+}
+
+.progress-title {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-gray);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 空状态 */

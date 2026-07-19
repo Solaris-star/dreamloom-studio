@@ -98,6 +98,14 @@ function requireNovelChaptersDownloadResult(result, fallback = '下载章节失�
   return output
 }
 
+function requireDownloadStartResult(result) {
+  const output = requirePlainObject(result, '启动下载失败')
+  if (output.success !== true || !output.jobId) {
+    throw new Error(output?.message || '启动下载失败')
+  }
+  return output
+}
+
 function sanitizeBookName(value, fallback = '下载小说') {
   const name = String(value || fallback)
     .trim()
@@ -117,6 +125,10 @@ function normalizeExistingBookNames(books = []) {
   )
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 /**
  * 获取可用书源列表。
  * @returns {Promise<Array<{ id: string, name: string }>>}
@@ -126,13 +138,17 @@ export async function getNovelSources() {
 }
 
 /**
- * 按关键词搜索书籍。
+ * 按关键词搜索书籍（默认全源聚合）。
  * @param {string} keyword 书名或作者
- * @param {string} [sourceId] 书源 ID
+ * @param {string} [sourceId='all'] 书源 ID，默认 all
  * @returns {Promise<{ success: boolean, list: Array, sourceErrors: Array<string>, message?: string }>}
  */
-export async function searchNovel(keyword, sourceId) {
-  const result = await postJson('/api/novel/search', { keyword, sourceId })
+export async function searchNovel(keyword, sourceId = 'all') {
+  const result = await postJson(
+    '/api/novel/search',
+    { keyword, sourceId: sourceId || 'all' },
+    { timeoutMs: 90_000 }
+  )
   return requireNovelSearchResult(result)
 }
 
@@ -143,7 +159,11 @@ export async function searchNovel(keyword, sourceId) {
  * @returns {Promise<{ success: boolean, chapters: Array<{ title: string, url: string }>, message?: string }>}
  */
 export async function getNovelChapterList(bookUrl, sourceId) {
-  const result = await postJson('/api/novel/chapters', { bookUrl, sourceId })
+  const result = await postJson(
+    '/api/novel/chapters',
+    { bookUrl, sourceId },
+    { timeoutMs: 60_000 }
+  )
   return requireNovelChapterListResult(result)
 }
 
@@ -156,6 +176,117 @@ export async function getNovelChapterList(bookUrl, sourceId) {
 export async function getNovelBookInfo(bookUrl, sourceId) {
   const result = await postJson('/api/novel/book-info', { bookUrl, sourceId })
   return requireNovelBookInfoResult(result)
+}
+
+/**
+ * 启动异步下载任务。
+ * @param {Array<{ title: string, url: string }>} chapterList
+ * @param {string} sourceId
+ * @returns {Promise<{ success: boolean, jobId: string, total?: number, status?: string }>}
+ */
+export async function startNovelDownloadJob(chapterList, sourceId) {
+  const plainList = (chapterList || []).map((chapter, index) => ({
+    title: String(chapter?.title || `第${index + 1}章`),
+    url: String(chapter?.url || '')
+  }))
+  const result = await postJson(
+    '/api/novel/download/start',
+    { chapterList: plainList, sourceId },
+    { timeoutMs: 30_000 }
+  )
+  return requireDownloadStartResult(result)
+}
+
+/**
+ * 查询下载任务进度。
+ * @param {string} jobId
+ * @returns {Promise<object>}
+ */
+export async function getNovelDownloadProgress(jobId) {
+  return requirePlainObject(
+    await postJson('/api/novel/download/progress', { jobId }, { timeoutMs: 20_000 }),
+    '查询下载进度失败'
+  )
+}
+
+/**
+ * 取消下载任务。
+ * @param {string} jobId
+ * @param {string} [reason]
+ */
+export async function cancelNovelDownloadJob(jobId, reason) {
+  return requirePlainObject(
+    await postJson('/api/novel/download/cancel', { jobId, reason }, { timeoutMs: 15_000 }),
+    '取消下载失败'
+  )
+}
+
+/**
+ * 异步下载全部章节（start + poll），带真进度回调。
+ * @param {Array<{ title: string, url: string }>} chapterList
+ * @param {string} sourceId
+ * @param {{ onProgress?: (p: {current:number,total:number,currentTitle?:string,percent?:number}) => void, pollMs?: number, signal?: AbortSignal }} [options]
+ */
+export async function downloadNovelChapters(chapterList, sourceId, options = {}) {
+  const started = await startNovelDownloadJob(chapterList, sourceId)
+  const jobId = started.jobId
+  const pollMs = Number(options.pollMs) > 200 ? Number(options.pollMs) : 800
+  const onProgress = typeof options.onProgress === 'function' ? options.onProgress : null
+  const signal = options.signal
+
+  if (onProgress) {
+    onProgress({
+      current: 0,
+      total: started.total || chapterList?.length || 0,
+      currentTitle: '',
+      percent: 0
+    })
+  }
+
+  while (true) {
+    if (signal?.aborted) {
+      try {
+        await cancelNovelDownloadJob(jobId, '客户端中止')
+      } catch {
+        // ignore cancel error
+      }
+      throw new Error('下载已取消')
+    }
+
+    const progress = await getNovelDownloadProgress(jobId)
+    if (progress.success === false) {
+      throw new Error(progress.message || '下载任务不存在或已过期')
+    }
+
+    if (onProgress) {
+      onProgress({
+        current: Number(progress.current) || 0,
+        total: Number(progress.total) || 0,
+        currentTitle: progress.currentTitle || '',
+        percent: Number(progress.percent) || 0
+      })
+    }
+
+    if (progress.done) {
+      const ok =
+        progress.status === 'completed' ||
+        progress.status === 'partial' ||
+        (Array.isArray(progress.chapters) &&
+          progress.chapters.some((chapter) => chapter && !chapter.failed))
+      if (!ok) {
+        throw new Error(progress.message || '下载失败')
+      }
+      return requireNovelChaptersDownloadResult({
+        success: true,
+        chapters: progress.chapters || [],
+        message: progress.message || '',
+        status: progress.status,
+        jobId
+      })
+    }
+
+    await sleep(pollMs)
+  }
 }
 
 /**
@@ -174,21 +305,6 @@ export async function downloadNovelChapter(chapterUrl, sourceId) {
     message: chapter?.message || chapter?.error || ''
   }
   return requireNovelChapterContentResult(result)
-}
-
-/**
- * 批量下载章节正文。
- * @param {Array<{ title: string, url: string }>} chapterList 章节列表
- * @param {string} sourceId 书源 ID
- * @returns {Promise<{ success: boolean, chapters: Array<{ title: string, content: string }>, message?: string }>}
- */
-export async function downloadNovelChapters(chapterList, sourceId) {
-  const plainList = (chapterList || []).map((chapter, index) => ({
-    title: String(chapter?.title || `第${index + 1}章`),
-    url: String(chapter?.url || '')
-  }))
-  const result = await postJson('/api/novel/download', { chapterList: plainList, sourceId })
-  return requireNovelChaptersDownloadResult(result)
 }
 
 /**
