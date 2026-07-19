@@ -128,6 +128,79 @@ await handleNovelDownloadRoute({
 assert.equal(responses.at(-1).payload.success, false)
 assert.equal(responses.at(-1).payload.message, '所有章节下载失败')
 
+// async job: start + progress
+const jobService = {
+  start: ({ chapterList, sourceId }) => {
+    calls.push(['start', chapterList.length, sourceId])
+    return { success: true, status: 'queued', jobId: 'job-1', total: chapterList.length }
+  },
+  progress: (jobId) => {
+    calls.push(['progress', jobId])
+    return {
+      success: true,
+      jobId,
+      status: 'completed',
+      current: 1,
+      total: 1,
+      percent: 100,
+      failed: 0,
+      done: true,
+      chapters: [{ title: '第一章', content: '正文', failed: false, error: '' }]
+    }
+  },
+  cancel: (jobId) => {
+    calls.push(['cancel', jobId])
+    return { success: true, jobId, status: 'cancelling' }
+  }
+}
+
+assert.equal(isNovelDownloadRoute('/api/novel/download/start'), true)
+assert.equal(isNovelDownloadRoute('/api/novel/download/progress'), true)
+assert.equal(isNovelDownloadRoute('/api/novel/download/cancel'), true)
+
+await handleNovelDownloadRoute({
+  ...common,
+  path: '/api/novel/download/start',
+  body: {
+    sourceId: 'source-a',
+    chapterList: [{ title: '第一章', url: 'https://example.com/1' }]
+  },
+  jobService
+})
+assert.equal(responses.at(-1).status, 202)
+assert.equal(responses.at(-1).payload.jobId, 'job-1')
+assert.deepEqual(calls.at(-1), ['start', 1, 'source-a'])
+
+await handleNovelDownloadRoute({
+  ...common,
+  path: '/api/novel/download/progress',
+  body: { jobId: 'job-1' },
+  jobService
+})
+assert.equal(responses.at(-1).payload.done, true)
+assert.equal(responses.at(-1).payload.chapters.length, 1)
+
+await handleNovelDownloadRoute({
+  ...common,
+  path: '/api/novel/download/cancel',
+  body: { jobId: 'job-1' },
+  jobService
+})
+assert.equal(responses.at(-1).payload.success, true)
+
+// default search is all sources
+calls.length = 0
+await handleNovelDownloadRoute({
+  ...common,
+  path: '/api/novel/search',
+  body: { keyword: '作品' }
+})
+assert.deepEqual(calls.slice(0, 2), [
+  ['search', '作品', 'source-a'],
+  ['search', '作品', 'source-b']
+])
+assert.equal(responses.at(-1).payload.list[0].sourceName, undefined)
+
 assert.match(assertSourceUrl('https://www.shuhaige.net/book/1', 'shuhaige'), /shuhaige/)
 assert.throws(
   () => assertSourceUrl('http://127.0.0.1/private', 'shuhaige'),
