@@ -1,11 +1,14 @@
 <template>
   <div class="home-page">
-    <header class="dashboard-header">
-      <div>
+    <!-- 报头 -->
+    <header class="masthead">
+      <div class="masthead-brand">
         <h1>{{ APP_NAME_ZH }}</h1>
         <p class="brand-en">
-          Dreamloom Studio · DLS
+          Dreamloom Studio
         </p>
+      </div>
+      <div class="masthead-aside">
         <p class="headline">
           今天想写一个什么样的故事？
         </p>
@@ -15,17 +18,18 @@
       </div>
     </header>
 
+    <!-- 账簿速览（沿用 bentoTiles 数据） -->
     <section
       class="bento-strip"
       aria-label="今日速览"
       data-testid="home-bento-strip"
     >
       <button
-        v-for="tile in bentoTiles"
+        v-for="(tile, i) in bentoTiles"
         :key="tile.key"
         type="button"
         class="bento-tile"
-        :class="[`bento-tile--${tile.size || 'sm'}`, { 'bento-tile--accent': tile.accent }]"
+        :class="{ 'bento-tile--first': i === 0, 'bento-tile--accent': tile.accent }"
         :data-bento-key="tile.key"
         @click="tile.onClick?.()"
       >
@@ -38,132 +42,201 @@
       </button>
     </section>
 
-    <section class="dashboard-main-grid">
-      <article
-        ref="starterCardRef"
-        class="dashboard-card creation-card"
-        :aria-label="t('homeAi.starterTitle')"
-      >
-        <div class="card-title">
-          <div>
-            <h2>{{ t('homeAi.starterTitle') }}</h2>
-            <p class="starter-kicker">
-              {{ t('homeAi.starterKicker') }}
-            </p>
-          </div>
-        </div>
-        <p class="starter-desc">
-          {{ t('homeAi.starterDesc') }}
-        </p>
-        <textarea
-          v-model="ideaInput"
-          class="creation-textarea"
-          :placeholder="t('homeAi.ideaPlaceholder')"
-        />
-        <div class="starter-control-row">
-          <label>
-            <span>{{ t('homeAi.aiService') }}</span>
-            <el-select
-              v-model="selectedProviderId"
-              filterable
-              :placeholder="t('homeAi.selectAiService')"
-              :loading="loadingProviders"
-              @change="handleProviderChange"
-            >
-              <el-option
-                v-for="provider in textProviders"
-                :key="provider.id"
-                :label="provider.name"
-                :value="provider.id"
-              />
-            </el-select>
-          </label>
-          <label>
-            <span>{{ t('homeAi.model') }}</span>
-            <el-select
-              v-model="selectedModel"
-              filterable
-              allow-create
-              default-first-option
-              :placeholder="t('homeAi.selectModel')"
-              :disabled="!selectedProviderId"
-            >
-              <el-option
-                v-for="model in modelOptions"
-                :key="model"
-                :label="model"
-                :value="model"
-              />
-            </el-select>
-          </label>
-          <label class="strategy-field">
-            <span>{{ t('homeAi.prompt') }}</span>
-            <el-select
-              v-model="selectedStarterPresetId"
-              filterable
-              :placeholder="t('homeAi.selectPrompt')"
-            >
-              <el-option
-                v-for="preset in starterPresetOptions"
-                :key="preset.id"
-                :label="promptPresetDisplayName(preset)"
-                :value="preset.id"
-              />
-            </el-select>
-          </label>
-          <button
-            class="prompt-market-button"
-            type="button"
-            :title="t('homeAi.promptMarket')"
-            @click="router.push('/ai/prompts')"
-          >
-            <span class="market-icon">▣</span>
-            {{ t('homeAi.market') }}
-          </button>
-        </div>
-        <div class="starter-actions">
-          <el-button
-            class="starter-submit"
-            type="primary"
-            :loading="creatingJob"
-            :disabled="!canCreateStarterJob"
-            @click="handleCreateStarterJob"
-          >
-            {{ t('homeAi.generateSetting') }}
-          </el-button>
-        </div>
-      </article>
-
-      <aside
-        class="dashboard-side-stack"
-        aria-label="首页信息栏"
-      >
-        <article
-          class="dashboard-card market-card"
-          aria-label="市场风向"
+    <!-- 满宽双栏 -->
+    <div class="home-columns">
+      <div class="home-col home-col--main">
+        <!-- 壹 起笔 -->
+        <section
+          ref="starterCardRef"
+          class="block starter-block"
+          :aria-label="t('homeAi.starterTitle')"
         >
-          <div class="card-title">
-            <div>
-              <h2>市场风向</h2>
+          <div class="sec-head">
+            <span class="seal">壹</span>
+            <h2>{{ t('homeAi.starterTitle') }}</h2>
+            <button
+              class="text-link"
+              type="button"
+              @click="router.push('/ai/prompts')"
+            >
+              {{ t('homeAi.market') }} →
+            </button>
+          </div>
+          <div class="starter-box">
+            <textarea
+              v-model="ideaInput"
+              class="creation-textarea"
+              :placeholder="t('homeAi.ideaPlaceholder')"
+            />
+            <div class="starter-control-row">
+              <label>
+                <span>{{ t('homeAi.aiService') }}</span>
+                <el-select
+                  v-model="selectedProviderId"
+                  filterable
+                  :placeholder="t('homeAi.selectAiService')"
+                  :loading="loadingProviders"
+                  @change="handleProviderChange"
+                >
+                  <el-option
+                    v-for="provider in textProviders"
+                    :key="provider.id"
+                    :label="provider.name"
+                    :value="provider.id"
+                  />
+                </el-select>
+              </label>
+              <label>
+                <span>{{ t('homeAi.model') }}</span>
+                <el-select
+                  v-model="selectedModel"
+                  filterable
+                  allow-create
+                  default-first-option
+                  :placeholder="t('homeAi.selectModel')"
+                  :disabled="!selectedProviderId"
+                >
+                  <el-option
+                    v-for="model in modelOptions"
+                    :key="model"
+                    :label="model"
+                    :value="model"
+                  />
+                </el-select>
+              </label>
+              <label class="strategy-field">
+                <span>{{ t('homeAi.prompt') }}</span>
+                <el-select
+                  v-model="selectedStarterPresetId"
+                  filterable
+                  :placeholder="t('homeAi.selectPrompt')"
+                >
+                  <el-option
+                    v-for="preset in starterPresetOptions"
+                    :key="preset.id"
+                    :label="promptPresetDisplayName(preset)"
+                    :value="preset.id"
+                  />
+                </el-select>
+              </label>
+              <el-button
+                class="starter-submit"
+                type="primary"
+                :loading="creatingJob"
+                :disabled="!canCreateStarterJob"
+                @click="handleCreateStarterJob"
+              >
+                {{ t('homeAi.generateSetting') }}
+              </el-button>
             </div>
-            <span class="update-text">{{ marketUpdateText }}</span>
+          </div>
+          <div class="category-tags">
+            <button
+              v-for="category in starterCategories"
+              :key="category.name"
+              type="button"
+              class="cat"
+              @click="applyStarterCategory(category)"
+            >
+              {{ category.name }}
+            </button>
+          </div>
+        </section>
+
+        <!-- 肆 继续写作 -->
+        <section class="block">
+          <div class="sec-head">
+            <span class="seal">肆</span>
+            <h2>继续写作</h2>
+            <button
+              class="text-link"
+              type="button"
+              @click="router.push('/knowledge-library/creative')"
+            >
+              书架 →
+            </button>
           </div>
           <div
-            class="market-tabs"
-            role="tablist"
-            aria-label="市场时间范围"
+            v-if="recentBooksReadError"
+            class="small-error list-error"
           >
+            <span>{{ recentBooksReadError }}</span>
             <button
-              v-for="tab in marketTabs"
-              :key="tab.key"
-              :class="{ active: marketRange === tab.key }"
               type="button"
-              role="tab"
-              :aria-selected="marketRange === tab.key"
-              @click="marketRange = tab.key"
+              :disabled="recentBooksLoading"
+              @click="loadRecentBookDetails"
             >
-              {{ tab.label }}
+              重试
             </button>
+          </div>
+          <UiSkeleton
+            v-if="recentBooksLoading && !recentBooks.length"
+            variant="list"
+            :count="3"
+          />
+          <div
+            v-else-if="recentBooks.length"
+            class="ink-list"
+          >
+            <div
+              v-for="book in recentBooks"
+              :key="book.id || book.folderName || book.name"
+              class="ink-row book-row"
+              @click="openBook(book)"
+            >
+              <div
+                class="cover-thumb"
+                :style="{ backgroundColor: wabiCoverColor(book.coverColor) }"
+              >
+                <img
+                  v-if="coverSrc(book)"
+                  :src="coverSrc(book)"
+                  :alt="book.name"
+                >
+                <span
+                  v-else
+                  class="cover-glyph"
+                >{{ (book.name || book.folderName || '书').charAt(0) }}</span>
+              </div>
+              <div class="row-main">
+                <strong>{{ book.name || book.folderName }}</strong>
+                <small>{{ latestChapterText(book) }}</small>
+              </div>
+              <span class="row-delta">{{ todayBookWordsText(book) }}</span>
+            </div>
+          </div>
+          <p
+            v-else
+            class="soft-empty"
+          >
+            还没有作品。可以先用「起笔」生成起笔方案，再转为新书。
+          </p>
+        </section>
+      </div>
+
+      <div class="home-col home-col--side">
+        <!-- 贰 市场风向 -->
+        <section class="block">
+          <div class="sec-head">
+            <span class="seal">贰</span>
+            <h2>市场风向</h2>
+            <div
+              class="market-tabs"
+              role="tablist"
+              aria-label="市场时间范围"
+            >
+              <button
+                v-for="tab in marketTabs"
+                :key="tab.key"
+                :class="{ active: marketRange === tab.key }"
+                type="button"
+                role="tab"
+                :aria-selected="marketRange === tab.key"
+                @click="marketRange = tab.key"
+              >
+                {{ tab.label }}
+              </button>
+            </div>
           </div>
           <div
             v-if="marketError"
@@ -173,89 +246,66 @@
           </div>
           <div
             v-else-if="!marketHotspots.length && !marketActivities.length"
-            class="compact-empty market-empty"
+            class="soft-empty"
           >
-            <strong>暂无市场数据</strong>
-            <span>点击市场灵感里的刷新热榜，织梦会自动整理公开热词和活动。</span>
-            <button
+            暂无市场数据，去<button
+              class="text-link inline"
               type="button"
               @click="router.push('/market/overview')"
             >
-              去刷新热榜
-            </button>
+              刷新热榜
+            </button>整理公开热词。
           </div>
           <template v-else>
-            <div class="market-section">
-              <h3>热点题材</h3>
-              <ol
-                v-if="marketHotspots.length"
-                class="market-list"
+            <ol
+              v-if="marketHotspots.length"
+              class="ink-list rank-list"
+            >
+              <li
+                v-for="(item, index) in marketHotspots"
+                :key="item.id"
+                class="ink-row"
+                @click="router.push('/market/overview')"
               >
-                <li
-                  v-for="(item, index) in marketHotspots"
-                  :key="item.id"
-                  @click="router.push('/market/overview')"
-                >
-                  <span class="rank">{{ index + 1 }}</span>
-                  <span class="market-name">{{ item.keyword || item.title }}</span>
-                  <b>热度 {{ Number(item.heatScore || 0) }}</b>
-                  <span class="trend-arrow">↑</span>
-                </li>
-              </ol>
-              <p
-                v-else
-                class="inline-empty"
+                <span
+                  class="rank"
+                  :class="{ top: index < 3 }"
+                >{{ String(index + 1).padStart(2, '0') }}</span>
+                <span class="rank-name">{{ item.keyword || item.title }}</span>
+                <span class="rank-heat">{{ Number(item.heatScore || 0) }}</span>
+                <span class="rank-trend">↑</span>
+              </li>
+            </ol>
+            <div
+              v-if="marketActivities.length"
+              class="activity-list"
+            >
+              <button
+                v-for="item in marketActivities"
+                :key="item.id"
+                type="button"
+                class="ink-row activity-row"
+                @click="router.push('/market/overview')"
               >
-                暂无热点题材。
-              </p>
-            </div>
-            <div class="market-section">
-              <h3>作家活动</h3>
-              <div
-                v-if="marketActivities.length"
-                class="activity-list"
-              >
-                <button
-                  v-for="item in marketActivities"
-                  :key="item.id"
-                  type="button"
-                  @click="router.push('/market/overview')"
-                >
-                  <span>{{ item.title }}</span>
-                  <small>{{ remainingText(item) }}</small>
-                </button>
-              </div>
-              <p
-                v-else
-                class="inline-empty"
-              >
-                暂无进行中的作家活动。
-              </p>
+                <span>{{ item.title }}</span>
+                <small>{{ remainingText(item) }}</small>
+              </button>
             </div>
           </template>
-          <button
-            class="more-link"
-            type="button"
-            @click="router.push('/market/overview')"
-          >
-            查看市场灵感 >
-          </button>
-        </article>
+          <span class="update-text">{{ marketUpdateText }}</span>
+        </section>
 
-        <article
-          class="dashboard-card status-card"
-          aria-label="写作近况"
-        >
-          <div class="card-title">
-            <div>
-              <h2>写作近况</h2>
-            </div>
+        <!-- 叁 写作近况 -->
+        <section class="block">
+          <div class="sec-head">
+            <span class="seal">叁</span>
+            <h2>写作近况</h2>
             <button
-              class="more-link top-link"
+              class="text-link"
               type="button"
               @click="router.push('/analytics/overview')"
             >
-              查看数据中心 >
+              数据中心 →
             </button>
           </div>
           <div
@@ -271,22 +321,22 @@
               重试
             </button>
           </div>
-          <div class="status-grid">
-            <div>
-              <b>{{ formatNumber(todayStatus.todayWords) }}</b>
+          <div class="stat-grid">
+            <div class="stat-row">
               <span>新增字数</span>
+              <b>{{ formatNumber(todayStatus.todayWords) }}</b>
             </div>
-            <div>
-              <b>{{ formatNumber(todayStatus.streakDays) }}</b>
+            <div class="stat-row">
               <span>连续写作</span>
+              <b>{{ formatNumber(todayStatus.streakDays) }}</b>
             </div>
-            <div>
-              <b>{{ formatNumber(todayStatus.totalAiCalls) }}</b>
+            <div class="stat-row">
               <span>AI 调用</span>
+              <b>{{ formatNumber(todayStatus.totalAiCalls) }}</b>
             </div>
-            <div>
+            <div class="stat-row">
+              <span>词元</span>
               <b>{{ formatNumber(todayStatus.totalAiTokens) }}</b>
-              <span>Token</span>
             </div>
           </div>
           <div
@@ -294,18 +344,25 @@
             class="mini-line-chart"
             aria-label="最近 7 天净增字数"
           >
+            <p class="chart-label">
+              近 7 日字数
+            </p>
             <svg
               viewBox="0 0 240 78"
               preserveAspectRatio="none"
               role="img"
             >
+              <polygon
+                class="chart-area"
+                :points="chartArea"
+              />
               <polyline :points="chartPoints" />
               <circle
                 v-for="point in chartPointRows"
                 :key="point.key"
                 :cx="point.x"
                 :cy="point.y"
-                r="3"
+                r="2.4"
               />
             </svg>
           </div>
@@ -315,156 +372,62 @@
           >
             写几章后，这里会出现你的 7 天创作曲线。
           </p>
-        </article>
-      </aside>
-    </section>
+        </section>
 
-    <section class="starter-category-section">
-      <div class="section-title-row">
-        <h2>选择小说分类</h2>
-      </div>
-      <div class="starter-category-tags">
-        <button
-          v-for="category in starterCategories"
-          :key="category.name"
-          type="button"
-          @click="applyStarterCategory(category)"
-        >
-          {{ category.name }}
-        </button>
-      </div>
-      <p>点击标签快速填充创作提示词，或直接在上方输入框中输入您的想法。</p>
-    </section>
-
-    <section class="dashboard-bottom-grid">
-      <article class="dashboard-card continue-card">
-        <div class="card-title">
-          <div>
-            <h2>继续写作</h2>
+        <!-- 伍 可引用资料 -->
+        <section class="block">
+          <div class="sec-head">
+            <span class="seal">伍</span>
+            <h2>可引用资料</h2>
+            <button
+              class="text-link"
+              type="button"
+              @click="router.push('/knowledge-library/all')"
+            >
+              资料库 →
+            </button>
           </div>
-          <button
-            class="more-link top-link"
-            type="button"
-            @click="router.push('/knowledge-library/creative')"
-          >
-            查看更多 >
-          </button>
-        </div>
-        <div
-          v-if="recentBooksReadError"
-          class="small-error list-error"
-        >
-          <span>{{ recentBooksReadError }}</span>
-          <button
-            type="button"
-            :disabled="recentBooksLoading"
-            @click="loadRecentBookDetails"
-          >
-            重试
-          </button>
-        </div>
-        <UiSkeleton
-          v-if="recentBooksLoading && !recentBooks.length"
-          variant="list"
-          :count="3"
-        />
-        <div
-          v-else-if="recentBooks.length"
-          class="writing-list"
-        >
           <div
-            v-for="book in recentBooks"
-            :key="book.id || book.folderName || book.name"
-            class="writing-row"
+            v-if="recentMaterials.length"
+            class="ink-list"
           >
             <div
-              class="cover-thumb"
-              :style="{ backgroundColor: wabiCoverColor(book.coverColor) }"
+              v-for="item in recentMaterials"
+              :key="item.key"
+              class="ink-row material-row"
             >
-              <img
-                v-if="coverSrc(book)"
-                :src="coverSrc(book)"
-                :alt="book.name"
-              >
-            </div>
-            <div class="writing-main">
-              <strong>{{ book.name || book.folderName }}</strong>
-              <small>{{ latestChapterText(book) }} · {{ todayBookWordsText(book) }}</small>
-            </div>
-            <el-button
-              size="small"
-              @click="openBook(book)"
-            >
-              继续写
-            </el-button>
-          </div>
-        </div>
-        <p
-          v-else
-          class="soft-empty"
-        >
-          还没有作品。可以先用「创作起笔」生成起笔方案，再转为新书。
-        </p>
-      </article>
-
-      <article class="dashboard-card materials-card">
-        <div class="card-title">
-          <div>
-            <h2>可引用资料</h2>
-          </div>
-          <button
-            class="more-link top-link"
-            type="button"
-            @click="router.push('/knowledge-library/all')"
-          >
-            查看更多 >
-          </button>
-        </div>
-        <div
-          v-if="recentMaterials.length"
-          class="material-list"
-        >
-          <div
-            v-for="item in recentMaterials"
-            :key="item.key"
-            class="material-row"
-          >
-            <div>
               <span class="type-tag">{{ item.typeLabel }}</span>
-              <strong>{{ item.title }}</strong>
-              <small>{{ formatDate(item.updatedAt) }}</small>
-            </div>
-            <div class="material-actions">
-              <button
-                type="button"
+              <strong
+                class="material-title"
                 @click="openMaterial(item)"
-              >
-                打开
-              </button>
+              >{{ item.title }}</strong>
+              <span class="material-date">{{ formatDate(item.updatedAt) }}</span>
               <button
                 type="button"
+                class="quote-btn"
+                :title="'引用到' + t('homeAi.starterTitle')"
                 @click="quoteMaterial(item)"
               >
-                引用到创作起笔
+                引用
               </button>
             </div>
           </div>
-        </div>
-        <div
-          v-else
-          class="compact-empty"
-        >
-          <strong>{{ t('homeAi.emptyMaterials') }}</strong>
-          <span>{{ t('homeAi.emptyMaterialsHint') }}</span>
-          <button
-            type="button"
-            @click="router.push('/knowledge-library/all')"
+          <div
+            v-else
+            class="compact-empty"
           >
-            {{ t('homeAi.addMaterial') }}
-          </button>
-        </div>
-      </article>
-    </section>
+            <strong>{{ t('homeAi.emptyMaterials') }}</strong>
+            <span>{{ t('homeAi.emptyMaterialsHint') }}</span>
+            <button
+              type="button"
+              @click="router.push('/knowledge-library/all')"
+            >
+              {{ t('homeAi.addMaterial') }}
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
 
     <EncourageToastScheduler />
   </div>
@@ -639,7 +602,6 @@ const referenceOptions = computed(() => {
     type: 'prompt_template',
     category: 'prompt',
     typeLabel: preset.isBuiltin ? t('homeAi.builtinPrompt') : t('homeAi.promptTemplate'),
-    shortLabel: `${t('homeAi.promptTemplate')}：${preset.name || t('homeAi.unnamedTemplate')}`,
     title: preset.name || t('homeAi.unnamedTemplate'),
     summary: [preset.systemPrompt, preset.userPromptTemplate].filter(Boolean).join('\n\n'),
     updatedAt: preset.updatedAt || preset.createdAt,
@@ -748,6 +710,13 @@ const chartPointRows = computed(() => {
 const chartPoints = computed(() =>
   chartPointRows.value.map((point) => `${point.x},${point.y}`).join(' ')
 )
+const chartArea = computed(() => {
+  const rows = chartPointRows.value
+  if (!rows.length) return ''
+  const first = rows[0]
+  const last = rows[rows.length - 1]
+  return `${first.x},78 ${chartPoints.value} ${last.x},78`
+})
 
 onMounted(async () => {
   await ensureDashboardData()
@@ -1172,282 +1141,227 @@ function isCreativeReferenceItem(item = {}) {
 </script>
 
 <style lang="scss" scoped>
+$serif: 'Noto Serif SC', 'Songti SC', 'SimSun', serif;
+$mono: 'Space Mono', ui-monospace, monospace;
+
 .home-page {
-  width: min(100%, 1560px);
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   overflow-x: clip;
+  padding: 4px 4px 40px;
   color: var(--wabi-ink);
 }
 
-.dashboard-header {
-  margin-bottom: 22px;
-
-  h1 {
-    margin: 0;
-    color: var(--wabi-ink);
-    font-family: 'Noto Serif SC', 'Songti SC', serif;
-    font-size: clamp(30px, 2.2vw, 40px);
-    letter-spacing: 0.04em;
-  }
+/* 报头：满宽双线墨栏 */
+.masthead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 16px;
+  border-bottom: 3px double var(--wabi-ink);
 }
 
-.headline {
-  margin: 8px 0 0;
-  color: var(--wabi-ink-soft);
-  font-size: clamp(16px, 1vw, 18px);
+.masthead-brand h1 {
+  margin: 0;
+  color: var(--wabi-ink);
+  font-family: $serif;
+  font-size: clamp(28px, 2.2vw, 36px);
+  font-weight: 700;
+  letter-spacing: 0.16em;
 }
 
 .brand-en {
-  margin: 8px 0 0;
+  margin: 6px 0 0;
   color: var(--wabi-muted);
-  font-size: 13px;
-  letter-spacing: 0.08em;
+  font-family: $mono;
+  font-size: 11px;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
+}
+
+.masthead-aside {
+  text-align: right;
+}
+
+.headline {
+  margin: 0;
+  color: var(--wabi-ink-soft);
+  font-family: $serif;
+  font-size: clamp(15px, 1vw, 17px);
+  letter-spacing: 0.08em;
 }
 
 .subline {
   margin: 6px 0 0;
   color: var(--wabi-muted);
-  font-size: clamp(14px, 0.9vw, 16px);
+  font-family: $mono;
+  font-size: 12px;
+  letter-spacing: 0.08em;
 }
 
+/* 账簿速览：竖线分栏、无圆角、密排 */
 .bento-strip {
   display: grid;
-  grid-template-columns:
-    minmax(140px, 1.1fr)
-    minmax(120px, 0.9fr)
-    minmax(200px, 1.6fr)
-    minmax(140px, 1.1fr)
-    minmax(120px, 0.9fr);
-  gap: 12px;
-  margin: 0 0 clamp(18px, 1.6vw, 24px);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border-bottom: 1px solid var(--wabi-line);
+  margin: 0;
 }
 
 .bento-tile {
   display: grid;
   gap: 6px;
   align-content: start;
-  min-height: 96px;
-  padding: 14px 16px;
-  border: var(--theme-border-width, 1px) var(--theme-border-style, solid) var(--wabi-line);
-  border-radius: var(--theme-card-radius, 12px);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.42), transparent 56%),
-    linear-gradient(180deg, rgba(251, 250, 246, 0.96), rgba(240, 236, 227, 0.88));
-  box-shadow: var(--theme-shadow-card, var(--wabi-shadow-soft));
+  padding: 16px 18px;
+  border: none;
+  border-left: 1px solid var(--wabi-line);
+  border-radius: 0;
+  background: transparent;
   color: var(--wabi-ink);
   cursor: pointer;
   font: inherit;
   text-align: left;
-  transition:
-    transform var(--theme-transition-duration, 180ms) ease,
-    box-shadow var(--theme-transition-duration, 180ms) ease,
-    border-color var(--theme-transition-duration, 180ms) ease,
-    background-color var(--theme-transition-duration, 180ms) ease;
+  transition: background 0.18s ease;
 
-  &:hover {
-    transform: var(--theme-button-transform-hover, translateY(-1px));
-    box-shadow: var(--theme-shadow-raised, var(--wabi-shadow-soft));
+  &--first {
+    border-left: none;
   }
 
-  &:active {
-    transform: var(--theme-button-transform-active, translateY(0));
+  &:hover {
+    background: var(--wabi-paper-soft);
+  }
+
+  &--accent .bento-tile__value {
+    color: var(--wabi-seal);
   }
 
   &:focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--primary-color, #52634b) 55%, transparent);
-    outline-offset: 2px;
+    outline: 2px solid color-mix(in srgb, var(--wabi-seal) 55%, transparent);
+    outline-offset: -2px;
   }
-}
-
-.bento-tile--accent {
-  border-color: color-mix(in srgb, var(--primary-color, #52634b) 42%, var(--wabi-line));
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--primary-color, #52634b) 12%, #fff), transparent 60%),
-    linear-gradient(180deg, rgba(251, 250, 246, 0.98), rgba(236, 240, 232, 0.9));
 }
 
 .bento-tile__label {
   color: var(--wabi-muted);
-  font-size: 12px;
-  font-weight: var(--theme-font-weight-ui, 500);
-  letter-spacing: 0.02em;
+  font-family: $mono;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .bento-tile__value {
   color: var(--wabi-ink);
-  font-family: var(--theme-font-display, inherit);
-  font-size: clamp(18px, 1.3vw, 24px);
-  font-weight: var(--theme-font-weight-strong, 600);
-  letter-spacing: var(--theme-letter-spacing-display, -0.02em);
-  line-height: 1.2;
+  font-family: $serif;
+  font-size: clamp(20px, 1.4vw, 26px);
+  font-weight: 700;
+  line-height: 1.15;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.bento-tile--lg .bento-tile__value {
-  white-space: normal;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
 .bento-tile__hint {
   color: var(--wabi-muted);
-  font-size: 12px;
+  font-family: $mono;
+  font-size: 11px;
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.dashboard-main-grid {
+/* 满宽双栏：左宽右窄 */
+.home-columns {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 380px;
-  gap: clamp(24px, 2vw, 32px);
-  align-items: stretch;
+  grid-template-columns: minmax(0, 1.9fr) minmax(300px, 1fr);
+  gap: clamp(28px, 2.6vw, 44px);
+  margin-top: 26px;
+  align-items: start;
 }
 
-.dashboard-side-stack {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: clamp(20px, 1.6vw, 28px);
+.home-col {
   min-width: 0;
 }
 
-.dashboard-bottom-grid {
-  display: grid;
-  grid-template-columns: 7fr 5fr;
-  gap: clamp(24px, 2vw, 32px);
-  margin-top: clamp(24px, 2vw, 32px);
+.block + .block {
+  margin-top: 30px;
 }
 
-.starter-category-section {
-  margin-top: clamp(22px, 1.8vw, 28px);
+/* 章节标题：实心墨块章号 + 粗墨线 */
+.sec-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--wabi-ink);
 
   h2 {
     margin: 0;
     color: var(--wabi-ink);
+    font-family: $serif;
     font-size: 20px;
-  }
-
-  p {
-    margin: 14px 0 0;
-    color: var(--wabi-muted);
-    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
   }
 }
 
-.starter-category-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 14px;
-
-  button {
-    border: 1px solid var(--wabi-line);
-    border-radius: 8px;
-    background: rgba(251, 250, 246, 0.78);
-    color: var(--wabi-muted);
-    cursor: pointer;
-    font: inherit;
-    padding: 8px 16px;
-    transition:
-      background 0.2s ease,
-      border-color 0.2s ease,
-      color 0.2s ease;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.82);
-      border-color: rgba(111, 122, 104, 0.38);
-      color: var(--wabi-moss-dark);
-    }
-  }
+.seal {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  background: var(--wabi-ink);
+  color: var(--wabi-paper);
+  font-family: $serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
 }
 
-.creation-card {
-  display: flex;
-  min-height: clamp(500px, 50vh, 620px);
-  flex-direction: column;
-}
-
-.dashboard-card {
-  min-width: 0;
-  border: var(--theme-border-width, 1px) var(--theme-border-style, solid) var(--wabi-line);
-  border-radius: var(--theme-card-radius, 12px);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.36), transparent 54%),
-    linear-gradient(180deg, rgba(251, 250, 246, 0.95), rgba(240, 236, 227, 0.84));
-  box-shadow: var(--theme-shadow-card, var(--wabi-shadow-soft));
-  padding: clamp(22px, 2vw, 30px);
-}
-
-.market-card,
-.status-card {
-  padding: clamp(20px, 1.6vw, 24px);
-}
-
-.continue-card,
-.materials-card {
-  min-height: 300px;
-}
-
-.card-title {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-
-  h2 {
-    margin: 0;
-    color: var(--wabi-ink);
-    font-size: clamp(22px, 1.4vw, 28px);
-  }
-}
-
-.update-text {
+.text-link {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
   color: var(--wabi-muted);
-  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  padding: 0;
+  transition: color 0.18s ease;
+
+  &:hover {
+    color: var(--wabi-seal);
+  }
+
+  &.inline {
+    margin: 0 2px;
+    color: var(--wabi-seal);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
 }
 
-.starter-kicker {
-  margin: 6px 0 0;
-  color: var(--wabi-muted);
-  font-size: 14px;
-}
-
-.starter-desc {
-  max-width: 920px;
-  margin: 0 0 14px;
-  color: var(--wabi-muted);
-  font-size: 15px;
-  line-height: 1.8;
+/* 壹 起笔 */
+.starter-box {
+  border: 1.5px solid var(--wabi-ink);
+  background: var(--wabi-paper-soft);
+  padding: 18px 20px;
 }
 
 .creation-textarea {
   width: 100%;
-  min-height: clamp(240px, 28vh, 340px);
-  flex: 1;
+  min-height: clamp(120px, 16vh, 200px);
   resize: vertical;
-  border: 1px solid var(--wabi-line);
-  border-radius: 10px;
+  border: none;
   outline: none;
-  background:
-    linear-gradient(135deg, transparent 0 78%, rgba(111, 122, 104, 0.08) 78% 100%),
-    rgba(251, 250, 246, 0.86);
+  background: transparent;
   color: var(--wabi-ink);
-  font: inherit;
-  font-size: 15px;
-  line-height: 1.8;
-  padding: clamp(16px, 1.6vw, 22px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
-
-  &:focus {
-    border-color: rgba(111, 122, 104, 0.52);
-    box-shadow: var(--wabi-focus);
-  }
+  font-family: $serif;
+  font-size: 16px;
+  line-height: 1.9;
 }
 
 .starter-control-row {
@@ -1455,512 +1369,501 @@ function isCreativeReferenceItem(item = {}) {
   flex-wrap: wrap;
   gap: 12px;
   align-items: end;
-  margin-bottom: 14px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--wabi-line);
 
   label {
     display: flex;
-    flex: 1 1 190px;
+    flex: 1 1 170px;
     flex-direction: column;
     gap: 6px;
     min-width: 0;
   }
 
   .strategy-field {
-    flex-basis: 240px;
+    flex-basis: 200px;
   }
 
   span {
     color: var(--wabi-muted);
-    font-size: 13px;
+    font-family: $mono;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
   }
 
   :deep(.el-select) {
     width: 100%;
   }
-}
 
-.prompt-market-button {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  height: 40px;
-  min-width: 82px;
-  border: 1px solid rgba(111, 122, 104, 0.46);
-  border-radius: 8px;
-  background: var(--wabi-moss);
-  color: #fbfaf6;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 700;
-  padding: 0 14px;
-  box-shadow: var(--wabi-shadow-soft);
-  white-space: nowrap;
-}
+  :deep(.el-select__wrapper) {
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    border-bottom: 1px solid var(--wabi-line);
+    padding-left: 0;
+    padding-right: 4px;
+  }
 
-.market-icon {
-  font-size: 14px;
-  line-height: 1;
-}
-
-.starter-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 14px;
+  :deep(.el-select__wrapper.is-focused) {
+    box-shadow: none;
+    border-bottom-color: var(--wabi-ink);
+  }
 }
 
 :deep(.starter-submit.el-button) {
   min-width: 150px;
-  height: 42px;
-  border: 1px solid rgba(111, 122, 104, 0.46);
-  border-radius: 8px;
-  background: linear-gradient(135deg, #6f7a68, #55614e);
-  box-shadow: var(--wabi-shadow-soft);
-  color: #fbfaf6;
-  font-weight: 700;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  height: 40px;
+  border: 1.5px solid var(--wabi-ink);
+  border-radius: 0;
+  background: var(--wabi-ink);
+  box-shadow: none;
+  color: var(--wabi-paper);
+  font-family: $serif;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  transition: box-shadow 0.18s ease, transform 0.12s ease;
 
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--wabi-shadow);
+    background: var(--wabi-ink);
+    box-shadow: 0 6px 18px rgba(38, 35, 30, 0.22);
   }
 
-  &::before {
-    content: '一';
-    margin-right: 6px;
-    color: rgba(251, 250, 246, 0.86);
+  &:active {
+    transform: translateY(1px);
+  }
+
+  &.is-disabled {
+    opacity: 0.4;
   }
 }
 
-.market-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  margin-bottom: 14px;
+.category-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 14px;
 
-  button {
-    border: 1px solid var(--wabi-line);
-    border-radius: 8px;
-    background: rgba(251, 250, 246, 0.78);
-    color: var(--wabi-muted);
+  .cat {
+    position: relative;
+    border: 0;
+    background: transparent;
+    color: var(--wabi-ink-soft);
     cursor: pointer;
-    padding: 7px;
+    font-family: $serif;
+    font-size: 15px;
+    padding: 2px 0;
+    transition: color 0.18s ease;
 
-    &.active {
-      background: rgba(111, 122, 104, 0.12);
-      color: var(--wabi-moss-dark);
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -2px;
+      height: 1px;
+      background: var(--wabi-seal);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.2s ease;
+    }
+
+    &:hover {
+      color: var(--wabi-seal);
+    }
+
+    &:hover::after {
+      transform: scaleX(1);
     }
   }
 }
 
-.market-section + .market-section {
-  margin-top: 16px;
-}
-
-.market-section h3 {
-  margin: 0 0 8px;
-  font-size: 15px;
-}
-
-.market-list {
-  display: grid;
-  gap: 8px;
+/* 通用密排列表 */
+.ink-list {
   margin: 0;
   padding: 0;
   list-style: none;
-
-  li {
-    display: grid;
-    grid-template-columns: 18px minmax(0, 1fr) auto 14px;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    border-bottom: 1px solid rgba(50, 45, 35, 0.08);
-    padding-bottom: 7px;
-  }
-
-  b {
-    color: var(--wabi-earth);
-    font-size: 13px;
-    white-space: nowrap;
-  }
 }
 
-.rank {
-  color: var(--wabi-earth);
-  font-weight: 700;
-}
-
-.market-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.trend-arrow {
-  color: var(--wabi-moss);
-  font-weight: 700;
-}
-
-.activity-list {
-  display: grid;
-  gap: 8px;
-
-  button {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    border: 0;
-    border-bottom: 1px solid rgba(50, 45, 35, 0.08);
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
-    font: inherit;
-    padding: 0 0 7px;
-    text-align: left;
-  }
-
-  small {
-    color: var(--wabi-muted);
-    white-space: nowrap;
-  }
-}
-
-.empty-link,
-.more-link {
-  border: 0;
-  background: transparent;
-  color: var(--wabi-moss-dark);
-  cursor: pointer;
-  font: inherit;
-  padding: 0;
-  text-align: left;
-}
-
-.more-link {
-  margin-top: 14px;
-}
-
-.top-link {
-  margin-top: 0;
-  white-space: nowrap;
-  font-size: 13px;
-}
-
-.small-error {
-  color: var(--wabi-rust);
-  font-size: 13px;
-}
-
-.writing-list,
-.material-list {
-  display: grid;
-  gap: 12px;
-}
-
-.writing-row {
-  display: grid;
-  grid-template-columns: 58px minmax(0, 1fr) auto;
-  gap: 14px;
+.ink-row {
+  display: flex;
   align-items: center;
-  border-bottom: 1px solid rgba(50, 45, 35, 0.08);
-  padding-bottom: 12px;
-}
+  gap: 14px;
+  padding: 11px 4px;
+  border-bottom: 1px solid var(--wabi-line);
+  cursor: pointer;
+  transition: background 0.18s ease;
 
-.cover-thumb {
-  display: grid;
-  position: relative;
-  width: 58px;
-  height: 78px;
-  place-items: center;
-  overflow: hidden;
-  border: 1px solid rgba(58, 55, 49, 0.16);
-  border-radius: 7px;
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.12), transparent 22%),
-    linear-gradient(145deg, #6f7a68, #8a735d 56%, #c5b49e);
-  color: #fbfaf6;
-  font-weight: 700;
-  box-shadow: 0 8px 16px rgba(58, 55, 49, 0.12);
-
-  &::after {
-    content: '织梦';
-    position: absolute;
-    right: 6px;
-    bottom: 6px;
-    left: 6px;
-    border-top: 1px solid rgba(251, 250, 246, 0.32);
-    padding-top: 5px;
-    color: rgba(251, 250, 246, 0.86);
-    font-size: 11px;
-    font-weight: 700;
-    text-align: center;
-  }
-
-  img {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  &:hover {
+    background: var(--wabi-paper-soft);
   }
 }
 
-.writing-main,
-.material-row div:first-child {
-  min-width: 0;
-
-  strong,
-  small {
-    display: block;
+/* 肆 继续写作 */
+.book-row {
+  .row-main {
+    flex: 1;
+    min-width: 0;
   }
 
   strong {
+    display: block;
+    color: var(--wabi-ink);
+    font-family: $serif;
+    font-size: 16px;
+    font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   small {
-    margin-top: 4px;
+    display: block;
+    margin-top: 3px;
     color: var(--wabi-muted);
     font-size: 12px;
   }
 }
 
-.status-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
+.row-delta {
+  flex: 0 0 auto;
+  color: var(--wabi-moss-dark);
+  font-family: $mono;
+  font-size: 12px;
+  white-space: nowrap;
+}
 
-  div {
-    border: 1px solid var(--wabi-line);
-    border-radius: 8px;
-    background: rgba(251, 250, 246, 0.72);
-    padding: 12px;
+.cover-thumb {
+  display: grid;
+  position: relative;
+  width: 34px;
+  height: 46px;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--theme-card-radius, 0);
+  color: var(--wabi-paper);
+  font-family: $serif;
+  font-weight: 600;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
-  b,
+  .cover-glyph {
+    font-size: 15px;
+  }
+}
+
+/* 贰 市场风向 */
+.market-tabs {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+
+  button {
+    border: 0;
+    background: transparent;
+    color: var(--wabi-muted);
+    cursor: pointer;
+    font-family: $mono;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    padding: 0;
+
+    &.active {
+      color: var(--wabi-seal);
+    }
+  }
+}
+
+.rank-list .ink-row {
+  align-items: baseline;
+  gap: 12px;
+}
+
+.rank {
+  width: 20px;
+  color: var(--wabi-muted);
+  font-family: $mono;
+  font-size: 13px;
+  font-weight: 700;
+
+  &.top {
+    color: var(--wabi-seal);
+  }
+}
+
+.rank-name {
+  flex: 1;
+  color: var(--wabi-ink);
+  font-family: $serif;
+  font-size: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank-heat {
+  color: var(--wabi-muted);
+  font-family: $mono;
+  font-size: 11px;
+}
+
+.rank-trend {
+  color: var(--wabi-moss-dark);
+  font-weight: 700;
+}
+
+.activity-list {
+  display: grid;
+  margin-top: 4px;
+
+  .activity-row {
+    justify-content: space-between;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+
+    span {
+      font-family: $serif;
+      font-size: 15px;
+    }
+
+    small {
+      color: var(--wabi-muted);
+      font-family: $mono;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+  }
+}
+
+.update-text {
+  display: block;
+  margin-top: 12px;
+  color: var(--wabi-muted);
+  font-family: $mono;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* 叁 写作近况 */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 24px;
+  margin-bottom: 16px;
+}
+
+.stat-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--wabi-line);
+  padding-bottom: 7px;
+
   span {
-    display: block;
+    color: var(--wabi-muted);
+    font-family: $mono;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
   }
 
   b {
     color: var(--wabi-ink);
-    font-size: 22px;
-  }
-
-  span {
-    margin-top: 4px;
-    color: var(--wabi-muted);
-    font-size: 12px;
+    font-family: $serif;
+    font-size: 19px;
+    font-weight: 700;
   }
 }
 
-.mini-line-chart {
-  height: 92px;
-  margin-top: 16px;
-  border-radius: 10px;
-  background: linear-gradient(180deg, rgba(240, 236, 227, 0.9), rgba(251, 250, 246, 0.55));
-  padding: 10px;
+.chart-label {
+  margin: 0 0 4px;
+  color: var(--wabi-muted);
+  font-family: $mono;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
 
+.mini-line-chart {
   svg {
     width: 100%;
-    height: 100%;
+    height: 78px;
     overflow: visible;
   }
 
   polyline {
     fill: none;
-    stroke: var(--wabi-moss-dark);
+    stroke: var(--wabi-ink);
     stroke-linecap: round;
     stroke-linejoin: round;
-    stroke-width: 4;
+    stroke-width: 1.5;
+  }
+
+  .chart-area {
+    fill: var(--wabi-ink);
+    opacity: 0.06;
+    stroke: none;
   }
 
   circle {
-    fill: var(--wabi-earth);
-    stroke: var(--wabi-paper);
-    stroke-width: 2;
+    fill: var(--wabi-ink);
   }
 }
 
 .chart-empty {
-  margin: 18px 0 0;
-  border-radius: 10px;
-  background: rgba(240, 236, 227, 0.72);
+  margin: 14px 0 0;
   color: var(--wabi-muted);
   line-height: 1.7;
-  padding: 14px;
 }
 
+/* 伍 可引用资料 */
 .material-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  border-bottom: 1px solid rgba(50, 45, 35, 0.08);
-  padding-bottom: 9px;
-}
+  align-items: baseline;
+  gap: 10px;
 
-.type-tag {
-  display: inline-block;
-  margin-bottom: 4px;
-  border-radius: 999px;
-  background: rgba(138, 115, 93, 0.12);
-  color: var(--wabi-earth);
-  font-size: 12px;
-  padding: 2px 7px;
-}
+  .type-tag {
+    width: 48px;
+    flex: 0 0 auto;
+    color: var(--wabi-seal);
+    font-family: $mono;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-.material-actions {
-  display: flex;
-  gap: 6px;
+  .material-title {
+    flex: 1;
+    color: var(--wabi-ink);
+    font-family: $serif;
+    font-size: 15px;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-  button {
+  .material-date {
+    color: var(--wabi-muted);
+    font-family: $mono;
+    font-size: 11px;
+  }
+
+  .quote-btn {
     border: 0;
     background: transparent;
-    color: var(--wabi-moss-dark);
+    color: var(--wabi-muted);
     cursor: pointer;
+    font-family: $serif;
+    font-size: 14px;
     padding: 0;
+    border-bottom: 1px solid var(--wabi-line);
+    transition: color 0.18s ease;
+
+    &:hover {
+      color: var(--wabi-seal);
+    }
+  }
+}
+
+/* 空 / 错态 */
+.small-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  color: var(--wabi-rust, #9a3b2e);
+  font-size: 13px;
+
+  button {
+    border: 1px solid var(--wabi-line);
+    background: transparent;
+    color: var(--wabi-ink);
+    cursor: pointer;
+    font: inherit;
+    padding: 2px 10px;
   }
 }
 
 .soft-empty {
-  margin: 14px 0;
+  margin: 6px 0;
   color: var(--wabi-muted);
-  line-height: 1.7;
+  line-height: 1.8;
 }
 
 .compact-empty {
   display: grid;
   gap: 8px;
-  border-radius: 10px;
-  background: rgba(240, 236, 227, 0.72);
+  border: 1px solid var(--wabi-line);
+  background: var(--wabi-paper-soft);
   color: var(--wabi-muted);
   padding: 14px;
 
   strong {
     color: var(--wabi-ink);
+    font-family: $serif;
   }
 
   button {
     justify-self: start;
-    border: 1px solid var(--wabi-line);
-    border-radius: 8px;
-    background: rgba(251, 250, 246, 0.86);
-    color: var(--wabi-moss-dark);
+    border: 1.5px solid var(--wabi-ink);
+    background: var(--wabi-ink);
+    color: var(--wabi-paper);
     cursor: pointer;
-    font: inherit;
-    padding: 7px 10px;
+    font-family: $serif;
+    letter-spacing: 0.1em;
+    padding: 7px 16px;
   }
 }
 
-.market-empty {
-  margin: 14px 0;
-}
-
-.inline-empty {
-  margin: 0;
-  color: var(--wabi-muted);
-  font-size: 13px;
-}
-
-@media (min-width: 1600px) {
-  .home-page {
-    width: min(100%, 1560px);
-  }
-}
-
-@media (max-width: 1599px) {
-  .home-page {
-    width: min(100%, 1360px);
-  }
-
-  .dashboard-main-grid {
-    grid-template-columns: minmax(0, 1fr) 360px;
-  }
-}
-
+/* 响应式 */
 @media (max-width: 1279px) {
+  .home-columns {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
   .bento-strip {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .dashboard-main-grid,
-  .dashboard-bottom-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .dashboard-side-stack {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto;
-  }
-
-  .creation-card {
-    min-height: auto;
-  }
-}
-
-@media (max-width: 1023px) {
-  .bento-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .dashboard-main-grid,
-  .dashboard-side-stack,
-  .dashboard-bottom-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .starter-actions {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .starter-control-row {
-    grid-template-columns: 1fr;
+  .bento-tile:nth-child(3n + 1) {
+    border-left: none;
   }
 }
 
 @media (max-width: 760px) {
-  .home-page {
-    width: 100%;
+  .masthead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .masthead-aside {
+    text-align: left;
   }
 
   .bento-strip {
-    grid-template-columns: 1fr;
-    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .bento-tile {
-    min-height: 84px;
+    border-left: none;
+    border-bottom: 1px solid var(--wabi-line);
   }
 
-  .dashboard-main-grid,
-  .dashboard-side-stack,
-  .dashboard-bottom-grid {
-    gap: 16px;
-  }
-
-  .dashboard-card {
-    border-radius: var(--theme-card-radius, 16px);
-  }
-
-  .writing-row,
-  .material-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .cover-thumb {
-    display: none;
-  }
-
-  .status-grid {
-    grid-template-columns: 1fr;
+  .starter-control-row label {
+    flex-basis: 100%;
   }
 }
 </style>
