@@ -56,7 +56,7 @@ defineProps({
   variant: {
     type: String,
     default: 'default',
-    validator: (v) => ['default', 'compact', 'panel'].includes(v)
+    validator: (v) => ['default', 'compact', 'panel', 'error'].includes(v)
   }
 })
 
@@ -86,6 +86,26 @@ defineEmits(['primary', 'secondary'])
 .ui-empty-state[data-variant='panel'] {
   min-height: 180px;
   align-content: center;
+}
+
+.ui-empty-state[data-variant='error'] {
+  min-height: 180px;
+  align-content: center;
+  border-color: color-mix(
+    in srgb,
+    var(--el-color-danger, #c0563f) 45%,
+    var(--border-color, #d9d2c4)
+  );
+  background: color-mix(
+    in srgb,
+    var(--el-color-danger, #c0563f) 7%,
+    var(--theme-surface-background-strong, var(--bg-soft, #fbfaf6))
+  );
+}
+
+.ui-empty-state[data-variant='error'] .ui-empty-state__icon {
+  color: var(--el-color-danger, #c0563f);
+  opacity: 1;
 }
 
 .ui-empty-state__icon {
