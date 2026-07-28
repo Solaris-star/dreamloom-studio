@@ -363,8 +363,13 @@
             重试
           </button>
         </div>
+        <UiSkeleton
+          v-if="recentBooksLoading && !recentBooks.length"
+          variant="list"
+          :count="3"
+        />
         <div
-          v-if="recentBooks.length"
+          v-else-if="recentBooks.length"
           class="writing-list"
         >
           <div
@@ -472,6 +477,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import EncourageToastScheduler from '@renderer/components/EncourageToastScheduler.vue'
+import { UiSkeleton } from '@renderer/components/ui'
 import { useMainStore } from '@renderer/stores'
 import { readBooksDir, getBookDir } from '@renderer/service/books'
 import { listChapterTree } from '@renderer/service/editor'
