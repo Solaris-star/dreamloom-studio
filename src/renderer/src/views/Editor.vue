@@ -3,6 +3,7 @@
     class="editor-container"
     :class="{
       'is-focus-mode': focusMode,
+      'is-reading-mode': readingMode,
       'are-side-panels-hidden': !panelVisibility.left
     }"
     :style="editorReadingStyle"
@@ -49,6 +50,58 @@
         />
       </el-splitter-panel>
     </el-splitter>
+
+    <!-- 正文内随手可点的上/下章 + 阅读模式切换 -->
+    <div
+      class="editor-inline-nav"
+      role="toolbar"
+      aria-label="章节导航与阅读模式"
+    >
+      <button
+        type="button"
+        class="inline-nav-btn"
+        title="上一章 (Alt+←)"
+        aria-label="上一章"
+        @click="handlePrevChapter"
+      >
+        <ChevronLeft :size="16" />
+      </button>
+      <button
+        type="button"
+        class="inline-nav-btn mode-btn"
+        :class="{ active: readingMode }"
+        :title="readingMode ? '切换到编辑模式' : '切换到阅读模式'"
+        :aria-label="readingMode ? '切换到编辑模式' : '切换到阅读模式'"
+        :aria-pressed="readingMode"
+        data-testid="editor-reading-mode-toggle"
+        @click="toggleReadingMode"
+      >
+        <BookOpen
+          v-if="!readingMode"
+          :size="16"
+        />
+        <PenLine
+          v-else
+          :size="16"
+        />
+        <span class="inline-nav-label">{{ readingMode ? '阅读中' : '编辑中' }}</span>
+      </button>
+      <button
+        type="button"
+        class="inline-nav-btn"
+        title="下一章 (Alt+→)"
+        aria-label="下一章"
+        @click="handleNextChapter"
+      >
+        <ChevronRight :size="16" />
+      </button>
+    </div>
+
+    <!-- 划词批注：气泡 / 汇总坞 / 统一发送审阅 -->
+    <EditorAnnotations
+      :reading-mode="readingMode"
+      :book-name="bookName"
+    />
 
     <FloatingQuickActions
       class="editor-quick-actions"
@@ -186,6 +239,28 @@
           />
         </el-select>
       </div>
+      <div class="reading-setting margin-setting">
+        <span>页边距</span>
+        <div
+          class="margin-chip-row"
+          role="listbox"
+          aria-label="页边距"
+        >
+          <button
+            v-for="option in pageMarginOptions"
+            :key="option.value"
+            type="button"
+            class="margin-chip"
+            :class="{ active: readingSettings.pageMargin === option.value }"
+            role="option"
+            :aria-selected="readingSettings.pageMargin === option.value"
+            :data-margin-option="option.value"
+            @click="readingSettings.pageMargin = option.value"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+      </div>
       <template #footer>
         <el-button @click="resetReadingSettings">
           恢复默认
@@ -214,12 +289,14 @@ import {
 } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { BookOpen, PenLine, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 
 defineOptions({ name: 'Editor' })
 import NoteChapter from '@renderer/components/Editor/NoteChapter.vue'
 import EditorPanel from '@renderer/components/Editor/EditorPanel.vue'
 import EditorToolbar from '@renderer/components/Editor/EditorToolbar.vue'
 import FloatingQuickActions from '@renderer/components/Editor/FloatingQuickActions.vue'
+import EditorAnnotations from '@renderer/components/Editor/EditorAnnotations.vue'
 import {
   createEditorLayoutKey,
   getEditorDevice,
@@ -296,6 +373,7 @@ const rightPanelSize = ref(180)
 const lastLeftPanelSize = ref(240)
 const lastRightPanelSize = ref(180)
 const focusMode = ref(false)
+const readingMode = ref(false)
 const panelVisibility = computed(() =>
   getEditorPanelVisibility(editorDevice.value, focusMode.value)
 )
@@ -306,7 +384,8 @@ const chapterOutline = ref([])
 const readingSettings = ref({
   fontSize: 16,
   lineHeight: 1.6,
-  pageWidth: '80%'
+  pageWidth: '80%',
+  pageMargin: 'normal'
 })
 
 const pageWidthOptions = [
@@ -316,11 +395,33 @@ const pageWidthOptions = [
   { label: '自适应 (窄)', value: '70%' }
 ]
 
+// 书页页边距：映射到稿纸内边距（上下 / 左右）
+const pageMarginOptions = [
+  { label: '紧凑', value: 'compact', padding: '40px clamp(20px, 4vw, 40px)' },
+  { label: '标准', value: 'normal', padding: '64px clamp(28px, 6vw, 72px)' },
+  { label: '宽松', value: 'loose', padding: '88px clamp(40px, 8vw, 104px)' }
+]
+
+const DEFAULT_PAGE_MARGIN = 'normal'
+
+function normalizePageMargin(value) {
+  return pageMarginOptions.some((option) => option.value === value) ? value : DEFAULT_PAGE_MARGIN
+}
+
+function pageMarginPadding(value) {
+  const matched = pageMarginOptions.find((option) => option.value === normalizePageMargin(value))
+  return matched ? matched.padding : pageMarginOptions[1].padding
+}
+
+const marginStorageKey = computed(() => `${storageKey.value}:page-margin`)
+
 const editorReadingStyle = computed(() => ({
   '--editor-reading-font-size': `${readingSettings.value.fontSize}px`,
   '--editor-reading-line-height': String(readingSettings.value.lineHeight),
   // 百分比页宽，移动端也能真正变窄/变宽
-  '--editor-paper-width': readingSettings.value.pageWidth || '80%'
+  '--editor-paper-width': readingSettings.value.pageWidth || '80%',
+  // 书页页边距
+  '--editor-paper-margin': pageMarginPadding(readingSettings.value.pageMargin)
 }))
 const catalogDrawerSize = computed(() => (viewportWidth.value < 768 ? '100%' : '380px'))
 
@@ -342,7 +443,8 @@ function toReadingSettings(source = {}) {
   return {
     fontSize: parseFontSizePx(source.fontSize, 16),
     lineHeight: parseLineHeight(source.lineHeight, 1.6),
-    pageWidth: normalizeEditorPageWidth(source.pageWidth ?? source.contentWidth, source.contentWidth)
+    pageWidth: normalizeEditorPageWidth(source.pageWidth ?? source.contentWidth, source.contentWidth),
+    pageMargin: normalizePageMargin(source.pageMargin ?? readingSettings.value.pageMargin)
   }
 }
 
@@ -353,7 +455,8 @@ function applyReadingSettingsToEditor(settings = readingSettings.value, { syncSt
     if (
       current.fontSize !== next.fontSize ||
       current.lineHeight !== next.lineHeight ||
-      current.pageWidth !== next.pageWidth
+      current.pageWidth !== next.pageWidth ||
+      current.pageMargin !== next.pageMargin
     ) {
       readingSettings.value = next
     }
@@ -379,6 +482,31 @@ function finishReadingSettings() {
   readingSettingsVisible.value = false
 }
 
+// 阅读模式：正文只读、隐光标/选区高亮，仅专心看排版（与专注模式正交，可叠加）
+function toggleReadingMode() {
+  readingMode.value = !readingMode.value
+  editorPanelRef.value?.setEditable?.(!readingMode.value)
+  ElMessage.info(readingMode.value ? '已进入阅读模式' : '已回到编辑模式')
+}
+
+function loadPageMargin() {
+  try {
+    const saved = localStorage.getItem(marginStorageKey.value)
+    if (saved) readingSettings.value.pageMargin = normalizePageMargin(saved)
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function persistPageMargin() {
+  if (!bookName.value) return
+  try {
+    localStorage.setItem(marginStorageKey.value, normalizePageMargin(readingSettings.value.pageMargin))
+  } catch {
+    // ignore storage errors
+  }
+}
+
 function loadLayout() {
   isLoadingLayout = true
   const data = readEditorLayout(
@@ -395,6 +523,7 @@ function loadLayout() {
   lastRightPanelSize.value = data.lastRight
   focusMode.value = data.focus
   readingSettings.value = toReadingSettings(data)
+  loadPageMargin()
   nextTick(() => {
     // 与顶栏 menubar 同步，避免 CSS 变量被内联 !important 盖掉
     applyReadingSettingsToEditor(readingSettings.value)
@@ -423,6 +552,7 @@ function persistLayout() {
     editorDevice.value
   )
   localStorage.setItem(storageKey.value, JSON.stringify(layout))
+  persistPageMargin()
 }
 
 function toggleLeftPanel() {
@@ -500,7 +630,7 @@ async function selectCatalogChapter(path) {
 }
 
 function resetReadingSettings() {
-  applyReadingSettingsToEditor({ fontSize: 16, lineHeight: 1.6, pageWidth: '80%' })
+  applyReadingSettingsToEditor({ fontSize: 16, lineHeight: 1.6, pageWidth: '80%', pageMargin: 'normal' })
   persistLayout()
 }
 
@@ -509,6 +639,13 @@ function handleViewportResize() {
 }
 
 function handleEditorKeydown(event) {
+  // Alt + ←/→ 快速上/下章
+  if (event.altKey && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+    event.preventDefault()
+    if (event.key === 'ArrowLeft') handlePrevChapter()
+    else handleNextChapter()
+    return
+  }
   if (!shouldExitEditorFocusMode(event, focusMode.value)) return
   event.preventDefault()
   toggleFocusMode()
@@ -591,6 +728,77 @@ onBeforeUnmount(detachWindowListeners)
   }
 }
 
+/* 正文内的上/下章 + 阅读模式切换：素墨扁平胶囊 */
+.editor-inline-nav {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 10px rgba(20, 18, 14, 0.08);
+  z-index: 110;
+}
+
+.inline-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-base);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 160ms ease, background-color 160ms ease;
+}
+
+.inline-nav-btn:hover,
+.inline-nav-btn:focus-visible {
+  color: var(--el-color-primary);
+  background: var(--bg-mute);
+  outline: none;
+}
+
+.inline-nav-btn.mode-btn.active {
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+.inline-nav-label {
+  font-size: 12px;
+}
+
+@media (max-width: 767px) {
+  .editor-inline-nav {
+    top: auto;
+    bottom: calc(52px + env(safe-area-inset-bottom));
+  }
+}
+
+/* 阅读模式：正文只读观感——隐光标、禁选区、去交互 */
+.editor-container.is-reading-mode {
+  :deep(.editor-content .tiptap) {
+    caret-color: transparent;
+    user-select: none;
+    cursor: default;
+  }
+
+  :deep(.editor-content .tiptap ::selection) {
+    background: transparent;
+  }
+}
+
 .catalog-volume {
   margin-bottom: 20px;
 }
@@ -644,7 +852,14 @@ onBeforeUnmount(detachWindowListeners)
   margin-bottom: 8px;
 }
 
-.theme-chip-row {
+.reading-setting.margin-setting {
+  align-items: center;
+  min-height: auto;
+  margin-top: 8px;
+}
+
+.theme-chip-row,
+.margin-chip-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -683,15 +898,45 @@ onBeforeUnmount(detachWindowListeners)
   outline: none;
 }
 
+.margin-chip {
+  min-height: 32px;
+  padding: 4px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-soft);
+  color: var(--text-base);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.margin-chip.active,
+.margin-chip:hover,
+.margin-chip:focus-visible {
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+  background: var(--bg-mute);
+  outline: none;
+}
+
+/* 书页化：稿纸变成一张有墨线边框与轻投影的书页，四周留白 */
+:deep(.editor-content) {
+  padding: 28px clamp(12px, 3vw, 40px);
+  box-sizing: border-box;
+}
+
 :deep(.editor-content .tiptap) {
   width: 100%;
   max-width: var(--editor-paper-width, 80%);
   min-height: 100%;
   margin: 0 auto;
-  padding: 48px clamp(24px, 6vw, 72px);
+  padding: var(--editor-paper-margin, 64px clamp(28px, 6vw, 72px));
   box-sizing: border-box;
   background: var(--bg-primary);
   color: var(--text-base);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 18px rgba(20, 18, 14, 0.08);
   font-size: var(--editor-reading-font-size) !important;
   line-height: var(--editor-reading-line-height) !important;
 }
@@ -733,6 +978,10 @@ onBeforeUnmount(detachWindowListeners)
     width: 100% !important;
     height: 100%;
     min-width: 0;
+  }
+
+  :deep(.editor-content) {
+    padding: 12px 8px calc(96px + env(safe-area-inset-bottom));
   }
 
   :deep(.editor-content .tiptap) {
