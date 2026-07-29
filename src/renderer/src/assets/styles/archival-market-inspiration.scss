@@ -1,0 +1,127 @@
+/**
+ * 古籍/宋刻本形制覆盖层 · 市场灵感（MarketInspiration）
+ * 只作用于 .market-page 内部，沿用创作库(#17)/AI 工坊(#18)/系统设置(#19)/数据中心(#20)的外部覆盖方案。
+ * 不改动 MarketInspiration.vue 的模板结构 / 脚本逻辑 / i18n / data-* / CI 守卫字符串。
+ * 组件 scoped 样式权重较高，故统一以 !important 保证生效。
+ */
+
+.market-page {
+  /* ---- 页面底纹去多层渐变 → 平实宣纸 ---- */
+  background: var(--wabi-paper, #fbfaf6) !important;
+  background-image: none !important;
+
+  /* ---- 卷首：hero 去渐变，保留衬线 ---- */
+  .market-hero {
+    background: transparent !important;
+    background-image: none !important;
+  }
+
+  /* ---- 分段导航：tab 去填充胶囊，选中态改朱红下划线 ---- */
+  .market-tabs {
+    border: 1px solid var(--wabi-line) !important;
+    border-radius: 3px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .market-tabs button {
+    border-radius: 3px !important;
+    background: transparent !important;
+  }
+
+  .market-tabs button.active {
+    background: transparent !important;
+    color: var(--el-color-primary) !important;
+    box-shadow: inset 0 -2px 0 var(--el-color-primary) !important;
+    font-weight: 600 !important;
+  }
+
+  /* ---- 书页：各类面板 / 榜卡 扁平化为纸面 + 墨线框 ---- */
+  .paper-panel,
+  .hot-card,
+  .combo-card,
+  .opportunity-card,
+  .direction-card,
+  .activity-card,
+  .agent-panel,
+  .genre-panel,
+  .keyword-map-panel,
+  .express-panel,
+  .combination-panel,
+  .activity-detail-panel,
+  .activity-list-panel {
+    border: 1px solid var(--wabi-line) !important;
+    border-radius: 3px !important;
+    background: var(--wabi-paper-soft, #fbfaf6) !important;
+    background-image: none !important;
+    box-shadow: 0 2px 18px rgba(20, 18, 14, 0.06) !important;
+  }
+
+  /* 榜卡 hover / 选中：朱点描边取代软阴影上浮 */
+  .hot-card:hover,
+  .hot-card.active,
+  .combo-card:hover,
+  .combo-card.active,
+  .direction-card:hover,
+  .activity-card:hover,
+  .opportunity-card:hover {
+    border-color: var(--el-color-primary) !important;
+    box-shadow: 0 2px 18px rgba(20, 18, 14, 0.08) !important;
+  }
+
+  /* ---- 榜文层次：标题衬线，名次牌扁平 ---- */
+  .panel-title,
+  .hero-copy h1,
+  .hero-copy h2 {
+    font-family: 'Noto Serif SC', 'Songti SC', 'SimSun', serif !important;
+    letter-spacing: 0.02em !important;
+  }
+
+  .rank-badge,
+  .rank-flag,
+  .heat-mark {
+    border-radius: 3px !important;
+  }
+
+  /* ---- 素材/来源筹码：细墨线 ---- */
+  .source-chip,
+  .content-kind-chip,
+  .channel-toggle {
+    border: 1px solid var(--wabi-line) !important;
+    border-radius: 3px !important;
+    background: transparent !important;
+  }
+
+  .source-chip.selected,
+  .content-kind-chip.selected {
+    border-color: var(--el-color-primary) !important;
+    color: var(--el-color-primary) !important;
+  }
+
+  /* ---- 强调：朱红唯一强调色，克制使用 ---- */
+  .dark-button,
+  .el-button--primary {
+    background: var(--el-color-primary) !important;
+    border-color: var(--el-color-primary) !important;
+    border-radius: 3px !important;
+  }
+
+  .dark-button:hover,
+  .el-button--primary:hover {
+    background: var(--el-color-primary-light-3) !important;
+    border-color: var(--el-color-primary-light-3) !important;
+  }
+
+  .ghost-button {
+    border: 1px solid var(--wabi-line) !important;
+    border-radius: 3px !important;
+    background: transparent !important;
+  }
+
+  /* 错误/结果横幅扁平化 */
+  .error-banner,
+  .result-banner,
+  .empty-banner {
+    border-radius: 3px !important;
+  }
+}
