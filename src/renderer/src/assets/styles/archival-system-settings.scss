@@ -1,0 +1,102 @@
+/**
+ * 古籍/宋刻本形制覆盖层 · 系统设置
+ * 只作用于 .system-settings 内部，沿用创作库(PR #17)/AI 工坊(PR #18)的外部覆盖方案。
+ * 不改动 SystemSettings.vue 的模板结构 / 脚本逻辑 / i18n / data-* / CI 守卫字符串。
+ * 主题预览卡（.style-preview*、.theme-swatch、.style-card 预览内部）刻意保留各自样式，不覆盖。
+ * 组件 scoped 样式选择器权重较高，故统一以 !important 保证生效。
+ */
+
+.system-settings {
+  /* ---- 卷册目录：左侧导航 ---- */
+  .settings-nav {
+    border-right: 1px solid var(--wabi-line) !important;
+    background: transparent !important;
+  }
+
+  .settings-nav .nav-item {
+    border: 1px solid transparent !important;
+    border-radius: 3px !important;
+    background: transparent !important;
+    transition: color 0.18s ease, border-color 0.18s ease !important;
+  }
+
+  .settings-nav .nav-item:hover {
+    background: var(--theme-hover-background, rgba(20, 18, 14, 0.04)) !important;
+  }
+
+  .settings-nav .nav-item.active {
+    background: transparent !important;
+    border-color: transparent !important;
+    color: var(--el-color-primary) !important;
+    /* 选中态用朱点下划线，取代填充胶囊 */
+    box-shadow: inset 3px 0 0 var(--el-color-primary) !important;
+    font-weight: 600 !important;
+  }
+
+  /* ---- 书页：内容分区标题 ---- */
+  .section-title {
+    font-family: 'Noto Serif SC', 'Songti SC', 'SimSun', serif !important;
+    letter-spacing: 0.02em !important;
+  }
+
+  .section-hint,
+  .muted {
+    color: var(--wabi-muted, var(--text-secondary)) !important;
+  }
+
+  /* ---- 书页：各类卡片扁平化为纸面 + 墨线框 ---- */
+  .setting-card,
+  .security-card,
+  .setting-item,
+  .key-manager-card,
+  .about-hero {
+    border: 1px solid var(--wabi-line) !important;
+    border-radius: 3px !important;
+    background: var(--wabi-paper-soft, #fbfaf6) !important;
+    box-shadow: 0 2px 18px rgba(20, 18, 14, 0.06) !important;
+    background-image: none !important;
+  }
+
+  /* ---- 表单控件：去圆角对齐纸面 ---- */
+  .dir-picker,
+  .key-table,
+  .shortcut-list,
+  .switch-list,
+  .setting-grid {
+    border-radius: 3px !important;
+  }
+
+  .el-input__wrapper,
+  .el-textarea__inner,
+  .el-select__wrapper {
+    border-radius: 3px !important;
+  }
+
+  /* 名录/表格用细墨线分隔而非重底色 */
+  .key-table .el-table__cell,
+  .shortcut-list li,
+  .switch-list li {
+    border-color: var(--wabi-line) !important;
+  }
+
+  /* ---- 强调：朱红唯一强调色，克制使用 ---- */
+  .button-row .el-button--primary,
+  .security-actions .el-button--primary,
+  .import-settings-button.el-button--primary {
+    background: var(--el-color-primary) !important;
+    border-color: var(--el-color-primary) !important;
+    border-radius: 3px !important;
+  }
+
+  .button-row .el-button--primary:hover,
+  .security-actions .el-button--primary:hover,
+  .import-settings-button.el-button--primary:hover {
+    background: var(--el-color-primary-light-3) !important;
+    border-color: var(--el-color-primary-light-3) !important;
+  }
+
+  /* 关于页品牌名用衬线 */
+  .about-hero .brand-name-en {
+    font-family: 'Noto Serif SC', 'Songti SC', 'SimSun', serif !important;
+  }
+}
