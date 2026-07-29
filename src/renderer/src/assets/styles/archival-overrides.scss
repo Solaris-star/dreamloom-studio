@@ -66,3 +66,49 @@
     border-radius: 3px !important;
   }
 }
+
+/* 窄屏形制微调：只收口古籍层，布局响应式仍由组件自带规则承载 */
+@media (max-width: 767px) {
+  .creation-library-page {
+    /* 分段导航：窄屏横向滚动，避免下划线 tab 换行错位 */
+    .bookshelf-tab-nav {
+      flex-wrap: nowrap !important;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .bookshelf-tab-nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    .bookshelf-tab-nav button {
+      flex: 0 0 auto;
+      padding: 8px 12px;
+      white-space: nowrap;
+    }
+
+    /* 工具条：换行 + 间距收紧，搜索框可伸缩不溢出 */
+    .bookshelf-toolbar,
+    .bookshelf-download-search {
+      flex-wrap: wrap !important;
+      gap: 8px !important;
+    }
+
+    .bookshelf-download-search .search-mode,
+    .bookshelf-toolbar .el-input {
+      flex: 1 1 180px;
+      min-width: 0;
+    }
+
+    /* 卡片 / 详情窄屏内边距收紧 */
+    .shelf-card,
+    .preview-card,
+    .card-panel,
+    .book-card,
+    .material-card,
+    .prompt-editor-card,
+    .detail-card {
+      padding: 12px !important;
+    }
+  }
+}
