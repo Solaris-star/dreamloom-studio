@@ -1,0 +1,74 @@
+/**
+ * 古籍/宋刻本形制覆盖层 · 数据中心（Statistics）
+ * 只作用于 .statistics-view 内部，沿用创作库(PR #17)/AI 工坊(PR #18)/系统设置(PR #19)的外部覆盖方案。
+ * 不改动 Statistics/index.vue、StatCard.vue 的模板结构 / 脚本逻辑 / i18n / data-* / CI 守卫字符串。
+ * 组件 scoped 样式权重较高，故统一以 !important 保证生效。
+ *
+ * 备注：ECharts 数据系列色（趋势线苔绿 #6f7a68、热力图米黄→墨 #ece8df→#66705f、
+ * 四张统计卡土色）本就贴合古籍土墨系，且写在各自 setOption 的 JS 字面量里，
+ * 覆盖层无法（也不应绕过组件逻辑去）改它们。此处以 CSS 令牌形式沉淀规范色板
+ * [朱红/墨灰/苔绿/赭石/浅墨] 作为后续图表的统一参照，本次仅做 chrome 書頁化。
+ */
+
+.statistics-view {
+  /* 规范色板 · 唯一真源（供后续 ECharts option 参照） */
+  --chart-seal: #9b3a32; /* 朱红 */
+  --chart-ink: #57534a; /* 墨灰 */
+  --chart-moss: #6f7a68; /* 苔绿 */
+  --chart-ochre: #a98f64; /* 赭石 */
+  --chart-lightink: #b8b79e; /* 浅墨 */
+
+  /* ---- 书页：图表卡 / 信息卡 / 统计卡 去拟物软阴影 → 纸面 + 墨线框 ---- */
+  .chart-card,
+  .info-card,
+  .stat-card {
+    background: var(--wabi-paper-soft, #fbfaf6) !important;
+    border: 1px solid var(--wabi-line) !important;
+    border-radius: 3px !important;
+    box-shadow: 0 2px 18px rgba(20, 18, 14, 0.06) !important;
+    background-image: none !important;
+  }
+
+  /* ---- 标题宋体衬线 ---- */
+  .chart-header h3,
+  .card-header h3,
+  .header h2,
+  .header h1 {
+    font-family: 'Noto Serif SC', 'Songti SC', 'SimSun', serif !important;
+    letter-spacing: 0.02em !important;
+  }
+
+  .muted,
+  .section-hint {
+    color: var(--wabi-muted, var(--text-secondary)) !important;
+  }
+
+  /* ---- 名录/数据行用细墨线分隔而非重底色 ---- */
+  .usage-row,
+  .goal-item,
+  .ai-stat,
+  .metric-grid > * {
+    border-color: var(--wabi-line) !important;
+  }
+
+  /* ---- 读取错误提示：扁平化，保留朱红语义但收敛 ---- */
+  .statistics-read-error {
+    border-radius: 3px !important;
+    border: 1px solid var(--el-color-primary) !important;
+    background: color-mix(in srgb, var(--el-color-primary) 6%, var(--wabi-paper-soft, #fbfaf6)) !important;
+  }
+
+  /* ---- 强调：朱红唯一强调色，克制使用 ---- */
+  .actions .el-button--primary,
+  .header .el-button--primary {
+    background: var(--el-color-primary) !important;
+    border-color: var(--el-color-primary) !important;
+    border-radius: 3px !important;
+  }
+
+  .actions .el-button--primary:hover,
+  .header .el-button--primary:hover {
+    background: var(--el-color-primary-light-3) !important;
+    border-color: var(--el-color-primary-light-3) !important;
+  }
+}
