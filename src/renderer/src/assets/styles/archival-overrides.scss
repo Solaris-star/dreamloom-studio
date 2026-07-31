@@ -1,0 +1,114 @@
+/* 古籍形制统一覆盖 · Creation Library archival polish
+ * 全局覆盖层：仅命中创作库页面（.creation-library-page 作用域内）。
+ * 只改形制（圆角 / 描边 / 纸面 / 标题字），不动任何逻辑与结构。
+ * 因组件为 scoped 样式，此处以 !important 保证覆盖生效。
+ */
+.creation-library-page {
+  /* 圆角趋零：卡片 / 工具条 / 输入 / 按钮统一 3px */
+  .library-section-nav button,
+  .search-mode,
+  .toolbar-source-select,
+  .icon-filter-button,
+  .bookshelf-toolbar,
+  .bookshelf-download-search,
+  .shelf-card,
+  .preview-card,
+  .card-panel,
+  .book-card,
+  .side-filter,
+  .list-panel,
+  .detail-card,
+  .material-card,
+  .prompt-editor-card,
+  .image-card {
+    border-radius: 3px !important;
+  }
+
+  /* 书页：去渐变光泽，改平实纸面 + 极轻投影 */
+  .bookshelf-toolbar,
+  .shelf-card,
+  .preview-card,
+  .card-panel,
+  .book-card,
+  .material-card,
+  .prompt-editor-card {
+    background: var(--bg-soft, #fbfaf6) !important;
+    box-shadow: 0 2px 18px rgba(20, 18, 14, 0.06) !important;
+  }
+
+  /* 分段导航：去胶囊 → 墨线下划线 + 朱点选中 */
+  .bookshelf-tab-nav button {
+    border: 0 !important;
+    border-bottom: 2px solid transparent !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: var(--wabi-muted) !important;
+    padding: 8px 14px;
+    transition: color 0.18s ease, border-color 0.18s ease;
+
+    &.active {
+      border-bottom-color: var(--el-color-primary) !important;
+      background: transparent !important;
+      color: var(--wabi-ink) !important;
+    }
+  }
+
+  /* 标题统一衬线 */
+  .section-title {
+    font-family: 'Noto Serif SC', 'Songti SC', serif;
+    letter-spacing: 0.04em;
+  }
+
+  /* Element Plus 控件去圆角，贴合古籍扁平 */
+  .el-button,
+  .el-input__wrapper,
+  .el-card {
+    border-radius: 3px !important;
+  }
+}
+
+/* 窄屏形制微调：只收口古籍层，布局响应式仍由组件自带规则承载 */
+@media (max-width: 767px) {
+  .creation-library-page {
+    /* 分段导航：窄屏横向滚动，避免下划线 tab 换行错位 */
+    .bookshelf-tab-nav {
+      flex-wrap: nowrap !important;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .bookshelf-tab-nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    .bookshelf-tab-nav button {
+      flex: 0 0 auto;
+      padding: 8px 12px;
+      white-space: nowrap;
+    }
+
+    /* 工具条：换行 + 间距收紧，搜索框可伸缩不溢出 */
+    .bookshelf-toolbar,
+    .bookshelf-download-search {
+      flex-wrap: wrap !important;
+      gap: 8px !important;
+    }
+
+    .bookshelf-download-search .search-mode,
+    .bookshelf-toolbar .el-input {
+      flex: 1 1 180px;
+      min-width: 0;
+    }
+
+    /* 卡片 / 详情窄屏内边距收紧 */
+    .shelf-card,
+    .preview-card,
+    .card-panel,
+    .book-card,
+    .material-card,
+    .prompt-editor-card,
+    .detail-card {
+      padding: 12px !important;
+    }
+  }
+}
