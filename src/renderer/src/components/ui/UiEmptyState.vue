@@ -5,7 +5,20 @@
     role="status"
   >
     <div
-      v-if="icon || $slots.icon"
+      v-if="image"
+      class="ui-empty-state__art"
+      aria-hidden="true"
+    >
+      <img
+        :src="image"
+        alt=""
+        class="ui-empty-state__art-img"
+        decoding="async"
+        loading="lazy"
+      />
+    </div>
+    <div
+      v-else-if="icon || $slots.icon"
       class="ui-empty-state__icon"
       aria-hidden="true"
     >
@@ -51,6 +64,8 @@ defineProps({
   title: { type: String, default: '暂无内容' },
   description: { type: String, default: '' },
   icon: { type: String, default: '' },
+  /** 可选：空状态插画（URL / import 后的资源路径）。传入时替代 icon 显示。 */
+  image: { type: String, default: '' },
   primaryText: { type: String, default: '' },
   secondaryText: { type: String, default: '' },
   variant: {
@@ -114,6 +129,25 @@ defineEmits(['primary', 'secondary'])
   opacity: 0.72;
 }
 
+/* 空状态插画：柔和不出挑，与米白主题衔接 */
+.ui-empty-state__art {
+  display: grid;
+  place-items: center;
+  max-width: 220px;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--wabi-line, rgba(44, 42, 38, 0.06));
+}
+
+.ui-empty-state__art-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  opacity: 0.94;
+}
+
 .ui-empty-state__title {
   font-size: 15px;
   font-weight: var(--theme-font-weight-strong, 600);
@@ -164,8 +198,7 @@ defineEmits(['primary', 'secondary'])
 
 .ui-empty-state__btn--primary {
   background: var(--primary-color, var(--el-color-primary, #52634b));
-  border-color: color-mix(in srgb, var(--primary-color, #52634b) 70%, #000 10%);
+  border-color: var(--primary-color, var(--el-color-primary, #52634b));
   color: #fff;
-  box-shadow: var(--theme-shadow-hard, none);
 }
 </style>

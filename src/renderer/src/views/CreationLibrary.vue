@@ -403,8 +403,15 @@
           </div>
           <div
             v-else-if="!filteredBooks.length"
-            class="soft-empty"
+            class="soft-empty soft-empty--art"
           >
+            <img
+              :src="brandEmptyArtUrl"
+              alt=""
+              class="soft-empty__art"
+              decoding="async"
+              loading="lazy"
+            />
             <strong>{{ keyword ? '书架里没有找到这本书' : '书架暂无内容' }}</strong>
             <span>{{
               keyword
@@ -1703,6 +1710,7 @@
 defineOptions({ name: 'CreationLibrary' })
 
 import { computed, onMounted, onActivated, reactive, ref, watch, nextTick } from 'vue'
+import brandEmptyArtUrl from '@renderer/assets/images/empty.webp'
 import { useCancellableLoad } from '@renderer/composables/useCancellableLoad'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -4925,6 +4933,23 @@ function dateValue(value) {
     cursor: pointer;
     font: inherit;
     padding: 8px 12px;
+  }
+}
+
+/* 带插画的空状态：以 brand empty art 作为视觉引导 */
+.soft-empty--art {
+  justify-items: center;
+  padding: 12px 4px 18px;
+  text-align: center;
+
+  .soft-empty__art {
+    display: block;
+    max-width: 200px;
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+    box-shadow: inset 0 0 0 1px var(--wabi-line, rgba(44, 42, 38, 0.06));
+    opacity: 0.94;
   }
 }
 

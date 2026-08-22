@@ -164,7 +164,7 @@ test('首页继续写作可以进入创作台', async ({ page }, testInfo) => {
   const bookName = testBookName(testInfo.project.name)
   await page.goto('/#/')
 
-  const row = page.locator('.writing-row').filter({ hasText: bookName })
+  const row = page.locator('.book-row').filter({ hasText: bookName })
   await expect(row).toBeVisible()
   await row.getByRole('button', { name: '继续写' }).click()
 

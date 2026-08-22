@@ -731,7 +731,7 @@ onBeforeUnmount(detachWindowListeners)
 /* 正文内的上/下章 + 阅读模式切换：素墨扁平胶囊 */
 .editor-inline-nav {
   position: absolute;
-  top: 12px;
+  top: 56px; /* 避开 toolbar 区域，防止遮挡点击 */
   left: 50%;
   transform: translateX(-50%);
   display: inline-flex;
@@ -761,6 +761,11 @@ onBeforeUnmount(detachWindowListeners)
   line-height: 1;
   cursor: pointer;
   transition: color 160ms ease, background-color 160ms ease;
+}
+
+/* 防止 SVG 图标拦截点击事件 */
+.inline-nav-btn svg {
+  pointer-events: none;
 }
 
 .inline-nav-btn:hover,

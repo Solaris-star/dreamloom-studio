@@ -3,10 +3,23 @@
     <!-- 报头 -->
     <header class="masthead">
       <div class="masthead-brand">
-        <h1>{{ APP_NAME_ZH }}</h1>
-        <p class="brand-en">
-          Dreamloom Studio
-        </p>
+        <div class="brand-title-row">
+          <img
+            :src="brandLogoUrl"
+            alt="织梦工坊"
+            class="brand-logo"
+            width="56"
+            height="56"
+            decoding="async"
+            loading="eager"
+          />
+          <div class="brand-title">
+            <h1>{{ APP_NAME_ZH }}</h1>
+            <p class="brand-en">
+              Dreamloom Studio
+            </p>
+          </div>
+        </div>
       </div>
       <div class="masthead-aside">
         <p class="headline">
@@ -17,6 +30,20 @@
         </p>
       </div>
     </header>
+
+    <!-- 欢迎横幅：月夜书房 hero -->
+    <section
+      class="masthead-hero"
+      aria-hidden="true"
+    >
+      <img
+        :src="brandHeroUrl"
+        alt=""
+        class="masthead-hero__img"
+        decoding="async"
+        loading="eager"
+      />
+    </section>
 
     <!-- 账簿速览（沿用 bentoTiles 数据） -->
     <section
@@ -205,12 +232,13 @@
               <span class="row-delta">{{ todayBookWordsText(book) }}</span>
             </div>
           </div>
-          <p
+          <UiEmptyState
             v-else
-            class="soft-empty"
-          >
-            还没有作品。可以先用「起笔」生成起笔方案，再转为新书。
-          </p>
+            class="book-empty"
+            :image="brandEmptyArtUrl"
+            title="还没有作品"
+            description="可以先用「起笔」生成起笔方案，再转为新书。"
+          />
         </section>
       </div>
 
@@ -435,6 +463,10 @@
 
 <script setup>
 import { APP_NAME_ZH } from '@renderer/constants/brand'
+import brandLogoUrl from '@renderer/assets/images/logo.webp'
+import brandHeroUrl from '@renderer/assets/images/hero.webp'
+import brandEmptyArtUrl from '@renderer/assets/images/empty.webp'
+import { UiEmptyState } from '@renderer/components/ui'
 import { computed, onBeforeUnmount, onMounted, onActivated, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -1171,6 +1203,68 @@ $mono: 'Space Mono', ui-monospace, monospace;
   letter-spacing: 0.16em;
 }
 
+/* 品牌标题行（含 logo 图标） */
+.brand-title-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  /* 米黄纸底，防白底 PNG 闪白 */
+  background: var(--bg-primary, #f4f1ea);
+}
+
+.brand-title h1 {
+  margin: 0;
+  color: var(--wabi-ink);
+  font-family: $serif;
+  font-size: clamp(28px, 2.2vw, 36px);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
+}
+
+.brand-title .brand-en {
+  margin: 4px 0 0;
+  line-height: 1;
+}
+
+/* 欢迎横幅（月夜书房）：限制高度，保持轻盈 */
+.masthead-hero {
+  width: 100%;
+  margin: 4px 0 4px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-soft, #fbfaf6);
+  /* 轻微色调，不刺目 */
+  box-shadow: inset 0 0 0 1px var(--wabi-line, rgba(44, 42, 38, 0.08));
+  height: 240px;
+}
+
+.masthead-hero__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 55%;
+  /* 微暖色偏、轻淡不喧宾夺主 */
+  filter: brightness(0.96) saturate(0.92);
+  /* 让浅米与主题衔接 */
+  opacity: 0.92;
+}
+
+@media (max-width: 768px) {
+  .masthead-hero {
+    height: 180px;
+    border-radius: 8px;
+  }
+}
+
 .brand-en {
   margin: 6px 0 0;
   color: var(--wabi-muted);
@@ -1799,6 +1893,27 @@ $mono: 'Space Mono', ui-monospace, monospace;
   margin: 6px 0;
   color: var(--wabi-muted);
   line-height: 1.8;
+}
+
+/* 起笔块内的空作品插画状态：无卡片边框、柔和留白 */
+.book-empty {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 12px 8px 18px;
+}
+
+.book-empty :deep(.ui-empty-state__art) {
+  max-width: 180px;
+}
+
+.book-empty :deep(.ui-empty-state__title) {
+  font-size: 14px;
+  color: var(--wabi-ink);
+}
+
+.book-empty :deep(.ui-empty-state__desc) {
+  font-size: 12px;
 }
 
 .compact-empty {

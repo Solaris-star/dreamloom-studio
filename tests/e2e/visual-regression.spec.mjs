@@ -113,7 +113,7 @@ test('宽屏核心页面视觉基准', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'wide', '仅生成宽屏视觉基准')
 
   await page.goto('/#/')
-  await expect(page.locator('.writing-row').filter({ hasText: testBookName('wide') })).toBeVisible()
+  await expect(page.locator('.book-row').filter({ hasText: testBookName('wide') })).toBeVisible()
   await expectPageScreenshot(page, 'wide-home.png')
 
   await page.goto('/#/knowledge')

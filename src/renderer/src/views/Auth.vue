@@ -65,7 +65,7 @@ import {
   authenticateBookshelf,
   getBookshelfAuthStatus
 } from '@renderer/service/bookshelfAuth'
-import brandLogoUrl from '@renderer/assets/images/logo_web.webp'
+import brandLogoUrl from '@renderer/assets/images/logo.webp'
 
 const router = useRouter()
 const { t } = useI18n()

@@ -215,7 +215,7 @@ import {
   writeSidebarWidth
 } from '@renderer/service/sidebarLayout'
 import { getStoreValue, setStoreValue } from '@renderer/service/webStore'
-import brandLogoUrl from '@renderer/assets/images/logo_web.webp'
+import brandLogoUrl from '@renderer/assets/images/logo.webp'
 
 const route = useRoute()
 const router = useRouter()

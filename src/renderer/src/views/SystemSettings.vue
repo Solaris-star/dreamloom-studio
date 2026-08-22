@@ -671,7 +671,7 @@ import BookshelfPasswordSettings from '@renderer/components/BookshelfPasswordSet
 import DirSelectorDialog from '@renderer/components/DirSelectorDialog.vue'
 import EmbeddingProviderConfig from '@renderer/components/Editor/EmbeddingProviderConfig.vue'
 import PromptPresetManager from '@renderer/components/PromptPresetManager.vue'
-import brandLogoUrl from '@renderer/assets/images/logo_web.webp'
+import brandLogoUrl from '@renderer/assets/images/logo.webp'
 
 import { useThemeStore } from '@renderer/stores/theme'
 import { getCurrentLocale, setLocale } from '@renderer/i18n'
