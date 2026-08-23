@@ -1134,22 +1134,33 @@ export async function saveChapter(
   const oldPath = join(volumePath, `${safeChapterName}.txt`)
   const finalName = requirePathSegment(newName || chapterName, '章节名称')
   const targetPath = join(volumePath, `${finalName}.txt`)
+  const isRenameOnly =
+    typeof newName === 'string' &&
+    newName.trim() !== '' &&
+    (content === undefined || content === null)
 
-  const nextContent = content === undefined || content === null ? '' : String(content)
   const finalPath = newName && finalName !== chapterName ? targetPath : oldPath
   const saveResult = await withPathLock(oldPath, async () => {
     if (!fs.existsSync(oldPath)) {
-      return { success: false, message: '章节不存在' }
+      // 章节文件不存在时自动创建（含卷目录）：
+      // 用户/调用方指定了明确的卷名和章名，写作工具应直接落盘，
+      // 而不是拒绝保存导致「章节丢失」的错觉。
+      if (isRenameOnly) {
+        return { success: false, message: '章节不存在' }
+      }
+      fs.mkdirSync(dirname(oldPath), { recursive: true })
+      fs.writeFileSync(oldPath, '', 'utf-8')
     }
     if (newName && finalName !== chapterName && fs.existsSync(targetPath)) {
       return { success: false, message: '章节名已存在', name: chapterName }
     }
     const oldContent = fs.readFileSync(oldPath, 'utf-8')
-    const isClearingExistingChapter =
+    // 仅重命名时不允许把正文判空：content 未显式传入即视为「保留原文」。
+    const nextContent = isRenameOnly ? oldContent : String(content)
+    if (!isRenameOnly &&
       oldContent.trim().length > 0 &&
-      nextContent.trim().length === 0 &&
-      !String(newName || '').trim()
-    if (isClearingExistingChapter) {
+      nextContent.trim().length === 0
+    ) {
       return { success: false, message: '已阻止空内容覆盖已有章节' }
     }
     // already under withPathLock(oldPath); avoid nested path-lock deadlock
@@ -1175,9 +1186,10 @@ export async function saveChapter(
     if (newName && finalName !== chapterName) {
       fs.renameSync(oldPath, targetPath)
     }
-    return { success: true }
+    return { success: true, nextContent }
   })
   if (!saveResult.success) return saveResult
+  const nextContent = saveResult.nextContent ?? ''
 
   await updateBookMetadata(bookName, booksDir)
   const chapterRecord = syncWrittenChapter(booksDir, {

@@ -747,6 +747,7 @@
     "title": "Timeline",
     "addTimeline": "Add timeline",
     "empty": "No timelines",
+    "emptyHint": "Record key story events on one line for quick reference while writing.",
     "titlePlaceholder": "Timeline title",
     "addNode": "Add node",
     "deleteTimeline": "Delete timeline",

@@ -396,6 +396,24 @@ function applyPalette(root, palette, themeKey) {
   set('--color-background-soft', palette.bgSoft)
   set('--color-background-mute', palette.bgMute)
 
+  // wabi（侘寂米白墨绿）系列变量：大量组件直接 var(--wabi-*) 引用，
+  // 必须在此正式定义，否则取值落空导致 WCAG 对比度不达标。
+  // muted 取 textSecondary 加深，保证在 bgPrimary/bgSoft 上对比度 ≥ 4.5:1。
+  const wabiInk = darkenHex(palette.textBase, 0.08)
+  set('--wabi-bg', palette.bgPrimary)
+  set('--wabi-paper', palette.bgSoft)
+  set('--wabi-line', palette.borderColor)
+  set('--wabi-line-soft', palette.borderColorSoft)
+  set('--wabi-ink', wabiInk)
+  set('--wabi-ink-soft', palette.textSecondary)
+  set(
+    '--wabi-muted',
+    blendHex(palette.textSecondary, '#000000', palette.isDark ? -0.18 : 0.16)
+  )
+  set('--wabi-muted-2', palette.textGrayLight)
+  set('--wabi-moss-dark', palette.primaryColor)
+  set('--wabi-rust', palette.dangerColor)
+
   const primary = palette.primaryColor
   set('--el-color-primary', primary)
   set(

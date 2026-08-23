@@ -747,6 +747,7 @@
     "title": "时间线管理",
     "addTimeline": "新增时间线",
     "empty": "暂无时间线",
+    "emptyHint": "把故事里的大事记成一条线，写作时随时对照，不怕前后矛盾。",
     "titlePlaceholder": "时间线标题",
     "addNode": "新增节点",
     "deleteTimeline": "删除时间线",

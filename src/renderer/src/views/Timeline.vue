@@ -10,10 +10,14 @@
       </el-button>
     </template>
     <template #default>
-      <el-empty
+      <UiEmptyState
         v-if="timelines.length === 0"
-        :image-size="200"
-        :description="t('timeline.empty')"
+        :image="brandEmptyArtUrl"
+        :title="t('timeline.empty')"
+        :description="t('timeline.emptyHint')"
+        :primary-text="t('timeline.addTimeline')"
+        variant="panel"
+        @primary="addTimeline"
       />
       <div
         v-else
@@ -143,6 +147,8 @@
 
 <script setup>
 import LayoutTool from '@renderer/components/LayoutTool.vue'
+import UiEmptyState from '@renderer/components/ui/UiEmptyState.vue'
+import brandEmptyArtUrl from '@renderer/assets/images/empty.webp'
 import { ref, onMounted, watch, reactive, toRaw } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'

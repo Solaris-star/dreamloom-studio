@@ -309,19 +309,24 @@ const navigationItems = [
   }
 ]
 
-// 侧栏子项只保留高频入口；完整分区仍由页面内二级导航承载
+// 侧栏子项覆盖全部分区入口；页面内二级导航承载分区内的细分操作
 const aiSubItems = [
   { label: '创作起笔', path: '/ai/creation-starter' },
   { label: '文本处理', path: '/ai/text-tools' },
   { label: '剧情规划', path: '/ai/plot' },
-  { label: '任务队列', path: '/ai/queue' }
+  { label: '人物世界', path: '/ai/world' },
+  { label: '图像生成', path: '/ai/image' },
+  { label: '任务队列', path: '/ai/queue' },
+  { label: '提示词调用', path: '/ai/prompts' },
+  { label: '生成历史', path: '/ai/history' }
 ]
 
 const knowledgeSubItems = [
   { label: '作品书架', path: '/knowledge' },
   { label: '素材箱', path: '/knowledge/materials' },
   { label: '图库', path: '/knowledge/images' },
-  { label: '提示词', path: '/knowledge/prompts' }
+  { label: '提示词', path: '/knowledge/prompts' },
+  { label: '回收站', path: '/knowledge/trash' }
 ]
 
 function persistSidebarWidth(width) {
@@ -893,8 +898,17 @@ function routeViewKey(viewRoute) {
 
 .sidebar-header .app-logo {
   margin: 0;
-  flex: 1 1 auto;
-  min-width: 0;
+  flex: 0 0 auto;
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+
+  img {
+    /* 固定方形显示，禁止随侧栏宽度拉伸变形 */
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+  }
 }
 
 .sidebar-header .app-sidebar-toggle {

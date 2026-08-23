@@ -179,6 +179,8 @@ const limitChapterCount = ref(false)
 const chapterLimit = ref(30)
 const chapterLimitTouched = ref(false)
 const downloading = ref(false)
+// 「确认导入」弹窗展示期间的防重入标志（区别于下载进行中的 downloading）
+const downloadConfirming = ref(false)
 const downloadProgress = ref({ current: 0, total: 0 })
 const errorMsg = ref('')
 const sourceErrors = ref([])
@@ -421,9 +423,17 @@ function requireImportedBookVisible(books, expected = {}) {
 }
 
 async function handleDownloadToBookshelf() {
+  // 防重入守卫必须在首个 await 前同步置位：
+  // 否则双击会两次通过检查，叠出两个「确认导入」框并重复发起下载。
+  if (downloading.value || downloadConfirming.value) return
+  downloadConfirming.value = true
+
   const book = selectedBook.value
   const targetChapters = selectedChapterList.value
-  if (!book || !targetChapters.length) return
+  if (!book || !targetChapters.length) {
+    downloadConfirming.value = false
+    return
+  }
 
   const booksDir = await getBooksDir().catch((error) => {
     errorMsg.value = error?.message || '读取书架目录失败'
@@ -431,12 +441,15 @@ async function handleDownloadToBookshelf() {
   })
   if (!booksDir) {
     ElMessage.warning('请先设置书架目录')
+    downloadConfirming.value = false
     return
   }
+
   try {
     await setBooksDir(booksDir)
   } catch (error) {
     errorMsg.value = error?.message || '保存书架目录失败'
+    downloadConfirming.value = false
     return
   }
 
@@ -455,10 +468,12 @@ async function handleDownloadToBookshelf() {
       }
     )
   } catch {
+    downloadConfirming.value = false
     return
   }
 
   downloading.value = true
+  downloadConfirming.value = false
   downloadProgress.value = { current: 0, total: targetChapters.length }
   errorMsg.value = ''
 

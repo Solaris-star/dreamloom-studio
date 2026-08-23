@@ -2543,9 +2543,9 @@ function switchSearchMode(mode) {
 }
 
 function syncNovelKeyword() {
-  requestAnimationFrame(() => {
-    novelImportRef.value?.setKeyword(keyword.value)
-  })
+  // 必须同步写入面板：此前用 rAF 延迟，导致紧随其后的 handleSearch
+  // 读到空关键词而直接弹「请输入书名或作者」（下载页搜索失效的根因）。
+  novelImportRef.value?.setKeyword(keyword.value)
 }
 
 function waitForImportPanel() {
@@ -5463,7 +5463,7 @@ function dateValue(value) {
 
 .add-book-info p {
   font-size: 12px;
-  color: var(--wabi-text, #86827a);
+  color: var(--wabi-text, #6e6a63);
   line-height: 1.5;
   margin: 0;
 }
@@ -5530,7 +5530,7 @@ function dateValue(value) {
   p {
     margin: 0 10px 10px;
     font-size: 11px;
-    color: var(--wabi-text, #86827a);
+    color: var(--wabi-text, #6e6a63);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -5635,7 +5635,7 @@ function dateValue(value) {
   p {
     margin: 0;
     font-size: 13px;
-    color: var(--wabi-text, #86827a);
+    color: var(--wabi-text, #6e6a63);
   }
 }
 
@@ -5676,7 +5676,7 @@ function dateValue(value) {
 
     p {
       font-size: 13px;
-      color: var(--wabi-text, #86827a);
+      color: var(--wabi-text, #6e6a63);
       margin: 0;
     }
   }

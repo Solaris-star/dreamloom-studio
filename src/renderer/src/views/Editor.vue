@@ -109,8 +109,6 @@
       :right-panel-size="rightPanelSize"
       @home="handleHome"
       @catalog="openCatalog"
-      @prev-chapter="handlePrevChapter"
-      @next-chapter="handleNextChapter"
       @reading-settings="openReadingSettings"
       @tools="mobileToolsVisible = true"
       @toggle-focus="toggleFocusMode"

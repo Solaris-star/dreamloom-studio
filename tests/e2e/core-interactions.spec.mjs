@@ -164,9 +164,10 @@ test('首页继续写作可以进入创作台', async ({ page }, testInfo) => {
   const bookName = testBookName(testInfo.project.name)
   await page.goto('/#/')
 
+  // 首页「继续写作」列表的行是整行可点击（openBook），无内嵌按钮
   const row = page.locator('.book-row').filter({ hasText: bookName })
   await expect(row).toBeVisible()
-  await row.getByRole('button', { name: '继续写' }).click()
+  await row.click()
 
   await expect(page).toHaveURL(/#\/editor\//)
   await expect(page).toHaveTitle(new RegExp(bookName))
@@ -258,7 +259,8 @@ test('书架筛选和本地导入入口可以操作', async ({ page }, testInfo)
   await page.goto('/#/knowledge')
 
   await page.getByTitle('筛选书架').click()
-  await expect(page.getByRole('button', { name: /我的作品/ })).toBeVisible()
+  // 分区导航也有「我的作品」按钮，用 exact 避开计数后缀（如「我的作品 2」）
+  await expect(page.getByRole('button', { name: '我的作品', exact: true })).toBeVisible()
   await page.keyboard.press('Escape')
 
   await page.locator('.book-card').filter({ hasText: bookName }).click()
@@ -1103,13 +1105,34 @@ test('小说下载不会重复提交或写入失败章节', async ({ page }) => 
       })
     })
   })
-  await page.route('**/api/novel/download', async (route) => {
+  // 产品已改为异步任务协议：start → 轮询 progress → done。
+  // start 加 400ms 延迟以保留「双击不会重复提交」的断言窗口。
+  await page.route('**/api/novel/download/start', async (route) => {
     downloadRequests += 1
     await new Promise((resolvePromise) => setTimeout(resolvePromise, 400))
     await route.fulfill({
       contentType: 'application/json',
+      body: JSON.stringify({ success: true, jobId: 'job-e2e', total: 2, status: 'running' })
+    })
+  })
+  let progressPolls = 0
+  await page.route('**/api/novel/download/progress', async (route) => {
+    progressPolls += 1
+    if (progressPolls < 2) {
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, done: false, current: 0, total: 2 })
+      })
+      return
+    }
+    await route.fulfill({
+      contentType: 'application/json',
       body: JSON.stringify({
         success: true,
+        done: true,
+        status: 'partial',
+        current: 2,
+        total: 2,
         chapters: [
           { title: '第一章', content: '可用正文', failed: false },
           { title: '第二章', content: '', failed: true, error: '章节暂时不可用' }
@@ -1117,14 +1140,18 @@ test('小说下载不会重复提交或写入失败章节', async ({ page }) => 
       })
     })
   })
+  // 动态书架：建书前为空（避免 uniqueDownloadedBookName 生成防撞后缀名），
+  // 建书后返回新书，供导入后的书架刷新校验命中。
+  let createdBookName = ''
   await page.route('**/api/books/create', async (route) => {
     const payload = await route.request().postDataJSON()
+    createdBookName = payload.name || '下载保护测试'
     await route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify({
         success: true,
-        bookName: payload.name || '下载保护测试',
-        bookPath: `/tmp/${payload.name || '下载保护测试'}`,
+        bookName: createdBookName,
+        bookPath: `/tmp/${createdBookName}`,
         databaseSync: { success: true }
       })
     })
@@ -1172,7 +1199,11 @@ test('小说下载不会重复提交或写入失败章节', async ({ page }) => 
   await page.route('**/api/books/list', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
-      body: JSON.stringify([{ id: 'dl-1', name: '下载保护测试', folderName: '下载保护测试' }])
+      body: JSON.stringify(
+        createdBookName
+          ? [{ id: 'dl-1', name: createdBookName, folderName: createdBookName }]
+          : []
+      )
     })
   })
 

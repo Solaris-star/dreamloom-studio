@@ -264,7 +264,7 @@ export function createWebServerPlugins() {
           ) {
             return
           } else if (
-            handleAnalyticsGoalRoute({
+            await handleAnalyticsGoalRoute({
               path,
               body,
               res,

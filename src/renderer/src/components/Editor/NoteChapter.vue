@@ -449,16 +449,16 @@ async function handleNoteClick(data, node) {
     const parent = node.parent.data
     try {
       const res = await readNoteDocument(props.bookName, parent.name, data.name)
+      // 顺序：先 setContent，再 setFile。避免 file watcher 用旧 content 初始化 TipTap。
+      const content = res.content || ''
+      editorStore.setContent(content, { isInitialLoad: true })
+      editorStore.applyNoteDraftFromDisk(data.path, content)
       editorStore.setFile({
         name: data.name,
         type: 'note',
         path: data.path,
         notebook: parent.name
       })
-      // 确保内容至少是空字符串，即使文件为空或返回 undefined
-      const content = res.content || ''
-      editorStore.setContent(content, { isInitialLoad: true })
-      editorStore.applyNoteDraftFromDisk(data.path, content)
       editorStore.setChapterTitle(data.name) // 笔记名作为标题
       currentNoteNodeKey.value = data.path // 保持选中态
     } catch (error) {
@@ -481,15 +481,17 @@ async function handleChapterClick(data, node) {
     // 读取章节内容
     try {
       const res = await readChapterContent(props.bookName, node.parent.data.name, data.name)
+      // 顺序很重要：先 setContent 触发布尔本地状态，
+      // 再 setFile 触发 EditorPanel 的 file watcher——否则 initEditor 会读到旧 content
+      // 显示前一章或空内容。setFile/ watcher 会用 store.content 回填 TipTap。
+      const content = res.content || ''
+      editorStore.setContent(content, { isInitialLoad: true })
       editorStore.setFile({
         name: data.name,
         type: 'chapter',
         path: data.path,
         volume: node.parent.data.name
       })
-      // 确保内容至少是空字符串，即使文件为空或返回 undefined
-      const content = res.content || ''
-      editorStore.setContent(content, { isInitialLoad: true })
       editorStore.setChapterTitle(data.name) // 章节名作为标题
       currentChapterNodeKey.value = data.path // 保持选中态
       // 持久化当前章节为「上次查看章节」，下次打开编辑框时优先恢复
@@ -650,6 +652,26 @@ async function loadChapters(arg = false) {
         if (last?.volumeId && last?.chapterName) {
           const targetVolume = volumes.find((v) => getVolumeId(v) === last.volumeId)
           const targetChapter = targetVolume?.children?.find((c) => c.name === last.chapterName)
+          // 上次停留的章节若为空、且书里存在有内容的章节，
+          // 则改选第一个有内容的章节：打开创作台应看到自己写的字，
+          // 而不是建书预生成的空「第1章」。
+          const hasContent = Number(targetChapter?.wordCount || 0) > 0
+          const anyMeaningful = (() => {
+            for (const vol of volumes) {
+              const hit = (vol.children || []).find((c) => Number(c.wordCount || 0) > 0)
+              if (hit) return { volume: vol, chapter: hit }
+            }
+            return null
+          })()
+          if (!hasContent && anyMeaningful) {
+            const fakeNode = {
+              data: anyMeaningful.chapter,
+              parent: { data: anyMeaningful.volume }
+            }
+            await handleChapterClick(anyMeaningful.chapter, fakeNode)
+            currentChapterNodeKey.value = anyMeaningful.chapter.path
+            return
+          }
           if (targetVolume && targetChapter) {
             const fakeNode = { data: targetChapter, parent: { data: targetVolume } }
             await handleChapterClick(targetChapter, fakeNode)
@@ -664,11 +686,33 @@ async function loadChapters(arg = false) {
 
     // 兼容旧逻辑：自动选中最新卷的最新章节（无上次记录或恢复失败时）
     if (autoSelectLatest && rawVolumes.length > 0) {
-      const rawLatestVolume = rawVolumes[rawVolumes.length - 1]
-      if (rawLatestVolume.children && rawLatestVolume.children.length > 0) {
-        const rawLatestChapter = rawLatestVolume.children[rawLatestVolume.children.length - 1]
-        const targetVolume = volumes.find((v) => getVolumeId(v) === getVolumeId(rawLatestVolume))
-        const targetChapter = targetVolume?.children?.find((c) => c.path === rawLatestChapter.path)
+      // 若 restoreLastChapter 同传，表示「首次进入本书」：恢复失败应落到第 1 章（创作起点），
+      // 而不是跳到最新空章节，让用户面对空白编辑器无所适从。
+      const fallbackToFirst = restoreLastChapter === true
+      // 选章时优先落在有内容的章节上：建书预生成的空「第1章」
+      // 不应挡住真正写了内容的章节，否则打开创作台就是空白页。
+      const findMeaningfulChapter = () => {
+        const orderedVolumes = fallbackToFirst ? volumes : [...volumes].reverse()
+        for (const vol of orderedVolumes) {
+          const kids = vol.children || []
+          const ordered = fallbackToFirst ? kids : [...kids].reverse()
+          const hit = ordered.find((c) => Number(c.wordCount || 0) > 0)
+          if (hit) return { volume: vol, chapter: hit }
+        }
+        return null
+      }
+      const meaningful = findMeaningfulChapter()
+      const rawTargetVolume = meaningful
+        ? meaningful.volume
+        : fallbackToFirst
+          ? volumes[0]
+          : volumes[volumes.length - 1]
+      if ((meaningful?.chapter || rawTargetVolume?.children?.length)) {
+        const targetVolume = meaningful ? meaningful.volume : rawTargetVolume
+        const children = targetVolume.children || []
+        const targetChapter =
+          meaningful?.chapter ||
+          (fallbackToFirst ? children[0] : children[children.length - 1])
 
         if (targetVolume && targetChapter) {
           const fakeNode = { data: targetChapter, parent: { data: targetVolume } }

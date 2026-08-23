@@ -48,24 +48,6 @@
       <button
         class="action-btn"
         type="button"
-        title="上一章"
-        aria-label="上一章"
-        @click="emit('prev-chapter')"
-      >
-        <ChevronUp :size="18" />
-      </button>
-      <button
-        class="action-btn"
-        type="button"
-        title="下一章"
-        aria-label="下一章"
-        @click="emit('next-chapter')"
-      >
-        <ChevronDown :size="18" />
-      </button>
-      <button
-        class="action-btn"
-        type="button"
         title="阅读设置"
         aria-label="阅读设置"
         @click="emit('reading-settings')"
@@ -169,8 +151,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import {
-  ChevronDown,
-  ChevronUp,
   GripVertical,
   House,
   ListTree,
@@ -204,8 +184,6 @@ const props = defineProps({
 const emit = defineEmits([
   'home',
   'catalog',
-  'prev-chapter',
-  'next-chapter',
   'reading-settings',
   'tools',
   'toggle-focus'

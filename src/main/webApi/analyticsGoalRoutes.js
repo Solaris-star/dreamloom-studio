@@ -22,7 +22,7 @@ export function isAnalyticsGoalRoute(path) {
   return ANALYTICS_ROUTES.has(path) || GOAL_ROUTES.has(path)
 }
 
-export function handleAnalyticsGoalRoute({
+export async function handleAnalyticsGoalRoute({
   path,
   body,
   res,
@@ -34,24 +34,29 @@ export function handleAnalyticsGoalRoute({
   const analyticsRoute = ANALYTICS_ROUTES.get(path)
   if (analyticsRoute) {
     const [resultKey, method] = analyticsRoute
+    // 部分 analytics 方法（如 getOverview）是 async：必须 await，
+    // 否则 sendJson 会把 Promise 序列化成 {}（首页「写作近况」报错即源于此）。
+    const payload = await analytics[method](booksDir, body || {})
     sendJson(res, {
       success: true,
-      [resultKey]: analytics[method](booksDir, body || {})
+      [resultKey]: payload
     })
     return true
   }
 
   if (!GOAL_ROUTES.has(path)) return false
 
+  // goalService 的方法全部是 async：必须 await，
+  // 否则 sendJson 会把 Promise 序列化成 {}（数据中心「写作目标接口返回格式异常」即源于此）。
   let result
   if (path === '/api/goals/list') {
-    result = { success: true, items: goals.listGoals(booksDir) }
+    result = { success: true, items: await goals.listGoals(booksDir) }
   } else if (path === '/api/goals/create') {
-    result = goals.createGoal(body || {}, booksDir)
+    result = await goals.createGoal(body || {}, booksDir)
   } else if (path === '/api/goals/update') {
-    result = goals.updateGoal(body.id, body.patch || {}, booksDir)
+    result = await goals.updateGoal(body.id, body.patch || {}, booksDir)
   } else {
-    result = goals.deleteGoal(body.id, booksDir)
+    result = await goals.deleteGoal(body.id, booksDir)
   }
   sendJson(res, result)
   return true

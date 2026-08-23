@@ -6,15 +6,19 @@ import {
 
 const responses = []
 const calls = []
+// getOverview 是 async（真实实现亦然）——曾因路由层未 await，
+// Promise 被 JSON 序列化成 {}，导致首页「写作近况」报数据格式异常。
 const analytics = {
-  getOverview: (...args) => (calls.push(['overview', ...args]), { totalWords: 12 }),
+  getOverview: async (...args) => (calls.push(['overview', ...args]), { totalWords: 12 }),
   getDailyWords: (...args) => (calls.push(['daily', ...args]), [{ words: 12 }])
 }
+// goalService 真实实现全部是 async——mock 必须一致，
+// 否则测不出「路由层未 await 导致 Promise 被序列化成 {}」的回归。
 const goals = {
-  listGoals: (...args) => (calls.push(['list', ...args]), [{ id: 'g1' }]),
-  createGoal: (...args) => (calls.push(['create', ...args]), { success: true, id: 'g2' }),
-  updateGoal: (...args) => (calls.push(['update', ...args]), { success: true }),
-  deleteGoal: (...args) => (calls.push(['delete', ...args]), { success: true })
+  listGoals: async (...args) => (calls.push(['list', ...args]), [{ id: 'g1' }]),
+  createGoal: async (...args) => (calls.push(['create', ...args]), { success: true, id: 'g2' }),
+  updateGoal: async (...args) => (calls.push(['update', ...args]), { success: true }),
+  deleteGoal: async (...args) => (calls.push(['delete', ...args]), { success: true })
 }
 const common = {
   res: {},
@@ -29,7 +33,7 @@ assert.equal(isAnalyticsGoalRoute('/api/goals/create'), true)
 assert.equal(isAnalyticsGoalRoute('/api/books/list'), false)
 
 assert.equal(
-  handleAnalyticsGoalRoute({
+  await handleAnalyticsGoalRoute({
     ...common,
     path: '/api/analytics/overview',
     body: { bookName: '测试书' }
@@ -37,7 +41,7 @@ assert.equal(
   true
 )
 assert.equal(
-  handleAnalyticsGoalRoute({
+  await handleAnalyticsGoalRoute({
     ...common,
     path: '/api/analytics/daily-words',
     body: {}
@@ -45,11 +49,11 @@ assert.equal(
   true
 )
 assert.equal(
-  handleAnalyticsGoalRoute({ ...common, path: '/api/goals/list', body: {} }),
+  await handleAnalyticsGoalRoute({ ...common, path: '/api/goals/list', body: {} }),
   true
 )
 assert.equal(
-  handleAnalyticsGoalRoute({
+  await handleAnalyticsGoalRoute({
     ...common,
     path: '/api/goals/create',
     body: { title: '每日写作' }
@@ -57,7 +61,7 @@ assert.equal(
   true
 )
 assert.equal(
-  handleAnalyticsGoalRoute({
+  await handleAnalyticsGoalRoute({
     ...common,
     path: '/api/goals/update',
     body: { id: 'g1', patch: { target: 2000 } }
@@ -65,7 +69,7 @@ assert.equal(
   true
 )
 assert.equal(
-  handleAnalyticsGoalRoute({
+  await handleAnalyticsGoalRoute({
     ...common,
     path: '/api/goals/delete',
     body: { id: 'g1' }
@@ -73,7 +77,7 @@ assert.equal(
   true
 )
 assert.equal(
-  handleAnalyticsGoalRoute({ ...common, path: '/api/books/list', body: {} }),
+  await handleAnalyticsGoalRoute({ ...common, path: '/api/books/list', body: {} }),
   false
 )
 
