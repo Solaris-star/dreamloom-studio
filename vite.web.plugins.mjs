@@ -274,7 +274,7 @@ export function createWebServerPlugins() {
           ) {
             return
           } else if (
-            handleAssetRoute({
+            await handleAssetRoute({
               path,
               req,
               body,
@@ -297,7 +297,7 @@ export function createWebServerPlugins() {
           ) {
             return
           } else if (
-            handleImportExportRoute({
+            await handleImportExportRoute({
               path,
               body,
               res,

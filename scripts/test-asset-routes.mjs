@@ -59,7 +59,7 @@ for (const path of [
 assert.equal(isAssetRoute('/api/books/list'), false)
 
 assert.equal(
-  handleAssetRoute({
+  await handleAssetRoute({
     ...common,
     path: '/api/assets/get',
     req: { url: '/api/assets/get?id=a1&trash=true' },
@@ -79,12 +79,12 @@ for (const [path, body] of [
   ['/api/assets/restore', { id: 'a1' }],
   ['/api/assets/attach-to-book', { id: 'a1', bookName: '测试书' }]
 ]) {
-  assert.equal(handleAssetRoute({ ...common, path, body }), true)
+  assert.equal(await handleAssetRoute({ ...common, path, body }), true)
 }
 
 let fallbackCount = 0
 assert.equal(
-  handleAssetRoute({
+  await handleAssetRoute({
     ...common,
     path: '/api/assets/get',
     req: { url: '/api/assets/get?id=missing' },
@@ -103,7 +103,7 @@ assert.equal(
 )
 assert.equal(fallbackCount, 1)
 assert.equal(
-  handleAssetRoute({
+  await handleAssetRoute({
     ...common,
     path: '/api/books/list',
     req: { url: '/api/books/list' }

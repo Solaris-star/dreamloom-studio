@@ -1,5 +1,9 @@
 <template>
-  <div class="editor-stats">
+  <div
+    class="editor-stats"
+    tabindex="0"
+    aria-label="写作统计，可横向滚动"
+  >
     <div class="editor-stats-left">
       <span class="book-word-count">
         {{ t('editorStats.bookWordCount', { count: displayedBookWords }) }}
@@ -158,7 +162,7 @@ defineExpose({
     gap: 10px;
 
     > span {
-      color: var(--primary-color);
+      color: var(--text-secondary);
     }
   }
 
@@ -176,7 +180,7 @@ defineExpose({
   }
 
   .typing-speed {
-    color: var(--warning-color);
+    color: var(--text-secondary);
   }
 }
 

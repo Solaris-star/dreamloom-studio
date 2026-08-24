@@ -41,12 +41,12 @@ const cases = [
 
 for (const [path, method, body] of cases) {
   assert.equal(isImportExportRoute(path), true)
-  assert.equal(handleImportExportRoute({ ...common, path, body }), true)
+  assert.equal(await handleImportExportRoute({ ...common, path, body }), true)
   assert.deepEqual(responses.at(-1), { success: true, method })
 }
 assert.equal(isImportExportRoute('/api/books/list'), false)
 assert.equal(
-  handleImportExportRoute({ ...common, path: '/api/books/list', body: {} }),
+  await handleImportExportRoute({ ...common, path: '/api/books/list', body: {} }),
   false
 )
 

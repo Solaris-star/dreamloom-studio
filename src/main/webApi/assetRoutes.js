@@ -15,7 +15,7 @@ export function isAssetRoute(path) {
   return ROUTES.has(path)
 }
 
-export function handleAssetRoute({
+export async function handleAssetRoute({
   path,
   req,
   body,
@@ -47,20 +47,20 @@ export function handleAssetRoute({
 
   let result
   if (path === '/api/assets/list') {
-    result = assets.listAssets(booksDir, payload)
+    result = await assets.listAssets(booksDir, payload)
   } else if (path === '/api/assets/import') {
-    result = assets.importAsset(booksDir, payload)
+    result = await assets.importAsset(booksDir, payload)
   } else if (path === '/api/assets/references') {
     result = {
       success: true,
       references: assets.findAssetReferences(booksDir, payload.id)
     }
   } else if (path === '/api/assets/delete') {
-    result = assets.deleteAsset(booksDir, payload.id)
+    result = await assets.deleteAsset(booksDir, payload.id)
   } else if (path === '/api/assets/restore') {
-    result = assets.restoreAsset(booksDir, payload.id)
+    result = await assets.restoreAsset(booksDir, payload.id)
   } else {
-    result = assets.attachToBook(booksDir, payload)
+    result = await assets.attachToBook(booksDir, payload)
   }
 
   sendJson(res, result)

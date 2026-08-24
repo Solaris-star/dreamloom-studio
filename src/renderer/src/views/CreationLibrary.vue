@@ -4928,8 +4928,8 @@ function dateValue(value) {
   button {
     border: 1px solid rgba(111, 122, 104, 0.46);
     border-radius: 8px;
-    background: var(--wabi-moss);
-    color: #fbfaf6;
+    background: var(--wabi-ink);
+    color: var(--bg-primary);
     cursor: pointer;
     font: inherit;
     padding: 8px 12px;

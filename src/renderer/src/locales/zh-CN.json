@@ -1411,6 +1411,7 @@
   "editorProgress": {
     "targetWords": "目标{count}字",
     "wordUnit": "{count} 字",
+    "progressAria": "本章目标进度 {percentage}%",
     "setFailed": "设置失败",
     "updateTargetFailed": "目标字数更新失败"
   },

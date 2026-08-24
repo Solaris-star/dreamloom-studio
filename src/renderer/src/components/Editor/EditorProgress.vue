@@ -4,6 +4,9 @@
       <el-progress
         class="progress-bar"
         :percentage="progressPercentage"
+        :aria-label="
+          t('editorProgress.progressAria', { percentage: Math.round(progressPercentage) })
+        "
         :show-text="false"
         :stroke-width="8"
         :color="getProgressColor"

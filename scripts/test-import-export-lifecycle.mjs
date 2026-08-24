@@ -154,7 +154,7 @@ try {
         fileName: '缺正文.docx',
         base64: createStoredZip({ '[Content_Types].xml': '<Types />' }).toString('base64')
       }),
-    /word\/document\.xml/
+    /DOCX 文件内容损坏/
   )
 
   const secretFile = join(root, 'server-secret.txt')

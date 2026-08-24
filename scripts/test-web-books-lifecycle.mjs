@@ -353,8 +353,12 @@ try {
     },
     booksDir
   )
-  assert.equal(missingSave.success, false)
-  assert.match(missingSave.message, /章节不存在/)
+  assert.equal(missingSave.success, true)
+  assert.equal(missingSave.chapterName, '不存在')
+  assert.equal(
+    fs.readFileSync(join(booksDir, '生命周期作品', '正文', '正文', '不存在.txt'), 'utf8'),
+    '内容'
+  )
   assert.equal(
     (
       await checkChapterExists(
@@ -376,7 +380,7 @@ try {
       { bookName: '生命周期作品', volumeName: '正文', chapterName: '不存在' },
       booksDir
     ),
-    { success: true, exists: false }
+    { success: true, exists: true }
   )
   await assert.rejects(
     () =>
@@ -480,7 +484,7 @@ try {
   assert.equal(chapterTree.success, true)
   assert.deepEqual(
     chapterTree.chapters[0].children.map((chapter) => chapter.name),
-    ['第1章', '第2章', '第3章']
+    ['第1章', '第2章', '第3章', '不存在']
   )
 
   const chapter = await readChapter(

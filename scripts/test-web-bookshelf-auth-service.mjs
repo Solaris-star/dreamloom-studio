@@ -19,7 +19,12 @@ const service = await import('../src/renderer/src/service/bookshelfAuth.js')
 
 assert.deepEqual(await service.getBookshelfAuthStatus(), {
   authenticated: false,
-  passwordConfigured: true
+  passwordConfigured: true,
+  role: null,
+  keyId: null,
+  ownerId: null,
+  canManageKeys: false,
+  label: ''
 })
 assert.deepEqual(request, {
   url: '/api/auth/status',

@@ -13,6 +13,7 @@
     <a
       class="skip-link"
       href="#app-main"
+      @click.prevent="focusMainContent"
     >跳到主要内容</a>
     <aside
       class="app-sidebar"
@@ -156,6 +157,7 @@
 
     <main
       id="app-main"
+      ref="mainContentRef"
       class="app-main"
       tabindex="-1"
       :class="{
@@ -235,6 +237,7 @@ const cachedRouteNames = [
   'Analytics'
 ]
 const isMobileViewport = ref(false)
+const mainContentRef = ref(null)
 const prefetchedRoutes = new Set()
 const NAV_PREFETCH_PATHS = [
   '/dashboard',
@@ -626,6 +629,10 @@ function toggleSidebarCollapse() {
     rememberExpandedWidth(sidebarWidth.value)
   }
   persistSidebarWidth(nextSidebarWidthOnToggle(sidebarWidth.value))
+}
+
+function focusMainContent() {
+  mainContentRef.value?.focus({ preventScroll: false })
 }
 
 function routeViewKey(viewRoute) {
@@ -1214,7 +1221,11 @@ function routeViewKey(viewRoute) {
     height: auto;
     min-width: 0;
     overflow: visible;
-    padding: 16px 16px calc(80px + env(safe-area-inset-bottom, 0px));
+    padding: 16px 16px calc(136px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .app-main :is(button, [role='button'], input, select, textarea) {
+    scroll-margin-bottom: calc(136px + env(safe-area-inset-bottom, 0px));
   }
 
   .app-main.studio-main {

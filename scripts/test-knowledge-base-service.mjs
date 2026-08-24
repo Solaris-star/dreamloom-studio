@@ -15,6 +15,19 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, JSON.stringify(value, null, 2), 'utf-8')
 }
 
+function formatLocalDate(date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0')
+  ].join('-')
+}
+
+const activityStartDate = new Date()
+activityStartDate.setDate(activityStartDate.getDate() - 1)
+const activityEndDate = new Date()
+activityEndDate.setDate(activityEndDate.getDate() + 30)
+
 try {
   assert.equal(
     calculateWriterActivityStatus(
@@ -98,8 +111,8 @@ try {
     name: '活动素材',
     metadata: {
       writerActivity: {
-        startDate: '2026-07-01',
-        endDate: '2026-07-30',
+        startDate: formatLocalDate(activityStartDate),
+        endDate: formatLocalDate(activityEndDate),
         categories: ['悬疑', null],
         targetAudience: ['新作者']
       },

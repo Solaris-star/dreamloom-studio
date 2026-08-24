@@ -43,7 +43,7 @@
         :active-text="t('editorPanel.characterHighlight')"
         :inactive-text="t('editorPanel.characterHighlight')"
         inline-prompt
-        style="--el-switch-off-color: #999999"
+        style="--el-switch-off-color: #6b7280"
         class="character-highlight-switch"
         :aria-label="t('editorPanel.characterHighlight')"
         @change="handleCharacterHighlightChange"
@@ -64,7 +64,7 @@
         :active-text="t('editorPanel.bannedWordsHint')"
         :inactive-text="t('editorPanel.bannedWordsHint')"
         inline-prompt
-        style="--el-switch-off-color: #999999"
+        style="--el-switch-off-color: #6b7280"
         class="banned-words-hint-switch"
         :aria-label="t('editorPanel.bannedWordsHint')"
         @change="handleBannedWordsHintChange"
@@ -2432,6 +2432,15 @@ defineExpose({
   font-weight: bold;
   flex: 1;
   min-width: 0;
+}
+
+.chapter-title :deep(.el-input__wrapper) {
+  min-height: 32px;
+}
+
+.chapter-title :deep(.el-input__inner) {
+  min-height: 24px;
+  line-height: 24px;
 }
 .character-highlight-switch,
 .banned-words-hint-switch {

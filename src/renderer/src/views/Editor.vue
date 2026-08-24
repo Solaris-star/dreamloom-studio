@@ -782,7 +782,7 @@ onBeforeUnmount(detachWindowListeners)
   font-size: 12px;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 900px) {
   .editor-inline-nav {
     top: auto;
     bottom: calc(52px + env(safe-area-inset-bottom));

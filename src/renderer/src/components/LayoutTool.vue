@@ -20,6 +20,8 @@
           class="refresh-btn"
           :icon="Refresh"
           circle
+          aria-label="刷新"
+          title="刷新"
           @click="handleRefresh"
         />
         <slot name="headrAction" />

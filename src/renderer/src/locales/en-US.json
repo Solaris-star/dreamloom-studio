@@ -1411,6 +1411,7 @@
   "editorProgress": {
     "targetWords": "Target {count}",
     "wordUnit": "{count}",
+    "progressAria": "Chapter target progress {percentage}%",
     "setFailed": "Set failed",
     "updateTargetFailed": "Failed to update target words"
   },

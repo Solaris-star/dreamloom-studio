@@ -62,6 +62,7 @@
           <el-select
             v-model="selectedType"
             class="type-select"
+            :aria-label="t('agentQueue.allStates')"
             :disabled="loading"
             @change="refreshQueue"
           >

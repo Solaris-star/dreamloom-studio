@@ -1317,6 +1317,10 @@ async function handleSettingsChanged(newSettings) {
   ::v-deep(.el-tree) {
     background-color: var(--bg-soft);
   }
+
+  ::v-deep(.el-tree-node.is-current > .el-tree-node__content) {
+    color: var(--text-base);
+  }
 }
 
 .custom-tree-node {

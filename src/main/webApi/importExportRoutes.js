@@ -14,7 +14,7 @@ export function isImportExportRoute(path) {
   return ROUTES.has(path)
 }
 
-export function handleImportExportRoute({
+export async function handleImportExportRoute({
   path,
   body,
   res,
@@ -41,8 +41,8 @@ export function handleImportExportRoute({
   try {
     const result =
       path === '/api/import-export/tasks'
-        ? service[method](booksDir)
-        : service[method](booksDir, payload)
+        ? await service[method](booksDir)
+        : await service[method](booksDir, payload)
     sendJson(res, result)
   } catch (error) {
     sendJson(

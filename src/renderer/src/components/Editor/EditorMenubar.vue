@@ -472,6 +472,7 @@
         size="small"
         class="copy-menu toolbar-secondary"
         data-testid="editor-copy"
+        :button-props="{ 'aria-label': t('editorMenubar.copyPlainText') }"
         @click="handleCopyContent"
       >
         <el-tooltip
@@ -511,54 +512,47 @@
       </el-tooltip>
     </div>
     <div class="toolbar-right">
-      <el-tooltip
-        content="配色"
-        placement="bottom"
-        :show-after="200"
-        :disabled="isMobileViewport"
+      <el-dropdown
+        trigger="click"
+        @command="handleThemeChange"
       >
-        <el-dropdown
-          trigger="click"
-          @command="handleThemeChange"
+        <el-button
+          size="small"
+          class="toolbar-item theme-switcher-btn toolbar-primary"
+          data-testid="editor-theme"
+          aria-label="主题"
         >
-          <el-button
-            size="small"
-            class="toolbar-item theme-switcher-btn toolbar-primary"
-            data-testid="editor-theme"
-            aria-label="主题"
-          >
-            <Palette :size="14" />
-            <span class="theme-switcher-label">{{ currentThemeName }}</span>
-          </el-button>
-          <template #dropdown>
-            <el-dropdown-menu class="theme-switcher-menu">
-              <el-dropdown-item
-                v-for="theme in availableThemes"
-                :key="theme.key"
-                :command="theme.key"
-                :class="{ 'is-active-theme': themeStore.currentTheme === theme.key }"
-                :data-theme-option="theme.key"
-              >
+          <Palette :size="14" />
+          <span class="theme-switcher-label">{{ currentThemeName }}</span>
+        </el-button>
+        <template #dropdown>
+          <el-dropdown-menu class="theme-switcher-menu">
+            <el-dropdown-item
+              v-for="theme in availableThemes"
+              :key="theme.key"
+              :command="theme.key"
+              :class="{ 'is-active-theme': themeStore.currentTheme === theme.key }"
+              :data-theme-option="theme.key"
+            >
+              <span
+                class="theme-swatch"
+                :style="{
+                  background: theme.preview,
+                  '--theme-swatch-accent': theme.previewPrimary || theme.previewAccent
+                }"
+                :aria-hidden="true"
+              />
+              <span class="theme-option-meta">
+                <span class="theme-option-name">{{ theme.name }}</span>
                 <span
-                  class="theme-swatch"
-                  :style="{
-                    background: theme.preview,
-                    '--theme-swatch-accent': theme.previewPrimary || theme.previewAccent
-                  }"
-                  :aria-hidden="true"
-                />
-                <span class="theme-option-meta">
-                  <span class="theme-option-name">{{ theme.name }}</span>
-                  <span
-                    v-if="theme.description"
-                    class="theme-option-desc"
-                  >{{ theme.description }}</span>
-                </span>
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-      </el-tooltip>
+                  v-if="theme.description"
+                  class="theme-option-desc"
+                >{{ theme.description }}</span>
+              </span>
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
       <el-tooltip
         :content="t('editorMenubar.save')"
         placement="bottom"

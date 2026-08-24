@@ -50,14 +50,21 @@ async function createBook(request, name) {
       content: '林川走在青石长街上，夜雨落在旧书铺门前。不要剧透。'
     }
   })
-  // seed banned word
-  await request.post(`${BASE}/api/banned-words/add`, {
-    data: { bookName: name, word: '剧透' }
-  }).catch(async () => {
-    // fallback path variants
-    await request.post(`${BASE}/api/editor/banned-words/add`, {
-      data: { bookName: name, word: '剧透' }
-    }).catch(() => {})
+  // 高亮依赖真实人物谱；禁词由 Web store 按书保存，不存在独立 banned-words 路由。
+  await request.post(`${BASE}/api/studio/characters/write`, {
+    data: {
+      bookName: name,
+      data: [{ name: '林川', markerColor: '#4F7A45' }]
+    }
+  })
+  await request.post(`${BASE}/api/store/set`, {
+    data: { key: `bannedWords:${name}`, value: { words: ['剧透'] } }
+  })
+  await request.post(`${BASE}/api/store/set`, {
+    data: { key: `characterHighlight_${name}`, value: false }
+  })
+  await request.post(`${BASE}/api/store/set`, {
+    data: { key: `bannedWordsHint_${name}`, value: false }
   })
   return json
 }
@@ -234,7 +241,12 @@ async function run() {
     const option = page.locator('[data-theme-option]').first()
     if (await option.count()) {
       const key = await option.getAttribute('data-theme-option')
-      await option.click()
+      try {
+        await option.click({ timeout: 3_000 })
+      } catch {
+        note('P1', '主题', '主题菜单选项被浮层遮挡，普通点击失败')
+        await option.click({ force: true })
+      }
       await page.waitForTimeout(300)
       const bg = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--bg-primary').trim())
       if (bg) note('PASS', '主题', `切换主题后 --bg-primary=${bg}`, { key })
@@ -264,7 +276,7 @@ async function run() {
   else note('P1', '禁词提示', '开启后未检测到禁词装饰')
 
   // floating assistant drag/snap/persist
-  const float = page.getByTestId('editor-floating-assistant')
+  const float = page.getByTestId('editor-floating-quick-actions')
   const handle = page.getByTestId('editor-floating-drag-handle')
   if ((await float.count()) && (await handle.count())) {
     const before = await float.boundingBox()
@@ -276,7 +288,9 @@ async function run() {
       await page.mouse.up()
       await page.waitForTimeout(200)
       const after = await float.boundingBox()
-      const stored = await page.evaluate(() => localStorage.getItem('dreamloom.editor.floatingAssistant.position.v1'))
+      const stored = await page.evaluate(() =>
+        localStorage.getItem('dreamloom:editor-floating-actions:v1')
+      )
       if (after && Math.abs(after.x - before.x) > 10) note('PASS', '悬浮助手', '可拖拽并移动位置')
       else note('P1', '悬浮助手', '拖拽后位置未明显变化')
       if (stored) {
@@ -289,7 +303,9 @@ async function run() {
       // reload persist
       await page.reload({ waitUntil: 'networkidle' })
       await page.waitForTimeout(800)
-      const stored2 = await page.evaluate(() => localStorage.getItem('dreamloom.editor.floatingAssistant.position.v1'))
+      const stored2 = await page.evaluate(() =>
+        localStorage.getItem('dreamloom:editor-floating-actions:v1')
+      )
       if (stored2) note('PASS', '悬浮助手', '刷新后位置仍保留')
       else note('P1', '悬浮助手', '刷新后位置丢失')
     }

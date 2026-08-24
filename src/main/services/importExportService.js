@@ -370,7 +370,11 @@ function readImportText(input = {}) {
   const { buffer, fileName } = decodeInputBuffer(input)
   const format = getFormat(input, fileName)
   if (format === 'docx') {
-    return { text: extractDocxText(buffer), fileName, format }
+    try {
+      return { text: extractDocxText(buffer), fileName, format }
+    } catch {
+      throw new Error('DOCX 文件内容损坏或结构无效')
+    }
   }
   if (
     !TEXT_EXTENSIONS.has(extname(fileName).toLowerCase()) &&

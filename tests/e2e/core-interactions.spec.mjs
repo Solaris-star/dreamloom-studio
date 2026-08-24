@@ -266,10 +266,11 @@ test('书架筛选和本地导入入口可以操作', async ({ page }, testInfo)
   await page.locator('.book-card').filter({ hasText: bookName }).click()
   await expect(page.locator('.preview-card')).toContainText(bookName)
 
-  await page.getByText('添加书籍', { exact: true }).click()
-  await expect(page.getByRole('dialog', { name: '添加书籍' })).toBeVisible()
-  await page.getByRole('tab', { name: '本地文件导入' }).click()
-  await expect(page.getByRole('dialog', { name: '添加书籍' })).toContainText(/TXT|MD|DOCX/)
+  const bookshelfTabs = page.getByRole('navigation', { name: '作品书架分区' })
+  await bookshelfTabs.getByRole('button', { name: '导入作品', exact: true }).click()
+  await expect(page).toHaveURL(/#\/knowledge\?tab=import/)
+  await expect(page.getByRole('heading', { name: '导入作品', level: 2 })).toBeVisible()
+  await expect(page.locator('.file-picker')).toContainText(/TXT、Markdown 或 DOCX/)
 })
 
 test('在线拆书搜索结果可以通过选择按钮操作', async ({ page }) => {
@@ -317,11 +318,17 @@ test('DOCX 可以预览导入且损坏文件不会加入书架', async ({ page, 
 
   await postApi(request, '/api/books/delete', { name: importedBookName })
   try {
-    await page.goto('/#/knowledge')
-    await page.getByText('添加书籍', { exact: true }).click()
-    const addBookDialog = page.getByRole('dialog', { name: '添加书籍' })
-    await addBookDialog.getByRole('tab', { name: '本地文件导入' }).click()
-    const fileInput = addBookDialog.locator('input[type="file"]').first()
+    await page.goto('/#/knowledge?tab=import')
+    const importPanel = page.locator('.import-export-page')
+    const fileInput = importPanel.locator('input[type="file"]').first()
+
+    await fileInput.setInputFiles({
+      name: '损坏文档.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      buffer: Buffer.from('not-a-docx', 'utf8')
+    })
+    await expect(importPanel.getByText('DOCX 文件内容损坏').first()).toBeVisible()
+    await expect(importPanel.getByRole('button', { name: '写入书架' })).toBeDisabled()
 
     await fileInput.setInputFiles({
       name: `${importedBookName}.docx`,
@@ -329,28 +336,15 @@ test('DOCX 可以预览导入且损坏文件不会加入书架', async ({ page, 
       buffer: docxBuffer
     })
 
-    const readyRow = addBookDialog.locator('.local-import-item').filter({ hasText: importedBookName })
-    await expect(readyRow).toContainText('DOCX')
-    await expect(readyRow).toContainText('2 章')
-    await expect(readyRow).toContainText('第1章 雨夜')
-    await expect(readyRow).toContainText('第2章 来信')
-    await readyRow.getByRole('button', { name: '查看完整预览' }).click()
-    await expect(readyRow).toContainText('林舟推开旧书铺的门。')
+    const preview = importPanel.locator('.preview-box')
+    await expect(preview).toContainText(importedBookName)
+    await expect(preview).toContainText('2 章')
+    await expect(preview).toContainText('第1章 雨夜')
+    await expect(preview).toContainText('第2章 来信')
+    await expect(preview).toContainText('林舟推开旧书铺的门。')
 
-    await readyRow.getByRole('button', { name: '加入书架' }).click()
-    await page.getByRole('dialog', { name: '确认导入' }).getByRole('button', {
-      name: '导入'
-    }).click()
-    await expect(readyRow).toContainText('已加入')
-
-    await fileInput.setInputFiles({
-      name: '损坏文档.docx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      buffer: Buffer.from('not-a-docx', 'utf8')
-    })
-    const brokenRow = addBookDialog.locator('.local-import-item').filter({ hasText: '损坏文档' })
-    await expect(brokenRow).toContainText('DOCX 文件内容损坏')
-    await expect(brokenRow.getByRole('button', { name: '加入书架' })).toBeDisabled()
+    await importPanel.getByRole('button', { name: '写入书架' }).click()
+    await expect(page.getByText(`已导入：${importedBookName}`)).toBeVisible()
   } finally {
     await postApi(request, '/api/books/delete', { name: importedBookName })
   }
@@ -404,14 +398,14 @@ test('空文件和超限文件会在页面直接提示且不请求预览', async
     mimeType: 'text/plain',
     buffer: Buffer.alloc(0)
   })
-  await expect(page.getByText('导入文件不能为空')).toBeVisible()
+  await expect(page.getByText('导入文件不能为空').first()).toBeVisible()
 
   const oversizedPath = testInfo.outputPath('超限书稿.txt')
   await writeFile(oversizedPath, '')
   await truncate(oversizedPath, 50 * 1024 * 1024 + 1)
   try {
     await fileInput.setInputFiles(oversizedPath)
-    await expect(page.getByText('导入文件不能超过 50 MB')).toBeVisible()
+    await expect(page.getByText('导入文件不能超过 50 MB').first()).toBeVisible()
     expect(previewRequests).toBe(0)
     await expect(page.locator('.preview-box')).toHaveCount(0)
   } finally {
@@ -1055,7 +1049,7 @@ test('市场灵感空数据展示示例内容且不伪造热度', async ({ page 
 
   await page.goto('/#/market/overview')
   await expect(page.getByText('暂无真实市场数据')).toBeVisible()
-  await expect(page.getByText('【示例】离婚当天绑定品牌系统')).toBeVisible()
+  await expect(page.getByText('【示例】离婚当天绑定品牌系统').first()).toBeVisible()
   await expect(page.getByText('示例内容', { exact: true }).first()).toBeVisible()
   await expect(page.getByRole('button', { name: '创建灵感' }).first()).toBeVisible()
   await expect(page.getByRole('button', { name: '导入 / 添加' }).first()).toBeVisible()
@@ -1064,7 +1058,7 @@ test('市场灵感空数据展示示例内容且不伪造热度', async ({ page 
     '示例内容'
   )
   await expect(page.locator('.opportunity-card')).toContainText('示例')
-  await expect(page.getByText('不是实时市场数据')).toBeVisible()
+  await expect(page.getByText('不是实时市场数据').first()).toBeVisible()
 })
 
 test('小说下载不会重复提交或写入失败章节', async ({ page }) => {
@@ -1600,8 +1594,10 @@ test('AI 工坊运行期间不会重复提交或切换任务', async ({ page }) 
   const submitButton = page.getByRole('button', { name: '续写' })
   await input.fill('林舟推开旧书铺的门。')
 
-  await submitButton.click()
-  await submitButton.click({ force: true })
+  await submitButton.evaluate((button) => {
+    button.click()
+    button.click()
+  })
 
   await expect(input).toBeDisabled()
   await expect(taskSelect.locator('input')).toBeDisabled()
@@ -1662,8 +1658,10 @@ test('AI 图像生成失败后保留提示词且不会重复请求', async ({ pa
   const prompt = '雨夜中的旧书铺，门前挂着一盏暖黄色纸灯。'
   const submitButton = page.getByRole('button', { name: '生成图像' })
   await input.fill(prompt)
-  await submitButton.click()
-  await submitButton.click({ force: true })
+  await submitButton.evaluate((button) => {
+    button.click()
+    button.click()
+  })
 
   const status = page.locator('.generation-status-card')
   await expect(status.getByText('生成失败，输入内容已保留')).toBeVisible()
@@ -1700,7 +1698,7 @@ test('系统设置分类和主题按钮可以连续操作', async ({ page }) => 
   }
 
   await settingsNavigation.getByRole('button', { name: '主题外观', exact: true }).click()
-  const themeButton = page.getByRole('button', { name: '切换到护眼' })
+  const themeButton = page.getByRole('option', { name: '切换到护眼' })
   await themeButton.click()
   await expect(themeButton).toHaveClass(/active/)
   await expect(page.getByText('已切换到护眼')).toBeVisible()
@@ -1763,10 +1761,12 @@ test('书籍导出失败时不会重复提交或误报完成', async ({ page }) 
 
   const exportButton = page.locator('.form-grid').getByRole('button', { name: '导出', exact: true })
   await expect(exportButton).toBeEnabled()
-  await exportButton.click()
-  await exportButton.click({ force: true })
+  await exportButton.evaluate((button) => {
+    button.click()
+    button.click()
+  })
 
-  await expect(page.getByText('测试导出失败')).toBeVisible()
+  await expect(page.getByText('测试导出失败').first()).toBeVisible()
   await expect(page.getByText('导出完成')).toHaveCount(0)
   await expect.poll(() => exportRequests).toBe(1)
   await expect(exportButton).toBeEnabled()

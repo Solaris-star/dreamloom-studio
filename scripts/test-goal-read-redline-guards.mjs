@@ -62,6 +62,11 @@ const today = [
   String(now.getMonth() + 1).padStart(2, '0'),
   String(now.getDate()).padStart(2, '0')
 ].join('-')
+const currentMonth = String(now.getMonth() + 1).padStart(2, '0')
+const monthStart = `${now.getFullYear()}-${currentMonth}-01`
+const monthEnd = `${now.getFullYear()}-${currentMonth}-${String(
+  new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+).padStart(2, '0')}`
 
 try {
   process.chdir(tempRoot)
@@ -132,9 +137,9 @@ try {
         {
           id: 'word-range',
           bookId: 'book-1',
-          date: '2026-07-01',
+          date: monthStart,
           delta: 200,
-          createdAt: new Date('2026-07-01T09:00:00').getTime()
+          createdAt: new Date(`${monthStart}T09:00:00`).getTime()
         }
       ]
     }),
@@ -147,8 +152,8 @@ try {
       type: 'range',
       bookId: 'book-1',
       targetValue: 1000,
-      startDate: '2026-07-01',
-      endDate: '2026-07-31'
+      startDate: monthStart,
+      endDate: monthEnd
     },
     join(tempRoot, 'books')
   )
