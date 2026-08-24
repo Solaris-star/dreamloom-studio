@@ -3,9 +3,7 @@
     <header class="market-hero">
       <div class="hero-copy">
         <h1>市场灵感 / Trend Radar</h1>
-        <p>
-          数据来自微博/百度等公开热搜与小说榜单的真实采集，不是手写假数据。空库时才会显示带【示例】标注的内置内容；过期缓存会标成「过期缓存」。
-        </p>
+        <p>{{ heroDescription }}</p>
       </div>
 
       <div class="source-bar">
@@ -22,7 +20,10 @@
           <span class="source-name">更新时间</span>
           <b>{{ formatDateTime(lastUpdatedAt) || '暂无' }}</b>
         </div>
-        <label class="target-book-picker">
+        <label
+          v-if="activeTab !== 'rankings'"
+          class="target-book-picker"
+        >
           <span>目标作品</span>
           <select
             v-model="selectedBookId"
@@ -42,6 +43,7 @@
         <button
           v-motion-feedback
           class="dark-button"
+          :class="{ 'qidian-refresh-button': activeTab === 'rankings' }"
           type="button"
           :disabled="refreshing"
           @click="handleRefresh"
@@ -50,9 +52,10 @@
             :size="16"
             :class="{ spin: refreshing }"
           />
-          {{ refreshing ? '刷新中' : '刷新灵感' }}
+          {{ refreshing ? '刷新中' : refreshActionLabel }}
         </button>
         <button
+          v-if="activeTab !== 'rankings'"
           v-motion-feedback
           class="ghost-button"
           type="button"
@@ -62,6 +65,7 @@
           创建灵感
         </button>
         <button
+          v-if="activeTab !== 'rankings'"
           v-motion-feedback
           class="ghost-button"
           type="button"
@@ -69,6 +73,16 @@
         >
           导入 / 添加
         </button>
+        <a
+          v-else
+          class="ghost-button source-link-button"
+          :href="hotRank.sourceUrl || 'https://www.qidian.com/rank/'"
+          target="_blank"
+          rel="noreferrer"
+        >
+          查看起点原榜
+          <ExternalLink :size="15" />
+        </a>
       </div>
     </header>
 
@@ -147,10 +161,11 @@
 
     <section
       class="channel-toggle"
+      :class="{ 'rank-channel-toggle': activeTab === 'rankings' }"
       aria-label="频道筛选"
     >
       <button
-        v-for="item in channelOptions"
+        v-for="item in visibleChannelOptions"
         :key="item.value"
         type="button"
         :class="{ active: channel === item.value }"
@@ -175,7 +190,7 @@
       </button>
     </nav>
 
-    <MarketLoadingSkeleton v-if="loading && !hasAnyData" />
+    <MarketLoadingSkeleton v-if="loading && !hasActiveTabData" />
 
     <section
       v-else-if="activeTab === 'overview'"
@@ -358,120 +373,115 @@
 
     <section
       v-else-if="activeTab === 'rankings'"
-      class="rank-grid"
+      class="rank-grid qidian-rank-layout"
     >
       <aside
         v-motion-list="{
           selector: '.source-row',
-          key: `sources:${selectedSource}:${hotRank.sources.length}`
+          key: `qidian-types:${selectedRankType}:${hotRank.rankTypes.length}`
         }"
-        class="paper-panel source-filter"
+        class="paper-panel source-filter qidian-rank-filter"
       >
         <div class="panel-title">
-          <h2>平台 / 来源</h2>
-          <small>{{ hotRank.sources.length }} 个</small>
+          <div>
+            <h2>起点榜单</h2>
+            <small>官方实时数据</small>
+          </div>
+          <span class="qidian-mark">起</span>
         </div>
         <button
+          v-for="rankType in hotRank.rankTypes"
+          :key="rankType.key"
           type="button"
-          class="source-row"
-          :class="{ active: selectedSource === 'all' }"
-          @click="setSource('all')"
+          class="source-row rank-type-row"
+          :class="{ active: selectedRankType === rankType.key }"
+          @click="setRankType(rankType.key)"
         >
-          <span>全部来源</span>
-          <b>{{ hotRank.items.length }}</b>
-        </button>
-        <button
-          v-for="source in hotRank.sources"
-          :key="source.source"
-          type="button"
-          class="source-row"
-          :class="{ active: selectedSource === source.source }"
-          @click="setSource(source.source)"
-        >
-          <span>{{ source.label }}</span>
-          <b>{{ source.count }}</b>
-          <small :class="source.status">{{ sourceStatusText(source.status) }}</small>
+          <span>
+            <b>{{ rankType.label }}</b>
+            <small>{{ rankType.description }}</small>
+          </span>
+          <ChevronRight :size="16" />
         </button>
 
-        <div class="source-summary">
-          <strong>今日可转化热点</strong>
-          <b>{{ hotRank.items.length }}</b>
-          <span>男频 {{ countByChannel('male') }} · 女频 {{ countByChannel('female') }} · 通用
-            {{ countByChannel('all') }}</span>
+        <div class="source-summary qidian-source-summary">
+          <strong>起点中文网</strong>
+          <span>直接读取官方移动端榜单接口。</span>
+          <span>不生成、不估算、不混入示例热度。</span>
         </div>
       </aside>
 
       <main
         v-motion-list="{
-          selector: '.hot-card',
-          key: `rank:${selectedSource}:${hotRank.items.length}`
+          selector: '.qidian-rank-card',
+          key: `qidian-rank:${channel}:${selectedRankType}:${hotRank.items.length}`
         }"
-        class="paper-panel hot-rank-list"
+        class="paper-panel hot-rank-list qidian-rank-list"
       >
-        <div class="panel-title">
+        <div class="panel-title qidian-rank-title">
           <div>
-            <h2>平台热榜</h2>
-            <p>趋势已转成可写题材，不再裸列热搜。</p>
+            <h2>起点 · {{ hotRank.rankLabel || '月票榜' }}</h2>
+            <p>{{ selectedRankTypeDescription }}</p>
           </div>
-          <small>每 30 分钟读取缓存或刷新</small>
+          <div class="rank-source-meta">
+            <strong>{{ hotRank.items.length }}</strong>
+            <span>部作品</span>
+            <small>{{ hotRank.dataMode === 'live' ? '实时读取' : contentModeText(hotRank.dataMode) }}</small>
+          </div>
         </div>
 
         <MarketEmptyState
           v-if="hotRank.items.length === 0"
-          title="暂无热榜数据。"
-          description="当前来源暂未返回内容。可刷新、创建灵感，或先使用示例内容。"
+          title="起点榜单暂不可用"
+          :description="hotRank.message || '起点暂未返回榜单数据，请稍后重试。'"
           :reason="emptyState?.reason || 'empty'"
           :offline="isOffline"
           show-actions
           @refresh="handleRefresh"
-          @create="openCreateInspiration"
-          @import="openImportInspiration"
         />
 
-        <button
+        <article
           v-for="item in hotRank.items"
           v-else
           :key="item.id"
-          type="button"
-          class="hot-card"
+          class="qidian-rank-card"
           :class="{ active: selectedHotRank?.id === item.id }"
+          tabindex="0"
           @click="selectedHotRank = item"
+          @keydown.enter="selectedHotRank = item"
         >
-          <span class="rank-flag">{{ item.rank }}</span>
+          <span class="rank-flag" :class="{ podium: item.rank <= 3 }">{{ item.rank }}</span>
           <div class="hot-content">
-            <div class="hot-line">
-              <h3>{{ item.rawTitle }}</h3>
-              <span>{{ item.source }}</span>
-              <b class="heat-mark" :class="{ 'is-example': item.isExample || item.heatScore == null }">
-                <Flame v-if="item.heatScore != null && !item.isExample" :size="14" />
-                {{ scoreLabel(item.heatScore, item) }}
-              </b>
+            <div class="hot-line qidian-book-line">
+              <div>
+                <h3>{{ item.rawTitle }}</h3>
+                <span>{{ item.author || '作者未知' }}</span>
+              </div>
+              <b class="rank-metric">{{ item.rankMetric || `第 ${item.rank} 名` }}</b>
             </div>
-            <div class="novel-direction">
-              <strong>{{ item.title }}</strong>
-            </div>
-            <div class="tag-line">
-              <span
-                v-for="type in item.writableTypes.slice(0, 5)"
-                :key="type"
-              >{{ type }}</span>
+            <div class="tag-line qidian-book-meta">
+              <span v-if="item.category">{{ item.category }}</span>
+              <span v-if="item.subCategory">{{ item.subCategory }}</span>
+              <span v-if="item.wordCount">{{ item.wordCount }}</span>
               <span>{{ channelLabel(item.channel) }}</span>
             </div>
-            <p><b>可转化剧情：</b>{{ item.transferablePlot }}</p>
-            <p><b>读者情绪：</b>{{ item.readerPleasure }}</p>
-            <div class="card-actions">
-              <button
-                type="button"
-                @click.stop="selectedHotRank = item"
+            <p class="qidian-book-intro">{{ item.intro || '起点暂未提供作品简介。' }}</p>
+            <div class="card-actions qidian-card-actions">
+              <a
+                :href="item.url"
+                target="_blank"
+                rel="noreferrer"
+                @click.stop
               >
-                转成题材
-              </button>
+                查看原作
+                <ExternalLink :size="14" />
+              </a>
               <button
                 type="button"
                 :disabled="Boolean(actionLoading)"
                 @click.stop="handleGenerateOutline(item)"
               >
-                生成模板草案
+                生成题材草案
               </button>
               <button
                 type="button"
@@ -482,18 +492,8 @@
               </button>
             </div>
           </div>
-        </button>
+        </article>
       </main>
-
-      <InsightDetailPanel
-        :insight="selectedHotRank"
-        title="趋势转写详情"
-        :loading-key="actionLoading"
-        @save="handleSaveInsight"
-        @outline="handleGenerateOutline"
-        @apply="handleApplyToBook"
-        @create-book="handleCreateBook"
-      />
     </section>
 
     <section
@@ -776,7 +776,7 @@ defineOptions({ name: 'MarketInspiration' })
 import { computed, h, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Bookmark, Flame, RefreshCw } from 'lucide-vue-next'
+import { Bookmark, ChevronRight, ExternalLink, Flame, RefreshCw } from 'lucide-vue-next'
 import {
   applyMarketInsightToCurrentBook,
   createBookFromMarketInsight,
@@ -802,6 +802,11 @@ import InsightDetailPanel from '@renderer/components/Market/InsightDetailPanel'
 
 const channelOptions = [
   { label: '全部', value: 'all' },
+  { label: '男频', value: 'male' },
+  { label: '女频', value: 'female' }
+]
+
+const rankingChannelOptions = [
   { label: '男频', value: 'male' },
   { label: '女频', value: 'female' }
 ]
@@ -838,6 +843,7 @@ const route = useRoute()
 const router = useRouter()
 const channel = ref('all')
 const selectedSource = ref('all')
+const selectedRankType = ref('yuepiao')
 const selectedInsight = ref(null)
 const selectedHotRank = ref(null)
 const selectedKeywords = ref([])
@@ -873,8 +879,15 @@ const overview = reactive({
 
 const hotRank = reactive({
   sources: [],
+  rankTypes: [],
   items: [],
-  selectedItem: null
+  selectedItem: null,
+  selectedRankType: 'yuepiao',
+  rankLabel: '月票榜',
+  sourceUrl: 'https://www.qidian.com/rank/',
+  fetchedAt: '',
+  dataMode: 'empty',
+  message: ''
 })
 
 const keywordCloud = reactive({
@@ -896,6 +909,26 @@ const activeTab = computed(() => {
   return 'overview'
 })
 
+const visibleChannelOptions = computed(() =>
+  activeTab.value === 'rankings' ? rankingChannelOptions : channelOptions
+)
+
+const heroDescription = computed(() =>
+  activeTab.value === 'rankings'
+    ? '当前仅展示起点中文网官方排行榜。作品、名次和榜单指标来自起点实时接口；不生成虚构热度，不混入示例数据。'
+    : '数据来自公开热搜与小说榜单的真实采集，不是手写假数据。空库时只显示明确标注的示例内容；过期缓存会单独标明。'
+)
+
+const refreshActionLabel = computed(() =>
+  activeTab.value === 'rankings' ? '刷新起点榜单' : '刷新灵感'
+)
+
+const selectedRankTypeDescription = computed(
+  () =>
+    hotRank.rankTypes.find((item) => item.key === selectedRankType.value)?.description ||
+    '起点官方排行榜'
+)
+
 const hasAnyData = computed(
   () =>
     overview.writableDirections.length ||
@@ -903,6 +936,13 @@ const hasAnyData = computed(
     keywordCloud.keywordClusters.length ||
     activityBoard.activities.length
 )
+
+const hasActiveTabData = computed(() => {
+  if (activeTab.value === 'rankings') return hotRank.items.length > 0
+  if (activeTab.value === 'keywords') return keywordCloud.keywordClusters.length > 0
+  if (activeTab.value === 'activities') return activityBoard.activities.length > 0
+  return overview.writableDirections.length > 0
+})
 
 const hasLiveScores = computed(() =>
   overview.writableDirections.some(
@@ -930,9 +970,30 @@ const emptyStateBanner = computed(() => {
   }
 })
 
-const lastUpdatedAt = computed(() => dashboard.lastUpdatedAt || overview.lastUpdatedAt || '')
+const lastUpdatedAt = computed(() =>
+  activeTab.value === 'rankings'
+    ? hotRank.fetchedAt
+    : dashboard.lastUpdatedAt || overview.lastUpdatedAt || ''
+)
 
 const statusCards = computed(() => {
+  if (activeTab.value === 'rankings') {
+    return [
+      { key: 'qidian', label: '数据来源', state: hotRank.items.length ? 'success' : 'empty', text: '起点中文网' },
+      {
+        key: 'qidian-rank',
+        label: '当前榜单',
+        state: hotRank.items.length ? 'success' : 'empty',
+        text: hotRank.rankLabel || '月票榜'
+      },
+      {
+        key: 'qidian-mode',
+        label: '数据状态',
+        state: hotRank.dataMode === 'live' ? 'success' : hotRank.dataMode || 'empty',
+        text: hotRank.dataMode === 'live' ? '实时读取' : contentModeText(hotRank.dataMode)
+      }
+    ]
+  }
   const status = dashboard.sourceStatus || []
   return [
     statusCard('weibo', '微博 API', status),
@@ -948,6 +1009,7 @@ onMounted(async () => {
     window.addEventListener('online', handleOnlineStatus)
     window.addEventListener('offline', handleOnlineStatus)
   }
+  if (activeTab.value === 'rankings' && channel.value === 'all') channel.value = 'male'
   await Promise.all([loadBooks(), loadMarket()])
 })
 
@@ -960,9 +1022,14 @@ watch(channel, () => loadMarket())
 watch(
   () => route.path,
   () => {
+    if (activeTab.value === 'rankings' && channel.value === 'all') {
+      channel.value = 'male'
+      return
+    }
     if (activeTab.value === 'keywords' && !combinationDetail.value?.title) {
       combinationDetail.value = keywordCloud.defaultCombinationDetail || {}
     }
+    loadMarket()
   }
 )
 
@@ -1080,70 +1147,83 @@ async function loadBooks() {
   }
 }
 
-async function loadMarket() {
-  const hadData = Boolean(hasAnyData.value)
-  loading.value = !hadData
+async function loadMarket(options = {}) {
+  loading.value = !hasActiveTabData.value
   pageError.value = ''
   isOffline.value = typeof navigator !== 'undefined' ? !navigator.onLine : false
   try {
     const payload = {
-      channel: channel.value,
-      source: selectedSource.value,
+      channel: activeTab.value === 'rankings' && channel.value === 'all' ? 'male' : channel.value,
+      source: activeTab.value === 'rankings' ? 'qidian' : selectedSource.value,
       offline: isOffline.value
     }
-    const [dashboardResult, overviewResult, rankResult, keywordResult, activityResult] =
-      await Promise.all([
-        getMarketDashboard(payload),
-        getMarketOverview(payload),
-        getMarketHotRank(payload),
-        getMarketKeywordCloud(payload),
-        getMarketActivitiesBoard(payload)
-      ])
-    const dashboardPayload = requireMarketDashboardResult(dashboardResult)
-    const overviewPayload = requireMarketOverviewResult(overviewResult)
-    const rankPayload = requireMarketHotRankResult(rankResult)
-    const keywordPayload = requireMarketKeywordCloudResult(keywordResult)
-    const activityPayload = requireMarketActivitiesResult(activityResult)
+
+    if (activeTab.value === 'rankings') {
+      const rankPayload = requireMarketHotRankResult(
+        await getMarketHotRank({
+          ...payload,
+          platform: 'qidian',
+          rankType: selectedRankType.value,
+          force: Boolean(options.force)
+        })
+      )
+      Object.assign(hotRank, normalizeHotRank(rankPayload))
+      selectedRankType.value = rankPayload.selectedRankType || selectedRankType.value
+      selectedHotRank.value = hotRank.selectedItem || hotRank.items[0] || null
+      dataMode.value = rankPayload.dataMode || 'empty'
+      emptyState.value = rankPayload.emptyState || null
+      contentKinds.value = {
+        example: false,
+        live: dataMode.value === 'live',
+        user: false,
+        stale: dataMode.value === 'stale'
+      }
+      return
+    }
+
+    const dashboardPayload = requireMarketDashboardResult(await getMarketDashboard(payload))
     Object.assign(dashboard, {
       sourceStatus: dashboardPayload.sourceStatus || [],
       lastUpdatedAt: dashboardPayload.lastUpdatedAt || '',
       agentBrief: dashboardPayload.agentBrief || null
     })
-    Object.assign(overview, normalizeOverview(overviewPayload))
-    Object.assign(hotRank, normalizeHotRank(rankPayload))
-    Object.assign(keywordCloud, normalizeKeywordCloud(keywordPayload))
+
+    if (activeTab.value === 'overview') {
+      const overviewPayload = requireMarketOverviewResult(await getMarketOverview(payload))
+      Object.assign(overview, normalizeOverview(overviewPayload))
+      dataMode.value = overviewPayload.dataMode || dashboardPayload.dataMode || 'empty'
+      emptyState.value = overviewPayload.emptyState || dashboardPayload.emptyState || null
+      contentKinds.value = overviewPayload.contentKinds || dashboardPayload.contentKinds || {}
+      selectedInsight.value = overview.selectedInsight || overview.writableDirections[0] || null
+      return
+    }
+
+    if (activeTab.value === 'keywords') {
+      const keywordPayload = requireMarketKeywordCloudResult(await getMarketKeywordCloud(payload))
+      Object.assign(keywordCloud, normalizeKeywordCloud(keywordPayload))
+      dataMode.value = keywordPayload.dataMode || dashboardPayload.dataMode || 'empty'
+      emptyState.value = keywordPayload.emptyState || dashboardPayload.emptyState || null
+      combinationDetail.value = keywordCloud.defaultCombinationDetail || combinationDetail.value || {}
+      return
+    }
+
+    const activityPayload = requireMarketActivitiesResult(await getMarketActivitiesBoard(payload))
     Object.assign(activityBoard, normalizeActivityBoard(activityPayload))
-    dataMode.value =
-      dashboardPayload.dataMode ||
-      overviewPayload.dataMode ||
-      rankPayload.dataMode ||
-      (overview.writableDirections.some((item) => item.isExample) ? 'example' : 'live')
-    emptyState.value =
-      dashboardPayload.emptyState || overviewPayload.emptyState || rankPayload.emptyState || null
-    contentKinds.value =
-      dashboardPayload.contentKinds ||
-      overviewPayload.contentKinds || {
-        example: dataMode.value === 'example',
-        live: dataMode.value === 'live',
-        user: false,
-        stale: false
-      }
-    selectedInsight.value = overview.selectedInsight || overview.writableDirections[0] || null
-    selectedHotRank.value = hotRank.selectedItem || hotRank.items[0] || null
+    dataMode.value = activityPayload.dataMode || dashboardPayload.dataMode || 'empty'
+    emptyState.value = activityPayload.emptyState || dashboardPayload.emptyState || null
     selectedActivity.value =
       activityBoard.selectedActivityDetail || activityBoard.activities[0] || null
-    combinationDetail.value = keywordCloud.defaultCombinationDetail || combinationDetail.value || {}
   } catch (error) {
     const message = error?.message || '市场灵感加载失败'
     if (isOffline.value || /network|fetch|Failed to fetch|超时|timeout|offline/i.test(message)) {
-      pageError.value = isOffline.value
-        ? `当前离线：${message}。可先创建灵感或使用已标注的示例内容。`
-        : `网络异常：${message}`
+      pageError.value = isOffline.value ? `当前离线：${message}` : `网络异常：${message}`
       emptyState.value = {
         reason: 'offline',
-        title: '网络不可用',
+        title: activeTab.value === 'rankings' ? '起点榜单暂不可用' : '网络不可用',
         description:
-          '外部市场来源暂时无法访问。页面不会伪造热度或销量，可稍后刷新或手动创建灵感。',
+          activeTab.value === 'rankings'
+            ? '未取得起点真实榜单，页面不会用示例数据顶替。'
+            : '外部市场来源暂时无法访问。页面不会伪造热度或销量，可稍后刷新。',
         offline: true
       }
     } else {
@@ -1167,11 +1247,18 @@ function normalizeOverview(result = {}) {
 }
 
 function normalizeHotRank(result = {}) {
-  const items = sortByChannel(result.items, result.channel || channel.value)
+  const items = Array.isArray(result.items) ? result.items : []
   return {
-    sources: result.sources,
+    sources: result.sources || [],
+    rankTypes: result.rankTypes || [],
     items,
-    selectedItem: items[0] || result.selectedItem || null
+    selectedItem: items[0] || result.selectedItem || null,
+    selectedRankType: result.selectedRankType || selectedRankType.value,
+    rankLabel: result.rankLabel || '',
+    sourceUrl: result.sourceUrl || 'https://www.qidian.com/rank/',
+    fetchedAt: result.fetchedAt || '',
+    dataMode: result.dataMode || 'empty',
+    message: result.message || ''
   }
 }
 
@@ -1214,11 +1301,17 @@ async function handleRefresh() {
   pageError.value = ''
   isOffline.value = typeof navigator !== 'undefined' ? !navigator.onLine : false
   if (isOffline.value) {
-    pageError.value = '当前离线，无法采集外部热榜。可先创建灵感或使用示例内容。'
+    pageError.value =
+      activeTab.value === 'rankings'
+        ? '当前离线，无法读取起点实时榜单。'
+        : '当前离线，无法采集外部热榜。可先使用已缓存内容。'
     emptyState.value = {
       reason: 'offline',
       title: '网络不可用',
-      description: '离线状态下不会伪造市场数据。请联网后刷新，或手动创建/导入灵感。',
+      description:
+        activeTab.value === 'rankings'
+          ? '离线状态下不会用示例榜单冒充起点数据。'
+          : '离线状态下不会伪造市场数据。请联网后刷新。',
       offline: true
     }
     ElMessage.warning(pageError.value)
@@ -1226,6 +1319,12 @@ async function handleRefresh() {
     return
   }
   try {
+    if (activeTab.value === 'rankings') {
+      await loadMarket({ force: true })
+      if (!hotRank.items.length) throw new Error(hotRank.message || '起点榜单刷新失败')
+      ElMessage.success(`起点${hotRank.rankLabel || '榜单'}已刷新`)
+      return
+    }
     const result = await refreshMarketTrends({
       sources: ['weibo', 'baidu', 'aggregated', 'dailyhot', 'qidian', 'jjwxc', 'fanqie', 'qimao'],
       force: true
@@ -1334,8 +1433,9 @@ function goTab(key) {
   router.push(tabs.find((item) => item.key === key)?.path || '/market/overview')
 }
 
-function setSource(source) {
-  selectedSource.value = source
+function setRankType(rankType) {
+  if (!rankType || rankType === selectedRankType.value) return
+  selectedRankType.value = rankType
   loadMarket()
 }
 
@@ -1753,8 +1853,14 @@ function sourceStateText(state, successText = '正常', errorText = '异常', em
   )
 }
 
-function countByChannel(target) {
-  return hotRank.items.filter((item) => item.channel === target).length
+function contentModeText(value) {
+  return (
+    {
+      cached: '缓存结果',
+      stale: '过期缓存',
+      empty: '暂无数据'
+    }[value] || '等待数据'
+  )
 }
 
 function channelLabel(value) {
@@ -1977,7 +2083,7 @@ button {
   border-radius: 7px;
   background: rgba(251, 250, 246, 0.92);
   font-size: 13px;
-  padding: 4px 8px;
+  padding: 0 38px 0 10px;
 }
 
 .dark-button {
@@ -2005,6 +2111,17 @@ button {
 
 .dark-button:active {
   transform: var(--theme-button-transform-active, translateY(0));
+}
+
+.qidian-refresh-button {
+  border-color: rgba(191, 44, 36, 0.46) !important;
+  background: #bf2c24 !important;
+  color: #fff !important;
+}
+
+.qidian-refresh-button:hover {
+  border-color: #aa2720 !important;
+  background: #aa2720 !important;
 }
 
 .spin {
@@ -2117,7 +2234,7 @@ button {
 }
 
 .rank-grid {
-  grid-template-columns: minmax(210px, 0.52fr) minmax(430px, 1fr) minmax(370px, 0.92fr);
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
 }
 
 .keyword-grid,
@@ -2557,6 +2674,224 @@ button {
 
 .source-filter {
   padding-bottom: 12px;
+}
+
+.qidian-rank-filter {
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+}
+
+.qidian-mark {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 10px;
+  background: #bf2c24;
+  box-shadow: 0 6px 14px rgba(191, 44, 36, 0.18);
+  color: #fff !important;
+  font-size: 17px !important;
+  font-weight: 800;
+}
+
+.rank-type-row {
+  grid-template-columns: 1fr auto !important;
+  min-height: 58px;
+}
+
+.rank-type-row > span {
+  display: grid;
+  gap: 4px;
+}
+
+.rank-type-row > span b {
+  color: var(--wabi-ink);
+  font-size: 14px;
+}
+
+.rank-type-row > span small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.rank-type-row.active {
+  border-color: rgba(191, 44, 36, 0.28) !important;
+  background: rgba(191, 44, 36, 0.07) !important;
+  box-shadow: inset 3px 0 0 #bf2c24 !important;
+}
+
+.rank-type-row.active > span b,
+.rank-type-row.active > svg {
+  color: #bf2c24;
+}
+
+.qidian-source-summary {
+  background: rgba(191, 44, 36, 0.06) !important;
+}
+
+.qidian-source-summary strong {
+  color: #bf2c24;
+}
+
+.qidian-rank-list {
+  max-height: none;
+  min-height: 620px;
+  overflow: visible;
+  padding-bottom: 14px;
+}
+
+.qidian-rank-title {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  align-items: center;
+  background: rgba(251, 250, 246, 0.94);
+  backdrop-filter: blur(18px);
+}
+
+.rank-source-meta {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: baseline;
+  gap: 2px 6px;
+  min-width: 86px;
+  text-align: right;
+}
+
+.rank-source-meta strong {
+  color: #bf2c24;
+  font-size: 24px;
+}
+
+.rank-source-meta span,
+.rank-source-meta small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.rank-source-meta small {
+  grid-column: 1 / -1;
+}
+
+.qidian-rank-card {
+  display: flex;
+  width: calc(100% - 28px);
+  gap: 14px;
+  margin: 12px 14px 0;
+  padding: 16px;
+  border: 1px solid rgba(138, 115, 93, 0.16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  outline: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.qidian-rank-card:hover,
+.qidian-rank-card:focus-visible,
+.qidian-rank-card.active {
+  border-color: rgba(191, 44, 36, 0.28);
+  box-shadow: 0 10px 28px rgba(71, 51, 37, 0.08);
+  transform: translateY(-1px);
+}
+
+.qidian-rank-card .rank-flag {
+  margin-top: 1px;
+}
+
+.qidian-rank-card .rank-flag.podium {
+  border-color: rgba(191, 44, 36, 0.28);
+  background: #bf2c24;
+  color: #fff;
+}
+
+.qidian-book-line {
+  align-items: flex-start;
+}
+
+.qidian-book-line > div {
+  min-width: 0;
+}
+
+.qidian-book-line h3 {
+  color: var(--wabi-ink);
+  font-size: 17px;
+}
+
+.qidian-book-line span {
+  display: block;
+  margin-top: 4px;
+}
+
+.qidian-book-line .rank-metric {
+  flex: 0 0 auto;
+  color: #bf2c24;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.qidian-book-meta {
+  margin-top: 10px;
+}
+
+.qidian-book-intro {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  min-height: 3em;
+}
+
+.qidian-card-actions {
+  align-items: center;
+}
+
+.qidian-card-actions a,
+.qidian-card-actions button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid var(--wabi-line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.68);
+  color: var(--wabi-ink-soft);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  padding: 7px 11px;
+  text-decoration: none;
+}
+
+.qidian-card-actions a:hover,
+.qidian-card-actions button:hover {
+  border-color: rgba(191, 44, 36, 0.32);
+  color: #bf2c24;
+}
+
+.qidian-card-actions button:last-child {
+  border-color: rgba(191, 44, 36, 0.46);
+  background: #bf2c24;
+  color: #fff;
+}
+
+.qidian-card-actions button:last-child:hover {
+  border-color: #aa2720;
+  background: #aa2720;
+  color: #fff;
+}
+
+.source-link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
 }
 
 .source-row {
@@ -3068,6 +3403,22 @@ button {
     position: static;
     max-height: none;
   }
+
+  .qidian-rank-filter {
+    position: static;
+    max-height: none;
+  }
+
+  .qidian-rank-filter .panel-title,
+  .qidian-source-summary {
+    grid-column: 1 / -1;
+  }
+
+  .qidian-rank-filter {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 2px;
+  }
 }
 
 @media (max-width: 760px) {
@@ -3148,6 +3499,46 @@ button {
 
   .channel-toggle {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .channel-toggle.rank-channel-toggle {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .qidian-rank-filter {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .qidian-rank-filter .panel-title,
+  .qidian-source-summary {
+    grid-column: 1 / -1;
+  }
+
+  .qidian-rank-filter .rank-type-row {
+    width: calc(100% - 12px);
+    margin: 0 6px 8px;
+    padding: 9px 10px;
+  }
+
+  .qidian-rank-card {
+    width: calc(100% - 20px);
+    gap: 10px;
+    margin: 10px 10px 0;
+    padding: 13px 11px;
+  }
+
+  .qidian-book-line {
+    display: grid;
+  }
+
+  .qidian-book-line .rank-metric {
+    justify-self: start;
+    margin-top: 6px;
+  }
+
+  .qidian-card-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .market-tabs {

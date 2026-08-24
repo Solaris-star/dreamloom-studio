@@ -24,7 +24,7 @@ const marketApi = {
   listMarketOpportunities: (payload) => postJson('/api/market/opportunities', payload),
   getMarketDashboard: (payload) => postJson('/api/market/dashboard', payload),
   getMarketOverview: (payload) => postJson('/api/market/overview', payload),
-  getMarketHotRank: (payload) => postJson('/api/market/hot-rank', payload),
+  getMarketHotRank: (payload) => postJson('/api/market/hot-rank', payload, { timeoutMs: 15_000 }),
   getMarketKeywordCloud: (payload) => postJson('/api/market/keyword-cloud', payload),
   getMarketKeywordCombination: (payload) =>
     postJson('/api/market/keyword-combination', payload),

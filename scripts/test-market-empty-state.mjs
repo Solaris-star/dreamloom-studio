@@ -26,9 +26,15 @@ try {
   assert.equal(offline.emptyState?.reason, 'offline')
   assert.match(String(offline.emptyState?.title || ''), /离线/)
 
-  const rank = await marketService.getMarketHotRank(root, { channel: 'all' })
-  assert.equal(rank.dataMode, 'example')
-  assert.ok(rank.items.every((item) => item.isExample === true))
+  const rank = await marketService.getMarketHotRank(root, {
+    channel: 'male',
+    offline: true
+  })
+  assert.equal(rank.dataMode, 'empty')
+  assert.equal(rank.platform, 'qidian')
+  assert.ok(rank.items.length === 0)
+  assert.ok(rank.rankTypes.some((item) => item.key === 'yuepiao'))
+  assert.match(String(rank.message || ''), /离线|起点/)
 
   const cloud = await marketService.getMarketKeywordCloud(root, { channel: 'all' })
   assert.equal(cloud.dataMode, 'example')

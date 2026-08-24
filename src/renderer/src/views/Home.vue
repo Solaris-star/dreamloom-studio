@@ -211,19 +211,17 @@
               class="ink-row book-row"
               @click="openBook(book)"
             >
-              <div
-                class="cover-thumb"
-                :style="{ backgroundColor: wabiCoverColor(book.coverColor) }"
-              >
+              <div class="cover-thumb">
                 <img
                   v-if="coverSrc(book)"
                   :src="coverSrc(book)"
                   :alt="book.name"
                 >
-                <span
+                <BookOpenText
                   v-else
-                  class="cover-glyph"
-                >{{ (book.name || book.folderName || '书').charAt(0) }}</span>
+                  :size="18"
+                  aria-hidden="true"
+                />
               </div>
               <div class="row-main">
                 <strong>{{ book.name || book.folderName }}</strong>
@@ -471,6 +469,7 @@ import { computed, onBeforeUnmount, onMounted, onActivated, ref, watch } from 'v
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
+import { BookOpenText } from 'lucide-vue-next'
 import EncourageToastScheduler from '@renderer/components/EncourageToastScheduler.vue'
 import { UiSkeleton } from '@renderer/components/ui'
 import { useMainStore } from '@renderer/stores'
@@ -545,13 +544,6 @@ const marketTabs = [
   { key: 'month', label: '本月' }
 ]
 
-const DEFAULT_WABI_COVER_COLOR = '#6f7a68'
-const mutedCoverColorMap = new Map([
-  ['#22345c', DEFAULT_WABI_COVER_COLOR],
-  ['#23314f', DEFAULT_WABI_COVER_COLOR],
-  ['rgb(34, 52, 92)', DEFAULT_WABI_COVER_COLOR],
-  ['rgb(35, 49, 79)', DEFAULT_WABI_COVER_COLOR]
-])
 
 const starterCategories = [
   { name: '现代都市', prompt: '创作一个现代都市背景的小说，主角是一位在大城市奋斗的年轻人。' },
@@ -1085,13 +1077,6 @@ function coverSrc(book) {
   return bookImageUrl(book.folderName || book.name, book.coverUrl)
 }
 
-function wabiCoverColor(color) {
-  const normalized = String(color || '')
-    .trim()
-    .toLowerCase()
-  return mutedCoverColorMap.get(normalized) || normalized || DEFAULT_WABI_COVER_COLOR
-}
-
 function latestChapterName(rows = []) {
   const chapters = rows.flatMap((volume) => (Array.isArray(volume.children) ? volume.children : []))
   return chapters[chapters.length - 1]?.name || ''
@@ -1459,8 +1444,8 @@ $mono: 'Space Mono', ui-monospace, monospace;
 }
 
 .starter-control-row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(150px, auto);
   gap: 12px;
   align-items: end;
   margin-top: 14px;
@@ -1468,15 +1453,9 @@ $mono: 'Space Mono', ui-monospace, monospace;
   border-top: 1px solid var(--wabi-line);
 
   label {
-    display: flex;
-    flex: 1 1 170px;
-    flex-direction: column;
+    display: grid;
     gap: 6px;
     min-width: 0;
-  }
-
-  .strategy-field {
-    flex-basis: 200px;
   }
 
   span {
@@ -1492,17 +1471,15 @@ $mono: 'Space Mono', ui-monospace, monospace;
   }
 
   :deep(.el-select__wrapper) {
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-    border-bottom: 1px solid var(--wabi-line);
-    padding-left: 0;
-    padding-right: 4px;
+    min-height: 40px;
+    border-radius: var(--theme-control-radius, 8px);
+    background: var(--bg-soft);
+    box-shadow: 0 0 0 1px var(--border-color) inset;
+    padding-inline: 12px;
   }
 
   :deep(.el-select__wrapper.is-focused) {
-    box-shadow: none;
-    border-bottom-color: var(--wabi-ink);
+    box-shadow: 0 0 0 1px var(--el-color-primary) inset;
   }
 }
 
@@ -1632,13 +1609,15 @@ $mono: 'Space Mono', ui-monospace, monospace;
 .cover-thumb {
   display: grid;
   position: relative;
-  width: 34px;
-  height: 46px;
+  width: 38px;
+  height: 42px;
   flex: 0 0 auto;
   place-items: center;
   overflow: hidden;
-  border-radius: var(--theme-card-radius, 0);
-  color: var(--wabi-paper);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 18%, var(--border-color));
+  border-radius: var(--theme-card-radius, 10px);
+  background: color-mix(in srgb, var(--el-color-primary) 8%, var(--bg-soft));
+  color: var(--el-color-primary);
   font-family: $serif;
   font-weight: 600;
 
@@ -1977,8 +1956,12 @@ $mono: 'Space Mono', ui-monospace, monospace;
     border-bottom: 1px solid var(--wabi-line);
   }
 
-  .starter-control-row label {
-    flex-basis: 100%;
+  .starter-control-row {
+    grid-template-columns: 1fr;
+  }
+
+  :deep(.starter-submit.el-button) {
+    width: 100%;
   }
 }
 </style>

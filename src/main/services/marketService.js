@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import knowledgeBaseService, { calculateWriterActivityStatus } from './knowledgeBaseService.js'
 import marketTrendService from './marketTrendService.js'
+import platformRankingService from './platformRankingService.js'
 import { nowIso, writeJson } from './webJsonRepository.js'
 
 const MARKET_DIR = 'market'
@@ -826,7 +827,7 @@ export async function getMarketOverview(booksDir, filter = {}) {
 }
 
 export async function getMarketHotRank(booksDir, filter = {}) {
-  return await marketTrendService.buildHotRank(booksDir, filter)
+  return await platformRankingService.buildPlatformHotRank(booksDir, filter)
 }
 
 export async function getMarketKeywordCloud(booksDir, filter = {}) {

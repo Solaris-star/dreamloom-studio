@@ -83,8 +83,94 @@ body,
 .el-input__wrapper,
 .el-textarea__inner,
 .el-select__wrapper {
+  min-height: 40px;
+  box-sizing: border-box;
   background-color: var(--bg-soft) !important;
   box-shadow: 0 0 0 1px var(--border-color) inset !important;
+}
+
+.el-select__wrapper {
+  display: flex !important;
+  align-items: center !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: 20px;
+}
+
+.el-select__selection {
+  display: flex !important;
+  min-width: 0;
+  min-height: 38px;
+  align-items: center !important;
+}
+
+.el-select__selected-item,
+.el-select__placeholder,
+.el-select__input-wrapper {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  line-height: 20px !important;
+}
+
+.el-select__suffix {
+  display: inline-flex !important;
+  height: 20px;
+  align-self: center;
+  align-items: center !important;
+  justify-content: center;
+  line-height: 20px !important;
+}
+
+.el-select__caret {
+  width: 16px;
+  height: 16px;
+  margin: 0 !important;
+}
+
+.el-select--small .el-select__wrapper {
+  min-height: 32px;
+}
+
+.el-select--small .el-select__selection {
+  min-height: 30px;
+}
+
+.el-select--large .el-select__wrapper {
+  min-height: 48px;
+}
+
+.el-select--large .el-select__selection {
+  min-height: 46px;
+}
+
+select:not([multiple]):not([size]) {
+  min-height: 40px;
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--border-color);
+  border-radius: var(--theme-control-radius, 8px);
+  background-color: var(--bg-soft) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 11px center !important;
+  background-size: 16px 16px !important;
+  color: var(--text-base);
+  font: inherit;
+  line-height: 1.25;
+  padding: 0 38px 0 12px;
+}
+
+select:not([multiple]):not([size]):focus-visible {
+  border-color: var(--el-color-primary);
+  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 24%, transparent);
+  outline-offset: 1px;
+}
+
+select:not([multiple]):not([size]):disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
 }
 
 .el-input__inner,
