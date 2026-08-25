@@ -136,6 +136,7 @@ function normalizeQidianRecord(row = {}, index = 0, context = {}) {
     channelLabel: channel === 'female' ? '女频' : '男频',
     url: `https://www.qidian.com/book/${bid}/`,
     bookId: bid,
+    coverUrl: `https://bookcover.yuewen.com/qdbiz/2,150,${bid}.jpg`,
     heatScore: null,
     growthScore: null,
     opportunityScore: null,

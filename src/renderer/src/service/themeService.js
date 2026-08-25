@@ -413,6 +413,19 @@ function applyPalette(root, palette, themeKey) {
   set('--wabi-muted-2', palette.textGrayLight)
   set('--wabi-moss-dark', palette.primaryColor)
   set('--wabi-rust', palette.dangerColor)
+  // moss / earth 之前被 MarketInspiration 等组件大量引用却从未定义，
+  // 导致背景与强调色整片落空（透明）。这里正式补齐，随主题明暗自适应。
+  set(
+    '--wabi-moss',
+    palette.isDark
+      ? lightenHex(palette.primaryColor, 0.2)
+      : lightenHex(palette.primaryColor, 0.16)
+  )
+  const wabiEarthBase = blendHex(palette.warningColor, palette.dangerColor, 0.45)
+  set(
+    '--wabi-earth',
+    palette.isDark ? lightenHex(wabiEarthBase, 0.2) : darkenHex(wabiEarthBase, 0.05)
+  )
 
   const primary = palette.primaryColor
   set('--el-color-primary', primary)

@@ -375,124 +375,228 @@
       v-else-if="activeTab === 'rankings'"
       class="rank-grid qidian-rank-layout"
     >
-      <aside
-        v-motion-list="{
-          selector: '.source-row',
-          key: `qidian-types:${selectedRankType}:${hotRank.rankTypes.length}`
-        }"
-        class="paper-panel source-filter qidian-rank-filter"
-      >
-        <div class="panel-title">
+      <aside class="paper-panel source-filter qidian-rank-filter">
+        <div class="panel-title qidian-filter-title">
           <div>
             <h2>起点榜单</h2>
-            <small>官方实时数据</small>
+            <small>官方移动端接口 · 实时读取</small>
           </div>
           <span class="qidian-mark">起</span>
         </div>
-        <button
-          v-for="rankType in hotRank.rankTypes"
-          :key="rankType.key"
-          type="button"
-          class="source-row rank-type-row"
-          :class="{ active: selectedRankType === rankType.key }"
-          @click="setRankType(rankType.key)"
-        >
-          <span>
-            <b>{{ rankType.label }}</b>
-            <small>{{ rankType.description }}</small>
-          </span>
-          <ChevronRight :size="16" />
-        </button>
-
+        <nav class="rank-type-nav">
+          <button
+            v-for="rankType in hotRank.rankTypes"
+            :key="rankType.key"
+            type="button"
+            class="rank-type-row"
+            :class="{ active: selectedRankType === rankType.key }"
+            :disabled="rankSwitching"
+            @click="setRankType(rankType.key)"
+          >
+            <span class="rank-type-label">{{ rankType.label }}</span>
+            <small class="rank-type-desc">{{ rankType.description }}</small>
+          </button>
+        </nav>
         <div class="source-summary qidian-source-summary">
-          <strong>起点中文网</strong>
-          <span>直接读取官方移动端榜单接口。</span>
+          <strong>数据承诺</strong>
+          <span>直接读取起点官方榜单接口。</span>
           <span>不生成、不估算、不混入示例热度。</span>
         </div>
       </aside>
 
-      <main
-        v-motion-list="{
-          selector: '.qidian-rank-card',
-          key: `qidian-rank:${channel}:${selectedRankType}:${hotRank.items.length}`
-        }"
-        class="paper-panel hot-rank-list qidian-rank-list"
-      >
+      <main class="paper-panel hot-rank-list qidian-rank-list">
         <div class="panel-title qidian-rank-title">
-          <div>
-            <h2>起点 · {{ hotRank.rankLabel || '月票榜' }}</h2>
+          <div class="qidian-title-block">
+            <h2>{{ hotRank.rankLabel || '月票榜' }}<em>· 起点{{ channelLabel(channel) }}</em></h2>
             <p>{{ selectedRankTypeDescription }}</p>
           </div>
-          <div class="rank-source-meta">
-            <strong>{{ hotRank.items.length }}</strong>
-            <span>部作品</span>
-            <small>{{ hotRank.dataMode === 'live' ? '实时读取' : contentModeText(hotRank.dataMode) }}</small>
+          <div class="rank-live-meta">
+            <span
+              class="live-dot"
+              :class="hotRank.dataMode"
+            />
+            <div class="live-text">
+              <b>{{ hotRank.dataMode === 'live' ? '实时读取' : contentModeText(hotRank.dataMode) }}</b>
+              <small v-if="hotRank.fetchedAt">{{ formatDateTime(hotRank.fetchedAt) }} 更新</small>
+            </div>
+            <strong class="live-count">{{ hotRank.items.length }}</strong>
           </div>
         </div>
 
         <MarketEmptyState
           v-if="hotRank.items.length === 0"
           title="起点榜单暂不可用"
-          :description="hotRank.message || '起点暂未返回榜单数据，请稍后重试。'"
+          :description="hotRank.message || '起点暂未返回榜单数据,请稍后重试。'"
           :reason="emptyState?.reason || 'empty'"
           :offline="isOffline"
           show-actions
           @refresh="handleRefresh"
         />
 
-        <article
-          v-for="item in hotRank.items"
+        <div
           v-else
-          :key="item.id"
-          class="qidian-rank-card"
-          :class="{ active: selectedHotRank?.id === item.id }"
-          tabindex="0"
-          @click="selectedHotRank = item"
-          @keydown.enter="selectedHotRank = item"
+          class="qidian-rank-body"
+          :class="{ switching: rankSwitching }"
         >
-          <span class="rank-flag" :class="{ podium: item.rank <= 3 }">{{ item.rank }}</span>
-          <div class="hot-content">
-            <div class="hot-line qidian-book-line">
-              <div>
-                <h3>{{ item.rawTitle }}</h3>
-                <span>{{ item.author || '作者未知' }}</span>
+          <!-- 前三名:领奖台大卡 -->
+          <div
+            v-motion-list="{
+              selector: '.podium-card',
+              key: `podium:${channel}:${selectedRankType}:${hotRank.items.length}:${hotRank.fetchedAt}`
+            }"
+            class="podium-grid"
+          >
+            <article
+              v-for="item in podiumItems"
+              :key="item.id"
+              class="podium-card"
+              :class="{
+                active: selectedHotRank?.id === item.id,
+                [`podium-${item.rank}`]: true
+              }"
+              tabindex="0"
+              @click="selectedHotRank = item"
+              @keydown.enter="selectedHotRank = item"
+            >
+              <div class="podium-cover">
+                <img
+                  v-if="item.coverUrl && !coverFailed[item.id]"
+                  :src="item.coverUrl"
+                  :alt="`${item.rawTitle} 封面`"
+                  loading="lazy"
+                  @error="markCoverFailed(item.id)"
+                >
+                <span
+                  v-else
+                  class="podium-cover-fallback"
+                >{{ (item.rawTitle || '书').charAt(0) }}</span>
+                <span class="podium-medal">{{ item.rank }}</span>
               </div>
-              <b class="rank-metric">{{ item.rankMetric || `第 ${item.rank} 名` }}</b>
-            </div>
-            <div class="tag-line qidian-book-meta">
-              <span v-if="item.category">{{ item.category }}</span>
-              <span v-if="item.subCategory">{{ item.subCategory }}</span>
-              <span v-if="item.wordCount">{{ item.wordCount }}</span>
-              <span>{{ channelLabel(item.channel) }}</span>
-            </div>
-            <p class="qidian-book-intro">{{ item.intro || '起点暂未提供作品简介。' }}</p>
-            <div class="card-actions qidian-card-actions">
-              <a
-                :href="item.url"
-                target="_blank"
-                rel="noreferrer"
-                @click.stop
-              >
-                查看原作
-                <ExternalLink :size="14" />
-              </a>
-              <button
-                type="button"
-                :disabled="Boolean(actionLoading)"
-                @click.stop="handleGenerateOutline(item)"
-              >
-                生成题材草案
-              </button>
-              <button
-                type="button"
-                :disabled="Boolean(actionLoading)"
-                @click.stop="handleSaveInsight(item)"
-              >
-                存入灵感库
-              </button>
-            </div>
+              <div class="podium-info">
+                <h3>{{ item.rawTitle }}</h3>
+                <span class="podium-author">{{ item.author || '作者未知' }}</span>
+                <div
+                  v-if="metricFor(item).value"
+                  class="podium-metric"
+                >
+                  <b>{{ metricFor(item).value }}</b>
+                  <small>{{ metricFor(item).unit || '热度' }}</small>
+                </div>
+                <div class="podium-tags">
+                  <span v-if="item.category">{{ item.category }}</span>
+                  <span v-if="item.subCategory">{{ item.subCategory }}</span>
+                  <span v-if="item.wordCount">{{ item.wordCount }}</span>
+                </div>
+              </div>
+              <div class="podium-actions">
+                <a
+                  :href="item.url"
+                  target="_blank"
+                  rel="noreferrer"
+                  title="查看原作"
+                  @click.stop
+                >
+                  <ExternalLink :size="14" />
+                </a>
+                <button
+                  type="button"
+                  title="生成题材草案"
+                  :disabled="Boolean(actionLoading)"
+                  @click.stop="handleGenerateOutline(item)"
+                >
+                  <Flame :size="14" />
+                </button>
+                <button
+                  type="button"
+                  class="primary"
+                  title="存入灵感库"
+                  :disabled="Boolean(actionLoading)"
+                  @click.stop="handleSaveInsight(item)"
+                >
+                  <Bookmark :size="14" />
+                </button>
+              </div>
+            </article>
           </div>
-        </article>
+
+          <!-- 第 4 名起:编辑级行列表 -->
+          <div
+            v-motion-list="{
+              selector: '.rank-row',
+              key: `rows:${channel}:${selectedRankType}:${hotRank.items.length}:${hotRank.fetchedAt}`
+            }"
+            class="rank-list-rows"
+          >
+            <article
+              v-for="item in listItems"
+              :key="item.id"
+              class="rank-row"
+              :class="{ active: selectedHotRank?.id === item.id }"
+              tabindex="0"
+              @click="selectedHotRank = item"
+              @keydown.enter="selectedHotRank = item"
+            >
+              <span class="row-rank">{{ item.rank }}</span>
+              <div class="row-cover">
+                <img
+                  v-if="item.coverUrl && !coverFailed[item.id]"
+                  :src="item.coverUrl"
+                  :alt="`${item.rawTitle} 封面`"
+                  loading="lazy"
+                  @error="markCoverFailed(item.id)"
+                >
+                <span
+                  v-else
+                  class="row-cover-fallback"
+                >{{ (item.rawTitle || '书').charAt(0) }}</span>
+              </div>
+              <div class="row-main">
+                <h3>{{ item.rawTitle }}</h3>
+                <span class="row-meta">
+                  {{ item.author || '作者未知' }}
+                  <template v-if="item.category"> · {{ item.category }}</template>
+                  <template v-if="item.subCategory"> · {{ item.subCategory }}</template>
+                  <template v-if="item.wordCount"> · {{ item.wordCount }}</template>
+                </span>
+              </div>
+              <div
+                v-if="metricFor(item).value"
+                class="row-metric"
+              >
+                <b>{{ metricFor(item).value }}</b>
+                <small>{{ metricFor(item).unit || '热度' }}</small>
+              </div>
+              <div class="row-actions">
+                <a
+                  :href="item.url"
+                  target="_blank"
+                  rel="noreferrer"
+                  title="查看原作"
+                  @click.stop
+                >
+                  <ExternalLink :size="14" />
+                </a>
+                <button
+                  type="button"
+                  title="生成题材草案"
+                  :disabled="Boolean(actionLoading)"
+                  @click.stop="handleGenerateOutline(item)"
+                >
+                  <Flame :size="14" />
+                </button>
+                <button
+                  type="button"
+                  class="primary"
+                  title="存入灵感库"
+                  :disabled="Boolean(actionLoading)"
+                  @click.stop="handleSaveInsight(item)"
+                >
+                  <Bookmark :size="14" />
+                </button>
+              </div>
+            </article>
+          </div>
+        </div>
       </main>
     </section>
 
@@ -776,7 +880,7 @@ defineOptions({ name: 'MarketInspiration' })
 import { computed, h, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Bookmark, ChevronRight, ExternalLink, Flame, RefreshCw } from 'lucide-vue-next'
+import { Bookmark, ChevronRight, Crown, ExternalLink, Flame, RefreshCw } from 'lucide-vue-next'
 import {
   applyMarketInsightToCurrentBook,
   createBookFromMarketInsight,
@@ -853,6 +957,7 @@ const combinationDetail = ref({})
 const showKeywordTrend = ref(true)
 const loading = ref(false)
 const refreshing = ref(false)
+const rankSwitching = ref(false)
 const pageError = ref('')
 const actionLoading = ref('')
 const books = ref([])
@@ -928,6 +1033,14 @@ const selectedRankTypeDescription = computed(
     hotRank.rankTypes.find((item) => item.key === selectedRankType.value)?.description ||
     '起点官方排行榜'
 )
+
+const podiumItems = computed(() => hotRank.items.slice(0, 3))
+const listItems = computed(() => hotRank.items.slice(3))
+
+const coverFailed = reactive({})
+function markCoverFailed(id) {
+  if (id) coverFailed[id] = true
+}
 
 const hasAnyData = computed(
   () =>
@@ -1434,9 +1547,12 @@ function goTab(key) {
 }
 
 function setRankType(rankType) {
-  if (!rankType || rankType === selectedRankType.value) return
+  if (!rankType || rankType === selectedRankType.value || rankSwitching.value) return
   selectedRankType.value = rankType
-  loadMarket()
+  rankSwitching.value = true
+  loadMarket().finally(() => {
+    rankSwitching.value = false
+  })
 }
 
 function selectInsightById(id) {
@@ -1863,6 +1979,26 @@ function contentModeText(value) {
   )
 }
 
+function splitMetric(text) {
+  const value = String(text || '').trim()
+  if (!value) return null
+  const match = value.match(/^(\d+(?:\.\d+)?\s*(?:万|亿|千|w|W|k|K|M)?)([\s\S]*)$/)
+  if (!match) return { value, unit: '' }
+  return { value: match[1].trim(), unit: (match[2] || '').trim() }
+}
+
+function metricFor(item = {}) {
+  const primary = splitMetric(item.rankMetric)
+  if (primary && primary.value && primary.value !== '0') {
+    return { ...primary, kind: 'metric' }
+  }
+  const words = splitMetric(item.wordCount)
+  if (words && words.value && words.value !== '0') {
+    return { ...words, kind: 'words' }
+  }
+  return { value: '', unit: '', kind: 'none' }
+}
+
 function channelLabel(value) {
   return { all: '通用', male: '男频', female: '女频' }[value] || '通用'
 }
@@ -2114,14 +2250,15 @@ button {
 }
 
 .qidian-refresh-button {
-  border-color: rgba(191, 44, 36, 0.46) !important;
-  background: #bf2c24 !important;
-  color: #fff !important;
+  border-color: rgba(82, 99, 75, 0.5) !important;
+  background: var(--wabi-moss-dark) !important;
+  color: #fbfaf6 !important;
 }
 
 .qidian-refresh-button:hover {
-  border-color: #aa2720 !important;
-  background: #aa2720 !important;
+  border-color: rgba(82, 99, 75, 0.62) !important;
+  background: var(--wabi-moss-dark) !important;
+  filter: brightness(1.06);
 }
 
 .spin {
@@ -2679,67 +2816,116 @@ button {
 .qidian-rank-filter {
   position: sticky;
   top: 16px;
+  display: flex;
+  flex-direction: column;
   max-height: calc(100vh - 32px);
   overflow: auto;
+  padding-bottom: 14px;
+}
+
+.qidian-filter-title {
+  align-items: center;
 }
 
 .qidian-mark {
   display: inline-grid;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   place-items: center;
-  border-radius: 10px;
-  background: #bf2c24;
-  box-shadow: 0 6px 14px rgba(191, 44, 36, 0.18);
-  color: #fff !important;
-  font-size: 17px !important;
-  font-weight: 800;
+  border: 1px solid rgba(82, 99, 75, 0.34);
+  border-radius: 9px;
+  background: linear-gradient(150deg, rgba(82, 99, 75, 0.14), rgba(82, 99, 75, 0.05));
+  color: var(--wabi-moss-dark) !important;
+  font-family: 'Noto Serif SC', 'Songti SC', serif;
+  font-size: 18px !important;
+  font-weight: 700;
+}
+
+.rank-type-nav {
+  display: grid;
+  gap: 3px;
+  padding: 12px 12px 6px;
 }
 
 .rank-type-row {
-  grid-template-columns: 1fr auto !important;
-  min-height: 58px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3px;
+  padding: 11px 14px;
+  border: 0;
+  border-left: 3px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
-.rank-type-row > span {
+.rank-type-row:hover {
+  background: rgba(82, 99, 75, 0.06);
+}
+
+.rank-type-row:disabled {
+  cursor: progress;
+  opacity: 0.72;
+}
+
+.rank-type-label {
+  color: var(--wabi-ink);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.rank-type-desc {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.rank-type-row.active {
+  border-left-color: var(--wabi-moss-dark);
+  background: linear-gradient(90deg, rgba(82, 99, 75, 0.12), rgba(82, 99, 75, 0.04));
+  box-shadow: 0 2px 10px rgba(82, 99, 75, 0.08);
+}
+
+.rank-type-row.active .rank-type-label {
+  color: var(--wabi-moss-dark);
+  font-weight: 700;
+}
+
+.qidian-source-summary {
+  margin: 10px 12px 0;
+  padding: 12px;
+  border: 1px dashed rgba(82, 99, 75, 0.26);
+  border-radius: 9px;
+  background: rgba(82, 99, 75, 0.045);
   display: grid;
   gap: 4px;
 }
 
-.rank-type-row > span b {
-  color: var(--wabi-ink);
-  font-size: 14px;
-}
-
-.rank-type-row > span small {
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.rank-type-row.active {
-  border-color: rgba(191, 44, 36, 0.28) !important;
-  background: rgba(191, 44, 36, 0.07) !important;
-  box-shadow: inset 3px 0 0 #bf2c24 !important;
-}
-
-.rank-type-row.active > span b,
-.rank-type-row.active > svg {
-  color: #bf2c24;
-}
-
-.qidian-source-summary {
-  background: rgba(191, 44, 36, 0.06) !important;
-}
-
 .qidian-source-summary strong {
-  color: #bf2c24;
+  color: var(--wabi-moss-dark);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.qidian-source-summary span {
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.5;
 }
 
 .qidian-rank-list {
   max-height: none;
   min-height: 620px;
   overflow: visible;
-  padding-bottom: 14px;
+  padding-bottom: 18px;
 }
 
 .qidian-rank-title {
@@ -2751,141 +2937,527 @@ button {
   backdrop-filter: blur(18px);
 }
 
-.rank-source-meta {
-  display: grid;
-  grid-template-columns: auto auto;
+.qidian-title-block h2 {
+  display: flex;
   align-items: baseline;
-  gap: 2px 6px;
-  min-width: 86px;
+  gap: 8px;
+  font-family: 'Noto Serif SC', 'Songti SC', serif;
+  font-size: 20px;
+  letter-spacing: 0.03em;
+}
+
+.qidian-title-block h2 em {
+  color: var(--muted);
+  font-family: var(--theme-font-ui);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.rank-live-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--wabi-muted-2);
+  flex: 0 0 auto;
+}
+
+.live-dot.live {
+  background: var(--wabi-moss-dark);
+  box-shadow: 0 0 0 0 rgba(82, 99, 75, 0.4);
+  animation: live-pulse 2.2s ease-out infinite;
+}
+
+.live-dot.cached,
+.live-dot.stale {
+  background: var(--wabi-earth);
+}
+
+@keyframes live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(82, 99, 75, 0.36);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(82, 99, 75, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(82, 99, 75, 0);
+  }
+}
+
+.live-text {
+  display: grid;
+  gap: 1px;
   text-align: right;
 }
 
-.rank-source-meta strong {
-  color: #bf2c24;
-  font-size: 24px;
+.live-text b {
+  color: var(--wabi-ink);
+  font-size: 12px;
+  font-weight: 600;
 }
 
-.rank-source-meta span,
-.rank-source-meta small {
+.live-text small {
   color: var(--muted);
   font-size: 11px;
 }
 
-.rank-source-meta small {
-  grid-column: 1 / -1;
+.live-count {
+  min-width: 40px;
+  padding: 5px 0;
+  border: 1px solid rgba(82, 99, 75, 0.24);
+  border-radius: 8px;
+  background: rgba(82, 99, 75, 0.07);
+  color: var(--wabi-moss-dark);
+  font-family: 'Noto Serif SC', 'Songti SC', serif;
+  font-size: 17px;
+  text-align: center;
 }
 
-.qidian-rank-card {
+.qidian-rank-body {
+  padding: 18px 20px 20px;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.qidian-rank-body.switching {
+  opacity: 0.35;
+  transform: translateY(4px);
+  pointer-events: none;
+}
+
+/* 前三名：领奖台大卡 */
+.podium-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.podium-card {
+  position: relative;
   display: flex;
-  width: calc(100% - 28px);
-  gap: 14px;
-  margin: 12px 14px 0;
-  padding: 16px;
-  border: 1px solid rgba(138, 115, 93, 0.16);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.72);
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 18px 16px;
+  border: 1px solid rgba(138, 115, 93, 0.14);
+  border-radius: 20px;
+  background: linear-gradient(180deg, #fffdfa, #fbfaf6);
+  box-shadow: 0 2px 12px rgba(58, 55, 49, 0.05);
   cursor: pointer;
   outline: none;
+  overflow: hidden;
   transition:
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.22s ease;
 }
 
-.qidian-rank-card:hover,
-.qidian-rank-card:focus-visible,
-.qidian-rank-card.active {
-  border-color: rgba(191, 44, 36, 0.28);
-  box-shadow: 0 10px 28px rgba(71, 51, 37, 0.08);
-  transform: translateY(-1px);
+.podium-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: transparent;
+  transition: background 0.22s ease;
 }
 
-.qidian-rank-card .rank-flag {
-  margin-top: 1px;
+.podium-card:hover,
+.podium-card:focus-visible {
+  border-color: rgba(82, 99, 75, 0.32);
+  box-shadow: 0 16px 34px rgba(58, 55, 49, 0.1);
+  transform: translateY(-3px);
 }
 
-.qidian-rank-card .rank-flag.podium {
-  border-color: rgba(191, 44, 36, 0.28);
-  background: #bf2c24;
+.podium-card.active {
+  border-color: rgba(82, 99, 75, 0.45);
+  box-shadow: 0 18px 40px rgba(58, 55, 49, 0.12);
+}
+
+.podium-card.active::before {
+  background: var(--wabi-moss-dark);
+}
+
+/* 金银铜顶带上色 */
+.podium-card.podium-1::before {
+  background: linear-gradient(90deg, #e8c877, #c9962e, #e8c877);
+}
+
+.podium-card.podium-2::before {
+  background: linear-gradient(90deg, #d5d9dd, #a8afb6, #d5d9dd);
+}
+
+.podium-card.podium-3::before {
+  background: linear-gradient(90deg, #d9a67c, #b7791f, #d9a67c);
+}
+
+.podium-cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: 12px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #f3f0e8, #e9e5da);
+}
+
+.podium-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.podium-cover-fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-family: 'Noto Serif SC', 'Songti SC', serif;
+  font-size: 42px;
+  font-weight: 700;
+  color: rgba(82, 99, 75, 0.55);
+}
+
+.podium-medal {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-family: 'Noto Serif SC', 'Songti SC', serif;
+  font-size: 14px;
+  font-weight: 700;
   color: #fff;
+  box-shadow: 0 2px 6px rgba(58, 55, 49, 0.22);
 }
 
-.qidian-book-line {
-  align-items: flex-start;
+.podium-card.podium-1 .podium-medal {
+  background: linear-gradient(135deg, #e8c877, #c9962e);
 }
 
-.qidian-book-line > div {
+.podium-card.podium-2 .podium-medal {
+  background: linear-gradient(135deg, #d5d9dd, #a8afb6);
+}
+
+.podium-card.podium-3 .podium-medal {
+  background: linear-gradient(135deg, #d9a67c, #b7791f);
+}
+
+.podium-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
 }
 
-.qidian-book-line h3 {
-  color: var(--wabi-ink);
+.podium-info h3 {
+  margin: 0;
+  font-family: 'Noto Serif SC', 'Songti SC', serif;
   font-size: 17px;
-}
-
-.qidian-book-line span {
-  display: block;
-  margin-top: 4px;
-}
-
-.qidian-book-line .rank-metric {
-  flex: 0 0 auto;
-  color: #bf2c24;
-  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--wabi-ink);
   white-space: nowrap;
-}
-
-.qidian-book-meta {
-  margin-top: 10px;
-}
-
-.qidian-book-intro {
-  display: -webkit-box;
   overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  min-height: 3em;
+  text-overflow: ellipsis;
 }
 
-.qidian-card-actions {
-  align-items: center;
+.podium-author {
+  color: var(--wabi-muted-2);
+  font-size: 12px;
 }
 
-.qidian-card-actions a,
-.qidian-card-actions button {
+.podium-metric {
   display: inline-flex;
-  min-height: 34px;
+  align-items: baseline;
+  gap: 5px;
+  margin-top: 6px;
+  align-self: flex-start;
+  border: 1px solid rgba(82, 99, 75, 0.18);
+  border-radius: 999px;
+  background: rgba(82, 99, 75, 0.06);
+  padding: 3px 10px;
+}
+
+.podium-metric b {
+  font-family: 'Noto Serif SC', 'Songti SC', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--wabi-moss-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.podium-metric small {
+  color: var(--wabi-muted-2);
+  font-size: 11px;
+}
+
+.podium-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.podium-tags span {
+  border-radius: 6px;
+  background: rgba(138, 115, 93, 0.09);
+  color: var(--wabi-earth);
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 7px;
+}
+
+.podium-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.podium-card:hover .podium-actions,
+.podium-card:focus-visible .podium-actions,
+.podium-card.active .podium-actions {
+  opacity: 1;
+  transform: none;
+}
+
+.podium-actions a,
+.podium-actions button {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  border: 1px solid var(--wabi-line);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.68);
+  gap: 4px;
+  height: 30px;
+  border: 1px solid rgba(138, 115, 93, 0.22);
+  border-radius: 9px;
+  background: #fff;
   color: var(--wabi-ink-soft);
   cursor: pointer;
   font: inherit;
   font-size: 12px;
-  padding: 7px 11px;
+  padding: 0 9px;
   text-decoration: none;
+  transition:
+    border-color 0.16s ease,
+    color 0.16s ease,
+    background 0.16s ease,
+    transform 0.16s ease;
 }
 
-.qidian-card-actions a:hover,
-.qidian-card-actions button:hover {
-  border-color: rgba(191, 44, 36, 0.32);
-  color: #bf2c24;
+.podium-actions a:hover,
+.podium-actions button:hover {
+  border-color: rgba(82, 99, 75, 0.4);
+  color: var(--wabi-moss-dark);
+  transform: translateY(-1px);
 }
 
-.qidian-card-actions button:last-child {
-  border-color: rgba(191, 44, 36, 0.46);
-  background: #bf2c24;
-  color: #fff;
+.podium-actions button.primary {
+  border-color: rgba(82, 99, 75, 0.5);
+  background: var(--wabi-moss-dark);
+  color: #fbfaf6;
 }
 
-.qidian-card-actions button:last-child:hover {
-  border-color: #aa2720;
-  background: #aa2720;
-  color: #fff;
+.podium-actions button.primary:hover {
+  filter: brightness(1.07);
 }
+
+.podium-actions a:disabled,
+.podium-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+/* 第 4 名起：编辑级行列表 */
+.rank-list-rows {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid rgba(138, 115, 93, 0.12);
+}
+
+.rank-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 34px 40px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(138, 115, 93, 0.1);
+  border-radius: 10px;
+  cursor: pointer;
+  outline: none;
+  transition:
+    background 0.16s ease,
+    transform 0.16s ease;
+}
+
+.rank-row:hover,
+.rank-row:focus-visible {
+  background: rgba(82, 99, 75, 0.05);
+  transform: translateX(2px);
+}
+
+.rank-row.active {
+  background: rgba(82, 99, 75, 0.08);
+}
+
+.rank-row.active::before {
+  content: '';
+  position: absolute;
+  inset: 8px auto 8px 0;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--wabi-moss-dark);
+}
+
+.row-rank {
+  font-family: 'Noto Serif SC', 'Songti SC', serif;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--wabi-muted-2);
+}
+
+.row-cover {
+  width: 40px;
+  height: 53px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #f3f0e8, #e9e5da);
+}
+
+.row-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.row-cover-fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-family: 'Noto Serif SC', 'Songti SC', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(82, 99, 75, 0.5);
+}
+
+.row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.row-main h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--wabi-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row-meta {
+  color: var(--wabi-muted-2);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row-metric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  border: 1px solid rgba(82, 99, 75, 0.16);
+  border-radius: 999px;
+  background: rgba(82, 99, 75, 0.055);
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+
+.row-metric b {
+  font-family: 'Noto Serif SC', 'Songti SC', serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--wabi-moss-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.row-metric small {
+  color: var(--wabi-muted-2);
+  font-size: 10px;
+}
+
+.row-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.rank-row:hover .row-actions,
+.rank-row:focus-visible .row-actions,
+.rank-row.active .row-actions {
+  opacity: 1;
+}
+
+.row-actions a,
+.row-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(138, 115, 93, 0.2);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--wabi-ink-soft);
+  cursor: pointer;
+  padding: 0;
+  transition:
+    border-color 0.16s ease,
+    color 0.16s ease,
+    background 0.16s ease;
+}
+
+.row-actions a:hover,
+.row-actions button:hover {
+  border-color: rgba(82, 99, 75, 0.4);
+  color: var(--wabi-moss-dark);
+}
+
+.row-actions button.primary {
+  border-color: rgba(82, 99, 75, 0.5);
+  background: var(--wabi-moss-dark);
+  color: #fbfaf6;
+}
+
+.row-actions a:disabled,
+.row-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 
 .source-link-button {
   display: inline-flex;
@@ -3520,25 +4092,37 @@ button {
     padding: 9px 10px;
   }
 
-  .qidian-rank-card {
-    width: calc(100% - 20px);
-    gap: 10px;
-    margin: 10px 10px 0;
-    padding: 13px 11px;
+  .podium-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 
-  .qidian-book-line {
-    display: grid;
+  .podium-card {
+    padding: 14px;
   }
 
-  .qidian-book-line .rank-metric {
-    justify-self: start;
-    margin-top: 6px;
+  .podium-actions {
+    opacity: 1;
+    transform: none;
   }
 
-  .qidian-card-actions {
-    justify-content: flex-start;
-    flex-wrap: wrap;
+  .rank-row {
+    grid-template-columns: 30px 36px minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .rank-row .row-actions {
+    display: none;
+  }
+
+  .row-rank {
+    font-size: 16px;
+  }
+
+  .row-cover {
+    width: 36px;
+    height: 48px;
   }
 
   .market-tabs {

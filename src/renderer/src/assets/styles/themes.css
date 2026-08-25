@@ -80,6 +80,44 @@ body,
   border-color: var(--border-color);
 }
 
+/* —— 弹窗垂直居中 ——
+   Element Plus 默认 .el-dialog 走 margin: 15vh auto 50px（顶部对齐），
+   项目里 54 个 dialog 只有少数设了 align-center，导致弹窗全部贴顶。
+   用 flex + margin:auto 居中：弹窗超高时 margin 退化为 0，
+   容器仍可正常滚动，不会裁切顶部。全屏 / 抽屉不受影响。 */
+.el-overlay-dialog {
+  display: flex !important;
+}
+
+.el-overlay-dialog .el-dialog {
+  margin: auto !important;
+}
+
+.el-overlay-dialog .el-dialog.is-fullscreen {
+  margin: 0 !important;
+}
+
+/* ElMessageBox 是命令式调用(ElMessageBox.confirm),不走模板组件解析,
+   unplugin-vue-components 的 ElementPlusResolver 不会为它打包
+   .el-overlay-message-box{position:fixed;inset:0} 全屏定位规则。
+   缺了这条,容器塌缩成内容高度,margin:auto 垂直无空间 → 贴顶。
+   这里显式补上全屏定位 + flex 居中,与 dialog 对齐。 */
+.el-overlay-message-box {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  display: flex !important;
+  overflow: auto;
+  text-align: center;
+}
+
+.el-overlay-message-box .el-message-box {
+  margin: auto !important;
+  vertical-align: initial !important;
+}
+
 .el-input__wrapper,
 .el-textarea__inner,
 .el-select__wrapper {
