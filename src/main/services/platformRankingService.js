@@ -1,6 +1,10 @@
 import { randomBytes } from 'node:crypto'
 import { join } from 'node:path'
 import { readJson, updateJson, nowIso } from './webJsonRepository.js'
+import {
+  fanqieRankTypesForChannel,
+  fetchFanqieRanking
+} from './fanqieRankingService.js'
 
 const MARKET_DIR = 'market'
 const CACHE_FILE = 'platform-rankings.json'
@@ -215,7 +219,33 @@ export async function fetchQidianRanking(options = {}, dependencies = {}) {
   }
 }
 
+function normalizePlatform(value) {
+  return value === 'fanqie' ? 'fanqie' : 'qidian'
+}
+
+function platformMeta(platform, channel) {
+  if (platform === 'fanqie') {
+    return {
+      label: '番茄小说',
+      rankTypes: fanqieRankTypesForChannel(channel),
+      sourceUrl: 'https://fanqienovel.com/rank'
+    }
+  }
+  return {
+    label: '起点中文网',
+    rankTypes: QIDIAN_RANK_TYPES,
+    sourceUrl: ''
+  }
+}
+
 function cacheKey(filter = {}) {
+  const platform = normalizePlatform(filter.platform)
+  if (platform === 'fanqie') {
+    const channel = normalizeChannel(filter.channel)
+    const rankTypes = fanqieRankTypesForChannel(channel)
+    const rankType = rankTypes.find((item) => item.key === filter.rankType) || rankTypes[0]
+    return `fanqie:${rankType.key}:${channel}`
+  }
   return `qidian:${resolveRankType(filter.rankType).key}:${normalizeChannel(filter.channel)}:${clampCategory(filter.categoryId)}:${clampPage(filter.pageNum)}`
 }
 
@@ -225,30 +255,36 @@ function cacheAgeMs(entry) {
 }
 
 function responseFromEntry(entry, mode = 'live', message = '') {
+  const platform = normalizePlatform(entry?.platform)
+  const channel = entry?.channel || 'male'
+  const meta = platformMeta(platform, channel)
+  const liveLabel = platform === 'fanqie' ? '番茄实时榜单' : '起点实时榜单'
+  const staleLabel = platform === 'fanqie' ? '番茄过期缓存' : '起点过期缓存'
+  const cachedLabel = platform === 'fanqie' ? '番茄缓存榜单' : '起点缓存榜单'
   const items = (entry?.items || []).map((item) => ({
     ...item,
     contentKind: mode === 'live' ? 'live' : mode,
-    contentKindLabel:
-      mode === 'live' ? '起点实时榜单' : mode === 'stale' ? '起点过期缓存' : '起点缓存榜单',
+    contentKindLabel: mode === 'live' ? liveLabel : mode === 'stale' ? staleLabel : cachedLabel,
     isLive: mode === 'live',
     isStale: mode === 'stale'
   }))
-  const rankType = resolveRankType(entry?.rankType)
+  const rankType =
+    meta.rankTypes.find((item) => item.key === entry?.rankType) || meta.rankTypes[0]
   return {
     success: true,
-    platform: 'qidian',
-    channel: entry?.channel || 'male',
-    rankTypes: QIDIAN_RANK_TYPES,
+    platform,
+    channel,
+    rankTypes: meta.rankTypes,
     selectedRankType: rankType.key,
     rankLabel: rankType.label,
-    sourceUrl: entry?.sourceUrl || rankType.pageUrl,
+    sourceUrl: entry?.sourceUrl || rankType.pageUrl || meta.sourceUrl,
     fetchedAt: entry?.fetchedAt || '',
     latencyMs: entry?.latencyMs || 0,
     total: entry?.total || items.length,
     sources: [
       {
-        source: 'qidian',
-        label: '起点中文网',
+        source: platform,
+        label: meta.label,
         count: items.length,
         status: mode === 'live' ? 'success' : mode,
         lastSuccessAt: entry?.fetchedAt || ''
@@ -262,14 +298,31 @@ function responseFromEntry(entry, mode = 'live', message = '') {
       ? { reason: 'ok', title: '', description: '', offline: false }
       : {
           reason: 'empty',
-          title: '起点榜单暂不可用',
-          description: message || '起点暂未返回榜单数据，请稍后重试。',
+          title: `${meta.label}榜单暂不可用`,
+          description: message || `${meta.label}暂未返回榜单数据,请稍后重试。`,
           offline: false
         }
   }
 }
 
+function emptyEntry(filter) {
+  const platform = normalizePlatform(filter.platform)
+  const channel = normalizeChannel(filter.channel)
+  const meta = platformMeta(platform, channel)
+  const rankType =
+    meta.rankTypes.find((item) => item.key === filter.rankType) || meta.rankTypes[0]
+  return {
+    platform,
+    channel,
+    rankType: rankType.key,
+    sourceUrl: rankType.pageUrl || meta.sourceUrl,
+    items: []
+  }
+}
+
 export async function buildPlatformHotRank(booksDir, filter = {}, dependencies = {}) {
+  const platform = normalizePlatform(filter.platform)
+  const platformLabel = platform === 'fanqie' ? '番茄' : '起点'
   const key = cacheKey(filter)
   const path = rankingCachePath(booksDir)
   const cache = await readJson(path, {})
@@ -281,24 +334,16 @@ export async function buildPlatformHotRank(booksDir, filter = {}, dependencies =
   if (filter.offline) {
     if (cached?.items?.length) {
       const mode = cacheAgeMs(cached) <= CACHE_STALE_MS ? 'cached' : 'stale'
-      return responseFromEntry(cached, mode, '当前离线，已展示起点缓存榜单。')
+      return responseFromEntry(cached, mode, `当前离线,已展示${platformLabel}缓存榜单。`)
     }
-    const rankType = resolveRankType(filter.rankType)
-    return responseFromEntry(
-      {
-        platform: 'qidian',
-        channel: normalizeChannel(filter.channel),
-        rankType: rankType.key,
-        sourceUrl: rankType.pageUrl,
-        items: []
-      },
-      'empty',
-      '当前离线，无法读取起点实时榜单。'
-    )
+    return responseFromEntry(emptyEntry(filter), 'empty', `当前离线,无法读取${platformLabel}实时榜单。`)
   }
 
   try {
-    const fresh = await fetchQidianRanking(filter, dependencies)
+    const fresh =
+      platform === 'fanqie'
+        ? await fetchFanqieRanking(filter, dependencies)
+        : await fetchQidianRanking(filter, dependencies)
     await updateJson(path, (current = {}) => ({ ...current, [key]: fresh }), {})
     return responseFromEntry(fresh, 'live')
   } catch (error) {
@@ -307,21 +352,10 @@ export async function buildPlatformHotRank(booksDir, filter = {}, dependencies =
       return responseFromEntry(
         cached,
         mode,
-        `实时刷新失败，已展示${mode === 'stale' ? '过期' : ''}缓存：${error.message}`
+        `实时刷新失败,已展示${mode === 'stale' ? '过期' : ''}缓存:${error.message}`
       )
     }
-    const rankType = resolveRankType(filter.rankType)
-    return responseFromEntry(
-      {
-        platform: 'qidian',
-        channel: normalizeChannel(filter.channel),
-        rankType: rankType.key,
-        sourceUrl: rankType.pageUrl,
-        items: []
-      },
-      'empty',
-      error?.message || '起点榜单加载失败'
-    )
+    return responseFromEntry(emptyEntry(filter), 'empty', error?.message || `${platformLabel}榜单加载失败`)
   }
 }
 

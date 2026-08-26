@@ -76,11 +76,11 @@
         <a
           v-else
           class="ghost-button source-link-button"
-          :href="hotRank.sourceUrl || 'https://www.qidian.com/rank/'"
+          :href="hotRank.sourceUrl || DEFAULT_SOURCE_URL_BY_PLATFORM[selectedPlatform]"
           target="_blank"
           rel="noreferrer"
         >
-          查看起点原榜
+          {{ selectedPlatform === 'fanqie' ? '查看番茄原榜' : '查看起点原榜' }}
           <ExternalLink :size="15" />
         </a>
       </div>
@@ -376,12 +376,25 @@
       class="rank-grid qidian-rank-layout"
     >
       <aside class="paper-panel source-filter qidian-rank-filter">
+        <div class="platform-switch">
+          <button
+            v-for="option in rankingPlatformOptions"
+            :key="option.key"
+            type="button"
+            class="platform-switch-button"
+            :class="{ active: selectedPlatform === option.key }"
+            :disabled="rankSwitching"
+            @click="setPlatform(option.key)"
+          >
+            {{ option.label }}
+          </button>
+        </div>
         <div class="panel-title qidian-filter-title">
           <div>
-            <h2>起点榜单</h2>
-            <small>官方移动端接口 · 实时读取</small>
+            <h2>{{ selectedPlatform === 'fanqie' ? '番茄榜单' : '起点榜单' }}</h2>
+            <small>{{ selectedPlatform === 'fanqie' ? '官方榜单接口 · 实时读取' : '官方移动端接口 · 实时读取' }}</small>
           </div>
-          <span class="qidian-mark">起</span>
+          <span class="qidian-mark">{{ selectedPlatform === 'fanqie' ? '番' : '起' }}</span>
         </div>
         <nav class="rank-type-nav">
           <button
@@ -399,7 +412,7 @@
         </nav>
         <div class="source-summary qidian-source-summary">
           <strong>数据承诺</strong>
-          <span>直接读取起点官方榜单接口。</span>
+          <span>直接读取{{ selectedPlatform === 'fanqie' ? '番茄' : '起点' }}官方榜单接口。</span>
           <span>不生成、不估算、不混入示例热度。</span>
         </div>
       </aside>
@@ -407,7 +420,7 @@
       <main class="paper-panel hot-rank-list qidian-rank-list">
         <div class="panel-title qidian-rank-title">
           <div class="qidian-title-block">
-            <h2>{{ hotRank.rankLabel || '月票榜' }}<em>· 起点{{ channelLabel(channel) }}</em></h2>
+            <h2>{{ hotRank.rankLabel || (selectedPlatform === 'fanqie' ? '热门榜' : '月票榜') }}<em>· {{ selectedPlatform === 'fanqie' ? '番茄' : '起点' }}{{ channelLabel(channel) }}</em></h2>
             <p>{{ selectedRankTypeDescription }}</p>
           </div>
           <div class="rank-live-meta">
@@ -425,8 +438,8 @@
 
         <MarketEmptyState
           v-if="hotRank.items.length === 0"
-          title="起点榜单暂不可用"
-          :description="hotRank.message || '起点暂未返回榜单数据,请稍后重试。'"
+          :title="selectedPlatform === 'fanqie' ? '番茄榜单暂不可用' : '起点榜单暂不可用'"
+          :description="hotRank.message || (selectedPlatform === 'fanqie' ? '番茄暂未返回榜单数据,请稍后重试。' : '起点暂未返回榜单数据,请稍后重试。')"
           :reason="emptyState?.reason || 'empty'"
           :offline="isOffline"
           show-actions
@@ -915,6 +928,21 @@ const rankingChannelOptions = [
   { label: '女频', value: 'female' }
 ]
 
+const rankingPlatformOptions = [
+  { key: 'qidian', label: '起点', mark: '起', note: '官方移动端接口' },
+  { key: 'fanqie', label: '番茄', mark: '番', note: '官方榜单接口' }
+]
+
+const DEFAULT_RANK_TYPE_BY_PLATFORM = {
+  qidian: 'yuepiao',
+  fanqie: 'fq_xuanhuan'
+}
+
+const DEFAULT_SOURCE_URL_BY_PLATFORM = {
+  qidian: 'https://www.qidian.com/rank/',
+  fanqie: 'https://fanqienovel.com/rank'
+}
+
 const CHANNEL_ORDER = {
   all: ['all', 'female', 'male'],
   male: ['male', 'all', 'female'],
@@ -948,6 +976,7 @@ const router = useRouter()
 const channel = ref('all')
 const selectedSource = ref('all')
 const selectedRankType = ref('yuepiao')
+const selectedPlatform = ref('qidian')
 const selectedInsight = ref(null)
 const selectedHotRank = ref(null)
 const selectedKeywords = ref([])
@@ -988,6 +1017,7 @@ const hotRank = reactive({
   items: [],
   selectedItem: null,
   selectedRankType: 'yuepiao',
+  platform: 'qidian',
   rankLabel: '月票榜',
   sourceUrl: 'https://www.qidian.com/rank/',
   fetchedAt: '',
@@ -1018,20 +1048,28 @@ const visibleChannelOptions = computed(() =>
   activeTab.value === 'rankings' ? rankingChannelOptions : channelOptions
 )
 
+const platformLabel = computed(() =>
+  selectedPlatform.value === 'fanqie' ? '番茄小说' : '起点中文网'
+)
+
 const heroDescription = computed(() =>
   activeTab.value === 'rankings'
-    ? '当前仅展示起点中文网官方排行榜。作品、名次和榜单指标来自起点实时接口；不生成虚构热度，不混入示例数据。'
-    : '数据来自公开热搜与小说榜单的真实采集，不是手写假数据。空库时只显示明确标注的示例内容；过期缓存会单独标明。'
+    ? `当前展示${platformLabel.value}官方排行榜。作品、名次和榜单指标来自平台实时接口;不生成虚构热度,不混入示例数据。`
+    : '数据来自公开热搜与小说榜单的真实采集,不是手写假数据。空库时只显示明确标注的示例内容;过期缓存会单独标明。'
 )
 
 const refreshActionLabel = computed(() =>
-  activeTab.value === 'rankings' ? '刷新起点榜单' : '刷新灵感'
+  activeTab.value === 'rankings'
+    ? selectedPlatform.value === 'fanqie'
+      ? '刷新番茄榜单'
+      : '刷新起点榜单'
+    : '刷新灵感'
 )
 
 const selectedRankTypeDescription = computed(
   () =>
     hotRank.rankTypes.find((item) => item.key === selectedRankType.value)?.description ||
-    '起点官方排行榜'
+    `${platformLabel.value}官方排行榜`
 )
 
 const podiumItems = computed(() => hotRank.items.slice(0, 3))
@@ -1092,7 +1130,7 @@ const lastUpdatedAt = computed(() =>
 const statusCards = computed(() => {
   if (activeTab.value === 'rankings') {
     return [
-      { key: 'qidian', label: '数据来源', state: hotRank.items.length ? 'success' : 'empty', text: '起点中文网' },
+      { key: 'qidian', label: '数据来源', state: hotRank.items.length ? 'success' : 'empty', text: platformLabel.value },
       {
         key: 'qidian-rank',
         label: '当前榜单',
@@ -1267,7 +1305,7 @@ async function loadMarket(options = {}) {
   try {
     const payload = {
       channel: activeTab.value === 'rankings' && channel.value === 'all' ? 'male' : channel.value,
-      source: activeTab.value === 'rankings' ? 'qidian' : selectedSource.value,
+      source: activeTab.value === 'rankings' ? selectedPlatform.value : selectedSource.value,
       offline: isOffline.value
     }
 
@@ -1275,7 +1313,7 @@ async function loadMarket(options = {}) {
       const rankPayload = requireMarketHotRankResult(
         await getMarketHotRank({
           ...payload,
-          platform: 'qidian',
+          platform: selectedPlatform.value,
           rankType: selectedRankType.value,
           force: Boolean(options.force)
         })
@@ -1332,11 +1370,11 @@ async function loadMarket(options = {}) {
       pageError.value = isOffline.value ? `当前离线：${message}` : `网络异常：${message}`
       emptyState.value = {
         reason: 'offline',
-        title: activeTab.value === 'rankings' ? '起点榜单暂不可用' : '网络不可用',
+        title: activeTab.value === 'rankings' ? `${selectedPlatform.value === 'fanqie' ? '番茄' : '起点'}榜单暂不可用` : '网络不可用',
         description:
           activeTab.value === 'rankings'
-            ? '未取得起点真实榜单，页面不会用示例数据顶替。'
-            : '外部市场来源暂时无法访问。页面不会伪造热度或销量，可稍后刷新。',
+            ? `未取得${selectedPlatform.value === 'fanqie' ? '番茄' : '起点'}真实榜单,页面不会用示例数据顶替。`
+            : '外部市场来源暂时无法访问。页面不会伪造热度或销量,可稍后刷新。',
         offline: true
       }
     } else {
@@ -1361,14 +1399,16 @@ function normalizeOverview(result = {}) {
 
 function normalizeHotRank(result = {}) {
   const items = Array.isArray(result.items) ? result.items : []
+  const platform = result.platform || selectedPlatform.value
   return {
     sources: result.sources || [],
     rankTypes: result.rankTypes || [],
     items,
     selectedItem: items[0] || result.selectedItem || null,
     selectedRankType: result.selectedRankType || selectedRankType.value,
+    platform,
     rankLabel: result.rankLabel || '',
-    sourceUrl: result.sourceUrl || 'https://www.qidian.com/rank/',
+    sourceUrl: result.sourceUrl || DEFAULT_SOURCE_URL_BY_PLATFORM[platform] || DEFAULT_SOURCE_URL_BY_PLATFORM.qidian,
     fetchedAt: result.fetchedAt || '',
     dataMode: result.dataMode || 'empty',
     message: result.message || ''
@@ -1416,14 +1456,14 @@ async function handleRefresh() {
   if (isOffline.value) {
     pageError.value =
       activeTab.value === 'rankings'
-        ? '当前离线，无法读取起点实时榜单。'
-        : '当前离线，无法采集外部热榜。可先使用已缓存内容。'
+        ? `当前离线,无法读取${selectedPlatform.value === 'fanqie' ? '番茄' : '起点'}实时榜单。`
+        : '当前离线,无法采集外部热榜。可先使用已缓存内容。'
     emptyState.value = {
       reason: 'offline',
       title: '网络不可用',
       description:
         activeTab.value === 'rankings'
-          ? '离线状态下不会用示例榜单冒充起点数据。'
+          ? `离线状态下不会用示例榜单冒充${selectedPlatform.value === 'fanqie' ? '番茄' : '起点'}数据。`
           : '离线状态下不会伪造市场数据。请联网后刷新。',
       offline: true
     }
@@ -1434,8 +1474,8 @@ async function handleRefresh() {
   try {
     if (activeTab.value === 'rankings') {
       await loadMarket({ force: true })
-      if (!hotRank.items.length) throw new Error(hotRank.message || '起点榜单刷新失败')
-      ElMessage.success(`起点${hotRank.rankLabel || '榜单'}已刷新`)
+      if (!hotRank.items.length) throw new Error(hotRank.message || `${selectedPlatform.value === 'fanqie' ? '番茄' : '起点'}榜单刷新失败`)
+      ElMessage.success(`${selectedPlatform.value === 'fanqie' ? '番茄' : '起点'}${hotRank.rankLabel || '榜单'}已刷新`)
       return
     }
     const result = await refreshMarketTrends({
@@ -1549,6 +1589,16 @@ function goTab(key) {
 function setRankType(rankType) {
   if (!rankType || rankType === selectedRankType.value || rankSwitching.value) return
   selectedRankType.value = rankType
+  rankSwitching.value = true
+  loadMarket().finally(() => {
+    rankSwitching.value = false
+  })
+}
+
+function setPlatform(platform) {
+  if (!platform || platform === selectedPlatform.value || rankSwitching.value) return
+  selectedPlatform.value = platform
+  selectedRankType.value = DEFAULT_RANK_TYPE_BY_PLATFORM[platform] || 'yuepiao'
   rankSwitching.value = true
   loadMarket().finally(() => {
     rankSwitching.value = false
@@ -2331,6 +2381,44 @@ button {
 
 .channel-toggle {
   margin-bottom: 12px;
+}
+
+.platform-switch {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(251, 250, 246, 0.78);
+  overflow: hidden;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.platform-switch-button {
+  min-width: 84px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 9px 20px;
+  font-weight: 600;
+}
+
+.platform-switch-button:last-child {
+  border-right: 0;
+}
+
+.platform-switch-button.active {
+  background: rgba(111, 122, 104, 0.12);
+  color: var(--wabi-moss-dark);
+  font-weight: 800;
+  box-shadow: inset 0 -2px 0 var(--gold);
+}
+
+.platform-switch-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .channel-toggle button,
