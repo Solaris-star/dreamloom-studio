@@ -140,7 +140,7 @@ function normalizeQidianRecord(row = {}, index = 0, context = {}) {
     channelLabel: channel === 'female' ? '女频' : '男频',
     url: `https://www.qidian.com/book/${bid}/`,
     bookId: bid,
-    coverUrl: `https://bookcover.yuewen.com/qdbiz/2,150,${bid}.jpg`,
+    coverUrl: `https://bookcover.yuewen.com/qdbimg/349573/${bid}/300`,
     heatScore: null,
     growthScore: null,
     opportunityScore: null,
@@ -244,7 +244,9 @@ function cacheKey(filter = {}) {
     const channel = normalizeChannel(filter.channel)
     const rankTypes = fanqieRankTypesForChannel(channel)
     const rankType = rankTypes.find((item) => item.key === filter.rankType) || rankTypes[0]
-    return `fanqie:${rankType.key}:${channel}`
+    const offset = Number(filter.offset)
+    const safeOffset = Number.isInteger(offset) && offset >= 0 ? Math.min(offset, 90) : 0
+    return `fanqie:${rankType.key}:${channel}:${safeOffset}`
   }
   return `qidian:${resolveRankType(filter.rankType).key}:${normalizeChannel(filter.channel)}:${clampCategory(filter.categoryId)}:${clampPage(filter.pageNum)}`
 }
@@ -270,6 +272,12 @@ function responseFromEntry(entry, mode = 'live', message = '') {
   }))
   const rankType =
     meta.rankTypes.find((item) => item.key === entry?.rankType) || meta.rankTypes[0]
+  const total = Number(entry?.total || items.length)
+  const pageNum = Number(entry?.pageNum || 1)
+  const offset = Number(entry?.offset || 0)
+  const pageSize = items.length
+  const hasMore =
+    platform === 'fanqie' ? offset + pageSize < total : pageNum * pageSize < total
   return {
     success: true,
     platform,
@@ -280,7 +288,11 @@ function responseFromEntry(entry, mode = 'live', message = '') {
     sourceUrl: entry?.sourceUrl || rankType.pageUrl || meta.sourceUrl,
     fetchedAt: entry?.fetchedAt || '',
     latencyMs: entry?.latencyMs || 0,
-    total: entry?.total || items.length,
+    total,
+    pageNum,
+    offset,
+    pageSize,
+    hasMore,
     sources: [
       {
         source: platform,

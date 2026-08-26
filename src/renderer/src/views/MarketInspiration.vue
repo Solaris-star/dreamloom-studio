@@ -609,6 +609,65 @@
               </div>
             </article>
           </div>
+
+          <nav
+            v-if="rankTotalPages > 1"
+            class="rank-pagination"
+            aria-label="榜单分页"
+          >
+            <button
+              type="button"
+              :disabled="rankCurrentPage <= 1 || rankSwitching"
+              @click="setRankPage(rankCurrentPage - 1)"
+            >
+              上一页
+            </button>
+            <template v-if="rankPageWindow.start > 1">
+              <button
+                type="button"
+                :disabled="rankSwitching"
+                @click="setRankPage(1)"
+              >
+                1
+              </button>
+              <span
+                v-if="rankPageWindow.start > 2"
+                class="rank-page-ellipsis"
+              >…</span>
+            </template>
+            <button
+              v-for="page in rankPageWindow.pages"
+              :key="page"
+              type="button"
+              class="rank-page-num"
+              :class="{ active: page === rankCurrentPage }"
+              :disabled="rankSwitching"
+              @click="setRankPage(page)"
+            >
+              {{ page }}
+            </button>
+            <template v-if="rankPageWindow.end < rankPageWindow.totalPages">
+              <span
+                v-if="rankPageWindow.end < rankPageWindow.totalPages - 1"
+                class="rank-page-ellipsis"
+              >…</span>
+              <button
+                type="button"
+                :disabled="rankSwitching"
+                @click="setRankPage(rankPageWindow.totalPages)"
+              >
+                {{ rankPageWindow.totalPages }}
+              </button>
+            </template>
+            <button
+              type="button"
+              :disabled="rankCurrentPage >= rankTotalPages || rankSwitching"
+              @click="setRankPage(rankCurrentPage + 1)"
+            >
+              下一页
+            </button>
+            <span class="rank-page-info">第 {{ rankCurrentPage }} / {{ rankTotalPages }} 页 · 共 {{ hotRank.total }} 本</span>
+          </nav>
         </div>
       </main>
     </section>
@@ -977,6 +1036,7 @@ const channel = ref('all')
 const selectedSource = ref('all')
 const selectedRankType = ref('yuepiao')
 const selectedPlatform = ref('qidian')
+const rankPage = ref(1)
 const selectedInsight = ref(null)
 const selectedHotRank = ref(null)
 const selectedKeywords = ref([])
@@ -1022,7 +1082,12 @@ const hotRank = reactive({
   sourceUrl: 'https://www.qidian.com/rank/',
   fetchedAt: '',
   dataMode: 'empty',
-  message: ''
+  message: '',
+  total: 0,
+  pageNum: 1,
+  offset: 0,
+  pageSize: 0,
+  hasMore: false
 })
 
 const keywordCloud = reactive({
@@ -1074,6 +1139,29 @@ const selectedRankTypeDescription = computed(
 
 const podiumItems = computed(() => hotRank.items.slice(0, 3))
 const listItems = computed(() => hotRank.items.slice(3))
+
+const rankPageSize = computed(() => (selectedPlatform.value === 'fanqie' ? 30 : 20))
+const rankTotalPages = computed(() => {
+  const total = Number(hotRank.total) || 0
+  const size = rankPageSize.value
+  if (!total || !size) return 1
+  return Math.max(1, Math.ceil(total / size))
+})
+const rankCurrentPage = computed(() => {
+  if (selectedPlatform.value === 'fanqie') {
+    return Math.floor((Number(hotRank.offset) || 0) / rankPageSize.value) + 1
+  }
+  return Number(hotRank.pageNum) || 1
+})
+const rankPageWindow = computed(() => {
+  const current = rankCurrentPage.value
+  const totalPages = rankTotalPages.value
+  const pages = []
+  const start = Math.max(1, current - 2)
+  const end = Math.min(totalPages, current + 2)
+  for (let i = start; i <= end; i += 1) pages.push(i)
+  return { pages, start, end, totalPages }
+})
 
 const coverFailed = reactive({})
 function markCoverFailed(id) {
@@ -1310,11 +1398,14 @@ async function loadMarket(options = {}) {
     }
 
     if (activeTab.value === 'rankings') {
+      const page = Math.max(1, Number(rankPage.value) || 1)
       const rankPayload = requireMarketHotRankResult(
         await getMarketHotRank({
           ...payload,
           platform: selectedPlatform.value,
           rankType: selectedRankType.value,
+          pageNum: page,
+          offset: (page - 1) * 30,
           force: Boolean(options.force)
         })
       )
@@ -1411,7 +1502,12 @@ function normalizeHotRank(result = {}) {
     sourceUrl: result.sourceUrl || DEFAULT_SOURCE_URL_BY_PLATFORM[platform] || DEFAULT_SOURCE_URL_BY_PLATFORM.qidian,
     fetchedAt: result.fetchedAt || '',
     dataMode: result.dataMode || 'empty',
-    message: result.message || ''
+    message: result.message || '',
+    total: Number(result.total || items.length),
+    pageNum: Number(result.pageNum || 1),
+    offset: Number(result.offset || 0),
+    pageSize: Number(result.pageSize || items.length),
+    hasMore: Boolean(result.hasMore)
   }
 }
 
@@ -1589,16 +1685,26 @@ function goTab(key) {
 function setRankType(rankType) {
   if (!rankType || rankType === selectedRankType.value || rankSwitching.value) return
   selectedRankType.value = rankType
+  rankPage.value = 1
   rankSwitching.value = true
   loadMarket().finally(() => {
     rankSwitching.value = false
   })
 }
-
 function setPlatform(platform) {
   if (!platform || platform === selectedPlatform.value || rankSwitching.value) return
   selectedPlatform.value = platform
   selectedRankType.value = DEFAULT_RANK_TYPE_BY_PLATFORM[platform] || 'yuepiao'
+  rankPage.value = 1
+  rankSwitching.value = true
+  loadMarket().finally(() => {
+    rankSwitching.value = false
+  })
+}
+function setRankPage(page) {
+  const target = Math.max(1, Number(page) || 1)
+  if (target === rankPage.value || rankSwitching.value) return
+  rankPage.value = target
   rankSwitching.value = true
   loadMarket().finally(() => {
     rankSwitching.value = false
@@ -3375,6 +3481,59 @@ button {
   display: flex;
   flex-direction: column;
   border-top: 1px solid rgba(138, 115, 93, 0.12);
+}
+
+.rank-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 18px 12px 6px;
+}
+
+.rank-pagination button {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(138, 115, 93, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.7);
+  color: var(--wabi-earth, #5c5148);
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.rank-pagination button:hover:not(:disabled) {
+  background: rgba(138, 115, 93, 0.1);
+  border-color: rgba(138, 115, 93, 0.4);
+}
+
+.rank-pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.rank-pagination .rank-page-num.active {
+  background: var(--wabi-moss, #6b7a5e);
+  border-color: var(--wabi-moss, #6b7a5e);
+  color: #fff;
+  font-weight: 600;
+}
+
+.rank-pagination .rank-page-ellipsis {
+  color: rgba(92, 81, 72, 0.5);
+  padding: 0 2px;
+}
+
+.rank-pagination .rank-page-info {
+  margin-left: 8px;
+  font-size: 12px;
+  color: rgba(92, 81, 72, 0.6);
 }
 
 .rank-row {
