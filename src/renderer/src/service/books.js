@@ -103,9 +103,15 @@ export async function readBooksDir(options = {}) {
     mainStore.setBooks(books)
     return books
   } catch (error) {
-    mainStore.setBooks([])
+    // 列表拉取失败时保留已有书架数据，避免一次网络抖动就把书架清空
     throw error
   }
+}
+
+/** 导入等间接写入后强制刷新：bust 缓存并重拉书架列表 */
+export async function refreshBooksDir(options = {}) {
+  bustBooksListCache()
+  return readBooksDir({ ...options, cacheTtlMs: 0 })
 }
 
 /**

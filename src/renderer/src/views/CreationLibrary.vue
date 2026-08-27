@@ -2459,7 +2459,7 @@ function handleBookshelfDrop(event) {
   const files = Array.from(event.dataTransfer?.files || [])
   const supported = files.filter((f) => {
     const ext = f.name.split('.').pop()?.toLowerCase()
-    return ['txt', 'md', 'markdown', 'docx'].includes(ext)
+    return ['txt', 'md', 'markdown', 'docx', 'pdf'].includes(ext)
   })
   if (supported.length > 0) {
     setBookshelfTab('import')
@@ -2488,7 +2488,7 @@ async function handleNovelImported(book) {
 
 async function handleLocalBookImported(book) {
   addBookDialogVisible.value = false
-  bookFilter.value = 'imported'
+  bookFilter.value = 'all'
   searchMode.value = 'shelf'
   await loadLibrary()
   if (book?.id || book?.name) {
@@ -2498,7 +2498,8 @@ async function handleLocalBookImported(book) {
 }
 
 async function handleImportExportImported(result) {
-  bookFilter.value = 'imported'
+  // 导入后展示完整书架，避免“仅看导入作品”筛选把原有书籍全部藏起来
+  bookFilter.value = 'all'
   await loadLibrary()
   if (result?.bookName) {
     selectedBookKey.value = String(result.bookName)

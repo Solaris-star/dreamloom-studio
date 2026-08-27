@@ -91,7 +91,7 @@ export function normalizeEditorLayout(value = {}, device = 'wide') {
     lastLeft: clamp(value.lastLeft, defaults.lastLeft, 180, 450),
     lastRight: clamp(value.lastRight, defaults.lastRight, 80, 320),
     focus: value.focus === true,
-    fontSize: clamp(value.fontSize, defaults.fontSize, 14, 24),
+    fontSize: clamp(value.fontSize, defaults.fontSize, 12, 36),
     lineHeight: clamp(value.lineHeight, defaults.lineHeight, 1.4, 2.2),
     pageWidth,
     contentWidth: clamp(value.contentWidth, contentWidthFromPage, 320, 1200)

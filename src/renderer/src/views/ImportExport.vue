@@ -483,7 +483,7 @@ import {
   previewImportBook,
   restoreLibraryBackup
 } from '../service/importExport'
-import { readBooksDir } from '../service/books'
+import { refreshBooksDir } from '../service/books'
 import { listChapterTree } from '../service/editor'
 
 const route = useRoute()
@@ -1025,7 +1025,7 @@ async function loadBooks() {
   loadingBooks.value = true
   booksLoadError.value = ''
   try {
-    books.value = await readBooksDir()
+    books.value = await refreshBooksDir()
   } catch (error) {
     books.value = []
     exportForm.bookName = ''

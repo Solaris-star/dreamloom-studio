@@ -117,7 +117,13 @@ assert.deepEqual(requests.at(-1).payload, { name: '第一本书' })
 
 responses.set('/api/books/list', { success: true, books: [] })
 await assert.rejects(() => booksService.readBooksDir(), /书籍列表接口返回格式不正确/)
-assert.deepEqual(mainStore.books, [])
+// 单次拉取失败不得清空已有书架
+assert.deepEqual(mainStore.books, books)
+
+const refreshedBooks = [...books, { id: 'book-2', name: '导入作品', folderName: '导入作品' }]
+responses.set('/api/books/list', refreshedBooks)
+assert.deepEqual(await booksService.refreshBooksDir(), refreshedBooks)
+assert.deepEqual(mainStore.books, refreshedBooks)
 
 responses.set('/api/books/edit', { success: false, message: '作品不存在' })
 await assert.rejects(

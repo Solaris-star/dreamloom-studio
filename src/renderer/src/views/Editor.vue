@@ -34,6 +34,7 @@
           @refresh-notes="refreshNotes"
           @refresh-chapters="refreshChapters"
           @cleanup-task-state="handleCleanupTaskState"
+          @reading-style-changed="handleReadingStyleChanged"
         />
       </el-splitter-panel>
       <el-splitter-panel
@@ -205,8 +206,8 @@
         <span>字号</span>
         <el-slider
           v-model="readingSettings.fontSize"
-          :min="14"
-          :max="24"
+          :min="12"
+          :max="36"
           :step="1"
           show-input
         />
@@ -505,6 +506,41 @@ function persistPageMargin() {
   }
 }
 
+/**
+ * 阅读排版偏好（字号/行高/页宽/页边距）是跨设备的全局口味，
+ * 不随 wide/tablet/mobile 布局分键存储，避免浏览器缩放切换设备档时字号跳变。
+ */
+const GLOBAL_READING_PREFS_KEY = 'dreamloom:editor-reading-prefs:v1'
+
+function readGlobalReadingPrefs() {
+  try {
+    const raw = localStorage.getItem(GLOBAL_READING_PREFS_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeGlobalReadingPrefs(prefs) {
+  try {
+    localStorage.setItem(GLOBAL_READING_PREFS_KEY, JSON.stringify(prefs))
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function mergeGlobalReadingPrefs(base = {}) {
+  const saved = readGlobalReadingPrefs()
+  return {
+    fontSize: saved.fontSize ?? base.fontSize ?? 16,
+    lineHeight: saved.lineHeight ?? base.lineHeight ?? 1.6,
+    pageWidth: saved.pageWidth ?? base.pageWidth ?? '80%',
+    pageMargin: saved.pageMargin ?? base.pageMargin ?? 'normal'
+  }
+}
+
 function loadLayout() {
   isLoadingLayout = true
   const data = readEditorLayout(
@@ -520,7 +556,12 @@ function loadLayout() {
   lastLeftPanelSize.value = data.lastLeft
   lastRightPanelSize.value = data.lastRight
   focusMode.value = data.focus
-  readingSettings.value = toReadingSettings(data)
+  // 字号等排版偏好优先用全局 prefs；首次无 prefs 时把当前设备档的值迁移过去
+  const merged = mergeGlobalReadingPrefs(toReadingSettings(data))
+  if (!readGlobalReadingPrefs().fontSize) {
+    writeGlobalReadingPrefs(merged)
+  }
+  readingSettings.value = merged
   loadPageMargin()
   nextTick(() => {
     // 与顶栏 menubar 同步，避免 CSS 变量被内联 !important 盖掉
@@ -536,6 +577,8 @@ watch(storageKey, () => {
 
 function persistLayout() {
   if (isLoadingLayout || !bookName.value) return
+  // 排版偏好独立于设备布局保存，浏览器缩放切档时继续沿用同一字号/行高/页宽
+  writeGlobalReadingPrefs(readingSettings.value)
   const layout = normalizeEditorLayout(
     {
       left: leftPanelSize.value,
@@ -630,6 +673,18 @@ async function selectCatalogChapter(path) {
 function resetReadingSettings() {
   applyReadingSettingsToEditor({ fontSize: 16, lineHeight: 1.6, pageWidth: '80%', pageMargin: 'normal' })
   persistLayout()
+}
+
+/** 顶栏 menubar 改字号/行高/页宽时同步全局偏好 + 弹窗状态，修复两侧调节不同步 */
+function handleReadingStyleChanged(payload = {}) {
+  const next = toReadingSettings({
+    fontSize: parseFontSizePx(payload.fontSize, readingSettings.value.fontSize),
+    lineHeight: parseLineHeight(payload.lineHeight, readingSettings.value.lineHeight),
+    pageWidth: payload.pageWidth ?? readingSettings.value.pageWidth,
+    pageMargin: readingSettings.value.pageMargin
+  })
+  readingSettings.value = next
+  writeGlobalReadingPrefs(next)
 }
 
 function handleViewportResize() {
@@ -789,16 +844,11 @@ onBeforeUnmount(detachWindowListeners)
   }
 }
 
-/* 阅读模式：正文只读观感——隐光标、禁选区、去交互 */
+/* 阅读模式：只隐光标不改交互——文字仍可选中复制 */
 .editor-container.is-reading-mode {
   :deep(.editor-content .tiptap) {
     caret-color: transparent;
-    user-select: none;
     cursor: default;
-  }
-
-  :deep(.editor-content .tiptap ::selection) {
-    background: transparent;
   }
 }
 

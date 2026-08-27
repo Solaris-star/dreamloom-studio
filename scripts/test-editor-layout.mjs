@@ -51,7 +51,8 @@ const unsafe = normalizeEditorLayout(
 assert.equal(unsafe.left, 450)
 assert.equal(unsafe.right, 60)
 assert.equal(unsafe.lastLeft, 240)
-assert.equal(unsafe.fontSize, 24)
+assert.equal(unsafe.fontSize, 36)
+assert.equal(normalizeEditorLayout({ fontSize: -10 }, 'wide').fontSize, 12)
 assert.equal(unsafe.lineHeight, 1.4)
 // 旧像素 contentWidth 迁移到最近百分比档
 assert.equal(unsafe.pageWidth, '100%')

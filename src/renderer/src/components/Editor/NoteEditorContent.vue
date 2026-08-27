@@ -303,6 +303,7 @@ const NoteDragHandle = Extension.create({
               const target = event.target
               if (!(target instanceof HTMLElement)) return false
               if (!target.classList.contains('note-outline-drag-handle')) return false
+              if (view.editable === false) return false
               const pos = Number(target.dataset.pos || -1)
               if (pos < 0) return false
               const { state } = view
@@ -323,6 +324,8 @@ const NoteDragHandle = Extension.create({
               if (!(event instanceof DragEvent)) return false
               if (!(target instanceof HTMLElement)) return false
               if (!target.classList.contains('note-outline-drag-handle')) return false
+              // 只读（阅读模式）下禁止通过拖拽句柄移动段落
+              if (view.editable === false) return false
               const pos = Number(target.dataset.pos || -1)
               if (pos < 0) return false
               // 确保拖拽开始时已记录 draggingPos
@@ -360,18 +363,17 @@ const NoteDragHandle = Extension.create({
               return true
             },
             dragover: (view, event) => {
+              // 只读（阅读模式）下不响应句柄拖放
+              if (view.editable === false || draggingPos == null) return false
               // 允许放置
-              if (draggingPos != null) {
-                event.preventDefault()
-                if (event.dataTransfer) {
-                  event.dataTransfer.dropEffect = 'move'
-                }
-                return true
+              event.preventDefault()
+              if (event.dataTransfer) {
+                event.dataTransfer.dropEffect = 'move'
               }
-              return false
+              return true
             },
             drop: (view, event) => {
-              if (draggingPos == null) return false
+              if (view.editable === false || draggingPos == null) return false
               event.preventDefault()
               moveParagraphAtPoint(view, event.clientX, event.clientY)
               draggingPos = null

@@ -200,7 +200,7 @@
 import { computed, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { AlertCircle, CheckCircle2, ChevronDown, FileText, Upload } from 'lucide-vue-next'
-import { readBooksDir } from '@renderer/service/books'
+import { refreshBooksDir } from '@renderer/service/books'
 import { importBookFromFile } from '@renderer/service/importExport'
 import {
   getLocalBookFileExtension,
@@ -253,7 +253,7 @@ async function parseFiles(files) {
   parsing.value = true
   errorMsg.value = ''
   try {
-    const existingBooks = await readBooksDir()
+    const existingBooks = await refreshBooksDir()
     const reservedBooks = [
       ...existingBooks,
       ...rows.value
@@ -368,7 +368,7 @@ function canImportRow(row) {
 
 async function createImportedBook(row) {
   const parsed = row.parsed
-  const existingBooks = await readBooksDir()
+  const existingBooks = await refreshBooksDir()
   const bookName = uniqueLocalBookName(parsed.title, existingBooks)
   const result = await importBookFromFile({
     fileName: row.fileName,
@@ -380,7 +380,8 @@ async function createImportedBook(row) {
     typeName: '参考资料',
     coverColor: '#8a735d'
   })
-  await readBooksDir()
+  // 导入成功后强制刷新（bust 30s 缓存），确保书架立刻看到新旧全部书籍
+  await refreshBooksDir()
   return {
     id: result.task?.id || result.bookName,
     name: result.bookName,

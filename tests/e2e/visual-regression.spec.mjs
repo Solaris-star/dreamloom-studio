@@ -70,6 +70,11 @@ async function openEditor(page, bookName) {
     await pageWidth.click()
     await page.getByRole('option', { name: '自适应 (中)' }).click()
   }
+  // 等待顶栏 → 外层阅读设置双向同步完成，避免设备档切换的 nextTick 覆盖视觉基准
+  await expect(page.locator('.ProseMirror')).toHaveCSS('font-size', '18px')
+  await expect
+    .poll(() => page.locator('.ProseMirror').evaluate((element) => getComputedStyle(element).lineHeight))
+    .toBe('32.4px')
 }
 
 async function expectPageScreenshot(page, name) {
@@ -85,6 +90,23 @@ test.beforeEach(async ({ page, request }, testInfo) => {
   await postApi(request, '/api/store/set', {
     key: 'config.locale',
     value: 'zh-CN'
+  })
+  // 视觉基准必须隔离前序用例留下的持久排版/主题状态
+  await postApi(request, '/api/store/set', {
+    key: 'editorSettings',
+    value: {
+      fontFamily: 'SimHei',
+      fontSize: '16px',
+      lineHeight: '1.6',
+      paragraphSpacing: '0.5em',
+      pageWidth: '80%',
+      globalBoldMode: false,
+      globalItalicMode: false
+    }
+  })
+  await postApi(request, '/api/store/set', {
+    key: 'config.theme',
+    value: 'light'
   })
   // 真实认证接口是 /api/auth/status；同时兼容旧 mock 路径
   for (const pattern of ['**/api/auth/status', '**/api/bookshelf-auth/status']) {

@@ -504,6 +504,7 @@ const menubarState = ref({
 const editor = ref(null)
 let saveTimer = ref(null)
 let styleUpdateTimer = null
+let suppressReadingStyleEmit = false
 let isComposing = false // 是否正在进行输入法输入（composition）
 let compositionStartHandler = null
 let compositionEndHandler = null
@@ -680,6 +681,15 @@ function updateEditorStyle() {
 // 处理样式更新
 function handleStyleUpdate() {
   updateEditorStyle()
+  // 只有顶栏真实操作才反向通知外层；外层应用设置时禁止回环
+  if (!suppressReadingStyleEmit) {
+    emit('reading-style-changed', {
+      fontSize: menubarState.value.fontSize,
+      lineHeight: menubarState.value.lineHeight,
+      pageWidth: menubarState.value.pageWidth,
+      paragraphSpacing: menubarState.value.paragraphSpacing
+    })
+  }
   // 防抖保存设置
   if (styleUpdateTimer) clearTimeout(styleUpdateTimer)
   styleUpdateTimer = setTimeout(() => {
@@ -1000,9 +1010,16 @@ async function initEditor() {
     chapterEditorContentRef.value.setChapterContent(editor.value, initialContent)
   }
 
-  // 等待DOM渲染完成后应用样式
+  // 等待DOM渲染完成后应用样式，并把顶栏真实排版值同步给外层。
+  // 顶栏字号支持到 36px；旧设备布局曾将其错误钳制到 24px。
   await nextTick()
   updateEditorStyle()
+  emit('reading-style-changed', {
+    fontSize: menubarState.value.fontSize,
+    lineHeight: menubarState.value.lineHeight,
+    pageWidth: menubarState.value.pageWidth,
+    paragraphSpacing: menubarState.value.paragraphSpacing
+  })
 
   // 注意：startEditingSession 已经在上面调用过了，这里不需要重复调用
 
@@ -2351,7 +2368,8 @@ const emit = defineEmits([
   'refresh-chapters',
   'toggle-left',
   'toggle-right',
-  'cleanup-task-state'
+  'cleanup-task-state',
+  'reading-style-changed'
 ])
 
 // 监听当前文件类型，动态设置首行缩进和编辑器模式
@@ -2385,6 +2403,15 @@ defineExpose({
     pageWidth: menubarState.value.pageWidth,
     paragraphSpacing: menubarState.value.paragraphSpacing
   }),
+  /**
+   * 阅读模式开关真正的可编辑切换：setEditable(false) 后 ProseMirror 只读，
+   * 拖选只产生选区不会移动/修改节点（此前未暴露该方法，阅读模式实际仍可编辑）。
+   */
+  setEditable: (editable = true) => {
+    if (editor.value && typeof editor.value.setEditable === 'function') {
+      editor.value.setEditable(Boolean(editable))
+    }
+  },
   applyReadingStyleSettings: (settings = {}) => {
     const next = { ...menubarState.value }
     if (settings.fontSize !== undefined && settings.fontSize !== null) {
@@ -2401,7 +2428,12 @@ defineExpose({
       next.paragraphSpacing = String(settings.paragraphSpacing)
     }
     menubarState.value = next
-    handleStyleUpdate()
+    suppressReadingStyleEmit = true
+    try {
+      handleStyleUpdate()
+    } finally {
+      suppressReadingStyleEmit = false
+    }
   },
   saveBeforeLeave: () => saveEditorBeforeLeave(editorStore.file, () => saveFile(false))
 })

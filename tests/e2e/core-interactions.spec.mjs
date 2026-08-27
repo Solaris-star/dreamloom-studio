@@ -423,7 +423,16 @@ test('PDF 可以在浏览器解析并写入书架', async ({ page, request }, te
   test.skip(testInfo.project.name !== 'wide', 'PDF 浏览器解析仅在宽屏视口执行')
   test.setTimeout(120_000)
   const importedBookName = 'PDF 浏览器导入'
+  const keeperBookName = 'PDF 导入前已有作品'
   await postApi(request, '/api/books/delete', { name: importedBookName })
+  await postApi(request, '/api/books/delete', { name: keeperBookName })
+  await postApi(request, '/api/books/create', {
+    id: `keeper-${Date.now()}`,
+    name: keeperBookName,
+    type: 'original',
+    typeName: '原创作品',
+    intro: '导入回归测试保留书籍'
+  })
   try {
     await page.goto('/#/knowledge?tab=import')
     const importPanel = page.locator('.import-export-page')
@@ -445,8 +454,12 @@ test('PDF 可以在浏览器解析并写入书架', async ({ page, request }, te
 
     await importPanel.getByRole('button', { name: '写入书架' }).click()
     await expect(page.getByText(`已导入：${importedBookName}`)).toBeVisible()
+    // 导入后回到“全部作品”，新书与原有书都必须保留可见
+    await expect(page.getByText(importedBookName, { exact: true })).toBeVisible()
+    await expect(page.getByText(keeperBookName, { exact: true })).toBeVisible()
   } finally {
     await postApi(request, '/api/books/delete', { name: importedBookName }).catch(() => {})
+    await postApi(request, '/api/books/delete', { name: keeperBookName }).catch(() => {})
   }
 })
 
@@ -661,6 +674,72 @@ test('创作台阅读设置和专注模式可以恢复', async ({ page }, testIn
   await expect(page.getByLabel('退出专注模式')).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.locator('.editor-container')).not.toHaveClass(/is-focus-mode/)
+})
+
+test('创作台字号跨视口同步且阅读模式可选中复制但不可改文', async ({ page, context }, testInfo) => {
+  test.skip(testInfo.project.name !== 'wide', '排版双向同步与复制仅在宽屏执行')
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await openEditor(page, testBookName(testInfo.project.name))
+
+  const editor = page.locator('.ProseMirror')
+  const topFontSize = page.getByTestId('editor-font-size')
+  await topFontSize.click()
+  await page.getByRole('option', { name: '32px', exact: true }).click()
+  await expect(editor).toHaveCSS('font-size', '32px')
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('dreamloom:editor-reading-prefs:v1') || '{}').fontSize)).toBe(32)
+
+  // 模拟浏览器缩放触发 responsive 设备档切换：字号不能回落到旧上限 24px
+  await page.setViewportSize({ width: 700, height: 900 })
+  await expect(editor).toHaveCSS('font-size', '32px')
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await expect(editor).toHaveCSS('font-size', '32px')
+
+  // 顶栏改动必须同步到阅读设置；阅读设置改动也必须同步回顶栏
+  await page.getByRole('button', { name: '阅读设置' }).click()
+  const readingDialog = page.getByRole('dialog', { name: '阅读设置' })
+  const fontInput = readingDialog.getByRole('spinbutton').first()
+  await expect(fontInput).toHaveValue('32')
+  await fontInput.fill('28')
+  await fontInput.press('Enter')
+  await readingDialog.getByRole('button', { name: '完成' }).click()
+  await expect(editor).toHaveCSS('font-size', '28px')
+  await expect(topFontSize).toContainText('28px')
+
+  const beforeHtml = await editor.innerHTML()
+  await page.getByTestId('editor-reading-mode-toggle').click()
+  await expect(editor).toHaveAttribute('contenteditable', 'false')
+  await expect(editor).not.toHaveCSS('user-select', 'none')
+
+  const selectedText = await editor.evaluate((element) => {
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
+    const textNode = walker.nextNode()
+    if (!textNode) return ''
+    const range = document.createRange()
+    range.setStart(textNode, 0)
+    range.setEnd(textNode, Math.min(8, textNode.textContent?.length || 0))
+    const selection = window.getSelection()
+    selection?.removeAllRanges()
+    selection?.addRange(range)
+    return selection?.toString() || ''
+  })
+  expect(selectedText.length).toBeGreaterThan(0)
+  await page.keyboard.press('Meta+c')
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(selectedText)
+
+  const box = await editor.boundingBox()
+  expect(box).toBeTruthy()
+  await page.mouse.move(box.x + 30, box.y + 30)
+  await page.mouse.down()
+  await page.mouse.move(box.x + Math.min(260, box.width - 20), box.y + 30, { steps: 8 })
+  await page.mouse.up()
+  await expect(editor).toHaveJSProperty('innerHTML', beforeHtml)
+
+  // 测试隔离：恢复默认字号，避免服务端 editorSettings 污染后续视觉基准
+  await page.getByTestId('editor-reading-mode-toggle').click()
+  await topFontSize.click()
+  await page.getByRole('option', { name: '16px', exact: true }).click()
+  await expect(editor).toHaveCSS('font-size', '16px')
+  await page.waitForTimeout(600)
 })
 
 test('AI 整章清理返回期间正文变化时不会应用旧结果', async ({ page }, testInfo) => {
