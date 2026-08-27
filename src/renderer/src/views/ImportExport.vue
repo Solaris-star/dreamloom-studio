@@ -39,7 +39,7 @@
           <el-button
             type="primary"
             plain
-            :disabled="!importForm.base64 || importing || previewing"
+            :disabled="(!importForm.base64 && !parsedImport) || importing || previewing"
             :loading="previewing"
             @click="retryImport"
           >
@@ -50,17 +50,17 @@
         <div class="form-grid">
           <label class="file-picker">
             <input
-              accept=".txt,.md,.markdown,.docx"
+              accept=".txt,.md,.markdown,.docx,.pdf,application/pdf"
               :disabled="previewing || importing"
               type="file"
               @change="handleImportFileChange"
             >
             <Upload :size="20" />
-            <span>{{ importForm.fileName || '选择 TXT、Markdown 或 DOCX' }}</span>
+            <span>{{ importForm.fileName || '选择 TXT、Markdown、DOCX 或 PDF' }}</span>
           </label>
           <div class="button-row">
             <el-button
-              :disabled="!importForm.base64 || importing"
+              :disabled="(!importForm.base64 && !parsedImport) || importing"
               :loading="previewing"
               @click="handlePreviewImport"
             >
@@ -82,11 +82,11 @@
           class="status-box"
         >
           <el-progress
-            :percentage="importing ? 70 : 35"
+            :percentage="importing ? 70 : parseProgressPercent"
             :stroke-width="8"
-            :indeterminate="true"
+            :indeterminate="!hasParseProgress"
           />
-          <span>{{ importing ? '正在写入书架…' : '正在解析文件…' }}</span>
+          <span>{{ importing ? '正在写入书架…' : parseStatusText }}</span>
         </div>
 
         <div
@@ -98,6 +98,27 @@
             <strong>{{ preview.chapterCount }} 章</strong>
             <span>{{ formatNumber(preview.wordCount) }} 字</span>
             <span>{{ preview.fileName }}</span>
+          </div>
+          <div
+            v-if="parsedPdfMeta"
+            class="pdf-meta"
+          >
+            <span>共 {{ parsedPdfMeta.pageCount }} 页</span>
+            <span>有文字层 {{ parsedPdfMeta.textPageCount }} 页</span>
+            <span v-if="parsedPdfMeta.skippedPageCount > 0">
+              跳过目录/空白页 {{ parsedPdfMeta.skippedPageCount }} 页
+            </span>
+          </div>
+          <div
+            v-if="importWarnings.length"
+            class="import-warnings"
+          >
+            <p
+              v-for="warning in importWarnings"
+              :key="warning"
+            >
+              ⚠ {{ warning }}
+            </p>
           </div>
           <div class="chapter-preview-list">
             <article
@@ -115,7 +136,7 @@
           class="soft-empty"
         >
           <strong>还没有选择导入文件</strong>
-          <span>支持 TXT / Markdown / DOCX，单文件不超过 50 MB。</span>
+          <span>支持 TXT / Markdown / DOCX / 带文本层的 PDF，单文件不超过 50 MB。扫描版 PDF 暂不支持 OCR。</span>
         </div>
       </section>
 
@@ -450,6 +471,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArchiveRestore, FileDown, FileUp, History, RefreshCw, Upload } from 'lucide-vue-next'
+import { getLocalBookFileExtension, parseLocalBookFile } from '../service/localBookImport.js'
 import {
   createLibraryBackup,
   downloadBase64File,
@@ -508,6 +530,18 @@ const importForm = reactive({
   base64: '',
   format: ''
 })
+
+// 本地解析结果（PDF 走浏览器解析,不回传原始文件）
+const parsedImport = ref(null)
+const parseProgressPercent = ref(0)
+const parseStatusText = ref('正在解析文件…')
+const hasParseProgress = computed(() => parseProgressPercent.value > 0 && parseProgressPercent.value < 100)
+const parsedPdfMeta = computed(() => {
+  if (parsedImport.value?.extension !== 'pdf') return null
+  return parsedImport.value
+})
+const importWarnings = computed(() => parsedImport.value?.warnings || [])
+const MAX_PREPARED_IMPORT_PAYLOAD_BYTES = 12 * 1024 * 1024
 
 const exportForm = reactive({
   bookName: '',
@@ -636,6 +670,12 @@ async function readFileAsBase64(file) {
   return dataUrl.split(',').pop() || ''
 }
 
+function resetParseState() {
+  parsedImport.value = null
+  parseProgressPercent.value = 0
+  parseStatusText.value = '正在解析文件…'
+}
+
 async function handleImportFileChange(event) {
   const file = event.target.files?.[0]
   if (!file || previewing.value || importing.value) return
@@ -643,6 +683,7 @@ async function handleImportFileChange(event) {
   importError.value = ''
   importForm.fileName = file.name
   importForm.base64 = ''
+  resetParseState()
   try {
     if (file.size === 0) {
       throw new Error('导入文件不能为空')
@@ -650,13 +691,59 @@ async function handleImportFileChange(event) {
     if (file.size > MAX_IMPORT_FILE_SIZE) {
       throw new Error('导入文件不能超过 50 MB')
     }
-    importForm.base64 = await readFileAsBase64(file)
+    if (isPdfFile(file)) {
+      await parseImportedPdfFile(file)
+    } else {
+      importForm.base64 = await readFileAsBase64(file)
+    }
     await handlePreviewImport()
   } catch (error) {
     importError.value = error?.message || '读取导入文件失败'
     ElMessage.error(importError.value)
   } finally {
     event.target.value = ''
+  }
+}
+
+function isPdfFile(file) {
+  return getLocalBookFileExtension(file.name) === 'pdf'
+}
+
+async function parseImportedPdfFile(file) {
+  parsedImport.value = await parseLocalBookFile(file, {
+    onProgress: (info) => {
+      if (Number.isFinite(info?.percent)) {
+        parseProgressPercent.value = Math.max(1, Math.min(99, Math.round(info.percent)))
+      }
+      if (info?.message) {
+        parseStatusText.value = info.message
+      }
+    }
+  })
+  if (!parsedImport.value?.chapters?.length) {
+    throw new Error('PDF 没有解析出任何章节')
+  }
+  // 载荷安全上限:解析后的章节 JSON 不超过 12MB(后端 body 上限 16MB)
+  const payloadBytes = new TextEncoder().encode(
+    JSON.stringify(preparedImportPayload())
+  ).byteLength
+  if (payloadBytes > MAX_PREPARED_IMPORT_PAYLOAD_BYTES) {
+    throw new Error(
+      `PDF 章节内容过大（约 ${(payloadBytes / 1024 / 1024).toFixed(1)} MB），超过 12 MB 导入上限，请拆分后再导入`
+    )
+  }
+}
+
+function preparedImportPayload() {
+  const parsed = parsedImport.value
+  return {
+    fileName: importForm.fileName,
+    format: 'pdf',
+    bookName: parsed.title,
+    chapters: parsed.chapters.map((chapter) => ({
+      title: chapter.title,
+      content: chapter.content
+    }))
   }
 }
 
@@ -678,14 +765,21 @@ async function handleBackupFileChange(event) {
 }
 
 function importPayload() {
+  if (parsedImport.value) {
+    return preparedImportPayload()
+  }
   return {
     fileName: importForm.fileName,
     base64: importForm.base64
   }
 }
 
+function canSubmitImportPayload() {
+  return Boolean(importForm.base64 || parsedImport.value)
+}
+
 async function handlePreviewImport() {
-  if (previewing.value || importing.value || !importForm.base64) return
+  if (previewing.value || importing.value || !canSubmitImportPayload()) return
   previewing.value = true
   importError.value = ''
   try {
@@ -710,6 +804,7 @@ async function handleImportBook() {
     preview.value = null
     importForm.base64 = ''
     importForm.fileName = ''
+    resetParseState()
     emit('imported', result)
     await loadData()
   } catch (error) {
@@ -721,7 +816,7 @@ async function handleImportBook() {
 }
 
 async function retryImport() {
-  if (!importForm.base64) return
+  if (!canSubmitImportPayload()) return
   if (preview.value) {
     await handleImportBook()
     return
@@ -1211,6 +1306,29 @@ onMounted(loadData)
     color: var(--text-gray);
     font-size: 13px;
     padding: 6px 10px;
+  }
+}
+
+.pdf-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-gray);
+}
+
+.import-warnings {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--warning-color, #b8860b);
   }
 }
 

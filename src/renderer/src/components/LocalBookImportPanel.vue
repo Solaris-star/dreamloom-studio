@@ -13,7 +13,7 @@
     <div class="local-import-head">
       <div>
         <h3>本地书籍</h3>
-        <p>TXT / MD / DOCX</p>
+        <p>TXT / MD / DOCX / PDF</p>
       </div>
       <div class="local-import-actions">
         <input
@@ -21,7 +21,7 @@
           class="file-input"
           type="file"
           multiple
-          accept=".txt,.md,.markdown,.docx,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          accept=".txt,.md,.markdown,.docx,.pdf,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           @change="handleFileChange"
         >
         <el-button
@@ -53,7 +53,7 @@
         class="file-input"
         type="file"
         multiple
-        accept=".txt,.md,.markdown,.docx,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        accept=".txt,.md,.markdown,.docx,.pdf,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         @change="handleFileChange"
       >
       <Upload :size="26" />
@@ -91,6 +91,12 @@
           </div>
           <p v-if="row.status === 'error'">
             {{ row.error }}
+          </p>
+          <p
+            v-else-if="row.status === 'parsing' && row.parseStatusText"
+            class="parse-progress"
+          >
+            {{ row.parseStatusText }}
           </p>
           <p v-else>
             {{ formatFileSize(row.parsed?.fileSize) }} · {{ row.parsed?.encoding }} ·
@@ -240,7 +246,7 @@ async function parseFiles(files) {
     ElMessage.warning(`已跳过 ${skipped} 个不支持的文件`)
   }
   if (!targets.length) {
-    if (files.length) errorMsg.value = '请选择 TXT、MD 或 DOCX 文件'
+    if (files.length) errorMsg.value = '请选择 TXT、MD、DOCX 或带文本层的 PDF 文件'
     return
   }
 
@@ -258,7 +264,12 @@ async function parseFiles(files) {
       const row = createPendingRow(file)
       rows.value.unshift(row)
       try {
-        row.parsed = await parseLocalBookFile(file)
+        row.parsed = await parseLocalBookFile(file, {
+          onProgress: (info) => {
+            if (info?.message) row.parseStatusText = info.message
+          }
+        })
+        row.parseStatusText = ''
         row.proposedBookName = uniqueLocalBookName(row.parsed.title, reservedBooks)
         reservedBooks.push({ name: row.proposedBookName })
         row.status = 'ready'
@@ -387,6 +398,7 @@ function createPendingRow(file) {
     parsed: null,
     proposedBookName: '',
     expanded: false,
+    parseStatusText: '',
     error: ''
   }
 }
@@ -647,6 +659,12 @@ defineExpose({
   li p {
     line-height: 1.6;
   }
+}
+
+.parse-progress {
+  margin: 0;
+  font-size: 13px;
+  color: var(--wabi-muted, #756b5b);
 }
 
 .warning-list {

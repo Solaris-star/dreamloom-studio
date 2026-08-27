@@ -21,6 +21,7 @@ export function webVendorChunk(id) {
   if (/[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/.test(id)) return 'vendor-vue'
   if (/[\\/]node_modules[\\/]lucide-vue-next[\\/]/.test(id)) return 'vendor-icons'
   if (/[\\/]node_modules[\\/]mammoth[\\/]/.test(id)) return 'vendor-docx'
+  if (/[\\/]node_modules[\\/]pdfjs-dist[\\/]/.test(id)) return 'vendor-pdf'
   if (/[\\/]node_modules[\\/](jszip|pako)[\\/]/.test(id)) return 'vendor-zip'
   if (/[\\/]node_modules[\\/](sax|xmlbuilder|@xmldom)[\\/]/.test(id)) return 'vendor-xml'
   return undefined

@@ -363,12 +363,16 @@ function getFormat(input = {}, fileName = '') {
   const ext = extname(fileName).toLowerCase()
   if (ext === '.docx') return 'docx'
   if (ext === '.md' || ext === '.markdown') return 'md'
+  if (ext === '.pdf') return 'pdf'
   return 'txt'
 }
 
 function readImportText(input = {}) {
   const { buffer, fileName } = decodeInputBuffer(input)
   const format = getFormat(input, fileName)
+  if (format === 'pdf') {
+    throw new Error('PDF 文件必须先在浏览器端解析为章节后再导入。')
+  }
   if (format === 'docx') {
     try {
       return { text: extractDocxText(buffer), fileName, format }
@@ -381,7 +385,7 @@ function readImportText(input = {}) {
     format !== 'txt' &&
     format !== 'md'
   ) {
-    throw new Error('仅支持 TXT、Markdown 和 DOCX')
+    throw new Error('仅支持 TXT、Markdown、DOCX 和带文本层的 PDF')
   }
   return { text: decodeTextBuffer(buffer).replace(/\r\n/g, '\n'), fileName, format }
 }
@@ -535,11 +539,17 @@ function countWords(text) {
   return cn + en
 }
 
+const PREPARED_IMPORT_FORMATS = new Set(['txt', 'md', 'docx', 'pdf'])
+
 function buildPreparedImportPreview(input = {}) {
   if (!Array.isArray(input.chapters) || input.chapters.length === 0) {
     throw new Error('导入章节不能为空')
   }
   if (input.chapters.length > 10000) throw new Error('导入章节数量不能超过 10000')
+  const preparedFormat = getFormat(input, input.fileName)
+  if (!PREPARED_IMPORT_FORMATS.has(preparedFormat)) {
+    throw new Error('导入格式无效，仅支持 TXT、Markdown、DOCX 和 PDF')
+  }
 
   const chapters = input.chapters.map((chapter, index) => {
     if (!chapter || typeof chapter !== 'object' || Array.isArray(chapter)) {

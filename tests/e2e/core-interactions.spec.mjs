@@ -270,7 +270,7 @@ test('书架筛选和本地导入入口可以操作', async ({ page }, testInfo)
   await bookshelfTabs.getByRole('button', { name: '导入作品', exact: true }).click()
   await expect(page).toHaveURL(/#\/knowledge\?tab=import/)
   await expect(page.getByRole('heading', { name: '导入作品', level: 2 })).toBeVisible()
-  await expect(page.locator('.file-picker')).toContainText(/TXT、Markdown 或 DOCX/)
+  await expect(page.locator('.file-picker')).toContainText(/TXT、Markdown、DOCX 或 PDF/)
 })
 
 test('在线拆书搜索结果可以通过选择按钮操作', async ({ page }) => {
@@ -347,6 +347,106 @@ test('DOCX 可以预览导入且损坏文件不会加入书架', async ({ page, 
     await expect(page.getByText(`已导入：${importedBookName}`)).toBeVisible()
   } finally {
     await postApi(request, '/api/books/delete', { name: importedBookName })
+  }
+})
+
+/**
+ * 构造一个最小的带文本层 PDF(两页,各一章)。
+ * 纯 ASCII 内容,Helvetica 基础字体,不引入 PDF 生成依赖。
+ * xref 表按实际字节偏移计算,保证 PDF.js 能解析。
+ */
+function createTextPdfBuffer() {
+  const encoder = new TextEncoder()
+  const objects = []
+
+  function escapePdfText(text) {
+    return text.replaceAll('\\', '\\\\').replaceAll('(', '\\(').replaceAll(')', '\\)')
+  }
+
+  function makePageContent(lines) {
+    let content = 'BT\n'
+    let y = 720
+    for (const line of lines) {
+      content += `/F1 12 Tf 1 0 0 1 72 ${y} Tm (${escapePdfText(line)}) Tj\n`
+      y -= 20
+    }
+    content += 'ET\n'
+    return encoder.encode(content)
+  }
+
+  const pageContents = [
+    makePageContent([
+      'The Paper Lantern',
+      '',
+      'Chapter 1 The Old Shop',
+      'Lin pushed the door of the old bookshop.',
+      'Rain fell on the quiet street.'
+    ]),
+    makePageContent([
+      'Chapter 2 The Letter',
+      'A letter without a name lay on the counter.',
+      'The lamp burned until morning.'
+    ])
+  ]
+
+  const fontObj = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
+
+  objects[1] = encoder.encode('<< /Type /Catalog /Pages 2 0 R >>')
+  objects[2] = encoder.encode('<< /Type /Pages /Kids [3 0 R 6 0 R] /Count 2 >>')
+  objects[3] = encoder.encode(
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>'
+  )
+  objects[4] = encoder.encode(fontObj)
+  objects[5] = new Uint8Array([...encoder.encode('<< /Length '), ...encoder.encode(String(pageContents[0].length)), ...encoder.encode(' >>\nstream\n'), ...pageContents[0], ...encoder.encode('\nendstream')])
+  objects[6] = encoder.encode(
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 7 0 R >>'
+  )
+  objects[7] = new Uint8Array([...encoder.encode('<< /Length '), ...encoder.encode(String(pageContents[1].length)), ...encoder.encode(' >>\nstream\n'), ...pageContents[1], ...encoder.encode('\nendstream')])
+
+  const chunks = [encoder.encode('%PDF-1.4\n')]
+  const offsets = [0]
+  for (let i = 1; i <= 7; i++) {
+    offsets[i] = chunks.reduce((sum, c) => sum + c.length, 0)
+    chunks.push(encoder.encode(`${i} 0 obj\n`), objects[i], encoder.encode('\nendobj\n'))
+  }
+  const xrefOffset = chunks.reduce((sum, c) => sum + c.length, 0)
+  let xref = `xref\n0 8\n0000000000 65535 f \n`
+  for (let i = 1; i <= 7; i++) {
+    xref += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`
+  }
+  xref += `trailer\n<< /Size 8 /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`
+  chunks.push(encoder.encode(xref))
+  return Buffer.concat(chunks.map((c) => Buffer.from(c)))
+}
+
+test('PDF 可以在浏览器解析并写入书架', async ({ page, request }, testInfo) => {
+  test.skip(testInfo.project.name !== 'wide', 'PDF 浏览器解析仅在宽屏视口执行')
+  test.setTimeout(120_000)
+  const importedBookName = 'PDF 浏览器导入'
+  await postApi(request, '/api/books/delete', { name: importedBookName })
+  try {
+    await page.goto('/#/knowledge?tab=import')
+    const importPanel = page.locator('.import-export-page')
+    const fileInput = importPanel.locator('input[type="file"]').first()
+
+    await fileInput.setInputFiles({
+      name: `${importedBookName}.pdf`,
+      mimeType: 'application/pdf',
+      buffer: createTextPdfBuffer()
+    })
+
+    const preview = importPanel.locator('.preview-box')
+    await expect(preview).toContainText('Chapter 1', { timeout: 30_000 })
+    // PDF 无书名 metadata → 文件名兜底;首行书名进入「正文」章,Chapter 1/2 独立成章
+    await expect(preview).toContainText('3 章')
+    await expect(preview).toContainText('共 2 页')
+    await expect(preview).toContainText('有文字层 2 页')
+    await expect(preview).toContainText('Chapter 2 The Letter')
+
+    await importPanel.getByRole('button', { name: '写入书架' }).click()
+    await expect(page.getByText(`已导入：${importedBookName}`)).toBeVisible()
+  } finally {
+    await postApi(request, '/api/books/delete', { name: importedBookName }).catch(() => {})
   }
 })
 

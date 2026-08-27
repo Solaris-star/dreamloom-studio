@@ -2471,7 +2471,7 @@ function handleBookshelfDrop(event) {
       }
     })
   } else {
-    ElMessage.warning('拖入文件格式不支持，仅支持 TXT、MD、DOCX 文本格式')
+    ElMessage.warning('拖入文件格式不支持，仅支持 TXT、MD、DOCX 和带文本层的 PDF')
   }
 }
 

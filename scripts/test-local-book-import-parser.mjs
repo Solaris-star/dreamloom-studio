@@ -19,7 +19,7 @@ assert.equal(getLocalBookFileExtension('  小说.MARKDOWN  '), 'markdown')
 assert.equal(getLocalBookFileExtension('无扩展名'), '')
 assert.equal(getLocalBookFileExtension(), '')
 assert.equal(isSupportedLocalBookFile({ name: '小说.TXT' }), true)
-assert.equal(isSupportedLocalBookFile({ name: '小说.pdf' }), false)
+assert.equal(isSupportedLocalBookFile({ name: '小说.pdf' }), true)
 assert.equal(isSupportedLocalBookFile(), false)
 assert.equal(countWords(' 一 二\n三\t'), 3)
 assert.equal(countWords(), 0)
@@ -181,10 +181,29 @@ assert.equal(parsedTextFile.encoding, 'UTF-8')
 assert.equal(parsedTextFile.fileSize, gbText.byteLength)
 
 await assert.rejects(() => parseLocalBookFile(), /请选择本地书籍文件/)
-await assert.rejects(
-  () => parseLocalBookFile({ name: '小说.pdf', size: 1 }),
-  /暂不支持该文件格式/
+const parsedPdfFile = await parseLocalBookFile(
+  { name: '小说.pdf', size: 1024 },
+  {
+    readers: {
+      pdfReader: async () => ({
+        text: '第1章 初见\n风吹进来。\n第2章 再会\n灯火亮起。',
+        title: 'PDF 测试小说',
+        warnings: ['部分页面没有文本层', '部分页面没有文本层'],
+        pageCount: 3,
+        textPageCount: 2,
+        skippedPageCount: 1
+      })
+    }
+  }
 )
+assert.equal(parsedPdfFile.extension, 'pdf')
+assert.equal(parsedPdfFile.encoding, 'PDF')
+assert.equal(parsedPdfFile.title, 'PDF 测试小说')
+assert.equal(parsedPdfFile.chapterCount, 2)
+assert.equal(parsedPdfFile.pageCount, 3)
+assert.equal(parsedPdfFile.textPageCount, 2)
+assert.equal(parsedPdfFile.skippedPageCount, 1)
+assert.deepEqual(parsedPdfFile.warnings, ['部分页面没有文本层'])
 await assert.rejects(
   () =>
     parseLocalBookFile({

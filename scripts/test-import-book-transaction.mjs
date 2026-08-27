@@ -53,6 +53,39 @@ try {
     /正文格式无效/
   )
 
+  // PDF prepared 模式:format=pdf + chapters → 正常导入
+  const pdfImport = await importBook(root, {
+    fileName: '旧城故事.pdf',
+    format: 'pdf',
+    bookName: '旧城故事',
+    chapters: [
+      { title: '第1章 初见', content: '风从窗外吹进来。' },
+      { title: '第2章 再会', content: '灯火亮了起来。' }
+    ]
+  })
+  assert.equal(pdfImport.success, true)
+  assert.equal(pdfImport.bookName, '旧城故事')
+  assert.equal(pdfImport.chapterCount, 2)
+  assert.equal(fs.existsSync(path.join(root, '旧城故事', 'mazi.json')), true)
+  assert.deepEqual(
+    fs.readdirSync(path.join(root, '旧城故事', '正文', '正文')).sort(),
+    ['第1章 初见.txt', '第2章 再会.txt']
+  )
+  const pdfMeta = JSON.parse(fs.readFileSync(path.join(root, '旧城故事', 'mazi.json'), 'utf-8'))
+  assert.ok(pdfMeta.intro.includes('旧城故事.pdf'))
+
+  // prepared 格式白名单:未知 format 拒绝
+  await assert.rejects(
+    () => importBook(root, { fileName: 'x.xyz', format: 'xyz', bookName: '坏格式', chapters: [{ title: 'a', content: 'b' }] }),
+    /导入格式无效/
+  )
+
+  // raw base64 PDF(无 chapters)→ 明确拒绝,要求浏览器端先解析
+  await assert.rejects(
+    () => importBook(root, { fileName: 'raw.pdf', base64: Buffer.from('%PDF-1.4 test').toString('base64'), bookName: '原始PDF' }),
+    /PDF 文件必须先在浏览器端解析为章节后再导入/
+  )
+
   const failedRoot = path.join(root, 'failed-library')
   fs.mkdirSync(path.join(failedRoot, '.import-export', 'tasks.json'), { recursive: true })
   await assert.rejects(() => importBook(failedRoot, importPayload('回滚测试')), /EISDIR|EPERM|directory/i)

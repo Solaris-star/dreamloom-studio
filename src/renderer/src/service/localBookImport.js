@@ -1,4 +1,4 @@
-export const SUPPORTED_LOCAL_BOOK_EXTENSIONS = ['txt', 'md', 'markdown', 'docx']
+export const SUPPORTED_LOCAL_BOOK_EXTENSIONS = ['txt', 'md', 'markdown', 'docx', 'pdf']
 export const MAX_LOCAL_BOOK_FILE_SIZE = 50 * 1024 * 1024
 
 const TEXT_EXTENSIONS = new Set(['txt', 'md', 'markdown'])
@@ -31,7 +31,7 @@ export function isSupportedLocalBookFile(file = {}) {
   return SUPPORTED_LOCAL_BOOK_EXTENSIONS.includes(getLocalBookFileExtension(file.name))
 }
 
-export async function parseLocalBookFile(file) {
+export async function parseLocalBookFile(file, options = {}) {
   if (!file?.name) {
     throw new Error('请选择本地书籍文件')
   }
@@ -43,8 +43,16 @@ export async function parseLocalBookFile(file) {
     throw new Error('文件超过 50 MB，无法导入')
   }
 
+  // PDF 走浏览器端解析,返回独立 ParsedBook 结构
+  if (extension === 'pdf') {
+    return parsePdfBook(file, options)
+  }
+
+  const onProgress = typeof options.onProgress === 'function' ? options.onProgress : null
+  const signal = options.signal
   let source
   try {
+    if (onProgress) onProgress({ phase: 'reading', percent: 20, message: '正在读取文件' })
     source = extension === 'docx' ? await readDocxText(file) : await readTextFile(file)
   } catch (error) {
     if (error?.message?.startsWith('DOCX')) throw error
@@ -60,13 +68,81 @@ export async function parseLocalBookFile(file) {
   })
 }
 
+/**
+ * PDF 解析分派。
+ *
+ * 不在顶层 import pdfBookImport.js,避免 Node 测试加载 Vite ?url worker。
+ * readers.pdfReader 可作为测试注入点替换真实 PDF.js。
+ */
+async function parsePdfBook(file, options = {}) {
+  const { onProgress = () => {}, signal, readers = {} } = options
+  if (signal?.aborted) {
+    throw makeAbortError()
+  }
+
+  // 测试注入点
+  if (readers.pdfReader) {
+    const result = await readers.pdfReader(file, options)
+    return normalizePdfParsedBook(result, file)
+  }
+
+  // 浏览器环境:动态加载 PDF 解析模块
+  let parsePdfFile = null
+  try {
+    const mod = await import('./pdfBookImport.js')
+    parsePdfFile = mod.parsePdfFile || mod.default?.parsePdfFile
+  } catch (error) {
+    console.error('[localBookImport] 加载 pdfBookImport 失败:', error)
+    throw new Error('PDF 解析组件加载失败')
+  }
+  if (!parsePdfFile) {
+    throw new Error('PDF 解析组件加载失败')
+  }
+
+  const result = await parsePdfFile(file, { onProgress, signal })
+  return normalizePdfParsedBook(result, file)
+}
+
+function makeAbortError() {
+  const err = new Error('PDF 解析已取消')
+  err.code = 'PDF_PARSE_ABORTED'
+  return err
+}
+
+/**
+ * 把 pdfBookImport 返回的原始结构归一化为统一 ParsedBook。
+ * 复用 parseLocalBookText 的章节切分逻辑。
+ */
+function normalizePdfParsedBook(pdfResult, file) {
+  const rawText = String(pdfResult.rawText || pdfResult.text || '')
+  const titleOverride = pdfResult.title || ''
+  const parsed = parseLocalBookText(rawText, {
+    fileName: file.name,
+    extension: 'pdf',
+    fileSize: Number(file.size) || 0,
+    encoding: 'PDF',
+    warnings: pdfResult.warnings,
+    titleOverride
+  })
+  return {
+    ...parsed,
+    extension: 'pdf',
+    encoding: 'PDF',
+    pageCount: Number(pdfResult.pageCount) || 0,
+    textPageCount: Number(pdfResult.textPageCount) || 0,
+    skippedPageCount: Number(pdfResult.skippedPageCount) || 0,
+    metadata: pdfResult.metadata || null,
+    _source: 'pdf'
+  }
+}
+
 export function parseLocalBookText(text, options = {}) {
   const normalizedText = normalizeSourceText(text)
   if (!normalizedText.trim()) {
     throw new Error('文件正文为空')
   }
   const extension = String(options.extension || '').toLowerCase()
-  const title = inferBookTitle(normalizedText, options.fileName)
+  const title = normalizeBookTitleOverride(options.titleOverride) || inferBookTitle(normalizedText, options.fileName)
   const sourceText = isMarkdownExtension(extension)
     ? stripLeadingMarkdownBookTitle(normalizedText, title)
     : normalizedText
@@ -251,10 +327,12 @@ function decodeTextBuffer(arrayBuffer) {
 }
 
 function normalizeWarnings(warnings = []) {
-  return warnings
-    .map((warning) => String(warning?.message || warning || '').trim())
-    .filter(Boolean)
-    .map((warning) => warning.replace(/[A-Za-z]:[\\/][^\s]+/g, '[本地文件]'))
+  return [...new Set(
+    warnings
+      .map((warning) => String(warning?.message || warning || '').trim())
+      .filter(Boolean)
+      .map((warning) => warning.replace(/[A-Za-z]:[\\/][^\s]+/g, '[本地文件]'))
+  )]
 }
 
 function normalizeSourceText(text = '') {
@@ -285,6 +363,13 @@ function stripLeadingMarkdownBookTitle(text, title) {
   const heading = sanitizeBookName(firstLine.replace(/^#\s+/, ''))
   if (heading !== title) return text
   return lines.slice(1).join('\n').trim()
+}
+
+function normalizeBookTitleOverride(title) {
+  const value = String(title || '').replace(/[\u0000-\u001f\u007f]/g, '').trim()
+  if (!value || value.length > 120) return ''
+  if (/^(untitled|unknown|microsoft word|adobe acrobat|pdf)$/i.test(value)) return ''
+  return sanitizeBookName(value)
 }
 
 function sanitizeBookName(name) {

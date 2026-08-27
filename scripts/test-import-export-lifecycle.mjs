@@ -200,8 +200,27 @@ try {
         format: 'epub',
         base64: Buffer.from('content').toString('base64')
       }),
-    /仅支持 TXT、Markdown 和 DOCX/
+    /仅支持 TXT、Markdown、DOCX 和带文本层的 PDF/
   )
+  assert.throws(() => previewImport(booksDir, {
+        fileName: '原始.pdf',
+        format: 'pdf',
+        base64: Buffer.from('%PDF-1.4 raw-bytes').toString('base64')
+      }),
+    /PDF 文件必须先在浏览器端解析为章节后再导入/
+  )
+  const pdfPreview = await previewImport(booksDir, {
+    fileName: '旧城故事.pdf',
+    format: 'pdf',
+    bookName: '旧城故事',
+    chapters: [
+      { title: '第1章 初见', content: '风从窗外吹进来。' },
+      { title: '第2章 再会', content: '灯火亮了起来。' }
+    ]
+  })
+  assert.equal(pdfPreview.preview.format, 'pdf')
+  assert.equal(pdfPreview.preview.chapterCount, 2)
+  assert.equal(pdfPreview.preview.wordCount, 13)
   assert.throws(() => previewImport(booksDir, { chapters: [] }),
     /导入章节不能为空/
   )
