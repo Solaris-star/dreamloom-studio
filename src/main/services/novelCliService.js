@@ -55,6 +55,33 @@ import {
   summarizeEditorAgentTaskMemory
 } from './editorAgentMemoryService.js'
 import { runAgentDraftConsistencyTool } from './agentDraftConsistencyToolService.js'
+import { buildWritingReferenceBlock } from './writingReferenceLibrary.js'
+import {
+  scanAiFlavor,
+  hasBlockingFindings,
+  summarizeAiFlavorFindings
+} from './aiFlavorCheckService.js'
+
+const WRITER_SYSTEM_PROMPT = [
+  '你是网络小说 Writer。你的任务是为读者交付确定的情绪满足。',
+  '写作铁律：',
+  '1. 直接输出章节正文，不要输出提纲、说明、Markdown 标题或 JSON。',
+  '2. 先定情绪，再定故事：每个场景必须服务于一个明确的情绪目标（爽感/期待/紧张/意难平等）。',
+  '3. 展示不告知：情绪用动作、对话、物件、后果呈现，不写「他感到」「心中涌起一股」。',
+  '4. 禁用 AI 套路句式：「不是A，而是B」「声音不大，却带着」「眼中闪过一丝」「仿佛/犹如」「深吸一口气」「没人知道的是」「这一夜注定」「命运的齿轮」「才刚刚开始」。直接写具体内容。',
+  '5. 禁用破折号——和省略号停顿，用句号、逗号、短句或动作断句。',
+  '6. 对话标签低频：不每句都加「说道/问道/笑道」，用动作和上下文引出对话。',
+  '7. 段落长短随节奏：爽点和转折压短，推理和氛围放长；不写均匀段落。',
+  '8. 章尾钩子：结尾停在具体动作、画面或一句台词上，让悬念由事件自己挂住，不替读者预告下一章。',
+  '9. 正文承接设定与上下文，避免复述任务要求。'
+].join('\n')
+
+const EDITOR_SYSTEM_PROMPT = [
+  '你是小说 Editor。你只做审稿判断，请只输出 JSON，不要 Markdown。',
+  '审查铁律：审查是找问题，不是验证正确性。',
+  '除常规检查外，必须复核规则检查工具给出的 AI 味与一致性问题：blocking 级问题未修复时应在 issues 中列出并压低分数。',
+  '返回格式：{"passed":true,"score":90,"issues":[],"revisionInstruction":""}'
+].join('\n')
 
 const DEFAULT_VOLUME_NAME = '正文'
 const DEFAULT_CHAPTER_NAME = '第1章'
@@ -895,12 +922,13 @@ function buildWriterMessages({
   prompt,
   targetWords,
   bookContextText,
-  taskMemoryText
+  taskMemoryText,
+  writingReferenceText
 }) {
   return [
     {
       role: 'system',
-      content: '你是小说 Writer。你必须直接输出章节正文，不要输出提纲、说明、Markdown 标题或 JSON。'
+      content: WRITER_SYSTEM_PROMPT
     },
     {
       role: 'user',
@@ -913,8 +941,11 @@ function buildWriterMessages({
         prompt,
         `历史任务记录：\n${taskMemoryText || '暂无可用历史任务记录。'}`,
         `作品资料：\n${bookContextText || '未读取到可用作品资料。'}`,
+        writingReferenceText ? `写作方法论参考：\n${writingReferenceText}` : '',
         '正文需要承接设定，避免复述任务要求。'
-      ].join('\n')
+      ]
+        .filter(Boolean)
+        .join('\n')
     }
   ]
 }
@@ -933,7 +964,7 @@ function buildReviewMessages({
   return [
     {
       role: 'system',
-      content: '你是小说 Editor。你只做审稿判断，请只输出 JSON，不要 Markdown。'
+      content: EDITOR_SYSTEM_PROMPT
     },
     {
       role: 'user',
@@ -964,12 +995,13 @@ function buildRewriteMessages({
   draft,
   review,
   bookContextText,
-  taskMemoryText
+  taskMemoryText,
+  writingReferenceText
 }) {
   return [
     {
       role: 'system',
-      content: '你是小说 Writer。请按 Editor 意见重写，直接输出完整章节正文。'
+      content: WRITER_SYSTEM_PROMPT
     },
     {
       role: 'user',
@@ -983,8 +1015,11 @@ function buildRewriteMessages({
         `作品资料：\n${bookContextText || '未读取到可用作品资料。'}`,
         `Editor 意见：\n${reviewSummary(review)}`,
         `原稿：\n${draft}`,
+        writingReferenceText ? `写作方法论参考：\n${writingReferenceText}` : '',
         '请输出重写后的完整正文。'
-      ].join('\n\n')
+      ]
+        .filter(Boolean)
+        .join('\n\n')
     }
   ]
 }
@@ -1012,12 +1047,13 @@ function buildRepairMessages({
   currentText,
   issues,
   bookContextText,
-  taskMemoryText
+  taskMemoryText,
+  writingReferenceText
 }) {
   return [
     {
       role: 'system',
-      content: '你是小说 Writer。请修正文中的一致性问题，保持章节情节和文风，直接输出完整章节正文。'
+      content: WRITER_SYSTEM_PROMPT
     },
     {
       role: 'user',
@@ -1031,8 +1067,11 @@ function buildRepairMessages({
         `作品资料：\n${bookContextText || '未读取到可用作品资料。'}`,
         `一致性问题：\n${issuePrompt(issues)}`,
         `当前正文：\n${currentText}`,
+        writingReferenceText ? `写作方法论参考：\n${writingReferenceText}` : '',
         '请输出修正后的完整正文。'
-      ].join('\n\n')
+      ]
+        .filter(Boolean)
+        .join('\n\n')
     }
   ]
 }
@@ -1122,8 +1161,47 @@ async function createStreamRecorder({
   }
 }
 
+function resolveWritingReferenceText(input = {}) {
+  const references = Array.isArray(input.references) ? input.references : []
+  if (!references.length) return ''
+  try {
+    const { block } = buildWritingReferenceBlock(references, {
+      maxChars: 5000,
+      totalBudgetChars: 16000
+    })
+    return block || ''
+  } catch {
+    return ''
+  }
+}
+
+function buildAiFlavorCheckStep(draft = '', startedAt = Date.now()) {
+  const findings = scanAiFlavor(draft)
+  const summary = summarizeAiFlavorFindings(findings)
+  return {
+    step: {
+      id: `agent_ai_flavor_check_${randomUUID()}`,
+      stage: 'agent_ai_flavor_check',
+      role: 'tool',
+      title: 'AI 味规则检查',
+      status: 'done',
+      content: summary ? summary.slice(0, 900) : 'AI 味规则检查未发现问题。',
+      modelUsed: '',
+      usage: {},
+      startedAt: new Date(startedAt).toISOString(),
+      finishedAt: new Date().toISOString(),
+      blockingCount: findings.filter((f) => f.severity === 'blocking').length,
+      advisoryCount: findings.filter((f) => f.severity === 'advisory').length,
+      metadata: { ruleChecked: true, llmChecked: false, persisted: false, source: 'ai_flavor_check' }
+    },
+    text: summary || 'AI 味规则检查未发现明确问题。',
+    findings
+  }
+}
+
 async function runWriterReviewLoop(input, provider, generationId, context = {}) {
   const { service, model } = provider
+  const writingReferenceText = resolveWritingReferenceText(input)
   const steps = [
     taskMemoryStep(input.taskMemory, 'CLI 读取历史任务记录'),
     bookContextStep(input.bookContext, 'CLI 读取作品资料')
@@ -1133,7 +1211,7 @@ async function runWriterReviewLoop(input, provider, generationId, context = {}) 
   let writerResponse = await callStreamChat(
     service,
     {
-      messages: buildWriterMessages(input),
+      messages: buildWriterMessages({ ...input, writingReferenceText }),
       model: model || undefined,
       temperature: input.temperature ?? 0.75,
       max_tokens: input.maxTokens || undefined,
@@ -1170,9 +1248,19 @@ async function runWriterReviewLoop(input, provider, generationId, context = {}) 
   steps.push(draftCheck.step)
 
   throwIfAborted(input.signal)
+  const aiFlavorCheck = buildAiFlavorCheckStep(draft)
+  steps.push(aiFlavorCheck.step)
+
+  throwIfAborted(input.signal)
   const reviewStartedAt = Date.now()
   const reviewResponse = await callChat(service, {
-    messages: buildReviewMessages({ ...input, draft, draftToolCheckText: draftCheck.text }),
+    messages: buildReviewMessages({
+      ...input,
+      draft,
+      draftToolCheckText: [draftCheck.text, aiFlavorCheck.text]
+        .filter(Boolean)
+        .join('\n\n')
+    }),
     model: model || undefined,
     temperature: 0.1,
     max_tokens: 1800,
@@ -1201,7 +1289,7 @@ async function runWriterReviewLoop(input, provider, generationId, context = {}) 
   writerResponse = await callStreamChat(
     service,
     {
-      messages: buildRewriteMessages({ ...input, draft, review }),
+      messages: buildRewriteMessages({ ...input, draft, review, writingReferenceText }),
       model: model || undefined,
       temperature: input.temperature ?? 0.72,
       max_tokens: input.maxTokens || undefined,
@@ -1245,9 +1333,19 @@ async function runWriterReviewLoop(input, provider, generationId, context = {}) 
   steps.push(rewriteCheck.step)
 
   throwIfAborted(input.signal)
+  const rewriteAiFlavorCheck = buildAiFlavorCheckStep(draft)
+  steps.push(rewriteAiFlavorCheck.step)
+
+  throwIfAborted(input.signal)
   const rewriteReviewStartedAt = Date.now()
   const rewriteReviewResponse = await callChat(service, {
-    messages: buildReviewMessages({ ...input, draft, draftToolCheckText: rewriteCheck.text }),
+    messages: buildReviewMessages({
+      ...input,
+      draft,
+      draftToolCheckText: [rewriteCheck.text, rewriteAiFlavorCheck.text]
+        .filter(Boolean)
+        .join('\n\n')
+    }),
     model: model || undefined,
     temperature: 0.1,
     max_tokens: 1800,
@@ -1273,6 +1371,7 @@ async function runWriterReviewLoop(input, provider, generationId, context = {}) 
 async function runRepairLoop(input, provider, sourceGenerationId, check, issues, context = {}) {
   const { service, model } = provider
   const repairGenerationId = `cli_repair_${randomUUID()}`
+  const writingReferenceText = resolveWritingReferenceText(input)
   const steps = [
     taskMemoryStep(input.taskMemory, 'CLI 返修读取历史任务记录'),
     bookContextStep(input.bookContext, 'CLI 返修读取作品资料')
@@ -1285,7 +1384,8 @@ async function runRepairLoop(input, provider, sourceGenerationId, check, issues,
       messages: buildRepairMessages({
         ...input,
         currentText: input.currentText,
-        issues
+        issues,
+        writingReferenceText
       }),
       model: model || undefined,
       temperature: input.temperature ?? 0.65,
@@ -1330,12 +1430,18 @@ async function runRepairLoop(input, provider, sourceGenerationId, check, issues,
   steps.push(repairCheck.step)
 
   throwIfAborted(input.signal)
+  const repairAiFlavorCheck = buildAiFlavorCheckStep(repairedText)
+  steps.push(repairAiFlavorCheck.step)
+
+  throwIfAborted(input.signal)
   const reviewStartedAt = Date.now()
   const reviewResponse = await callChat(service, {
     messages: buildReviewMessages({
       ...input,
       draft: repairedText,
-      draftToolCheckText: repairCheck.text
+      draftToolCheckText: [repairCheck.text, repairAiFlavorCheck.text]
+        .filter(Boolean)
+        .join('\n\n')
     }),
     model: model || undefined,
     temperature: 0.1,

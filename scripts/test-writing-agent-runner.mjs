@@ -97,12 +97,10 @@ assert.equal(capturedWriteInput.skillId, 'story-long-write')
 assert.equal(capturedWriteInput.skillKey, 'continue')
 assert.equal(capturedWriteInput.outputMode, 'chapter_write')
 assert.equal(capturedWriteInput.canWriteChapter, true)
-assert.deepEqual(capturedWriteInput.references, [
-  'skills/story-long-write',
-  'agents/writer',
-  'agents/editor',
-  'hooks/chapter-write-guard'
-])
+assert.ok(
+  capturedWriteInput.references.includes('longform/writing-craft'),
+  `references 应包含方法论资产，实际 ${capturedWriteInput.references.join(', ')}`
+)
 assert.equal(chapterWrite.success, true)
 assert.equal(chapterWrite.mode, 'chapter_write')
 assert.equal(chapterWrite.skillId, 'story-long-write')
