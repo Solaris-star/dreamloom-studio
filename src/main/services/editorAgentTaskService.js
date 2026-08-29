@@ -140,12 +140,15 @@ function emitAgentTaskProgress(bookPath, task, patch = {}) {
   })
 }
 
+const MAX_TASK_RESULT_DRAFT_CHARS = 12000
+
 function eventRecord(input = {}) {
   const metadata = input.metadata && typeof input.metadata === 'object' ? input.metadata : undefined
   const bookContext =
     input.bookContext && typeof input.bookContext === 'object' ? input.bookContext : undefined
   const taskMemory =
     input.taskMemory && typeof input.taskMemory === 'object' ? input.taskMemory : undefined
+  const draft = cleanText(input.resultDraft)
   const sourceCount = Number.isFinite(Number(input.sourceCount))
     ? Number(input.sourceCount)
     : Number.isFinite(Number(bookContext?.sourceCount))
@@ -173,6 +176,7 @@ function eventRecord(input = {}) {
     title: cleanText(input.title),
     status: cleanText(input.status) || 'done',
     content: truncate(input.content || input.summary || '', 900),
+    resultDraft: draft ? truncate(draft, MAX_TASK_RESULT_DRAFT_CHARS) : undefined,
     startedAt: cleanText(input.startedAt),
     finishedAt: cleanText(input.finishedAt) || nowIso(),
     modelUsed: cleanText(input.modelUsed),
@@ -266,6 +270,8 @@ function normalizeTask(bookPath, input = {}) {
     issueCount: Number.isFinite(Number(input.issueCount)) ? Number(input.issueCount) : 0,
     review: input.review && typeof input.review === 'object' ? input.review : null,
     error: cleanText(input.error),
+    // 拒稿时保留可恢复的完整正文（12k 截断），区别于 900 字预览
+    resultDraft: truncate(input.resultDraft || '', MAX_TASK_RESULT_DRAFT_CHARS),
     resultPreview: truncate(input.resultPreview || input.result || '', 900),
     promptPreview: truncate(input.promptPreview || input.prompt || input.instruction || '', 700),
     events: events.slice(-MAX_EVENTS)
@@ -312,15 +318,18 @@ export function createAgentTask(bookPath, input = {}) {
 
 export function completeAgentTask(bookPath, taskId, generation = {}) {
   const steps = normalizeArray(generation.agentSteps).map(normalizeStepEvent)
+  const reviewFailed = generation.review?.passed === false
   return upsertTask(bookPath, {
     id: taskId,
-    status: generation.review?.passed === false ? 'review_failed' : 'generated',
+    status: reviewFailed ? 'review_failed' : 'generated',
     finishedAt: nowIso(),
     generationId: generation.id || '',
     ...skillRecord(generation),
     modelUsed: generation.modelUsed || '',
     usage: generation.usage || {},
     review: generation.review || null,
+    // 审稿拒稿时保留完整正文供"查看拒稿内容"恢复，通过时清空避免冗余
+    resultDraft: reviewFailed ? String(generation.result || '') : '',
     resultPreview: generation.result || '',
     events: [
       ...steps,
@@ -330,6 +339,7 @@ export function completeAgentTask(bookPath, taskId, generation = {}) {
         title: '生成记录已保存',
         status: 'done',
         content: generation.result || '',
+        resultDraft: reviewFailed ? generation.result || '' : undefined,
         modelUsed: generation.modelUsed || ''
       })
     ]

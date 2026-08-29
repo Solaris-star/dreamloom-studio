@@ -38,6 +38,7 @@ import { handleAssetRoute } from './src/main/webApi/assetRoutes.js'
 import { handleKnowledgeRoute } from './src/main/webApi/knowledgeRoutes.js'
 import { handleImportExportRoute } from './src/main/webApi/importExportRoutes.js'
 import { handleAgentQueueRoute } from './src/main/webApi/agentQueueRoutes.js'
+import { handleAgentTaskRoute } from './src/main/webApi/agentTaskRoutes.js'
 import { handleVersionSnapshotRoute } from './src/main/webApi/versionSnapshotRoutes.js'
 import { handleBookChapterRoute } from './src/main/webApi/bookChapterRoutes.js'
 import { handleStudioContentRoute } from './src/main/webApi/studioContentRoutes.js'
@@ -313,6 +314,17 @@ export function createWebServerPlugins() {
               body,
               res,
               sendJson
+            })
+          ) {
+            return
+          } else if (
+            handleAgentTaskRoute({
+              path,
+              body,
+              res,
+              sendJson,
+              booksDir: getActiveBooksDir(),
+              resolveBookPath: resolveBookPathForWebPayload
             })
           ) {
             return

@@ -2536,6 +2536,18 @@ export async function listAgentTasks(payload = {}) {
   )
 }
 
+/**
+ * 直读书籍目录下 tasks.json 的任务记录（不依赖 Redis 队列）
+ * 拒稿任务带 resultDraft 完整正文，供"AI 任务记录"抽屉恢复用
+ */
+export async function listAgentTaskRecords(payload = {}) {
+  return requireArrayResult(
+    await postJson('/api/editor-agent/tasks', payload),
+    'tasks',
+    '读取 AI 任务记录'
+  )
+}
+
 export async function getAgentProgressServer() {
   return requireAgentProgressServerResult(await postJson('/api/editor-agent/progress-server', {}))
 }

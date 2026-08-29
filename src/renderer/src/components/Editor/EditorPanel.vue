@@ -36,6 +36,12 @@
       >
         历史版本
       </el-button>
+      <el-button
+        text
+        @click="openAgentTaskDrawer"
+      >
+        AI 任务记录
+      </el-button>
       <!-- 人物高亮开关 -->
       <el-switch
         v-if="editorStore.file?.type === 'chapter'"
@@ -242,6 +248,81 @@
       </div>
     </el-drawer>
 
+    <!-- AI 任务记录：拒稿正文恢复入口 -->
+    <el-drawer
+      v-model="agentTaskDrawerVisible"
+      title="AI 任务记录"
+      size="520px"
+      class="agent-task-drawer"
+    >
+      <div class="task-drawer-toolbar">
+        <el-select
+          v-model="agentTaskFilter"
+          class="task-filter-select"
+          @change="loadAgentTaskRecords"
+        >
+          <el-option
+            label="全部任务"
+            value="all"
+          />
+          <el-option
+            label="仅拒稿任务"
+            value="review_failed"
+          />
+        </el-select>
+        <el-button
+          :icon="RefreshCw"
+          :loading="agentTaskLoading"
+          @click="loadAgentTaskRecords"
+        >
+          刷新
+        </el-button>
+      </div>
+      <el-empty
+        v-if="!agentTaskLoading && !agentTaskRecords.length"
+        description="暂无 AI 任务记录"
+      />
+      <div
+        v-else
+        class="task-record-list"
+      >
+        <div
+          v-for="task in agentTaskRecords"
+          :key="task.id"
+          class="task-record-item"
+          :class="{ 'is-failed-review': task.status === 'review_failed' }"
+        >
+          <div class="task-record-head">
+            <span class="task-status-tag">
+              {{ agentTaskStatusText(task.status) }}
+            </span>
+            <span class="task-record-title">{{ task.title || task.type || 'AI 任务' }}</span>
+          </div>
+          <div class="task-record-meta">
+            <span>{{ formatTaskTime(task.finishedAt || task.createdAt) }}</span>
+            <span v-if="task.modelUsed">模型：{{ task.modelUsed }}</span>
+            <span v-if="task.resultDraft">正文 {{ task.resultDraft.length }} 字</span>
+          </div>
+          <div
+            v-if="task.review?.issues?.length"
+            class="task-review-issues"
+          >
+            审稿意见：{{ task.review.issues.join('；') }}
+          </div>
+          <div class="task-record-actions">
+            <el-button
+              v-if="task.resultDraft"
+              text
+              type="primary"
+              @click="restoreAgentTaskDraft(task)"
+            >
+              恢复正文到编辑器
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </el-drawer>
+
     <!-- AI 续写：续写要求输入弹框 -->
     <el-dialog
       v-model="continuePromptDialogVisible"
@@ -401,6 +482,7 @@ import {
 import {
   createEditorSnapshot,
   deleteEditorSnapshot,
+  listAgentTaskRecords,
   listBannedWords,
   listChapterTree,
   listEditorSnapshots,
@@ -409,6 +491,7 @@ import {
   saveChapterDocument,
   writeNoteDocument
 } from '../../service/editor'
+import { RefreshCw } from 'lucide-vue-next'
 import {
   applyParagraphDiffChoices,
   cleanEditorText,
@@ -618,6 +701,11 @@ const continueLoading = ref(false)
 const versionDrawerVisible = ref(false)
 const versionSnapshots = ref([])
 const lastAutoSnapshotContentByChapter = new Map()
+// AI 任务记录抽屉：拒稿正文恢复
+const agentTaskDrawerVisible = ref(false)
+const agentTaskLoading = ref(false)
+const agentTaskRecords = ref([])
+const agentTaskFilter = ref('all')
 const saveStatusText = computed(() => {
   const labels = {
     idle: '',
@@ -1291,6 +1379,74 @@ async function openVersionHistory() {
   } catch (error) {
     ElMessage.error(error?.message || '读取历史版本失败')
   }
+}
+
+// ===== AI 任务记录（拒稿正文恢复）=====
+async function loadAgentTaskRecords() {
+  agentTaskLoading.value = true
+  try {
+    const payload = { bookName: props.bookName, limit: 50 }
+    if (agentTaskFilter.value !== 'all') payload.status = agentTaskFilter.value
+    const { tasks } = await listAgentTaskRecords(payload)
+    agentTaskRecords.value = tasks || []
+  } catch (error) {
+    ElMessage.error(error?.message || '读取 AI 任务记录失败')
+  } finally {
+    agentTaskLoading.value = false
+  }
+}
+
+async function openAgentTaskDrawer() {
+  try {
+    await loadAgentTaskRecords()
+    agentTaskDrawerVisible.value = true
+  } catch (error) {
+    ElMessage.error(error?.message || '读取 AI 任务记录失败')
+  }
+}
+
+function agentTaskStatusText(status) {
+  const labels = {
+    running: '进行中',
+    generated: '已完成',
+    review_failed: '审核未通过',
+    failed: '失败',
+    cancelled: '已取消',
+    cancelling: '取消中'
+  }
+  return labels[status] || status || '未知'
+}
+
+function formatTaskTime(value) {
+  if (!value) return ''
+  try {
+    return new Date(value).toLocaleString('zh-CN', { hour12: false })
+  } catch {
+    return value
+  }
+}
+
+async function restoreAgentTaskDraft(task) {
+  const text = String(task.resultDraft || '').trim()
+  if (!text) return
+  const ed = editor.value
+  if (!ed) {
+    ElMessage.warning('编辑器未就绪')
+    return
+  }
+  try {
+    await ElMessageBox.confirm(
+      `将把该任务正文（${text.length} 字）追加到当前章节末尾，原内容保留。`,
+      '恢复拒稿正文',
+      { confirmButtonText: '追加到末尾', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+  const appendText = normalizeAppendText(text)
+  if (!appendText) return
+  ed.chain().focus('end').insertContent(appendText).run()
+  ElMessage.success(`已恢复 ${text.length} 字拒稿正文到章节末尾`)
 }
 
 async function createNamedVersion() {
@@ -2539,6 +2695,85 @@ defineExpose({
 .character-highlight-switch,
 .banned-words-hint-switch {
   flex-shrink: 0;
+}
+
+/* ===== AI 任务记录抽屉 ===== */
+.task-drawer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.task-filter-select {
+  width: 150px;
+}
+
+.task-record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.task-record-item {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--bg-primary);
+}
+
+.task-record-item.is-failed-review {
+  border-color: var(--el-color-warning);
+  background: var(--el-color-warning-light-9, #fdf6ec);
+}
+
+.task-record-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.task-status-tag {
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--bg-soft, #f0f2f5);
+  color: var(--text-secondary, #909399);
+}
+
+.is-failed-review .task-status-tag {
+  background: var(--el-color-warning);
+  color: #fff;
+}
+
+.task-record-title {
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-record-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-secondary, #909399);
+}
+
+.task-review-issues {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--el-color-warning-dark-2, #b88230);
+}
+
+.task-record-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .hint-count-btn {
