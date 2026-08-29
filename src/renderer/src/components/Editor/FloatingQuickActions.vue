@@ -29,15 +29,6 @@
       <button
         class="action-btn"
         type="button"
-        title="返回首页"
-        aria-label="返回首页"
-        @click="emit('home')"
-      >
-        <House :size="18" />
-      </button>
-      <button
-        class="action-btn"
-        type="button"
         title="打开章节目录"
         aria-label="打开章节目录"
         data-testid="editor-open-catalog"
@@ -132,6 +123,33 @@
           </button>
         </div>
       </div>
+
+      <div
+        class="page-jump-actions"
+        role="group"
+        aria-label="页面跳转"
+      >
+        <button
+          class="action-btn"
+          type="button"
+          title="向上翻页"
+          aria-label="向上翻页"
+          data-testid="editor-page-up"
+          @click="emit('page-up')"
+        >
+          <ArrowUpToLine :size="18" />
+        </button>
+        <button
+          class="action-btn"
+          type="button"
+          title="向下翻页"
+          aria-label="向下翻页"
+          data-testid="editor-page-down"
+          @click="emit('page-down')"
+        >
+          <ArrowDownToLine :size="18" />
+        </button>
+      </div>
     </template>
 
     <button
@@ -151,8 +169,9 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import {
+  ArrowDownToLine,
+  ArrowUpToLine,
   GripVertical,
-  House,
   ListTree,
   Maximize2,
   Minimize2,
@@ -182,11 +201,12 @@ const props = defineProps({
 })
 
 const emit = defineEmits([
-  'home',
   'catalog',
   'reading-settings',
   'tools',
-  'toggle-focus'
+  'toggle-focus',
+  'page-up',
+  'page-down'
 ])
 
 const rootRef = ref(null)
@@ -557,6 +577,15 @@ watch(
   display: block;
 }
 
+.page-jump-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 4px;
+  margin-top: 2px;
+  border-top: 1px solid var(--border-color, #dedbd5);
+}
+
 .position-menu {
   position: relative;
 }
@@ -637,6 +666,16 @@ watch(
 
   .mobile-only {
     display: flex;
+  }
+
+  .page-jump-actions {
+    flex-direction: row;
+    padding-top: 0;
+    padding-left: 4px;
+    margin-top: 0;
+    margin-left: 2px;
+    border-top: 0;
+    border-left: 1px solid var(--border-color, #dedbd5);
   }
 }
 

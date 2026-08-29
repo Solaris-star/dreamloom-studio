@@ -29,6 +29,7 @@
           :book-name="bookName"
           :left-collapsed="leftPanelSize === 0"
           :right-collapsed="rightPanelSize === 0"
+          :reading-mode="readingMode"
           @toggle-left="toggleLeftPanel"
           @toggle-right="toggleRightPanel"
           @refresh-notes="refreshNotes"
@@ -108,11 +109,12 @@
       class="editor-quick-actions"
       :focus-mode="focusMode"
       :right-panel-size="rightPanelSize"
-      @home="handleHome"
       @catalog="openCatalog"
       @reading-settings="openReadingSettings"
       @tools="mobileToolsVisible = true"
       @toggle-focus="toggleFocusMode"
+      @page-up="scrollPage(-1)"
+      @page-down="scrollPage(1)"
     />
 
     <el-drawer
@@ -207,7 +209,7 @@
         <el-slider
           v-model="readingSettings.fontSize"
           :min="12"
-          :max="36"
+          :max="48"
           :step="1"
           show-input
         />
@@ -286,7 +288,7 @@ import {
   onBeforeUnmount,
   watch
 } from 'vue'
-import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { BookOpen, PenLine, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 
@@ -308,7 +310,6 @@ import {
 import { useThemeStore } from '@renderer/stores/theme'
 
 const route = useRoute()
-const router = useRouter()
 const themeStore = useThemeStore()
 const availableThemes = computed(() => themeStore.getAvailableThemes())
 
@@ -647,8 +648,8 @@ function handleNextChapter() {
   noteChapterRef.value?.nextChapter?.()
 }
 
-function handleHome() {
-  router.push('/')
+function scrollPage(direction) {
+  void editorPanelRef.value?.scrollPage?.(direction)
 }
 
 onBeforeRouteLeave(async () => {

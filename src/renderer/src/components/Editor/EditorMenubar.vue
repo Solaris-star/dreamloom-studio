@@ -214,6 +214,18 @@
             label="36px"
             value="36px"
           />
+          <el-option
+            label="40px"
+            value="40px"
+          />
+          <el-option
+            label="44px"
+            value="44px"
+          />
+          <el-option
+            label="48px"
+            value="48px"
+          />
         </el-select>
       </el-tooltip>
       <el-tooltip

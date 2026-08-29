@@ -676,47 +676,93 @@ test('创作台阅读设置和专注模式可以恢复', async ({ page }, testIn
   await expect(page.locator('.editor-container')).not.toHaveClass(/is-focus-mode/)
 })
 
-test('创作台字号跨视口同步且阅读模式可选中复制但不可改文', async ({ page, context }, testInfo) => {
-  test.skip(testInfo.project.name !== 'wide', '排版双向同步与复制仅在宽屏执行')
+test('创作台字号扩展到48px，阅读流动态加载且可复制不可改文', async ({ page, context, request }, testInfo) => {
+  test.skip(testInfo.project.name !== 'wide', '排版同步与阅读流仅在宽屏执行')
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
-  await openEditor(page, testBookName(testInfo.project.name))
+  const bookName = testBookName(testInfo.project.name)
+  const longContent = Array.from(
+    { length: 140 },
+    (_, index) => `第${index + 1}段：夜雨落在青石长街上，这是用于验证动态加载与纵向阅读的正文。`
+  ).join('\n')
+  await postApi(request, '/api/chapters/save', {
+    bookName,
+    volumeName: '正文',
+    chapterName: '第1章',
+    content: longContent
+  })
+  await openEditor(page, bookName)
+  // 同一本测试书有两章，显式选中长章节，避免“上次打开章节”状态让阅读流读到短章节。
+  await openFirstChapter(page)
 
   const editor = page.locator('.ProseMirror')
   const topFontSize = page.getByTestId('editor-font-size')
   await topFontSize.click()
-  await page.getByRole('option', { name: '32px', exact: true }).click()
-  await expect(editor).toHaveCSS('font-size', '32px')
-  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('dreamloom:editor-reading-prefs:v1') || '{}').fontSize)).toBe(32)
+  await page.getByRole('option', { name: '48px', exact: true }).click()
+  await expect(editor).toHaveCSS('font-size', '48px')
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('dreamloom:editor-reading-prefs:v1') || '{}').fontSize)).toBe(48)
 
-  // 模拟浏览器缩放触发 responsive 设备档切换：字号不能回落到旧上限 24px
+  // 模拟浏览器缩放触发 responsive 设备档切换：48px 不能回落到旧上限 24/36px。
   await page.setViewportSize({ width: 700, height: 900 })
-  await expect(editor).toHaveCSS('font-size', '32px')
+  await expect(editor).toHaveCSS('font-size', '48px')
   await page.setViewportSize({ width: 1440, height: 900 })
-  await expect(editor).toHaveCSS('font-size', '32px')
+  await expect(editor).toHaveCSS('font-size', '48px')
 
-  // 顶栏改动必须同步到阅读设置；阅读设置改动也必须同步回顶栏
+  // 顶栏改动同步到阅读设置，阅读设置也能反向改回顶栏。
   await page.getByRole('button', { name: '阅读设置' }).click()
   const readingDialog = page.getByRole('dialog', { name: '阅读设置' })
   const fontInput = readingDialog.getByRole('spinbutton').first()
-  await expect(fontInput).toHaveValue('32')
-  await fontInput.fill('28')
+  await expect(fontInput).toHaveValue('48')
+  await fontInput.fill('44')
   await fontInput.press('Enter')
   await readingDialog.getByRole('button', { name: '完成' }).click()
-  await expect(editor).toHaveCSS('font-size', '28px')
-  await expect(topFontSize).toContainText('28px')
+  await expect(editor).toHaveCSS('font-size', '44px')
+  await expect(topFontSize).toContainText('44px')
 
   const beforeHtml = await editor.innerHTML()
+  await expect(page.getByRole('button', { name: '返回首页' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '向上翻页' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '向下翻页' })).toBeVisible()
+
   await page.getByTestId('editor-reading-mode-toggle').click()
   await expect(editor).toHaveAttribute('contenteditable', 'false')
-  await expect(editor).not.toHaveCSS('user-select', 'none')
+  const readingFlow = page.getByTestId('editor-reading-flow')
+  await expect(readingFlow).toBeVisible()
+  await expect(readingFlow).not.toHaveCSS('user-select', 'none')
+  await expect(readingFlow.locator('.reading-flow__paper')).toHaveCSS('font-size', '44px')
 
-  const selectedText = await editor.evaluate((element) => {
+  // 初始只渲染少量分片，滑到末端后才追加，避免长章节一次性铺满 DOM。
+  const initialState = await readingFlow.evaluate((element) => ({
+    loaded: Number(element.dataset.loadedBlocks || 0),
+    total: Number(element.dataset.totalBlocks || 0),
+    chunks: Number(element.dataset.loadedChunks || 0)
+  }))
+  expect(initialState.total).toBeGreaterThan(100)
+  expect(initialState.loaded).toBeLessThan(initialState.total)
+  expect(initialState.chunks).toBeLessThanOrEqual(2)
+  await readingFlow.evaluate((element) => {
+    element.scrollTop = element.scrollHeight
+    element.dispatchEvent(new Event('scroll'))
+  })
+  await expect.poll(() => readingFlow.getAttribute('data-loaded-blocks').then(Number)).toBeGreaterThan(initialState.loaded)
+
+  // 悬浮栏翻页按钮驱动纵向阅读区，不再承担返回首页职责。
+  await readingFlow.evaluate((element) => {
+    element.scrollTop = 0
+  })
+  await page.getByRole('button', { name: '向下翻页' }).click()
+  await expect.poll(() => readingFlow.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+  const downScrollTop = await readingFlow.evaluate((element) => element.scrollTop)
+  await page.getByRole('button', { name: '向上翻页' }).click()
+  await expect.poll(() => readingFlow.evaluate((element) => element.scrollTop)).toBeLessThan(downScrollTop)
+
+  const selectedText = await readingFlow.locator('.reading-flow__paper').evaluate((element) => {
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
-    const textNode = walker.nextNode()
+    let textNode = walker.nextNode()
+    while (textNode && !(textNode.textContent || '').trim()) textNode = walker.nextNode()
     if (!textNode) return ''
     const range = document.createRange()
     range.setStart(textNode, 0)
-    range.setEnd(textNode, Math.min(8, textNode.textContent?.length || 0))
+    range.setEnd(textNode, Math.min(12, textNode.textContent?.length || 0))
     const selection = window.getSelection()
     selection?.removeAllRanges()
     selection?.addRange(range)
@@ -726,16 +772,19 @@ test('创作台字号跨视口同步且阅读模式可选中复制但不可改�
   await page.keyboard.press('Meta+c')
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(selectedText)
 
-  const box = await editor.boundingBox()
+  const box = await readingFlow.boundingBox()
   expect(box).toBeTruthy()
-  await page.mouse.move(box.x + 30, box.y + 30)
+  await page.mouse.move(box.x + 40, box.y + 80)
   await page.mouse.down()
-  await page.mouse.move(box.x + Math.min(260, box.width - 20), box.y + 30, { steps: 8 })
+  await page.mouse.move(box.x + Math.min(300, box.width - 20), box.y + 80, { steps: 8 })
   await page.mouse.up()
   await expect(editor).toHaveJSProperty('innerHTML', beforeHtml)
 
-  // 测试隔离：恢复默认字号，避免服务端 editorSettings 污染后续视觉基准
   await page.getByTestId('editor-reading-mode-toggle').click()
+  await expect(editor).toHaveAttribute('contenteditable', 'true')
+  await expect(editor).toHaveJSProperty('innerHTML', beforeHtml)
+
+  // 测试隔离：恢复默认字号，避免服务端 editorSettings 污染后续视觉基准。
   await topFontSize.click()
   await page.getByRole('option', { name: '16px', exact: true }).click()
   await expect(editor).toHaveCSS('font-size', '16px')

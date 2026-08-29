@@ -79,9 +79,19 @@
         {{ bannedWordHintCount }}
       </button>
     </div>
-    <!-- 正文内容编辑区（含右上角 AI 润色按钮） -->
-    <div class="editor-content-wrap">
+    <!-- 正文内容编辑区；阅读模式切换为分批加载的纵向阅读流 -->
+    <div
+      class="editor-content-wrap"
+      :class="{ 'is-reading-flow': readingMode }"
+    >
+      <ReadingFlow
+        v-if="readingMode"
+        ref="readingFlowRef"
+        :html="readingHtml"
+        :content-type="editorStore.file?.type || 'chapter'"
+      />
       <EditorContent
+        v-show="!readingMode"
         class="editor-content"
         :editor="editor"
       />
@@ -373,7 +383,8 @@ import {
   onActivated,
   onDeactivated,
   computed,
-  nextTick
+  nextTick,
+  defineAsyncComponent
 } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowDown } from '@element-plus/icons-vue'
@@ -420,6 +431,9 @@ import ChapterEditorContent from '@renderer/components/Editor/ChapterEditorConte
 import NoteEditorContent from '@renderer/components/Editor/NoteEditorContent.vue'
 import AISceneImageDialog from '@renderer/components/Editor/AISceneImageDialog.vue'
 
+// 阅读流仅在进入阅读模式时加载，编辑模式不承担额外 chunk/解析成本。
+const ReadingFlow = defineAsyncComponent(() => import('@renderer/components/Editor/ReadingFlow.vue'))
+
 const editorStore = useEditorStore()
 const { t } = useI18n()
 
@@ -430,6 +444,10 @@ const props = defineProps({
     default: false
   },
   rightCollapsed: {
+    type: Boolean,
+    default: false
+  },
+  readingMode: {
     type: Boolean,
     default: false
   }
@@ -502,6 +520,8 @@ const menubarState = ref({
 })
 
 const editor = ref(null)
+const readingFlowRef = ref(null)
+const readingHtml = ref('')
 let saveTimer = ref(null)
 let styleUpdateTimer = null
 let suppressReadingStyleEmit = false
@@ -705,6 +725,43 @@ function handleStyleUpdate() {
   }, 500)
 }
 
+function syncReadingHtml() {
+  if (!editor.value) {
+    readingHtml.value = ''
+    return
+  }
+  readingHtml.value = editor.value.getHTML?.() || ''
+}
+
+async function syncReadingMode(enabled = props.readingMode) {
+  const isReading = Boolean(enabled)
+  if (editor.value?.setEditable) editor.value.setEditable(!isReading)
+  if (!isReading) return
+  syncReadingHtml()
+  await nextTick()
+}
+
+async function scrollEditorPage(direction = 1) {
+  if (props.readingMode && readingFlowRef.value?.scrollPage) {
+    return readingFlowRef.value.scrollPage(direction)
+  }
+  const editorElement = editor.value?.view?.dom
+  const scroller = editorElement?.closest?.('.editor-content')
+  if (!scroller) return false
+  const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  scroller.scrollBy({
+    top: (Number(direction) < 0 ? -1 : 1) * Math.max(180, scroller.clientHeight * 0.86),
+    behavior: reduceMotion ? 'auto' : 'smooth'
+  })
+  return true
+}
+
+watch(
+  () => props.readingMode,
+  (enabled) => void syncReadingMode(enabled),
+  { immediate: true, flush: 'post' }
+)
+
 // 处理导出事件
 function handleExport() {
   // 导出功能已在 EditorMenubar 组件中实现，这里只需要处理事件
@@ -796,8 +853,9 @@ watch(
 
       // 书籍总字数由 EditorStats 组件通过 watch fileType 自动加载
 
-      // 更新样式
+      // 更新样式；阅读模式下同步新章节并重置分批阅读流
       updateEditorStyle()
+      if (props.readingMode) await syncReadingMode(true)
 
       // 如果开启了人物高亮，重新应用高亮
       if (characterHighlightEnabled.value && !isNote) {
@@ -1020,6 +1078,7 @@ async function initEditor() {
     pageWidth: menubarState.value.pageWidth,
     paragraphSpacing: menubarState.value.paragraphSpacing
   })
+  await syncReadingMode(props.readingMode)
 
   // 注意：startEditingSession 已经在上面调用过了，这里不需要重复调用
 
@@ -2229,6 +2288,7 @@ function scheduleBannedWordsHintRefresh() {
 
 function handleChapterContentUpdated() {
   if (editorStore.file?.type !== 'chapter') return
+  if (props.readingMode) syncReadingHtml()
   if (characterHighlightEnabled.value) scheduleCharacterHighlightRefresh()
   if (bannedWordsHintEnabled.value) scheduleBannedWordsHintRefresh()
 }
@@ -2412,6 +2472,8 @@ defineExpose({
       editor.value.setEditable(Boolean(editable))
     }
   },
+  scrollPage: scrollEditorPage,
+  getReadingFlowState: () => readingFlowRef.value?.getState?.() || null,
   applyReadingStyleSettings: (settings = {}) => {
     const next = { ...menubarState.value }
     if (settings.fontSize !== undefined && settings.fontSize !== null) {
