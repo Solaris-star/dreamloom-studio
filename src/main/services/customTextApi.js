@@ -409,7 +409,12 @@ export class CustomTextApiService {
     timeoutMs = 180000,
     signal = null
   ) {
-    const url = `${this.baseUrl.replace(/\/$/, '')}/v1/chat/completions`
+    // 兼容 baseUrl 写成 https://host 或 https://host/v1 两种形式（与非流式 _callOpenAIApi 保持一致）
+    const normalizedBase = String(this.baseUrl || '')
+      .trim()
+      .replace(/\/+$/, '')
+      .replace(/\/v1$/i, '')
+    const url = `${normalizedBase}/v1/chat/completions`
     const abortMeta = createRequestAbortController(timeoutMs, signal)
     let response
     try {
@@ -459,7 +464,12 @@ export class CustomTextApiService {
     timeoutMs = 180000,
     signal = null
   ) {
-    const url = `${this.baseUrl.replace(/\/$/, '')}/v1/messages`
+    // 兼容 baseUrl 写成 https://host 或 https://host/v1 两种形式
+    const normalizedBase = String(this.baseUrl || '')
+      .trim()
+      .replace(/\/+$/, '')
+      .replace(/\/v1$/i, '')
+    const url = `${normalizedBase}/v1/messages`
     const anthropicMessages = messages.map((msg) => ({
       role: msg.role === 'assistant' ? 'assistant' : msg.role === 'system' ? 'user' : msg.role,
       content: msg.content
@@ -529,7 +539,12 @@ export class CustomTextApiService {
     timeoutMs = 180000,
     signal = null
   ) {
-    const url = `${this.baseUrl.replace(/\/$/, '')}/v1/messages`
+    // 兼容 baseUrl 写成 https://host 或 https://host/v1 两种形式
+    const normalizedBase = String(this.baseUrl || '')
+      .trim()
+      .replace(/\/+$/, '')
+      .replace(/\/v1$/i, '')
+    const url = `${normalizedBase}/v1/messages`
     const anthropicMessages = messages.map((msg) => ({
       role: msg.role === 'assistant' ? 'assistant' : msg.role === 'system' ? 'user' : msg.role,
       content: msg.content
