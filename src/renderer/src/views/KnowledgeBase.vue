@@ -2143,9 +2143,8 @@ async function handleOnlineSearch() {
   onlineSearchResults.value = []
   createForm.value.selectedBook = null
   try {
-    const result = requireKnowledgeOnlineSearchResult(
-      await searchNovel(keyword, createForm.value.sourceId || undefined)
-    )
+    // 书源池模式：固定全源聚合搜索
+    const result = requireKnowledgeOnlineSearchResult(await searchNovel(keyword, 'all'))
     onlineSearchResults.value = result.list
     if (result.sourceErrors.length && result.list.length) {
       ElMessage.warning(`部分书源搜索失败：${result.sourceErrors.slice(0, 2).join('；')}`)

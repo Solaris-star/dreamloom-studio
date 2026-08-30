@@ -29,7 +29,9 @@
             <h3>搜索结果</h3>
             <p>
               {{
-                searchResult.length ? `${searchResult.length} 本书` : '选择书源并搜索书名或作者。'
+                searchResult.length
+                  ? `${searchResult.length} 本书 · 全书源聚合，按相关性与章节数排序`
+                  : '输入书名或作者，全部书源一起搜索。'
               }}
             </p>
           </div>
@@ -51,7 +53,10 @@
             <div>
               <h4>{{ book.title || '未命名小说' }}</h4>
               <p>
-                {{ book.author || '未知作者' }} · {{ book.sourceName || sourceName(book.sourceId) }}
+                {{ book.author || '未知作者' }} ·
+                {{ book.sourceName || sourceName(book.sourceId) }}
+                <template v-if="book.chapterCount"> · {{ book.chapterCount }} 章</template>
+                <template v-if="book.sourceCandidates > 1"> · {{ book.sourceCandidates }} 源收录</template>
               </p>
             </div>
             <el-button
@@ -168,7 +173,6 @@ import {
 const emit = defineEmits(['imported'])
 
 const sources = ref([])
-const currentSourceId = ref('')
 const keyword = ref('')
 const searching = ref(false)
 const loadingChapters = ref(false)
@@ -216,10 +220,6 @@ async function setBooksDir(dir) {
 async function loadSources() {
   try {
     sources.value = await getNovelSources()
-    if (sources.value.length && !currentSourceId.value) {
-      currentSourceId.value =
-        sources.value.find((source) => source.id === 'all')?.id || sources.value[0].id
-    }
   } catch (error) {
     errorMsg.value = error?.message || '读取书源失败'
   }
@@ -238,7 +238,8 @@ async function handleSearch() {
   selectedBook.value = null
   chapterList.value = []
   try {
-    const result = await searchNovel(value, currentSourceId.value)
+    // 书源池模式：固定全源聚合搜索
+    const result = await searchNovel(value, 'all')
     sourceErrors.value = result.sourceErrors
     if (result.list.length) {
       searchResult.value = result.list
@@ -258,7 +259,6 @@ function setKeyword(value) {
 
 defineExpose({
   sources,
-  currentSourceId,
   searching,
   setKeyword,
   handleSearch

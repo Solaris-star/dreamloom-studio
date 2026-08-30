@@ -30,7 +30,6 @@ const service = {
   }
 }
 const common = { res: {}, sendJson, sanitizeText, service }
-
 for (const path of [
   '/api/novel/sources',
   '/api/novel/search',
@@ -54,11 +53,14 @@ await handleNovelDownloadRoute({
   path: '/api/novel/search',
   body: { keyword: ' 作品 ', sourceId: 'all' }
 })
-assert.deepEqual(calls.slice(-2), [
-  ['search', '作品', 'source-a'],
-  ['search', '作品', 'source-b']
-])
+// 并发搜索 + 章节数探测并行，calls 顺序不再确定，断言调用集合
+const searchCalls = calls.filter((c) => c[0] === 'search').map((c) => c.join('|')).sort()
+assert.deepEqual(searchCalls, ['search|作品|source-a', 'search|作品|source-b'])
 assert.equal(responses.at(-1).payload.list.length, 1)
+// 书源池模式：结果携带 sourceName、章节数探测结果
+const pooled = responses.at(-1).payload.list[0]
+assert.equal(pooled.sourceName, '书源 A')
+assert.equal(pooled.chapterCount, 1)
 assert.deepEqual(responses.at(-1).payload.sourceErrors, ['书源 B: 连接失败'])
 
 await handleNovelDownloadRoute({
@@ -75,6 +77,61 @@ await assert.rejects(() => handleNovelDownloadRoute({
   }),
   (error) => error.statusCode === 400 && /未知书源/.test(error.message)
 )
+
+// --- 排序专测：相关性优先，同档按章节数降序 ---
+{
+  const sortedResponses = []
+  const sortedSendJson = (_res, payload, status = 200) =>
+    sortedResponses.push({ payload, status })
+  const multiService = {
+    ...service,
+    search: async (keyword, sourceId) => {
+      if (sourceId === 'source-a') {
+        return [
+          { title: '作品外传', author: '别人', sourceId },
+          { title: '作品', author: '作者甲', sourceId }
+        ]
+      }
+      return [
+        { title: '作品', author: '作者甲', sourceId },
+        { title: '作品合集', author: '作者甲', sourceId }
+      ]
+    },
+    getChapterList: async (url, sourceId) => {
+      if (String(url).includes('waidan')) return new Array(30).fill({ title: 'x', url: 'y' })
+      if (String(url).includes('heji')) return new Array(200).fill({ title: 'x', url: 'y' })
+      return new Array(80).fill({ title: 'x', url: 'y' })
+    }
+  }
+  // 让不同候选走不同 URL，才能区分章节数
+  multiService.search = async (keyword, sourceId) => {
+    if (sourceId === 'source-a') {
+      return [
+        { title: '作品外传', author: '别人', url: 'https://e.com/waidan', sourceId },
+        { title: '作品', author: '作者甲', url: 'https://e.com/zhupin', sourceId }
+      ]
+    }
+    return [
+      { title: '作品', author: '作者甲', url: 'https://e.com/zhupin2', sourceId },
+      { title: '作品合集', author: '作者甲', url: 'https://e.com/heji', sourceId }
+    ]
+  }
+  await handleNovelDownloadRoute({
+    res: {},
+    sendJson: sortedSendJson,
+    sanitizeText,
+    service: multiService,
+    path: '/api/novel/search',
+    body: { keyword: '作品', sourceId: 'all' }
+  })
+  const titles = sortedResponses.at(-1).payload.list.map((row) => row.title)
+  // 精确匹配「作品」排最前；同为包含匹配时 200 章的「作品合集」排在「作品外传」(30章) 前
+  assert.deepEqual(titles, ['作品', '作品合集', '作品外传'])
+  const counts = sortedResponses.at(-1).payload.list.map((row) => row.chapterCount)
+  assert.deepEqual(counts, [80, 200, 30])
+  // 去重合并：同书两源收录，保留 1 条并记录 sourceCandidates
+  assert.equal(sortedResponses.at(-1).payload.list[0].sourceCandidates, 2)
+}
 
 await handleNovelDownloadRoute({
   ...common,
@@ -195,11 +252,10 @@ await handleNovelDownloadRoute({
   path: '/api/novel/search',
   body: { keyword: '作品' }
 })
-assert.deepEqual(calls.slice(0, 2), [
-  ['search', '作品', 'source-a'],
-  ['search', '作品', 'source-b']
-])
-assert.equal(responses.at(-1).payload.list[0].sourceName, undefined)
+const defaultSearchCalls = calls.filter((c) => c[0] === 'search').map((c) => c.join('|')).sort()
+assert.deepEqual(defaultSearchCalls, ['search|作品|source-a', 'search|作品|source-b'])
+// 书源池模式：sourceName 显式返回（前端展示用）
+assert.equal(responses.at(-1).payload.list[0].sourceName, '书源 A')
 
 assert.match(assertSourceUrl('https://www.shuhaige.net/book/1', 'shuhaige'), /shuhaige/)
 assert.throws(

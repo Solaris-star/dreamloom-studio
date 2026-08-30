@@ -14,6 +14,32 @@ const NOVEL_ROUTES = new Set([
 
 const defaultJobService = createNovelDownloadJobService({ downloader: novelDownloader })
 
+/**
+ * 搜索结果相关性打分：整串精确 > 整串包含 > 分词命中 > 其他。
+ * 长书名（如「两界·从玻璃珠换神功开始无敌」）按 ·：等分隔符切词，
+ * 逐词命中加分，避免整串匹配不到时全部落到 0 分档。
+ */
+function relevanceScore(row, keyword) {
+  const title = String(row?.title || '').trim()
+  const author = String(row?.author || '').trim()
+  const kw = String(keyword || '').trim()
+  if (!kw) return 0
+  if (title === kw) return 1000
+  let score = 0
+  if (title.includes(kw)) score += 100
+  if (author === kw) score += 200
+  else if (author.includes(kw)) score += 40
+  const tokens = kw
+    .split(/[·：:，,。.！!？?\s、()（）\-—]+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 2)
+  for (const token of tokens) {
+    if (title.includes(token)) score += 10
+    if (author.includes(token)) score += 5
+  }
+  return score
+}
+
 export function isNovelDownloadRoute(path) {
   return NOVEL_ROUTES.has(path)
 }
@@ -42,7 +68,7 @@ export async function handleNovelDownloadRoute({
 
   if (path === '/api/novel/search') {
     const keyword = sanitizeText(payload.keyword)
-    // 默认全源聚合；前端不再选手源
+    // 书源池模式：全部书源并发聚合搜索，前端不再提供书源选择
     const sourceId = sanitizeText(payload.sourceId) || 'all'
     if (!keyword) {
       sendJson(res, { success: true, list: [], sourceErrors: [] })
@@ -64,8 +90,8 @@ export async function handleNovelDownloadRoute({
           for (const row of rows || []) {
             list.push({
               ...row,
-              // 保留 sourceId 供下载，不暴露 sourceName
-              sourceId: row.sourceId || source.id
+              sourceId: row.sourceId || source.id,
+              sourceName: row.sourceName || source.name
             })
           }
         } catch (error) {
@@ -73,16 +99,41 @@ export async function handleNovelDownloadRoute({
         }
       })
     )
-    // 按 title+author 去重，保留第一条（先返回的源）
-    const seen = new Set()
-    const deduped = []
+    // 按 title+author 去重：同书多源时保留第一章节数最多的候选（内容最全）
+    const groups = new Map()
     for (const row of list) {
       const key = `${String(row.title || '').trim()}::${String(row.author || '').trim()}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      const { sourceName, ...rest } = row
-      deduped.push(rest)
+      if (!groups.has(key)) groups.set(key, [])
+      groups.get(key).push(row)
     }
+    const deduped = [...groups.values()].map((candidates) => ({
+      ...candidates[0],
+      sourceCandidates: candidates.length
+    }))
+    // 对头部候选并发探测章节数（字数规模代理），失败不影响主流程
+    const PROBE_LIMIT = 12
+    const PROBE_TIMEOUT_MS = 12_000
+    const probeTargets = deduped.slice(0, PROBE_LIMIT)
+    await Promise.allSettled(
+      probeTargets.map(async (row) => {
+        const chapters = await Promise.race([
+          service.getChapterList(row.url, row.sourceId),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('probe timeout')), PROBE_TIMEOUT_MS)
+          )
+        ])
+        row.chapterCount = Array.isArray(chapters) ? chapters.length : 0
+      })
+    )
+    for (const row of deduped) {
+      if (!Number.isFinite(row.chapterCount)) row.chapterCount = 0
+    }
+    // 排序：相关性优先，相关性同档按章节数（字数规模）降序
+    deduped.sort((a, b) => {
+      const scoreGap = relevanceScore(b, keyword) - relevanceScore(a, keyword)
+      if (scoreGap !== 0) return scoreGap
+      return (b.chapterCount || 0) - (a.chapterCount || 0)
+    })
     sendJson(res, {
       success: true,
       list: deduped,

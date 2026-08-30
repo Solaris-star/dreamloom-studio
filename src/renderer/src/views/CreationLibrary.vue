@@ -189,22 +189,10 @@
         class="bookshelf-tool-panel"
       >
         <div class="bookshelf-download-search card-panel">
-          <el-select
-            v-model="toolbarSourceId"
-            placeholder="选择书源"
-            class="toolbar-source-select"
-          >
-            <el-option
-              v-for="source in novelSources"
-              :key="source.id"
-              :label="source.name"
-              :value="source.id"
-            />
-          </el-select>
           <el-input
             v-model="keyword"
             clearable
-            placeholder="搜索网络小说书名或作者"
+            placeholder="搜索网络小说书名或作者（全书源聚合）"
             @keyup.enter.prevent="handleUnifiedSearch"
           >
             <template #prefix>
@@ -1867,15 +1855,6 @@ const createBookPresetColors = [
   { label: '深棕', value: '#4a3d2d' },
   { label: '深灰', value: '#3d3d3d' }
 ]
-const toolbarSourceId = computed({
-  get: () => novelImportRef.value?.currentSourceId || '',
-  set: (value) => {
-    if (novelImportRef.value) {
-      novelImportRef.value.currentSourceId = value
-    }
-  }
-})
-
 const showMaterialDialog = ref(false)
 const showBindDialog = ref(false)
 const showImageBindDialog = ref(false)
@@ -2093,7 +2072,6 @@ const promptsLoadError = computed(() => libraryLoadErrors.prompts)
 const trashLoadError = computed(() =>
   [libraryLoadErrors.knowledge, libraryLoadErrors.assets].filter(Boolean).join('；')
 )
-const novelSources = computed(() => novelImportRef.value?.sources || [])
 const novelSearching = computed(() => Boolean(novelImportRef.value?.searching))
 const searchPlaceholder = computed(() => {
   if (searchMode.value === 'source') return '搜索网络小说书名或作者，回车导入书架'
@@ -4471,11 +4449,6 @@ function dateValue(value) {
   }
 }
 
-.toolbar-source-select {
-  width: 138px;
-  flex: 0 0 auto;
-}
-
 .icon-filter-button {
   display: inline-flex;
   align-items: center;
@@ -5290,7 +5263,6 @@ function dateValue(value) {
   }
 
   .search-mode,
-  .toolbar-source-select,
   .icon-filter-button {
     width: 100%;
     min-width: 0;
