@@ -73,6 +73,81 @@
           class="app-menu"
           aria-label="主导航"
         >
+          <!-- 手机底栏：4 个高频 tab + 更多（其余入口收进弹出层），避免 8 项横向滚动被误认为裁切 -->
+          <div
+            v-for="item in mobileNavItems"
+            :key="item.key"
+            class="app-menu-group"
+          >
+            <button
+              v-motion-feedback
+              class="app-menu-item"
+              :class="{ active: isActive(item) }"
+              :aria-current="isActive(item) ? 'page' : undefined"
+              :aria-label="item.label"
+              type="button"
+              :data-testid="`nav-item-${item.key}`"
+              @click="handleNavigate(item)"
+            >
+              <span
+                class="app-menu-icon"
+                aria-hidden="true"
+              >
+                <component
+                  :is="item.icon"
+                  v-bind="iconProps"
+                />
+              </span>
+              <span class="app-menu-label">{{ item.label }}</span>
+            </button>
+          </div>
+          <div
+            v-if="mobileOverflowItems.length"
+            class="app-menu-group"
+          >
+            <button
+              v-motion-feedback
+              class="app-menu-item"
+              :class="{ active: isOverflowActive }"
+              :aria-label="更多导航"
+              aria-haspopup="menu"
+              :aria-expanded="mobileMoreVisible"
+              type="button"
+              data-testid="nav-item-mobile-more"
+              @click="mobileMoreVisible = !mobileMoreVisible"
+            >
+              <span
+                class="app-menu-icon"
+                aria-hidden="true"
+              >
+                <component
+                  :is="MoreHorizontal"
+                  v-bind="iconProps"
+                />
+              </span>
+              <span class="app-menu-label">更多</span>
+            </button>
+            <div
+              v-if="mobileMoreVisible"
+              class="app-mobile-more-panel"
+              role="menu"
+              aria-label="更多导航"
+            >
+              <button
+                v-for="item in mobileOverflowItems"
+                :key="item.key"
+                v-motion-feedback
+                role="menuitem"
+                class="app-mobile-more-item"
+                :class="{ active: isActive(item) }"
+                type="button"
+                @click="handleMobileOverflowNavigate(item)"
+              >
+                {{ item.label }}
+              </button>
+            </div>
+          </div>
+          <template v-if="!isMobileViewport">
           <div
             v-for="item in navigationItems"
             :key="item.key"
@@ -138,6 +213,7 @@
               </button>
             </div>
           </div>
+          </template>
         </nav>
 
         <div
@@ -187,7 +263,7 @@
 </template>
 
 <script setup>
-import { computed, markRaw, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, markRaw, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   BarChart2,
@@ -195,6 +271,7 @@ import {
   Home,
   Library,
   Map as MapIcon,
+  MoreHorizontal,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
@@ -237,6 +314,36 @@ const cachedRouteNames = [
   'Analytics'
 ]
 const isMobileViewport = ref(false)
+
+// 手机底栏：4 个高频入口直接展示，其余收进「更多」弹出层
+const MOBILE_NAV_KEYS = ['dashboard', 'editor', 'knowledgeLibrary', 'aiWorkshop']
+const mobileNavItems = computed(() =>
+  isMobileViewport.value
+    ? navigationItems.filter((item) => MOBILE_NAV_KEYS.includes(item.key))
+    : []
+)
+const mobileOverflowItems = computed(() =>
+  isMobileViewport.value
+    ? navigationItems.filter((item) => !MOBILE_NAV_KEYS.includes(item.key))
+    : []
+)
+const mobileMoreVisible = ref(false)
+const isOverflowActive = computed(() =>
+  mobileOverflowItems.value.some((item) => isActive(item))
+)
+
+function handleMobileOverflowNavigate(item) {
+  mobileMoreVisible.value = false
+  handleNavigate(item)
+}
+
+// 路由切换时收起「更多」弹层，避免悬在页面上
+watch(
+  () => route.fullPath,
+  () => {
+    mobileMoreVisible.value = false
+  }
+)
 const mainContentRef = ref(null)
 const prefetchedRoutes = new Set()
 const NAV_PREFETCH_PATHS = [
@@ -1161,6 +1268,42 @@ function routeViewKey(viewRoute) {
     position: static;
     display: flex;
     flex: 0 0 72px;
+  }
+
+  /* 「更多」弹出层：手机底栏的溢出入口，向上弹出 */
+  .app-mobile-more-panel {
+    position: fixed;
+    right: 8px;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 8px);
+    left: 8px;
+    z-index: 110;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 6px;
+    padding: 10px;
+    border: 1px solid var(--wabi-line, var(--border-color, #e1e4e8));
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--bg-primary, #fff) 96%, transparent);
+    box-shadow: 0 10px 32px rgba(58, 55, 49, 0.14);
+    backdrop-filter: blur(6px);
+  }
+
+  .app-mobile-more-item {
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-base);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .app-mobile-more-item.active {
+    border-color: color-mix(in srgb, var(--el-color-primary, #6f7a68) 42%, transparent);
+    background: color-mix(in srgb, var(--el-color-primary, #6f7a68) 10%, transparent);
+    color: var(--el-color-primary);
   }
 
   .app-menu-item,

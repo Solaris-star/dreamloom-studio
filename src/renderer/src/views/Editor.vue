@@ -53,8 +53,9 @@
       </el-splitter-panel>
     </el-splitter>
 
-    <!-- 正文内随手可点的上/下章 + 阅读模式切换 -->
+    <!-- 正文内随手可点的上/下章 + 阅读模式切换；窄屏底栏已提供同款功能，阅读模式下隐藏避免遮挡正文 -->
     <div
+      v-if="!isTouchLayout"
       class="editor-inline-nav"
       role="toolbar"
       aria-label="章节导航与阅读模式"
@@ -111,6 +112,7 @@
       :right-panel-size="rightPanelSize"
       :reading-mode="readingMode"
       @catalog="openCatalog"
+      @toggle-reading="toggleReadingMode"
       @reading-settings="openReadingSettings"
       @tools="mobileToolsVisible = true"
       @toggle-focus="toggleFocusMode"
@@ -363,6 +365,12 @@ onMounted(() => {
 
 const editorPanelRef = ref(null)
 const viewportWidth = ref(window.innerWidth)
+// 触摸设备（手机/iPad）：底栏 FloatingQuickActions 已提供上/下章 + 阅读模式，隐藏 inline-nav 胶囊避免遮挡正文
+const coarsePointerMedia = window.matchMedia('(hover: none) and (pointer: coarse)')
+const isTouchLayout = ref(coarsePointerMedia.matches)
+coarsePointerMedia.addEventListener('change', (event) => {
+  isTouchLayout.value = event.matches
+})
 const editorDevice = computed(() => getEditorDevice(viewportWidth.value))
 const storageKey = computed(() => createEditorLayoutKey(bookName.value, editorDevice.value))
 const legacyStorageKey = computed(
@@ -379,7 +387,7 @@ const lastRightPanelSize = ref(180)
 const focusMode = ref(false)
 const readingMode = ref(false)
 const panelVisibility = computed(() =>
-  getEditorPanelVisibility(editorDevice.value, focusMode.value)
+  getEditorPanelVisibility(editorDevice.value, focusMode.value, readingMode.value)
 )
 const catalogVisible = ref(false)
 const readingSettingsVisible = ref(false)

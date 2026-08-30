@@ -49,8 +49,9 @@ export function getEditorDevice(width) {
   return 'wide'
 }
 
-export function getEditorPanelVisibility(device, focusMode = false) {
-  if (focusMode) return { left: false, right: false }
+export function getEditorPanelVisibility(device, focusMode = false, readingMode = false) {
+  // 阅读模式与专注模式同理：收起两侧面板，正文占满——手机/iPad 上阅读不被目录栏挤窄
+  if (focusMode || readingMode) return { left: false, right: false }
   if (device === 'mobile') return { left: false, right: false }
   return { left: true, right: true }
 }

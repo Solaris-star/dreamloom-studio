@@ -38,6 +38,25 @@
       </button>
       <button
         class="action-btn"
+        :class="{ active: readingMode }"
+        type="button"
+        :title="readingMode ? '切换到编辑模式' : '切换到阅读模式'"
+        :aria-label="readingMode ? '切换到编辑模式' : '切换到阅读模式'"
+        :aria-pressed="readingMode"
+        data-testid="editor-floating-reading-toggle"
+        @click="emit('toggle-reading')"
+      >
+        <BookOpen
+          v-if="readingMode"
+          :size="18"
+        />
+        <BookOpenCheck
+          v-else
+          :size="18"
+        />
+      </button>
+      <button
+        class="action-btn"
         type="button"
         title="阅读设置"
         aria-label="阅读设置"
@@ -199,6 +218,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 import {
   ArrowDownToLine,
   ArrowUpToLine,
+  BookOpen,
+  BookOpenCheck,
   ChevronLeft,
   ChevronRight,
   GripVertical,
@@ -236,6 +257,7 @@ const props = defineProps({
 
 const emit = defineEmits([
   'catalog',
+  'toggle-reading',
   'reading-settings',
   'tools',
   'toggle-focus',
