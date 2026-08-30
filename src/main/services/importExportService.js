@@ -390,13 +390,23 @@ function readImportText(input = {}) {
   return { text: decodeTextBuffer(buffer).replace(/\r\n/g, '\n'), fileName, format }
 }
 
-function isChapterTitle(line, index, format, markdownHeadingLevel = null) {
+function isChapterTitle(line, index, format, markdownHeadingLevel = null, rawLinesArray = null) {
   const text = String(line || '').trim()
   if (!text || text.length > 90) return false
   if (format === 'md' && markdownHeadingLevel) {
     return new RegExp(`^#{${markdownHeadingLevel}}\\s+\\S+`).test(text)
   }
   if (format === 'md' && /^#{2,3}\s+\S+/.test(text)) return true
+  const isBracketOnlyLine = /^【[^】]{1,40}】$/.test(text)
+  if (isBracketOnlyLine && Array.isArray(rawLinesArray)) {
+    // 裸【…】行(如功法面板/感悟注解)只有前后均为空行时才视为独立章节标题，
+    // 避免把正文中的单行注解误切为章节。
+    const prevLine = String(rawLinesArray[index - 1] || '').trim()
+    const nextLine = String(rawLinesArray[index + 1] || '').trim()
+    const isolated = prevLine === '' && nextLine === ''
+    if (!isolated) return false
+    return true
+  }
   return (
     /^第[零〇一二三四五六七八九十百千万两\d]+[章回节卷集部]\s*\S*/.test(text) ||
     /^Chapter\s+\d+\b/i.test(text) ||
@@ -516,7 +526,7 @@ function splitChapters(text, format) {
     if (format === 'md' && markdownHeadingLevel === 3 && /^##\s+\S+/.test(line.trim())) {
       return
     }
-    if (isChapterTitle(line, index, format, markdownHeadingLevel)) {
+    if (isChapterTitle(line, index, format, markdownHeadingLevel, lines)) {
       flush()
       current = line
       buffer = []
