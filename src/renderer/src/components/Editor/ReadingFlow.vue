@@ -11,6 +11,7 @@
     aria-label="纵向阅读区"
     @scroll.passive="handleScroll"
     @keydown="handleKeydown"
+    @click="handleTapToPage"
   >
     <article
       class="reading-flow__paper"
@@ -219,6 +220,23 @@ function handleKeydown(event) {
   }
 }
 
+/**
+ * 触摸设备轻点翻页：点左 1/3 屏上一页、右 2/3 屏下一页。
+ * - 只在粗指针（手机/平板）生效，桌面点击不动
+ * - 双击、拖选文字、点在链接/按钮上时不翻页
+ */
+function handleTapToPage(event) {
+  if (!window.matchMedia?.('(hover: none) and (pointer: coarse)').matches) return
+  const selection = window.getSelection?.()
+  if (selection && !selection.isCollapsed) return
+  const target = event.target
+  if (target?.closest?.('a, button, img')) return
+  const rect = scrollRef.value?.getBoundingClientRect?.()
+  if (!rect) return
+  const relativeX = event.clientX - rect.left
+  void scrollPage(relativeX < rect.width / 3 ? -1 : 1)
+}
+
 function resetReadingFlow() {
   visibleChunkCount.value = Math.min(
     chunks.value.length,
@@ -338,6 +356,18 @@ defineExpose({
   .reading-flow__paper {
     max-width: 100%;
     padding: 24px 16px calc(96px + env(safe-area-inset-bottom));
+  }
+}
+
+/* 平板（iPad 等 768-1024 触摸宽屏）：正文更宽、边距加大，保留书页感 */
+@media (hover: none) and (pointer: coarse) and (min-width: 768px) {
+  .reading-flow {
+    padding: 20px clamp(16px, 4vw, 48px) calc(88px + env(safe-area-inset-bottom));
+  }
+
+  .reading-flow__paper {
+    max-width: min(100%, 880px);
+    padding: 40px clamp(24px, 5vw, 64px) calc(88px + env(safe-area-inset-bottom));
   }
 }
 

@@ -4,8 +4,8 @@
     class="floating-quick-actions"
     :class="{
       dragging: isDragging,
-      'is-hidden': !state.visible && !isMobile,
-      'is-mobile': isMobile
+      'is-hidden': !state.visible && !isTouchLayout,
+      'is-mobile': isTouchLayout
     }"
     :style="rootStyle"
     role="toolbar"
@@ -13,7 +13,7 @@
     data-testid="editor-floating-quick-actions"
     @pointerdown="onPointerDown"
   >
-    <template v-if="state.visible || isMobile">
+    <template v-if="state.visible || isTouchLayout">
       <button
         class="drag-handle"
         type="button"
@@ -150,6 +150,34 @@
           <ArrowDownToLine :size="18" />
         </button>
       </div>
+
+      <!-- 移动端阅读模式：上一章 / 下一章 -->
+      <div
+        class="chapter-jump-actions"
+        role="group"
+        aria-label="章节跳转"
+      >
+        <button
+          class="action-btn"
+          type="button"
+          title="上一章"
+          aria-label="上一章"
+          data-testid="editor-prev-chapter"
+          @click="emit('prev-chapter')"
+        >
+          <ChevronLeft :size="18" />
+        </button>
+        <button
+          class="action-btn"
+          type="button"
+          title="下一章"
+          aria-label="下一章"
+          data-testid="editor-next-chapter"
+          @click="emit('next-chapter')"
+        >
+          <ChevronRight :size="18" />
+        </button>
+      </div>
     </template>
 
     <button
@@ -171,6 +199,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 import {
   ArrowDownToLine,
   ArrowUpToLine,
+  ChevronLeft,
+  ChevronRight,
   GripVertical,
   ListTree,
   Maximize2,
@@ -197,6 +227,10 @@ const props = defineProps({
   rightPanelSize: {
     type: Number,
     default: 180
+  },
+  readingMode: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -206,7 +240,9 @@ const emit = defineEmits([
   'tools',
   'toggle-focus',
   'page-up',
-  'page-down'
+  'page-down',
+  'prev-chapter',
+  'next-chapter'
 ])
 
 const rootRef = ref(null)
@@ -223,6 +259,24 @@ const state = reactive(readFloatingQuickActions(typeof localStorage !== 'undefin
 
 const isMobile = computed(() => viewportWidth.value < 768)
 
+// 触摸优化布局：窄屏 或 粗指针（iPad/平板无鼠标）。两者都启用底栏 + 大按钮。
+// 桌面 hover-capable 设备保持右侧悬浮坞 + 拖拽。
+const isCoarsePointer = ref(false)
+let coarsePointerMedia = null
+
+function updateCoarsePointer() {
+  if (typeof window === 'undefined' || !window.matchMedia) return
+  isCoarsePointer.value = window.matchMedia('(hover: none) and (pointer: coarse)').matches
+}
+
+if (typeof window !== 'undefined' && window.matchMedia) {
+  coarsePointerMedia = window.matchMedia('(hover: none) and (pointer: coarse)')
+  updateCoarsePointer()
+}
+
+// 触摸布局 = 窄屏或 iPad 等粗指针宽屏
+const isTouchLayout = computed(() => isMobile.value || isCoarsePointer.value)
+
 const rootStyle = computed(() =>
   resolveFloatingStyle(state, {
     viewportWidth: viewportWidth.value,
@@ -230,9 +284,9 @@ const rootStyle = computed(() =>
     fabWidth: fabWidth.value,
     fabHeight: fabHeight.value,
     topInset: 72,
-    bottomInset: isMobile.value ? 12 + safeAreaBottom() : 56,
+    bottomInset: isTouchLayout.value ? 12 + safeAreaBottom() : 56,
     rightPanelSize: props.rightPanelSize,
-    isMobile: isMobile.value,
+    isMobile: isTouchLayout.value,
     isDragging: isDragging.value,
     dragX: dragX.value,
     dragY: dragY.value,
@@ -303,7 +357,7 @@ function currentFixedPoint() {
 }
 
 function onHandlePointerDown(event) {
-  if (isMobile.value || !state.visible) return
+  if (isTouchLayout.value || !state.visible) return
   if (event.button !== undefined && event.button !== 0) return
   beginDrag(event)
 }
@@ -415,7 +469,7 @@ function showAssistant() {
 }
 
 function onKeyboardMove(event) {
-  if (isMobile.value || !state.visible) return
+  if (isTouchLayout.value || !state.visible) return
   const step = event.shiftKey ? 24 : 12
   if (event.key === 'ArrowLeft') {
     event.preventDefault()
@@ -469,7 +523,9 @@ function onRootClickCapture(event) {
 
 onMounted(() => {
   updateViewport()
+  updateCoarsePointer()
   window.addEventListener('resize', updateViewport)
+  coarsePointerMedia?.addEventListener?.('change', updateCoarsePointer)
   document.addEventListener('click', onDocumentClick)
   rootRef.value?.addEventListener('click', onRootClickCapture, true)
   nextTick(measureFab)
@@ -477,6 +533,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', updateViewport)
+  coarsePointerMedia?.removeEventListener?.('change', updateCoarsePointer)
   document.removeEventListener('click', onDocumentClick)
   rootRef.value?.removeEventListener('click', onRootClickCapture, true)
   window.removeEventListener('pointermove', onPointerMove)
@@ -586,6 +643,11 @@ watch(
   border-top: 1px solid var(--border-color, #dedbd5);
 }
 
+/* 章节跳转：默认（桌面悬浮坞）不显示，避免拥挤；触摸底栏展示 */
+.chapter-jump-actions {
+  display: none;
+}
+
 .position-menu {
   position: relative;
 }
@@ -660,8 +722,8 @@ watch(
   }
 
   .action-btn {
-    width: 34px;
-    height: 34px;
+    width: 40px;
+    height: 40px;
   }
 
   .mobile-only {
@@ -676,6 +738,32 @@ watch(
     margin-left: 2px;
     border-top: 0;
     border-left: 1px solid var(--border-color, #dedbd5);
+  }
+
+  .chapter-jump-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 2px;
+    padding-left: 4px;
+    margin-left: 2px;
+    border-left: 1px solid var(--border-color, #dedbd5);
+  }
+}
+
+/* iPad 等粗指针平板：同款底栏布局（JS is-touch-layout 驱动 is-mobile class） */
+@media (hover: none) and (pointer: coarse) {
+  .floating-quick-actions.is-mobile .chapter-jump-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 2px;
+    padding-left: 4px;
+    margin-left: 2px;
+    border-left: 1px solid var(--border-color, #dedbd5);
+  }
+
+  .floating-quick-actions.is-mobile .action-btn {
+    width: 40px;
+    height: 40px;
   }
 }
 

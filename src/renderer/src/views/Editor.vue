@@ -109,12 +109,15 @@
       class="editor-quick-actions"
       :focus-mode="focusMode"
       :right-panel-size="rightPanelSize"
+      :reading-mode="readingMode"
       @catalog="openCatalog"
       @reading-settings="openReadingSettings"
       @tools="mobileToolsVisible = true"
       @toggle-focus="toggleFocusMode"
       @page-up="scrollPage(-1)"
       @page-down="scrollPage(1)"
+      @prev-chapter="handlePrevChapter"
+      @next-chapter="handleNextChapter"
     />
 
     <el-drawer
@@ -172,6 +175,7 @@
       title="阅读设置"
       width="min(420px, 92vw)"
       class="reading-settings-dialog"
+      :append-to-body="true"
     >
       <div class="reading-setting theme-setting">
         <span>阅读主题</span>
@@ -974,6 +978,21 @@ onBeforeUnmount(detachWindowListeners)
   outline: none;
 }
 
+/* 触摸设备（手机/iPad）：设置弹窗加大点击目标 */
+@media (hover: none) and (pointer: coarse) {
+  .theme-chip,
+  .margin-chip {
+    min-height: 40px;
+    padding: 6px 14px;
+    font-size: 13px;
+  }
+
+  .theme-chip .theme-swatch {
+    width: 16px;
+    height: 16px;
+  }
+}
+
 /* 书页化：稿纸变成一张有墨线边框与轻投影的书页，四周留白 */
 :deep(.editor-content) {
   padding: 28px clamp(12px, 3vw, 40px);
@@ -1009,8 +1028,8 @@ onBeforeUnmount(detachWindowListeners)
 
 @media (max-width: 767px) {
   .editor-container {
-    /* 更矮的底栏：按钮 34 + padding + safe-area */
-    padding-bottom: calc(44px + env(safe-area-inset-bottom));
+    /* 更矮的底栏：按钮 40 + padding + safe-area */
+    padding-bottom: calc(52px + env(safe-area-inset-bottom));
     overflow-x: hidden;
   }
 
