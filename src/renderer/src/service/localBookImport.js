@@ -4,10 +4,11 @@ export const MAX_LOCAL_BOOK_FILE_SIZE = 50 * 1024 * 1024
 const TEXT_EXTENSIONS = new Set(['txt', 'md', 'markdown'])
 const CHAPTER_TITLE_MAX_LENGTH = 90
 const CHINESE_NUMERAL = '零一二三四五六七八九十百千万两〇壹贰叁肆伍陆柒捌玖拾佰仟'
-const CHAPTER_TITLE_PATTERN = new RegExp(
+// 章级标题:第N章/卷N/序章/楔子/Chapter N 等顶层结构
+const BOOK_LEVEL_TITLE_PATTERN = new RegExp(
   [
-    `^第\\s*[0-9０-９${CHINESE_NUMERAL}]+\\s*[章回节卷部集]`,
-    `^卷\\s*[0-9０-９${CHINESE_NUMERAL}]+`,
+    `^第\\s*[0-9${CHINESE_NUMERAL}]+\\s*[章回节卷部集]`,
+    `^卷\\s*[0-9${CHINESE_NUMERAL}]+`,
     '^序章',
     '^楔子',
     '^引子',
@@ -15,11 +16,16 @@ const CHAPTER_TITLE_PATTERN = new RegExp(
     '^后记',
     '^番外',
     '^Chapter\\s+\\d+\\b',
-    '^CHAPTER\\s+\\d+\\b',
-    '^\\d+\\s*[.、]\\s*\\S+'
+    '^CHAPTER\\s+\\d+\\b'
   ].join('|'),
   'i'
 )
+// 小节标题:1.1 / 1.1.1 / 12.、编号式(仅当全书无章级标题时启用)
+const SECTION_TITLE_PATTERN = /^\d+(?:\.\d+)*\s*[.、]?\s*\S+/
+// 叙述句排除:匹配到章标题后,行内若还有句读(逗号/句号/分号/问叹号)说明是正文引用,不是标题
+const NARRATIVE_PUNCTUATION = /[,，。;；:：?!]/
+// 叙述动词:推荐序/前言里「第一章介绍了…」「第四章详细展开。」这类引用句
+const NARRATIVE_VERB = /(介绍了|讲述了|讨论|展开|已经|将系统|分别|说明了|映射|呼应|给出|展示|提供)/
 
 export function getLocalBookFileExtension(fileName = '') {
   const name = String(fileName || '').trim()
@@ -176,9 +182,17 @@ export function parseChapters(text, extension = '') {
   const chapters = []
   let current = null
 
+  // 预扫描:全书是否存在章级标题(第N章/Chapter N)。
+  // 有章级 → 小节编号(1.1)不再作为切分点,避免一本书被切成几百个碎章。
+  const bookLevelSeen = lines.some((rawLine) => {
+    const line = rawLine.trim()
+    return line && line.length <= CHAPTER_TITLE_MAX_LENGTH &&
+      BOOK_LEVEL_TITLE_PATTERN.test(line.replace(/^#{1,6}\s+/, ''))
+  })
+
   for (const rawLine of lines) {
     const line = rawLine.trim()
-    const title = extractChapterTitle(line, extension)
+    const title = extractChapterTitle(line, extension, { bookLevelSeen })
     if (title) {
       if (current) chapters.push(finalizeChapter(current))
       current = {
@@ -382,13 +396,31 @@ function sanitizeBookName(name) {
   )
 }
 
-function extractChapterTitle(line, extension) {
+function extractChapterTitle(line, extension, options = {}) {
   if (!line || line.length > CHAPTER_TITLE_MAX_LENGTH) return ''
   if (isMarkdownExtension(extension) && /^#{1,3}\s+\S/.test(line)) {
     return sanitizeChapterTitle(line)
   }
   const cleanLine = line.replace(/^#{1,6}\s+/, '')
-  if (CHAPTER_TITLE_PATTERN.test(cleanLine)) return sanitizeChapterTitle(cleanLine)
+  const { bookLevelSeen = false } = options
+  if (BOOK_LEVEL_TITLE_PATTERN.test(cleanLine)) {
+    // 叙述句防误切:推荐序/前言里「第二章,工具安全…在第四、五、六章展开。」「第一章介绍了…」
+    // 是对章节的引用而非标题。启发式:含句读 / 句读后余文 > 8 字 / 含叙述动词 → 放行当正文
+    if (NARRATIVE_PUNCTUATION.test(cleanLine) || NARRATIVE_VERB.test(cleanLine)) {
+      const firstPunct = cleanLine.search(NARRATIVE_PUNCTUATION)
+      const afterPunct = firstPunct >= 0 ? cleanLine.slice(firstPunct + 1) : ''
+      if (afterPunct.length > 8 || NARRATIVE_VERB.test(cleanLine) || cleanLine.length > 40) {
+        return ''
+      }
+    }
+    return sanitizeChapterTitle(cleanLine)
+  }
+  // 小节编号(1.1/1.1.1):仅当全书没有章级标题时才作为章节切分依据
+  if (!bookLevelSeen && SECTION_TITLE_PATTERN.test(cleanLine)) {
+    if (!NARRATIVE_PUNCTUATION.test(cleanLine)) {
+      return sanitizeChapterTitle(cleanLine)
+    }
+  }
   return ''
 }
 
