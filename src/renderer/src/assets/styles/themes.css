@@ -118,6 +118,122 @@ body,
   vertical-align: initial !important;
 }
 
+/* —— MessageBox 全局美化皮肤 ——
+   Element Plus 默认 confirm 弹窗是无图标色块的原始样式（标题+正文+灰蓝按钮），
+   这里统一升级成与应用 dialog 一致的风格：圆角 14、图标大圆底色块、
+   内容居中、按钮胶囊化、遮罩毛玻璃。所有 ElMessageBox.confirm 全局生效。 */
+.el-overlay-message-box {
+  backdrop-filter: blur(3px);
+  background-color: rgba(15, 18, 25, 0.45) !important;
+}
+
+.el-overlay-message-box .el-message-box {
+  width: 400px;
+  max-width: calc(100vw - 48px);
+  padding: 28px 26px 22px !important;
+  border: 1px solid var(--border-color-soft) !important;
+  border-radius: 14px !important;
+  box-shadow:
+    0 18px 48px rgba(15, 18, 25, 0.28),
+    0 2px 10px rgba(15, 18, 25, 0.12) !important;
+}
+
+/* 图标：大圆底色块，替代默认小图标 */
+.el-overlay-message-box .el-message-box__status {
+  position: static !important;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 14px !important;
+  border-radius: 50%;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary) !important;
+  transform: none !important;
+}
+
+.el-overlay-message-box .el-message-box--warning .el-message-box__status,
+.el-overlay-message-box .el-message-box.warning .el-message-box__status {
+  background: color-mix(in srgb, var(--el-color-warning) 14%, transparent);
+  color: var(--el-color-warning) !important;
+}
+
+.el-overlay-message-box .el-message-box--error .el-message-box__status,
+.el-overlay-message-box .el-message-box.error .el-message-box__status {
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+  color: var(--el-color-danger) !important;
+}
+
+.el-overlay-message-box .el-message-box--success .el-message-box__status,
+.el-overlay-message-box .el-message-box.success .el-message-box__status {
+  background: color-mix(in srgb, var(--el-color-success) 14%, transparent);
+  color: var(--el-color-success) !important;
+}
+
+/* 标题 + 正文居中 */
+.el-overlay-message-box .el-message-box__title,
+.el-overlay-message-box .el-message-box__message {
+  text-align: center;
+  display: block;
+}
+
+.el-overlay-message-box .el-message-box__title {
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--text-base) !important;
+  padding-right: 0 !important;
+  margin-bottom: 6px;
+}
+
+.el-overlay-message-box .el-message-box__container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.el-overlay-message-box .el-message-box__content {
+  padding: 0 4px !important;
+  color: var(--text-secondary) !important;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+/* 输入型 message box（prompt）保持内容区左对齐可交互 */
+.el-overlay-message-box .el-message-box__input {
+  width: 100%;
+  padding-top: 6px;
+}
+
+/* 按钮：胶囊化 + 右对齐改为等宽铺开 */
+.el-overlay-message-box .el-message-box__btns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  padding: 20px 0 0 !important;
+}
+
+.el-overlay-message-box .el-message-box__btns .el-button {
+  flex: 1;
+  min-width: 120px;
+  height: 38px;
+  margin-left: 0 !important;
+  border-radius: 999px;
+  font-weight: 550;
+}
+
+.el-overlay-message-box .el-message-box__btns .el-button--primary {
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--el-color-primary) 35%, transparent);
+}
+
+/* 关闭按钮统一右上角 */
+.el-overlay-message-box .el-message-box__headerbtn {
+  top: 10px;
+  right: 10px;
+}
+
+
 .el-input__wrapper,
 .el-textarea__inner,
 .el-select__wrapper {

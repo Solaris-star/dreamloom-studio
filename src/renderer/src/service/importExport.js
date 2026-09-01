@@ -97,7 +97,8 @@ export async function previewImportBook(payload = {}) {
 }
 
 export async function importBookFromFile(payload = {}) {
-  return requireImportedBookResult(await postJson('/api/import/book', payload, { timeoutMs: 60_000 }))
+  // 大书（千章/百万字）payload 可达数 MB，弱网上传慢；后端实际写入仅需数百毫秒
+  return requireImportedBookResult(await postJson('/api/import/book', payload, { timeoutMs: 300_000 }))
 }
 
 export async function exportBookFile(payload = {}) {
