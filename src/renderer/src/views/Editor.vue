@@ -674,9 +674,42 @@ onBeforeRouteLeave(async () => {
 })
 
 function openCatalog() {
-  chapterOutline.value = noteChapterRef.value?.getChapterOutline?.() || []
   catalogVisible.value = true
 }
+
+// 目录列表跟随章节树实时刷新：大书首载（数千章）尚未完成时点开目录，
+// 旧实现点击瞬间抓死快照，抽屉会停留在「暂无章节」且不再更新。
+// 现在抽屉打开期间持续同步，树加载完成后列表自动填充。
+const outlineSource = () => noteChapterRef.value?.getChapterOutline?.() ?? []
+watch(
+  [catalogVisible, outlineSource],
+  ([visible, outline]) => {
+    if (visible) chapterOutline.value = outline
+  },
+  { immediate: true }
+)
+// 兜底：树在抽屉打开后才完成加载时，定时补拉；一旦拿到内容即停，
+// 避免大书（2000+ 章）列表每 500ms 全量重渲染
+let outlinePollTimer = null
+function stopOutlinePoll() {
+  if (outlinePollTimer) {
+    clearInterval(outlinePollTimer)
+    outlinePollTimer = null
+  }
+}
+watch(catalogVisible, (visible) => {
+  stopOutlinePoll()
+  if (visible && !chapterOutline.value.length) {
+    outlinePollTimer = setInterval(() => {
+      const outline = outlineSource()
+      if (outline.length) {
+        chapterOutline.value = outline
+        stopOutlinePoll()
+      }
+    }, 500)
+  }
+})
+onBeforeUnmount(stopOutlinePoll)
 
 async function selectCatalogChapter(path) {
   const selected = await noteChapterRef.value?.selectChapterByPath?.(path)
