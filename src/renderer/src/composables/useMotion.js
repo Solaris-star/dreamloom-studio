@@ -215,20 +215,23 @@ export function installElementPlusMotion() {
     animateDialogIn(el)
   }
 
+  // MessageBox 与 el-dialog 同源动效（fade + scale + 上浮），保持全应用弹层手感一致
+  const DIALOG_SELECTOR = '.el-dialog, .el-drawer, .el-message-box'
+
   const scan = (root = document.body) => {
     if (!root?.querySelectorAll) return
-    root.querySelectorAll('.el-dialog, .el-drawer').forEach(syncDialog)
+    root.querySelectorAll(DIALOG_SELECTOR).forEach(syncDialog)
   }
 
   dialogObserver = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
       if (mutation.type === 'attributes' && mutation.target instanceof Element) {
-        if (mutation.target.matches?.('.el-dialog, .el-drawer')) syncDialog(mutation.target)
+        if (mutation.target.matches?.(DIALOG_SELECTOR)) syncDialog(mutation.target)
         scan(mutation.target)
       }
       mutation.addedNodes.forEach((node) => {
         if (!(node instanceof Element)) return
-        if (node.matches?.('.el-dialog, .el-drawer')) syncDialog(node)
+        if (node.matches?.(DIALOG_SELECTOR)) syncDialog(node)
         scan(node)
       })
     })
