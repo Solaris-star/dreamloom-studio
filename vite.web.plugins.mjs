@@ -84,7 +84,10 @@ export function createWebServerPlugins() {
   loadEnvFile(process.cwd())
   const configuredBooksDir = String(process.env.NOVEL_BOOKS_DIR || '').trim()
   const booksDir = configuredBooksDir || resolve('.booksDir')
-  const maxRequestBodyBytes = Number(process.env.NOVEL_MAX_REQUEST_BODY_BYTES) || 16 * 1024 * 1024
+  // 50MB PDF 全文解析成章节数组后 JSON 化可达数十 MB（千万字长篇 ~25MB+），
+  // 默认上限给到 64MB 与前端 50MB 文件上限配套；可通过 NOVEL_MAX_REQUEST_BODY_BYTES 覆盖
+  const maxRequestBodyBytes =
+    Number(process.env.NOVEL_MAX_REQUEST_BODY_BYTES) || 64 * 1024 * 1024
   const readJsonBody = createJsonBodyReader(maxRequestBodyBytes)
   const webExtractionTasks = new WebExtractionTaskService({
     extractionService: extractionAiService,
