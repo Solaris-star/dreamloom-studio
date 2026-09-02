@@ -507,7 +507,8 @@ async function saveLastViewedChapter(volumeNode, chapterNode) {
   if (!props.bookName || !volumeNode || !chapterNode) return
   const payload = {
     volumeId: getVolumeId(volumeNode),
-    chapterName: chapterNode.name
+    chapterName: chapterNode.name,
+    chapterPath: chapterNode.path
   }
   await setStoreValue(`lastChapter:${props.bookName}`, payload).catch(() => {})
 }
@@ -649,29 +650,17 @@ async function loadChapters(arg = false) {
     if (restoreLastChapter && volumes.length > 0) {
       try {
         const last = await getStoreValue(`lastChapter:${props.bookName}`, null)
-        if (last?.volumeId && last?.chapterName) {
-          const targetVolume = volumes.find((v) => getVolumeId(v) === last.volumeId)
-          const targetChapter = targetVolume?.children?.find((c) => c.name === last.chapterName)
-          // 上次停留的章节若为空、且书里存在有内容的章节，
-          // 则改选第一个有内容的章节：打开创作台应看到自己写的字，
-          // 而不是建书预生成的空「第1章」。
-          const hasContent = Number(targetChapter?.wordCount || 0) > 0
-          const anyMeaningful = (() => {
-            for (const vol of volumes) {
-              const hit = (vol.children || []).find((c) => Number(c.wordCount || 0) > 0)
-              if (hit) return { volume: vol, chapter: hit }
-            }
-            return null
-          })()
-          if (!hasContent && anyMeaningful) {
-            const fakeNode = {
-              data: anyMeaningful.chapter,
-              parent: { data: anyMeaningful.volume }
-            }
-            await handleChapterClick(anyMeaningful.chapter, fakeNode)
-            currentChapterNodeKey.value = anyMeaningful.chapter.path
-            return
-          }
+        if (last?.volumeId || last?.chapterPath || last?.chapterName) {
+          const targetVolume =
+            volumes.find((v) =>
+              (v.children || []).some((c) => last.chapterPath && c.path === last.chapterPath)
+            ) || volumes.find((v) => getVolumeId(v) === last.volumeId)
+          const targetChapter =
+            targetVolume?.children?.find((c) => last.chapterPath && c.path === last.chapterPath) ||
+            targetVolume?.children?.find((c) => c.name === last.chapterName)
+
+          // 阅读进度必须精确恢复到上次停留章节。即使该章为空，也不能擅自跳到其他章节。
+          // chapterPath 用于处理同名章节，旧记录没有路径时继续兼容 volumeId + chapterName。
           if (targetVolume && targetChapter) {
             const fakeNode = { data: targetChapter, parent: { data: targetVolume } }
             await handleChapterClick(targetChapter, fakeNode)
@@ -1092,8 +1081,12 @@ watch(
     try {
       sortOrder.value = await getSortOrder(newBookName)
       // 从子页面返回时 store 仍持有当前文件：只刷新树并同步侧栏，勿执行「恢复上次章节 / 最新章节」以免覆盖正在编辑的笔记
-      const preserveOpenFile =
-        !!editorStore.file && editorStore.currentBookName === newBookName
+      // 但切到另一本书时,store.file 仍是旧书的章——必须走 restoreLastChapter 重新恢复新书的进度。
+      // 判断依据:file 的 path 拆段后是否含当前 bookName(避免「测试A」误匹配到「测试A2」)。
+      const currentFilePath = editorStore.file?.path || ''
+      const pathSegments = currentFilePath.split(/[\\/]/)
+      const belongsToNewBook = Boolean(newBookName) && pathSegments.includes(newBookName)
+      const preserveOpenFile = !!editorStore.file && belongsToNewBook
 
       if (preserveOpenFile) {
         await loadChapters(false)
