@@ -209,7 +209,11 @@
           {{ row.status === 'error' && row.parsed ? '重试' : '加入书架' }}
         </el-button>
         <span
-          v-else
+          v-if="row.status === 'importing' && row.importStatusText"
+          class="import-status-text"
+        >{{ row.importStatusText }}</span>
+        <span
+          v-else-if="row.status === 'done'"
           class="done-label"
         >已加入</span>
       </article>
@@ -400,26 +404,38 @@ async function createImportedBook(row) {
   const existingBooks = await refreshBooksDir()
   const bookName = uniqueLocalBookName(parsed.title, existingBooks)
   const isPdf = row.extension === 'pdf' && parsed._source === 'pdf'
-  const result = await importBookFromFile({
-    fileName: row.fileName,
-    format: row.extension,
-    bookName,
-    chapters: parsed.chapters,
-    // PDF：原始文件 + 目录树随请求上传，服务端落盘原 PDF（不再写文本章节）
-    ...(isPdf
-      ? {
-          pdfData: parsed.pdfData || '',
-          pdfOutline: parsed.pdfOutline || [],
-          pageCount: parsed.pageCount || 0
-        }
-      : {}),
-    intro: isPdf
-      ? `从本地 PDF 文件导入，保留原始排版逐页阅读，仅支持阅读。`
-      : `从本地 ${row.extension.toUpperCase()} 文件导入，可阅读或作为参考资料使用。`,
-    type: 'reference',
-    typeName: '参考资料',
-    coverColor: '#8a5a3a'
-  })
+  const result = await importBookFromFile(
+    {
+      fileName: row.fileName,
+      format: row.extension,
+      bookName,
+      chapters: parsed.chapters,
+      // PDF：原始文件 + 目录树随请求上传，服务端落盘原 PDF（不再写文本章节）
+      ...(isPdf
+        ? {
+            pdfData: parsed.pdfData || '',
+            pdfOutline: parsed.pdfOutline || [],
+            pageCount: parsed.pageCount || 0
+          }
+        : {}),
+      intro: isPdf
+        ? `从本地 PDF 文件导入，保留原始排版逐页阅读，仅支持阅读。`
+        : `从本地 ${row.extension.toUpperCase()} 文件导入，可阅读或作为参考资料使用。`,
+      type: 'reference',
+      typeName: '参考资料',
+      coverColor: '#8a5a3a'
+    },
+    {
+      // 上传大书可能持续数分钟；把上传进度反馈到行内，避免「一直转圈像卡死」
+      onUploadProgress: (info) => {
+        const percent = Number(info?.percent) || 0
+        row.importProgressPercent = percent
+        row.importStatusText = percent > 0 ? `正在上传 ${percent}%` : '正在上传…'
+      }
+    }
+  )
+  row.importProgressPercent = 100
+  row.importStatusText = '服务器写入中…'
   // 导入成功后强制刷新（bust 30s 缓存），确保书架立刻看到新旧全部书籍
   await refreshBooksDir()
   return {
@@ -440,6 +456,8 @@ function createPendingRow(file) {
     proposedBookName: '',
     expanded: false,
     parseStatusText: '',
+    importProgressPercent: 0,
+    importStatusText: '',
     error: ''
   }
 }
@@ -719,6 +737,13 @@ defineExpose({
   color: var(--wabi-moss-dark);
   font-size: 13px;
   font-weight: 700;
+}
+
+.import-status-text {
+  align-self: center;
+  color: #756b5b;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .local-import-empty {

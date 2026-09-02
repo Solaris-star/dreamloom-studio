@@ -122,11 +122,23 @@ function mergeAbortSignals(timeoutMs, externalSignal) {
 
 async function executeRequest(url, options = {}) {
   const timeoutMs = Number(options.timeoutMs) || DEFAULT_TIMEOUT_MS
+  const { onUploadProgress, ...fetchOptions } = options
   const { signal, cleanup } = mergeAbortSignals(timeoutMs, options.signal)
+
+  // 大请求体（如 25MB 书籍 base64）上传可能持续数分钟，fetch 不提供上传进度；
+  // 提供了回调时改用 XHR 以获得 progress 事件（abort 语义保持一致）
+  if (typeof onUploadProgress === 'function' && fetchOptions.body) {
+    return await executeXhrRequest(url, {
+      ...fetchOptions,
+      signal,
+      timeoutMs,
+      onUploadProgress
+    }).finally(cleanup)
+  }
 
   try {
     const response = await fetch(url, {
-      ...options,
+      ...fetchOptions,
       signal
     })
     const data = await readResponseJson(response)
@@ -148,6 +160,73 @@ async function executeRequest(url, options = {}) {
   } finally {
     cleanup()
   }
+}
+
+/** XHR 版请求：仅用于需要上传进度的 POST（fetch 无 upload progress 事件） */
+function executeXhrRequest(url, { method = 'POST', headers, body, signal, onUploadProgress }) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open(method, url, true)
+    Object.entries(headers || {}).forEach(([name, value]) => xhr.setRequestHeader(name, value))
+    xhr.responseType = 'json'
+
+    const onAbort = () => {
+      xhr.abort()
+      reject(Object.assign(new Error('请求已取消'), { name: 'AbortError', code: 'REQUEST_CANCELLED' }))
+    }
+    if (signal) {
+      if (signal.aborted) {
+        onAbort()
+        return
+      }
+      signal.addEventListener('abort', onAbort, { once: true })
+    }
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.loaded > 0) {
+        try {
+          onUploadProgress({
+            loaded: event.loaded,
+            total: event.total,
+            percent: Math.min(99, Math.round((event.loaded / event.total) * 100))
+          })
+        } catch {
+          // 进度回调异常不影响请求
+        }
+      }
+    }
+    xhr.upload.onload = () => {
+      try {
+        onUploadProgress({ loaded: 1, total: 1, percent: 99 })
+      } catch {
+        // ignore
+      }
+    }
+
+    xhr.onerror = () => {
+      if (signal) signal.removeEventListener('abort', onAbort)
+      reject(new Error('网络错误，请求失败'))
+    }
+    xhr.onabort = () => {
+      if (signal) signal.removeEventListener('abort', onAbort)
+      reject(Object.assign(new Error('请求已取消'), { name: 'AbortError', code: 'REQUEST_CANCELLED' }))
+    }
+    xhr.onload = () => {
+      if (signal) signal.removeEventListener('abort', onAbort)
+      const data = xhr.response
+      if (xhr.status < 200 || xhr.status >= 300 || data?.success === false) {
+        reject(new Error(data?.message || data?.error || `请求失败 (${xhr.status})`))
+        return
+      }
+      if (!data || typeof data !== 'object') {
+        reject(new Error(`接口返回的不是有效 JSON (${xhr.status})`))
+        return
+      }
+      resolve(data)
+    }
+
+    xhr.send(body)
+  })
 }
 
 /**

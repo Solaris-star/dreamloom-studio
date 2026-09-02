@@ -92,13 +92,24 @@ export function requireTaskListResult(result) {
   return ok
 }
 
-export async function previewImportBook(payload = {}) {
-  return requirePreviewResult(await postJson('/api/import/preview', payload))
+export async function previewImportBook(payload = {}, options = {}) {
+  // 大书（25MB 级）payload 可达数十 MB，服务端解析需 15s+；默认 20s 会被顶爆
+  return requirePreviewResult(
+    await postJson('/api/import/preview', payload, {
+      timeoutMs: 120_000,
+      ...(options.onUploadProgress ? { onUploadProgress: options.onUploadProgress } : {})
+    })
+  )
 }
 
-export async function importBookFromFile(payload = {}) {
+export async function importBookFromFile(payload = {}, options = {}) {
   // 大书（千章/百万字）payload 可达数 MB，弱网上传慢；后端实际写入仅需数百毫秒
-  return requireImportedBookResult(await postJson('/api/import/book', payload, { timeoutMs: 300_000 }))
+  return requireImportedBookResult(
+    await postJson('/api/import/book', payload, {
+      timeoutMs: 300_000,
+      ...(options.onUploadProgress ? { onUploadProgress: options.onUploadProgress } : {})
+    })
+  )
 }
 
 export async function exportBookFile(payload = {}) {

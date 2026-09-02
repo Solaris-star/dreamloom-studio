@@ -660,6 +660,7 @@ export async function importBook(booksDir, input = {}) {
       coverColor: input.coverColor || '#22345c',
       coverUrl: null,
       coverImagePath: null,
+      ...(input.ownerId ? { ownerId: String(input.ownerId) } : {}),
       createdAt: new Date().toLocaleString(),
       updatedAt: new Date().toLocaleString()
     }
@@ -1223,6 +1224,7 @@ async function importPdfBook(booksDir, input = {}) {
       coverColor: input.coverColor || '#8a5a3a',
       coverUrl: null,
       coverImagePath: null,
+      ...(input.ownerId ? { ownerId: String(input.ownerId) } : {}),
       createdAt: new Date().toLocaleString(),
       updatedAt: new Date().toLocaleString()
     }
