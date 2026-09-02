@@ -99,8 +99,14 @@
             {{ row.parseStatusText }}
           </p>
           <p v-else>
-            {{ formatFileSize(row.parsed?.fileSize) }} · {{ row.parsed?.encoding }} ·
-            {{ formatWords(row.parsed?.totalWords) }} · {{ row.parsed?.chapterCount || 0 }} 章
+            <template v-if="row.extension === 'pdf' && row.parsed?.pageCount">
+              {{ formatFileSize(row.parsed?.fileSize) }} · PDF 原书 ·
+              {{ row.parsed.pageCount }} 页 · {{ row.parsed.chapterCount || 0 }} 条目录
+            </template>
+            <template v-else>
+              {{ formatFileSize(row.parsed?.fileSize) }} · {{ row.parsed?.encoding }} ·
+              {{ formatWords(row.parsed?.totalWords) }} · {{ row.parsed?.chapterCount || 0 }} 章
+            </template>
           </p>
           <p
             v-if="row.parsed && row.proposedBookName !== row.parsed.title"
@@ -117,7 +123,16 @@
             show-icon
           />
           <div
-            v-if="row.parsed?.chapters?.length"
+            v-if="row.extension === 'pdf' && row.parsed?.pdfOutline?.length"
+            class="chapter-preview"
+          >
+            <span
+              v-for="chapter in row.parsed.pdfOutline.slice(0, 4)"
+              :key="chapter.id || chapter.title"
+            >{{ chapter.title }}</span>
+          </div>
+          <div
+            v-else-if="row.parsed?.chapters?.length && row.extension !== 'pdf'"
             class="chapter-preview"
           >
             <span
@@ -128,7 +143,7 @@
             }}</span>
           </div>
           <button
-            v-if="row.parsed?.chapters?.length"
+            v-if="(row.extension === 'pdf' && row.parsed?.pdfOutline?.length) || (row.extension !== 'pdf' && row.parsed?.chapters?.length)"
             class="preview-toggle"
             type="button"
             :aria-expanded="row.expanded"
@@ -156,16 +171,30 @@
               </p>
             </div>
             <ol>
-              <li
-                v-for="(chapter, chapterIndex) in row.parsed.chapters"
-                :key="`${chapterIndex}-${chapter.title}`"
-              >
-                <div>
-                  <strong>{{ chapter.title }}</strong>
-                  <span>{{ formatWords(chapter.wordCount) }}</span>
-                </div>
-                <p>{{ excerpt(chapter.content) }}</p>
-              </li>
+              <!-- PDF：只列目录（书签树），无正文预览 -->
+              <template v-if="row.extension === 'pdf' && row.parsed?.pdfOutline?.length">
+                <li
+                  v-for="(item, itemIndex) in row.parsed.pdfOutline"
+                  :key="item.id || `${itemIndex}-${item.title}`"
+                >
+                  <div :style="{ paddingLeft: `${Math.min(item.level || 0, 4) * 14}px` }">
+                    <strong>{{ item.title }}</strong>
+                    <span>第 {{ (item.pageIndex ?? 0) + 1 }} 页</span>
+                  </div>
+                </li>
+              </template>
+              <template v-else>
+                <li
+                  v-for="(chapter, chapterIndex) in row.parsed.chapters"
+                  :key="`${chapterIndex}-${chapter.title}`"
+                >
+                  <div>
+                    <strong>{{ chapter.title }}</strong>
+                    <span>{{ formatWords(chapter.wordCount) }}</span>
+                  </div>
+                  <p>{{ excerpt(chapter.content) }}</p>
+                </li>
+              </template>
             </ol>
           </div>
         </div>
@@ -246,7 +275,7 @@ async function parseFiles(files) {
     ElMessage.warning(`已跳过 ${skipped} 个不支持的文件`)
   }
   if (!targets.length) {
-    if (files.length) errorMsg.value = '请选择 TXT、MD、DOCX 或带文本层的 PDF 文件'
+    if (files.length) errorMsg.value = '请选择 TXT、MD、DOCX 或 PDF 文件'
     return
   }
 
@@ -370,15 +399,26 @@ async function createImportedBook(row) {
   const parsed = row.parsed
   const existingBooks = await refreshBooksDir()
   const bookName = uniqueLocalBookName(parsed.title, existingBooks)
+  const isPdf = row.extension === 'pdf' && parsed._source === 'pdf'
   const result = await importBookFromFile({
     fileName: row.fileName,
     format: row.extension,
     bookName,
     chapters: parsed.chapters,
-    intro: `从本地 ${row.extension.toUpperCase()} 文件导入，可阅读或作为参考资料使用。`,
+    // PDF：原始文件 + 目录树随请求上传，服务端落盘原 PDF（不再写文本章节）
+    ...(isPdf
+      ? {
+          pdfData: parsed.pdfData || '',
+          pdfOutline: parsed.pdfOutline || [],
+          pageCount: parsed.pageCount || 0
+        }
+      : {}),
+    intro: isPdf
+      ? `从本地 PDF 文件导入，保留原始排版逐页阅读，仅支持阅读。`
+      : `从本地 ${row.extension.toUpperCase()} 文件导入，可阅读或作为参考资料使用。`,
     type: 'reference',
     typeName: '参考资料',
-    coverColor: '#8a735d'
+    coverColor: '#8a5a3a'
   })
   // 导入成功后强制刷新（bust 30s 缓存），确保书架立刻看到新旧全部书籍
   await refreshBooksDir()

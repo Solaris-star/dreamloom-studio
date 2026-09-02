@@ -4,7 +4,8 @@
     :class="{
       'is-focus-mode': focusMode,
       'is-reading-mode': readingMode,
-      'are-side-panels-hidden': !panelVisibility.left
+      'are-side-panels-hidden': !panelVisibility.left,
+      'is-pdf-book': isPdfBook
     }"
     :style="editorReadingStyle"
   >
@@ -23,8 +24,16 @@
         />
       </el-splitter-panel>
       <el-splitter-panel class="editor-main-panel">
-        <!-- 中间编辑区 -->
+        <!-- 中间编辑区：PDF 书籍替换为只读逐页阅读器 -->
+        <PdfReader
+          v-if="isPdfBook"
+          ref="pdfReaderRef"
+          :book-name="bookName"
+          :outline="pdfOutline.length ? pdfOutline : null"
+          @progress="handlePdfProgress"
+        />
         <EditorPanel
+          v-else
           ref="editorPanelRef"
           :book-name="bookName"
           :left-collapsed="leftPanelSize === 0"
@@ -55,7 +64,7 @@
 
     <!-- 正文内随手可点的上/下章 + 阅读模式切换；窄屏底栏已提供同款功能，阅读模式下隐藏避免遮挡正文 -->
     <div
-      v-if="!isTouchLayout"
+      v-if="!isTouchLayout && !isPdfBook"
       class="editor-inline-nav"
       role="toolbar"
       aria-label="章节导航与阅读模式"
@@ -100,13 +109,15 @@
       </button>
     </div>
 
-    <!-- 划词批注：气泡 / 汇总坞 / 统一发送审阅 -->
+    <!-- 划词批注：气泡 / 汇总坞 / 统一发送审阅（PDF 只读书籍不启用） -->
     <EditorAnnotations
+      v-if="!isPdfBook"
       :reading-mode="readingMode"
       :book-name="bookName"
     />
 
     <FloatingQuickActions
+      v-if="!isPdfBook"
       class="editor-quick-actions"
       :focus-mode="focusMode"
       :right-panel-size="rightPanelSize"
@@ -125,12 +136,38 @@
     <el-drawer
       v-model="catalogVisible"
       class="catalog-drawer"
-      title="章节目录"
+      :title="isPdfBook ? '目录' : '章节目录'"
       direction="rtl"
       :size="catalogDrawerSize"
     >
+      <!-- PDF 书籍：扁平书签目录，点击跳页 -->
       <div
-        v-if="chapterOutline.length"
+        v-if="isPdfBook"
+        class="catalog-list pdf-catalog-list"
+        data-testid="pdf-catalog-list"
+      >
+        <template v-if="pdfOutline.length">
+          <button
+            v-for="(item, index) in pdfOutline"
+            :key="item.id || `pdf-catalog-${index}`"
+            class="catalog-chapter pdf-catalog-item"
+            :class="{ current: currentPdfOutlineIndex === index }"
+            :style="{ paddingLeft: `${10 + Math.min(item.level || 0, 4) * 16}px` }"
+            type="button"
+            :title="item.title"
+            @click="selectPdfOutlineItem(item)"
+          >
+            <span class="pdf-catalog-title">{{ item.title }}</span>
+            <small>第 {{ (item.pageIndex ?? 0) + 1 }} 页</small>
+          </button>
+        </template>
+        <el-empty
+          v-else
+          description="暂无目录"
+        />
+      </div>
+      <div
+        v-else-if="chapterOutline.length"
         class="catalog-list"
       >
         <section
@@ -157,6 +194,50 @@
         description="暂无章节"
       />
     </el-drawer>
+
+    <!-- PDF 书籍：底部轻量导航（目录 + 翻页），替代编辑模式的悬浮助手 -->
+    <div
+      v-if="isPdfBook && pdfNavVisible"
+      class="pdf-bottom-nav"
+      role="toolbar"
+      aria-label="PDF 阅读导航"
+    >
+      <button
+        type="button"
+        class="pdf-nav-btn"
+        title="上一页"
+        aria-label="上一页"
+        data-testid="pdf-prev-page"
+        @click="pdfReaderRef?.goPrevPage?.()"
+      >
+        <ChevronLeft :size="18" />
+      </button>
+      <button
+        type="button"
+        class="pdf-nav-btn pdf-nav-catalog"
+        title="目录"
+        aria-label="打开目录"
+        data-testid="pdf-open-catalog"
+        @click="openCatalog"
+      >
+        <ListTree :size="18" />
+        <span class="pdf-nav-label">目录</span>
+      </button>
+      <span
+        class="pdf-nav-page"
+        data-testid="pdf-nav-page"
+      >{{ pdfCurrentPage }} / {{ pdfPageCount }}</span>
+      <button
+        type="button"
+        class="pdf-nav-btn"
+        title="下一页"
+        aria-label="下一页"
+        data-testid="pdf-next-page"
+        @click="pdfReaderRef?.goNextPage?.()"
+      >
+        <ChevronRight :size="18" />
+      </button>
+    </div>
 
     <el-drawer
       v-model="mobileToolsVisible"
@@ -296,7 +377,7 @@ import {
 } from 'vue'
 import { onBeforeRouteLeave, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { BookOpen, PenLine, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { BookOpen, PenLine, ChevronLeft, ChevronRight, ListTree } from 'lucide-vue-next'
 
 defineOptions({ name: 'Editor' })
 import NoteChapter from '@renderer/components/Editor/NoteChapter.vue'
@@ -304,6 +385,7 @@ import EditorPanel from '@renderer/components/Editor/EditorPanel.vue'
 import EditorToolbar from '@renderer/components/Editor/EditorToolbar.vue'
 import FloatingQuickActions from '@renderer/components/Editor/FloatingQuickActions.vue'
 import EditorAnnotations from '@renderer/components/Editor/EditorAnnotations.vue'
+import PdfReader from '@renderer/components/Editor/PdfReader.vue'
 import {
   createEditorLayoutKey,
   getEditorDevice,
@@ -314,6 +396,8 @@ import {
   shouldExitEditorFocusMode
 } from '@renderer/service/editorLayout'
 import { useThemeStore } from '@renderer/stores/theme'
+import { readBooksDir } from '@renderer/service/books'
+import { getPdfOutline } from '@renderer/service/importExport'
 
 const route = useRoute()
 const themeStore = useThemeStore()
@@ -642,6 +726,86 @@ function toggleFocusMode() {
 
 const noteChapterRef = ref(null)
 
+// ===== PDF 书籍（只读逐页阅读）=====
+const pdfReaderRef = ref(null)
+const isPdfBook = ref(false)
+const pdfOutline = ref([])
+const pdfPageCount = ref(0)
+const pdfCurrentPage = ref(1)
+const pdfNavVisible = ref(true)
+const currentPdfOutlineIndex = computed(() => {
+  if (!pdfOutline.value.length) return -1
+  const current = pdfCurrentPage.value - 1
+  let matched = -1
+  for (let index = 0; index < pdfOutline.value.length; index += 1) {
+    const pageIndex = Number(pdfOutline.value[index]?.pageIndex)
+    if (Number.isInteger(pageIndex) && pageIndex <= current) matched = index
+    else break
+  }
+  return matched
+})
+
+async function detectPdfBook() {
+  const name = bookName.value
+  isPdfBook.value = false
+  pdfOutline.value = []
+  pdfPageCount.value = 0
+  pdfCurrentPage.value = 1
+  if (!name) return
+  try {
+    const books = await readBooksDir()
+    const meta = books.find((book) => book.name === name || book.folderName === name)
+    // 书架 meta 标记 format:'pdf' 即走 PDF 阅读器
+    if (meta && String(meta.format || '').toLowerCase() === 'pdf') {
+      isPdfBook.value = true
+      pdfPageCount.value = Number(meta.pdfPageCount) || 0
+      if (Array.isArray(meta.pdfOutline) && meta.pdfOutline.length) {
+        pdfOutline.value = meta.pdfOutline
+      }
+      return
+    }
+    if (meta) return // 列表里有这本书且不是 PDF → 普通模式
+    // 书不在列表（书架缓存未过期/刚导入）：直接问 PDF API（读 mazi.json，无缓存）
+    try {
+      const result = await getPdfOutline(name)
+      if (result?.success) {
+        isPdfBook.value = true
+        pdfPageCount.value = Number(result.pageCount) || 0
+        pdfOutline.value = Array.isArray(result.outline) ? result.outline : []
+      }
+    } catch {
+      // 非 PDF 书或接口失败 → 普通模式
+    }
+  } catch (error) {
+    console.warn('[Editor] PDF 探测失败，按普通书籍处理:', error?.message)
+  }
+}
+
+watch(
+  () => bookName.value,
+  () => {
+    void detectPdfBook()
+  },
+  { immediate: true }
+)
+
+// PdfReader 每次翻页节流回报进度
+function handlePdfProgress(payload = {}) {
+  if (Number.isInteger(payload.pageIndex)) {
+    pdfCurrentPage.value = payload.pageIndex + 1
+  }
+  if (Number.isInteger(payload.pageCount) && payload.pageCount) {
+    pdfPageCount.value = payload.pageCount
+  }
+}
+
+async function selectPdfOutlineItem(item) {
+  const pageIndex = Number(item?.pageIndex)
+  if (!Number.isInteger(pageIndex)) return
+  await pdfReaderRef.value?.scrollToPage?.(pageIndex + 1)
+  catalogVisible.value = false
+}
+
 function refreshNotes() {
   noteChapterRef.value && noteChapterRef.value.reloadNotes && noteChapterRef.value.reloadNotes()
 }
@@ -665,6 +829,7 @@ function scrollPage(direction) {
 }
 
 onBeforeRouteLeave(async () => {
+  if (isPdfBook.value) return true // PDF 只读，无需保存
   const saved = await editorPanelRef.value?.saveBeforeLeave?.()
   if (saved === false) {
     ElMessage.error('当前内容保存失败，已取消离开，请重试')
@@ -895,6 +1060,97 @@ onBeforeUnmount(detachWindowListeners)
   :deep(.editor-content .tiptap) {
     caret-color: transparent;
     cursor: default;
+  }
+}
+
+/* ===== PDF 只读阅读器 ===== */
+
+/* PDF 模式下隐藏左右面板与划词层（只读体验） */
+.editor-container.is-pdf-book {
+  :deep(.editor-left-panel),
+  :deep(.editor-right-panel),
+  :deep(.el-splitter-bar) {
+    display: none;
+  }
+
+  :deep(.editor-main-panel) {
+    width: 100% !important;
+    flex-basis: 100% !important;
+  }
+}
+
+.pdf-catalog-item .pdf-catalog-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+/* PDF 底部导航条：桌面悬浮胶囊，移动端贴底 */
+.pdf-bottom-nav {
+  position: absolute;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-primary) 90%, transparent);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 16px rgba(20, 18, 14, 0.12);
+  z-index: 110;
+}
+
+.pdf-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 32px;
+  min-width: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-base);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 160ms ease, background-color 160ms ease;
+}
+
+.pdf-nav-btn svg {
+  pointer-events: none;
+}
+
+.pdf-nav-btn:hover,
+.pdf-nav-btn:focus-visible {
+  color: var(--el-color-primary);
+  background: var(--bg-mute);
+  outline: none;
+}
+
+.pdf-nav-page {
+  padding: 0 10px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  min-width: 84px;
+  text-align: center;
+}
+
+@media (max-width: 767px) {
+  .pdf-bottom-nav {
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    padding: 5px 8px;
+  }
+
+  .pdf-nav-page {
+    min-width: 76px;
   }
 }
 
