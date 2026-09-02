@@ -128,6 +128,29 @@ export async function listImportExportTasks() {
   return requireTaskListResult(await postJson('/api/import-export/tasks', {}))
 }
 
+// ===== PDF 书籍（原始文件 + outline 目录）=====
+
+export function requirePdfOutlineResult(result) {
+  const ok = requireImportExportSuccess(result, 'PDF 目录加载失败')
+  if (!Array.isArray(ok.outline)) {
+    throw new Error('PDF 目录加载失败：接口没有返回目录数据')
+  }
+  return ok
+}
+
+/**
+ * 获取 PDF 书籍目录（书签树 + 页码）。
+ * 后端兼容 POST body / GET query，这里用 POST JSON 与其他导入接口一致。
+ */
+export async function getPdfOutline(bookName) {
+  return requirePdfOutlineResult(await postJson('/api/pdf/outline', { bookName }))
+}
+
+/** PDF 原始文件下载地址（pdfjs 以 url 方式按需 Range 拉取）。 */
+export function buildPdfFileUrl(bookName) {
+  return `/api/pdf/file?bookName=${encodeURIComponent(String(bookName || ''))}`
+}
+
 export function downloadTextFile(fileName, content, mimeType = 'text/plain;charset=utf-8') {
   const blob = new Blob([content || ''], { type: mimeType })
   downloadBlob(fileName, blob)

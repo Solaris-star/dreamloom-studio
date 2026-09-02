@@ -241,6 +241,45 @@ assert.equal(parsedPdfPages.chapters[2].content, '')
 assert.equal(parsedPdfPages.chapters[2].wordCount, 0)
 assert.equal(parsedPdfPages.totalWords, parsedPdfPages.chapters[0].wordCount + parsedPdfPages.chapters[1].wordCount)
 
+// PDF 新契约：pdfOutline + pdfData（原始文件 + 书签目录，不再有正文文本）
+const parsedPdfOutline = await parseLocalBookFile(
+  { name: 'AI入门.pdf', size: 4096 },
+  {
+    readers: {
+      pdfReader: async () => ({
+        title: 'AI入门',
+        pageCount: 307,
+        pdfOutline: [
+          { id: 'pdf-outline-1', title: '前言', level: 0, pageIndex: 3 },
+          { id: 'pdf-outline-2', title: '第一章 概述', level: 0, pageIndex: 5 },
+          { id: 'pdf-outline-3', title: '1.1 基本概念', level: 1, pageIndex: 6 },
+          { id: 'pdf-outline-4', title: '第二章 架构', level: 0, pageIndex: 40 }
+        ],
+        pdfData: 'JVBERj0xLjQK',
+        warnings: []
+      })
+    }
+  }
+)
+assert.equal(parsedPdfOutline.extension, 'pdf')
+assert.equal(parsedPdfOutline.encoding, 'PDF')
+assert.equal(parsedPdfOutline.title, 'AI入门')
+assert.equal(parsedPdfOutline.chapterCount, 4)
+assert.equal(parsedPdfOutline.pageCount, 307)
+assert.equal(parsedPdfOutline.totalWords, 0)
+assert.equal(parsedPdfOutline.pdfData, 'JVBERj0xLjQK')
+assert.equal(parsedPdfOutline.pdfOutline.length, 4)
+assert.deepEqual(
+  parsedPdfOutline.chapters.map((chapter) => [chapter.title, chapter.content, chapter.pageIndex]),
+  [
+    ['前言', '', 3],
+    ['第一章 概述', '', 5],
+    ['1.1 基本概念', '', 6],
+    ['第二章 架构', '', 40]
+  ]
+)
+assert.equal(parsedPdfOutline._source, 'pdf')
+
 await assert.rejects(
   () =>
     parseLocalBookFile({

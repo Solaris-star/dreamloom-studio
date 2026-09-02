@@ -6,15 +6,14 @@
  *  - 配置本地 worker(同版本,禁 CDN)
  *  - 读取 file.arrayBuffer()
  *  - 验证 PDF 文件(%PDF- 标识 + pdfjs 能打开)
- *  - 顺序提取每页 TextItem + metadata
+ *  - 只解析原生书签目录(outline)与页数,不提取任何正文文本
+ *  - 输出 pdfData(base64 原始文件)随导入请求发送,服务端落盘
  *  - 汇报进度
  *  - PDF.js 异常 → 用户可读错误
- *  - finally 释放 page/document/loadingTask/worker
+ *  - finally 释放 document/loadingTask/worker
  *
  * 不在 localBookImport.js 顶层导入,避免破坏 Node 测试。
  */
-
-import { rebuildPdfPages, dedupeWarnings } from './pdfTextLayout.js'
 
 const PDF_MAGIC = /^%PDF-/
 
@@ -48,6 +47,10 @@ export async function parsePdfFile(file, options = {}) {
   }
 
   if (signal?.aborted) throw makeAbortError()
+
+  // 注意:必须在 getDocument 之前完成 base64 编码——
+  // pdfjs 会把传入的 ArrayBuffer transfer 给 worker(detach),之后再读就是 detached buffer。
+  const pdfData = arrayBufferToBase64(arrayBuffer)
 
   // ===== 懒加载 PDF.js =====
   let pdfjs = null
@@ -113,92 +116,57 @@ export async function parsePdfFile(file, options = {}) {
       console.warn('[pdfBookImport] getMetadata 失败:', error?.message)
     }
 
+    // ===== 目录与原始文件 =====
+    // PDF 不再提取 TextItem：公式、图片、字体和排版全部交给 PDF.js Canvas 保留。
     const pageCount = pdfDocument.numPages || 0
-    if (pageCount === 0) {
-      throw makeError('PDF 文档不包含任何页面', 'PDF_EMPTY')
-    }
+    if (!pageCount) throw makeError('PDF 文档不包含任何页面', 'PDF_EMPTY')
 
-    // ===== 顺序提取每页 TextItem =====
-    const pages = []
-    for (let i = 1; i <= pageCount; i++) {
-      if (signal?.aborted) throw makeAbortError()
+    onProgress({
+      phase: 'outline',
+      current: 0,
+      total: pageCount,
+      percent: 30,
+      message: '正在读取 PDF 目录'
+    })
+    const pdfOutline = await resolvePdfOutline(pdfDocument, pageCount, signal, onProgress)
 
-      onProgress({
-        phase: 'extracting',
-        current: i,
-        total: pageCount,
-        percent: 10 + Math.round((i / pageCount) * 70),
-        message: `正在解析第 ${i} / ${pageCount} 页`
-      })
+    onProgress({
+      phase: 'done',
+      current: pageCount,
+      total: pageCount,
+      percent: 100,
+      message: 'PDF 已就绪，可开始阅读'
+    })
 
-      let page = null
-      try {
-        page = await pdfDocument.getPage(i)
-        const viewport = page.getViewport({ scale: 1 })
-        let textContent = null
-        try {
-          textContent = await page.getTextContent()
-        } catch (error) {
-          console.warn(`[pdfBookImport] 第 ${i} 页 getTextContent 失败:`, error?.message)
-          pages.push({ items: [], width: viewport.width, height: viewport.height, index: i - 1 })
-          continue
-        }
-        pages.push({
-          items: textContent.items || [],
-          width: viewport.width,
-          height: viewport.height,
-          index: i - 1
-        })
-      } catch (error) {
-        console.warn(`[pdfBookImport] 第 ${i} 页 getPage 失败:`, error?.message)
-        pages.push({ items: [], width: 0, height: 0, index: i - 1 })
-      } finally {
-        if (page && typeof page.cleanup === 'function') {
-          try { page.cleanup() } catch {}
-        }
-      }
-    }
-
-    if (signal?.aborted) throw makeAbortError()
-
-    // ===== 逐页重建 =====
-    // PDF 导入不猜章节、不跳目录页、不删除页眉页脚，也不跨页合并。
-    // 每一个 PDF 页面都必须对应一个章节，避免解析启发式静默丢失内容。
-    onProgress({ phase: 'cleaning', current: 0, total: pageCount, percent: 82, message: '正在按页面整理 PDF 文本' })
-
-    const rebuildResult = rebuildPdfPages(pages, { signal, onProgress })
-
-    onProgress({ phase: 'done', current: pageCount, total: pageCount, percent: 100, message: '解析完成' })
-
-    // 扫描件 → 明确错误
-    if (rebuildResult.stats?.isScanned) {
-      throw makeError(
-        '未检测到可提取的文字。该文件可能是扫描版或图片型 PDF,当前暂不支持 OCR。',
-        'PDF_SCANNED_NO_TEXT'
-      )
-    }
-
-    // ===== 书名 =====
     const title = resolveBookTitle(metadata, file.name)
-
-    // ===== ParsedBook =====
-    const warnings = dedupeWarnings(rebuildResult.warnings)
+    const warnings = pdfOutline.some((item) => item.isFallback)
+      ? ['该 PDF 没有内置书签目录，已按页生成目录。']
+      : []
     return {
       title,
       extension: 'pdf',
       fileSize: Number(file.size) || 0,
       encoding: 'PDF',
       warnings,
-      pageCount: rebuildResult.pageCount,
-      textPageCount: rebuildResult.textPageCount,
-      skippedPageCount: rebuildResult.skippedPageCount,
+      pageCount,
+      textPageCount: 0,
+      skippedPageCount: 0,
+      totalWords: 0,
+      chapterCount: pdfOutline.length,
       metadata: {
         title: metadata?.info?.Title || '',
         author: metadata?.info?.Author || '',
         creator: metadata?.info?.Creator || ''
       },
-      pages: rebuildResult.chapters,
-      rawText: rebuildResult.text,
+      pdfOutline,
+      // 原始文件随导入请求发送，服务端落盘；后续阅读走 /api/pdf/file Range 请求。
+      pdfData,
+      chapters: pdfOutline.map((item) => ({
+        title: item.title,
+        content: '',
+        wordCount: 0,
+        pageIndex: item.pageIndex
+      })),
       _source: 'pdf'
     }
   } finally {
@@ -212,15 +180,102 @@ export async function parsePdfFile(file, options = {}) {
   }
 }
 
+// ===== PDF 目录解析 =====
+
+async function resolveOutlinePageIndex(pdfDocument, dest) {
+  if (!dest) return null
+  let resolvedDest = dest
+  if (typeof resolvedDest === 'string') {
+    try {
+      resolvedDest = await pdfDocument.getDestination(resolvedDest)
+    } catch {
+      return null
+    }
+  }
+  if (!Array.isArray(resolvedDest) || !resolvedDest[0]) return null
+  const first = resolvedDest[0]
+  if (Number.isInteger(first)) return first
+  try {
+    return await pdfDocument.getPageIndex(first)
+  } catch {
+    return null
+  }
+}
+
+async function flattenPdfOutline(pdfDocument, items, level = 0, output = []) {
+  for (const item of Array.isArray(items) ? items : []) {
+    const entry = {
+      id: `pdf-outline-${output.length + 1}`,
+      title: String(item?.title || '').trim() || `目录 ${output.length + 1}`,
+      level,
+      pageIndex: await resolveOutlinePageIndex(pdfDocument, item?.dest),
+      isFallback: false
+    }
+    output.push(entry)
+    const children = await flattenPdfOutline(pdfDocument, item?.items, level + 1, output)
+    if (entry.pageIndex == null) {
+      const firstChild = children.find((child) => child.level > level && child.pageIndex != null)
+      if (firstChild) entry.pageIndex = firstChild.pageIndex
+    }
+  }
+  return output
+}
+
+async function resolvePdfOutline(pdfDocument, pageCount, signal, onProgress) {
+  let nativeOutline = []
+  try {
+    nativeOutline = await pdfDocument.getOutline()
+  } catch (error) {
+    console.warn('[pdfBookImport] 读取 PDF 书签失败:', error?.message)
+  }
+  if (signal?.aborted) throw makeAbortError()
+
+  const outline = await flattenPdfOutline(pdfDocument, nativeOutline)
+  const usable = outline.filter((item) => Number.isInteger(item.pageIndex))
+  if (usable.length) return outline
+
+  return Array.from({ length: pageCount }, (_, pageIndex) => {
+    onProgress?.({
+      phase: 'outline',
+      current: pageIndex + 1,
+      total: pageCount,
+      percent: 30 + Math.round(((pageIndex + 1) / Math.max(1, pageCount)) * 65),
+      message: `正在建立第 ${pageIndex + 1} / ${pageCount} 页目录`
+    })
+    return {
+      id: `pdf-page-${pageIndex + 1}`,
+      title: `第${pageIndex + 1}页`,
+      level: 0,
+      pageIndex,
+      isFallback: true
+    }
+  })
+}
+
+function arrayBufferToBase64(arrayBuffer) {
+  const bytes = new Uint8Array(arrayBuffer)
+  const chunks = []
+  const chunkSize = 0x8000
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    chunks.push(String.fromCharCode(...bytes.subarray(offset, offset + chunkSize)))
+  }
+  return btoa(chunks.join(''))
+}
+
 // ===== PDF.js 懒加载 =====
 
 let pdfjsPromise = null
 
+/**
+ * 使用 legacy 构建：内置 Map.prototype.getOrInsertComputed / Math.sumPrecise 等
+ * polyfill（现代构建假设浏览器原生支持，upsert 提案目前仅新 Chromium 实现，
+ * Safari/iOS 与部分旧内核会直接 ReferenceError）。
+ */
 function loadPdfjs() {
   if (pdfjsPromise) return pdfjsPromise
   pdfjsPromise = (async () => {
-    const pdfjs = await import('pdfjs-dist/build/pdf.mjs')
-    const workerUrl = await import('pdfjs-dist/build/pdf.worker.min.mjs?url')
+    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+    const workerUrl = await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url')
     pdfjs.GlobalWorkerOptions.workerSrc = workerUrl.default || workerUrl
     return pdfjs
   })().catch((error) => {

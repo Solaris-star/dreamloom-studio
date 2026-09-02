@@ -29,7 +29,8 @@ const MAX_COVER_BYTES = 10 * 1024 * 1024
 const COVER_DOWNLOAD_TIMEOUT_MS = 15000
 const BOOK_ROLE = {
   CREATIVE: 'creative',
-  DOWNLOADED: 'downloaded'
+  DOWNLOADED: 'downloaded',
+  REFERENCE: 'reference'
 }
 const DOWNLOADED_BOOK_SOURCE_TYPES = new Set([
   'download',
@@ -98,6 +99,9 @@ function calculateBookTextStats(bookName, booksDir) {
 function normalizeBookRole(meta = {}) {
   if (isImportExportBook(meta)) {
     return BOOK_ROLE.CREATIVE
+  }
+  if (meta.bookRole === BOOK_ROLE.REFERENCE || String(meta.format || '').toLowerCase() === 'pdf') {
+    return BOOK_ROLE.REFERENCE
   }
   if (meta.bookRole === BOOK_ROLE.CREATIVE || meta.bookRole === BOOK_ROLE.DOWNLOADED) {
     return meta.bookRole
@@ -940,6 +944,20 @@ export async function readBooksDir(booksDir) {
         try {
           const meta = await readJson(metaPath, null)
           if (!meta || typeof meta !== 'object') continue
+          // PDF 书籍：无 txt 章节可统计，字数与章数直接取 meta（pdfPageCount），
+          // 跳过 normalizeBookStorageMeta 的回写（避免把 PDF meta 改写成普通书籍形状）
+          const isPdfBook = String(meta.format || '').toLowerCase() === 'pdf'
+          if (isPdfBook) {
+            books.push({
+              ...meta,
+              totalWords: 0,
+              totalChapterCount: Number(meta.pdfPageCount) || 0,
+              chapterCount: Number(meta.pdfPageCount) || 0,
+              bookRole: BOOK_ROLE.REFERENCE,
+              folderName: file.name
+            })
+            continue
+          }
           const stats = calculateBookTextStats(file.name, booksDir)
           const totalWords = firstPositiveNumber(
             stats.totalWords,

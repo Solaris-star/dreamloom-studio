@@ -117,9 +117,43 @@ function makeAbortError() {
 
 /**
  * 把 pdfBookImport 返回的原始结构归一化为统一 ParsedBook。
- * PDF 保留严格的一页一章，不再经过普通文本的章节标题猜测。
+ *
+ * 新契约（PDF 原样保存）：pdfResult.pdfOutline 扁平目录 + pdfData(base64 原始文件)，
+ * 不再有正文文本；chapters 仅承载目录行（content 恒为空），供预览与导入 payload 使用。
+ * 旧形状（pages 逐页 / text 全文）保留在注入与兼容分支。
  */
 function normalizePdfParsedBook(pdfResult, file) {
+  // ===== 新契约：原始 PDF + outline 目录 =====
+  if (Array.isArray(pdfResult?.pdfOutline)) {
+    const outline = pdfResult.pdfOutline
+    const title = normalizeBookTitleOverride(pdfResult.title) || inferBookTitle('', file.name)
+    const maxPageIndex = outline.reduce(
+      (max, item) => Math.max(max, Number.isInteger(item?.pageIndex) ? item.pageIndex : -1),
+      -1
+    )
+    return {
+      title,
+      extension: 'pdf',
+      fileSize: Number(file.size) || 0,
+      encoding: 'PDF',
+      warnings: normalizeWarnings(pdfResult.warnings),
+      totalWords: 0,
+      chapterCount: outline.length,
+      chapters: outline.map((item, index) => ({
+        title: sanitizeChapterTitle(item?.title, `第${index + 1}页`),
+        content: '',
+        wordCount: 0,
+        pageIndex: Number.isInteger(item?.pageIndex) ? item.pageIndex : index
+      })),
+      pageCount: Number(pdfResult.pageCount) || maxPageIndex + 1,
+      pdfOutline: outline,
+      pdfData: String(pdfResult.pdfData || ''),
+      metadata: pdfResult.metadata || null,
+      _source: 'pdf'
+    }
+  }
+
+  // ===== 旧形状兼容：readers 注入的逐页结构 =====
   const pageChapters = Array.isArray(pdfResult.pages)
     ? pdfResult.pages.map((page, index) => ({
         title: sanitizeChapterTitle(page?.title, `第${index + 1}页`),
@@ -148,7 +182,7 @@ function normalizePdfParsedBook(pdfResult, file) {
     }
   }
 
-  // 兼容旧的 readers 注入结果；真实 PDF 解析始终走上面的逐页分支。
+  // 兼容旧的 readers 注入结果（纯文本）；真实 PDF 解析不再走到这里。
   const rawText = String(pdfResult.rawText || pdfResult.text || '')
   const titleOverride = pdfResult.title || ''
   const parsed = parseLocalBookText(rawText, {

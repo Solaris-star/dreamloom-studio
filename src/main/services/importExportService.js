@@ -626,6 +626,10 @@ export function previewImport(_booksDir, input = {}) {
 }
 
 export async function importBook(booksDir, input = {}) {
+  // PDF 走专用路径：保存原始文件 + outline 目录，不做文本提取
+  if (String(input.format || '').toLowerCase() === 'pdf' || (input.fileName || '').toLowerCase().endsWith('.pdf')) {
+    return importPdfBook(booksDir, input)
+  }
   const preview = buildImportPreview(input)
   const bookName = uniqueBookName(booksDir, input.bookName || preview.bookName || '导入书籍')
   const bookPath = getBookPath(booksDir, bookName)
@@ -1162,6 +1166,129 @@ async function restoreBackupToLibrary(booksDir, entries, summary, fileName) {
 
 export function listTasks(booksDir) {
   return { success: true, items: readTasks(booksDir) }
+}
+
+// ===== PDF 专用导入：保存原始文件 + outline 目录 =====
+
+/**
+ * 导入 PDF 书籍：不提取文本，直接保存原始 PDF 文件，
+ * 记录 outline（目录树+页码）到 mazi.json 的 pdfOutline 字段。
+ * 前端用 PdfReader 渲染原始 PDF，点击目录跳转页码。
+ */
+async function importPdfBook(booksDir, input = {}) {
+  const bookName = uniqueBookName(booksDir, input.bookName || 'PDF文档')
+  const bookPath = getBookPath(booksDir, bookName)
+  const tempBookPath = join(booksDir, `.importing-${randomUUID()}`)
+  let moved = false
+
+  // PDF 二进制（base64 编码）
+  const pdfBase64 = String(input.pdfData || '')
+  const outline = Array.isArray(input.pdfOutline) ? input.pdfOutline : []
+  const pageCount = Number(input.pageCount) || (outline.length ? Math.max(...outline.map((o) => Number(o.pageIndex) || 0)) + 1 : 0)
+
+  if (!pdfBase64) throw new Error('PDF 数据为空')
+  const pdfBuffer = Buffer.from(pdfBase64, 'base64')
+  if (pdfBuffer.length < 5 || pdfBuffer.subarray(0, 5).toString() !== '%PDF-') {
+    throw new Error('PDF 数据无效或已损坏')
+  }
+
+  ensureDir(booksDir)
+  try {
+    ensureDir(join(tempBookPath, '正文'))
+    ensureDir(join(tempBookPath, '笔记', '大纲'))
+    ensureDir(join(tempBookPath, '笔记', '设定'))
+    ensureDir(join(tempBookPath, '笔记', '人物'))
+
+    // 保存原始 PDF 文件
+    const pdfFileName = safeName(input.fileName || `${bookName}.pdf`, `${bookName}.pdf`)
+    const pdfFilePath = join(tempBookPath, pdfFileName)
+    fs.writeFileSync(pdfFilePath, pdfBuffer)
+
+    const meta = {
+      id: String(Date.now()),
+      name: bookName,
+      type: input.type || 'reference',
+      typeName: input.typeName || 'PDF文档',
+      targetCount: Number(input.targetCount || 0),
+      intro: input.intro || `从 ${pdfFileName} 导入`,
+      sourceType: 'user_imported',
+      downloaded: false,
+      importedFrom: 'importExport',
+      bookRole: 'reference',
+      format: 'pdf',
+      pdfFile: pdfFileName,
+      pdfPageCount: pageCount,
+      pdfOutline: outline,
+      password: null,
+      coverColor: input.coverColor || '#8a5a3a',
+      coverUrl: null,
+      coverImagePath: null,
+      createdAt: new Date().toLocaleString(),
+      updatedAt: new Date().toLocaleString()
+    }
+    await writeJson(join(tempBookPath, 'mazi.json'), meta)
+
+    if (fs.existsSync(bookPath)) throw new Error(`书库中已存在 ${bookName}`)
+    moveDirectory(tempBookPath, bookPath)
+    moved = true
+
+    const task = await recordTask(booksDir, {
+      type: 'import',
+      title: `导入 ${bookName}`,
+      sourceName: pdfFileName,
+      bookName,
+      format: 'pdf',
+      chapterCount: pageCount,
+      wordCount: 0
+    })
+
+    return {
+      success: true,
+      bookName,
+      bookPath,
+      chapterCount: pageCount,
+      wordCount: 0,
+      task
+    }
+  } catch (error) {
+    fs.rmSync(tempBookPath, { recursive: true, force: true })
+    if (moved && isInside(booksDir, bookPath)) {
+      fs.rmSync(bookPath, { recursive: true, force: true })
+    }
+    throw error
+  }
+}
+
+/**
+ * 读取 PDF 书籍的原始文件路径。
+ */
+export function getPdfFilePath(booksDir, bookName) {
+  const bookPath = getBookPath(booksDir, bookName)
+  const metaPath = join(bookPath, 'mazi.json')
+  if (!fs.existsSync(metaPath)) return null
+  const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8'))
+  if (meta.format !== 'pdf' || !meta.pdfFile) return null
+  const pdfPath = join(bookPath, meta.pdfFile)
+  if (!fs.existsSync(pdfPath)) return null
+  return pdfPath
+}
+
+/**
+ * 读取 PDF 书籍的 outline 目录树。
+ */
+export function getPdfOutline(booksDir, bookName) {
+  const bookPath = getBookPath(booksDir, bookName)
+  const metaPath = join(bookPath, 'mazi.json')
+  if (!fs.existsSync(metaPath)) return { success: false, message: '书籍不存在' }
+  const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8'))
+  if (meta.format !== 'pdf') return { success: false, message: '该书籍不是 PDF 格式' }
+  return {
+    success: true,
+    bookName,
+    pageCount: meta.pdfPageCount || 0,
+    outline: meta.pdfOutline || [],
+    pdfFile: meta.pdfFile || ''
+  }
 }
 
 export default {
