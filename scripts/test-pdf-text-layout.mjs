@@ -3,7 +3,8 @@ import assert from 'node:assert/strict'
 import {
   __internals__,
   dedupeWarnings,
-  rebuildBookText
+  rebuildBookText,
+  rebuildPdfPages
 } from '../src/renderer/src/service/pdfTextLayout.js'
 
 const {
@@ -281,3 +282,95 @@ test('章节标题不跨页合并', () => {
 })
 
 console.log(`pdf text layout tests passed (${passed} cases)`)
+
+// ===== rebuildPdfPages 用例 =====
+
+// P1. 每页严格对应一章,标题第N页
+test('rebuildPdfPages 每页对应一章', () => {
+  const result = rebuildPdfPages([
+    page([item('第一页正文', 100, 700)], 0),
+    page([item('第二页正文', 100, 700)], 1),
+    page([item('第三页正文', 100, 700)], 2)
+  ])
+  assert.equal(result.chapters.length, 3)
+  assert.deepEqual(
+    result.chapters.map((c) => c.title),
+    ['第1页', '第2页', '第3页']
+  )
+  assert.equal(result.pageCount, 3)
+  assert.equal(result.textPageCount, 3)
+  assert.equal(result.skippedPageCount, 0)
+  assert.equal(result.stats.emptyPages, 0)
+})
+
+// P2. 空白页保留为第N页空章,页码不偏移
+test('rebuildPdfPages 空白页保留为空章', () => {
+  const result = rebuildPdfPages([
+    page([item('有文字', 100, 700)], 0),
+    page([], 1),
+    page([item('第二页有文字', 100, 700)], 2)
+  ])
+  assert.equal(result.chapters.length, 3)
+  assert.deepEqual(
+    result.chapters.map((c) => c.title),
+    ['第1页', '第2页', '第3页']
+  )
+  assert.equal(result.chapters[1].content, '')
+  assert.equal(result.textPageCount, 2)
+  assert.equal(result.stats.emptyPages, 1)
+  assert.ok(result.warnings.some((w) => w.includes('1 页未提取到文字')))
+})
+
+// P3. 不删除页眉页码,内容原样保留
+test('rebuildPdfPages 不删除页眉页码', () => {
+  const result = rebuildPdfPages([
+    page(
+      [
+        item('页眉:第一章', 100, 800, 10),
+        item('正文内容', 100, 700, 12),
+        item('— 1 —', 280, 50, 10)
+      ],
+      0
+    )
+  ])
+  assert.equal(result.chapters.length, 1)
+  // 页眉和页码都要保留,不静默丢弃
+  assert.ok(result.chapters[0].content.includes('页眉:第一章'))
+  assert.ok(result.chapters[0].content.includes('正文内容'))
+  assert.ok(result.chapters[0].content.includes('— 1 —'))
+})
+
+// P4. 不跨页合并,每页独立
+test('rebuildPdfPages 不跨页合并', () => {
+  const result = rebuildPdfPages([
+    page([item('正文还没结束', 100, 100)], 0),
+    page([item('第2章 再会', 100, 700, 16, 96), item('灯火亮起', 100, 680)], 1)
+  ])
+  assert.equal(result.chapters.length, 2)
+  // 两页不合并
+  assert.ok(!result.chapters[0].content.includes('第2章 再会'))
+  assert.ok(result.chapters[1].content.includes('第2章 再会'))
+})
+
+// P5. 空 pages 输入返回空结果
+test('rebuildPdfPages 空输入', () => {
+  const result = rebuildPdfPages([])
+  assert.equal(result.chapters.length, 0)
+  assert.equal(result.pageCount, 0)
+  assert.equal(result.textPageCount, 0)
+  assert.equal(result.text, '')
+})
+
+// P6. onProgress 回调按页推进
+test('rebuildPdfPages onProgress 推进', () => {
+  const progress = []
+  rebuildPdfPages(
+    [page([item('a', 100, 700)], 0), page([item('b', 100, 700)], 1)],
+    { onProgress: (p) => progress.push(p) }
+  )
+  assert.equal(progress.length, 2)
+  assert.equal(progress[0].current, 1)
+  assert.equal(progress[1].current, 2)
+})
+
+console.log(`pdf rebuildPdfPages tests passed (${passed} cases)`)

@@ -117,9 +117,38 @@ function makeAbortError() {
 
 /**
  * 把 pdfBookImport 返回的原始结构归一化为统一 ParsedBook。
- * 复用 parseLocalBookText 的章节切分逻辑。
+ * PDF 保留严格的一页一章，不再经过普通文本的章节标题猜测。
  */
 function normalizePdfParsedBook(pdfResult, file) {
+  const pageChapters = Array.isArray(pdfResult.pages)
+    ? pdfResult.pages.map((page, index) => ({
+        title: sanitizeChapterTitle(page?.title, `第${index + 1}页`),
+        content: String(page?.content || ''),
+        wordCount: countWords(page?.content || '')
+      }))
+    : []
+
+  if (pageChapters.length) {
+    const title = normalizeBookTitleOverride(pdfResult.title) || inferBookTitle('', file.name)
+    return {
+      title,
+      extension: 'pdf',
+      fileSize: Number(file.size) || 0,
+      encoding: 'PDF',
+      warnings: normalizeWarnings(pdfResult.warnings),
+      totalWords: pageChapters.reduce((sum, chapter) => sum + chapter.wordCount, 0),
+      chapterCount: pageChapters.length,
+      chapters: pageChapters,
+      pageCount: Number(pdfResult.pageCount) || pageChapters.length,
+      textPageCount:
+        Number(pdfResult.textPageCount) || pageChapters.filter((chapter) => chapter.content).length,
+      skippedPageCount: 0,
+      metadata: pdfResult.metadata || null,
+      _source: 'pdf'
+    }
+  }
+
+  // 兼容旧的 readers 注入结果；真实 PDF 解析始终走上面的逐页分支。
   const rawText = String(pdfResult.rawText || pdfResult.text || '')
   const titleOverride = pdfResult.title || ''
   const parsed = parseLocalBookText(rawText, {

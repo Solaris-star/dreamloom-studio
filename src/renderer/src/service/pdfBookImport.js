@@ -14,7 +14,7 @@
  * 不在 localBookImport.js 顶层导入,避免破坏 Node 测试。
  */
 
-import { rebuildBookText, dedupeWarnings } from './pdfTextLayout.js'
+import { rebuildPdfPages, dedupeWarnings } from './pdfTextLayout.js'
 
 const PDF_MAGIC = /^%PDF-/
 
@@ -161,10 +161,12 @@ export async function parsePdfFile(file, options = {}) {
 
     if (signal?.aborted) throw makeAbortError()
 
-    // ===== 文本重建 =====
-    onProgress({ phase: 'cleaning', current: 0, total: pageCount, percent: 82, message: '正在清理页眉和目录' })
+    // ===== 逐页重建 =====
+    // PDF 导入不猜章节、不跳目录页、不删除页眉页脚，也不跨页合并。
+    // 每一个 PDF 页面都必须对应一个章节，避免解析启发式静默丢失内容。
+    onProgress({ phase: 'cleaning', current: 0, total: pageCount, percent: 82, message: '正在按页面整理 PDF 文本' })
 
-    const rebuildResult = rebuildBookText(pages, { signal, onProgress })
+    const rebuildResult = rebuildPdfPages(pages, { signal, onProgress })
 
     onProgress({ phase: 'done', current: pageCount, total: pageCount, percent: 100, message: '解析完成' })
 
@@ -195,6 +197,7 @@ export async function parsePdfFile(file, options = {}) {
         author: metadata?.info?.Author || '',
         creator: metadata?.info?.Creator || ''
       },
+      pages: rebuildResult.chapters,
       rawText: rebuildResult.text,
       _source: 'pdf'
     }

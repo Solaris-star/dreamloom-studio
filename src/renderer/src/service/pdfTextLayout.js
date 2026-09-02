@@ -622,6 +622,63 @@ export function rebuildBookText(pages, options = {}) {
 }
 
 /**
+ * PDF 导入专用：严格一页一个章节。
+ *
+ * 不做目录页过滤、页眉页脚删除或跨页合并。这样页面编号始终与原 PDF
+ * 一一对应，宁可保留页码/页眉，也不再静默丢掉用户需要的原文。
+ */
+export function rebuildPdfPages(pages, options = {}) {
+  const signal = options.signal
+  const pageList = Array.isArray(pages) ? pages : []
+  const chapters = []
+  let textPageCount = 0
+  let emptyPageCount = 0
+  let complexLayoutDetected = false
+
+  for (let index = 0; index < pageList.length; index += 1) {
+    if (signal?.aborted) throw makeAbortError()
+    const page = pageList[index] || {}
+    const lines = itemsToLines(page.items || [], page.height)
+    if (lines.length) textPageCount += 1
+    else emptyPageCount += 1
+    if (detectComplexLayout(lines, page.width, page.height)) complexLayoutDetected = true
+    const paragraphs = linesToParagraphs(lines, {
+      pageWidth: page.width,
+      pageHeight: page.height
+    })
+    chapters.push({
+      title: `第${index + 1}页`,
+      content: paragraphs.join('\n\n').trim()
+    })
+    options.onProgress?.({
+      phase: 'cleaning',
+      current: index + 1,
+      total: pageList.length,
+      percent: 82 + Math.round(((index + 1) / Math.max(1, pageList.length)) * 13),
+      message: `正在整理第 ${index + 1} / ${pageList.length} 页`
+    })
+  }
+
+  const warnings = []
+  if (emptyPageCount > 0) {
+    warnings.push(`有 ${emptyPageCount} 页未提取到文字，已保留为空白页章节。`)
+  }
+  if (complexLayoutDetected) {
+    warnings.push('检测到复杂或多栏排版，部分页面文字顺序可能需要人工检查。')
+  }
+
+  return {
+    chapters,
+    text: chapters.map((chapter) => chapter.content).filter(Boolean).join('\n\n'),
+    pageCount: pageList.length,
+    textPageCount,
+    skippedPageCount: 0,
+    warnings,
+    stats: { emptyPages: emptyPageCount, complexLayoutDetected }
+  }
+}
+
+/**
  * 扫描件综合诊断。
  * 不能只靠单阈值。
  */

@@ -204,6 +204,43 @@ assert.equal(parsedPdfFile.pageCount, 3)
 assert.equal(parsedPdfFile.textPageCount, 2)
 assert.equal(parsedPdfFile.skippedPageCount, 1)
 assert.deepEqual(parsedPdfFile.warnings, ['部分页面没有文本层'])
+
+// PDF 逐页归一化：注入 pages 数组应严格按页生成章节，不再走 parseChapters 启发式
+const parsedPdfPages = await parseLocalBookFile(
+  { name: '技术文档.pdf', size: 2048 },
+  {
+    readers: {
+      pdfReader: async () => ({
+        title: '技术文档',
+        pages: [
+          { title: '第1页', content: '第一页正文。' },
+          { title: '第2页', content: '第二页正文。' },
+          { title: '第3页', content: '' }
+        ],
+        pageCount: 3,
+        textPageCount: 2,
+        skippedPageCount: 0,
+        warnings: []
+      })
+    }
+  }
+)
+assert.equal(parsedPdfPages.extension, 'pdf')
+assert.equal(parsedPdfPages.encoding, 'PDF')
+assert.equal(parsedPdfPages.title, '技术文档')
+assert.equal(parsedPdfPages.chapterCount, 3)
+assert.equal(parsedPdfPages.pageCount, 3)
+assert.equal(parsedPdfPages.textPageCount, 2)
+assert.equal(parsedPdfPages.skippedPageCount, 0)
+assert.deepEqual(
+  parsedPdfPages.chapters.map((chapter) => chapter.title),
+  ['第1页', '第2页', '第3页']
+)
+assert.equal(parsedPdfPages.chapters[0].content, '第一页正文。')
+assert.equal(parsedPdfPages.chapters[2].content, '')
+assert.equal(parsedPdfPages.chapters[2].wordCount, 0)
+assert.equal(parsedPdfPages.totalWords, parsedPdfPages.chapters[0].wordCount + parsedPdfPages.chapters[1].wordCount)
+
 await assert.rejects(
   () =>
     parseLocalBookFile({
