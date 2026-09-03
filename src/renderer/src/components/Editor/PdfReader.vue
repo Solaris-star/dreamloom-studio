@@ -238,7 +238,13 @@ async function loadDocument() {
       standardFontDataUrl: '/pdfjs-runtime/standard_fonts/',
       enableXfa: false,
       useWasm: false,
-      stopAtErrors: false
+      stopAtErrors: false,
+      // 按需加载：服务端已支持 HTTP Range（206）。
+      // 关闭自动后台全量拉取——pdfjs 只请求目录 + 当前渲染页所在的数据块，
+      // 大 PDF（10MB+）弱网下首屏不再「全量下载后才能看」。
+      disableAutoFetch: true,
+      disableStream: false,
+      rangeChunkSize: 262144
     })
     pdfDocument = await loadingTask.promise
     if (destroyed) {

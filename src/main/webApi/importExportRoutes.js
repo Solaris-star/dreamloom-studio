@@ -71,9 +71,56 @@ export async function handleImportExportRoute({
 /**
  * PDF 专用路由：
  * - /api/pdf/outline  获取目录树 + 页数
- * - /api/pdf/file     下载原始 PDF 文件（流式）
+ * - /api/pdf/file     下载原始 PDF 文件（流式，支持 HTTP Range → pdfjs 按需分块加载）
  * - /api/pdf/page     单页渲染（透传 PDF 原始字节，前端用 pdfjs 渲染）
  */
+
+/**
+ * 流式返回 PDF 文件，支持 Range 请求（206）。
+ * pdfjs 的 rangeChunkSize 默认 64KB：无 Range 支持时前端只能全量下载才能渲染，
+ * 大 PDF（10MB+）在弱网下就是「一直加载中」。这里按规范实现单段 Range，
+ * 让 pdfjs 只拉目录 + 当前页附近的数据块。
+ */
+function streamPdfResponse(req, res, pdfPath) {
+  const stat = fs.statSync(pdfPath)
+  res.setHeader('Content-Type', 'application/pdf')
+  res.setHeader('Cache-Control', 'public, max-age=3600')
+  res.setHeader('Accept-Ranges', 'bytes')
+
+  const rangeHeader = String(req?.headers?.range || '')
+  const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader.trim())
+  let start = 0
+  let end = stat.size - 1
+  let partial = false
+
+  if (match && (match[1] !== '' || match[2] !== '')) {
+    if (match[1] === '') {
+      // suffix range: bytes=-N → 最后 N 字节
+      const suffix = Number(match[2])
+      start = Math.max(0, stat.size - suffix)
+    } else {
+      start = Number(match[1])
+      if (match[2] !== '') end = Math.min(stat.size - 1, Number(match[2]))
+    }
+    if (start > end || start >= stat.size) {
+      res.statusCode = 416
+      res.setHeader('Content-Range', `bytes */${stat.size}`)
+      res.end()
+      return
+    }
+    partial = true
+  }
+
+  const length = end - start + 1
+  res.setHeader('Content-Length', length)
+  if (partial) {
+    res.statusCode = 206
+    res.setHeader('Content-Range', `bytes ${start}-${end}/${stat.size}`)
+  }
+  const stream = fs.createReadStream(pdfPath, partial ? { start, end } : {})
+  stream.pipe(res)
+}
+
 function handlePdfRoute({ path, req, body, res, booksDir, sendJson, authSession }) {
   const bookName = (body?.bookName || (req && typeof req.url === 'string' ? new URL(req.url, 'http://x').searchParams.get('bookName') : '') || '').trim()
   if (!bookName) {
@@ -88,34 +135,13 @@ function handlePdfRoute({ path, req, body, res, booksDir, sendJson, authSession 
       return true
     }
 
-    if (path === '/api/pdf/file') {
+    if (path === '/api/pdf/file' || path === '/api/pdf/page') {
       const pdfPath = getPdfFilePath(booksDir, bookName)
       if (!pdfPath) {
         sendJson(res, { success: false, message: 'PDF 文件不存在' }, 404)
         return true
       }
-      const stat = fs.statSync(pdfPath)
-      res.setHeader('Content-Type', 'application/pdf')
-      res.setHeader('Content-Length', stat.size)
-      res.setHeader('Cache-Control', 'public, max-age=3600')
-      const stream = fs.createReadStream(pdfPath)
-      stream.pipe(res)
-      return true
-    }
-
-    if (path === '/api/pdf/page') {
-      // 透传整个 PDF 文件，前端用 pdfjs 自行分页渲染
-      const pdfPath = getPdfFilePath(booksDir, bookName)
-      if (!pdfPath) {
-        sendJson(res, { success: false, message: 'PDF 文件不存在' }, 404)
-        return true
-      }
-      const stat = fs.statSync(pdfPath)
-      res.setHeader('Content-Type', 'application/pdf')
-      res.setHeader('Content-Length', stat.size)
-      res.setHeader('Cache-Control', 'public, max-age=3600')
-      const stream = fs.createReadStream(pdfPath)
-      stream.pipe(res)
+      streamPdfResponse(req, res, pdfPath)
       return true
     }
   } catch (error) {
