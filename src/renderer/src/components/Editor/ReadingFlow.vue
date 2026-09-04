@@ -1,101 +1,107 @@
 <template>
-  <div
-    ref="scrollRef"
-    class="reading-flow"
-    :class="{ 'is-paged': isPaged }"
-    data-testid="editor-reading-flow"
-    :data-loaded-blocks="loadedBlockCount"
-    :data-total-blocks="totalBlockCount"
-    :data-paged="isPaged ? 'true' : 'false'"
-    :data-paged-current="isPaged ? pageIndex + 1 : ''"
-    :data-paged-total="isPaged ? pageCount : ''"
-    :data-active-section="activeSectionKey || ''"
-    tabindex="0"
-    :aria-label="isPaged ? '横向翻页阅读区' : '纵向阅读区'"
-    @scroll.passive="handleScroll"
-    @keydown="handleKeydown"
-    @click="handleTapToPage"
-    @wheel.passive="handleWheel"
-  >
-    <!-- ===== 左右翻页：所有章节汇入同一条多列纸带 ===== -->
-    <article
-      v-if="isPaged"
-      ref="paperRef"
-      class="reading-flow__paper reading-flow__paper--paged"
-      :class="{ 'is-note': contentType === 'note' }"
+  <!-- 外层 wrap：非滚动，承载固定定位的页码指示器（不能放进滚动容器，否则翻页时会跟着滑走） -->
+  <div class="reading-flow-wrap">
+    <div
+      ref="scrollRef"
+      class="reading-flow"
+      :class="{ 'is-paged': isPaged }"
+      data-testid="editor-reading-flow"
+      :data-loaded-blocks="loadedBlockCount"
+      :data-total-blocks="totalBlockCount"
+      :data-paged="isPaged ? 'true' : 'false'"
+      :data-paged-current="isPaged ? pageIndex + 1 : ''"
+      :data-paged-total="isPaged ? pageCount : ''"
+      :data-active-section="activeSectionKey || ''"
+      tabindex="0"
+      :aria-label="isPaged ? '横向翻页阅读区' : '纵向阅读区'"
+      @scroll.passive="handleScroll"
+      @keydown="handleKeydown"
+      @click="handleTapToPage"
+      @wheel.passive="handleWheel"
+      @touchstart.passive="handleTouchStart"
+      @touchmove="handleTouchMove"
+      @touchend.passive="handleTouchEnd"
     >
-      <!-- eslint-disable vue/no-v-html -->
-      <template
-        v-for="section in normalizedSections"
-        :key="section.key"
+      <!-- ===== 左右翻页：所有章节汇入同一条多列纸带 ===== -->
+      <article
+        v-if="isPaged"
+        ref="paperRef"
+        class="reading-flow__paper reading-flow__paper--paged"
+        :class="{ 'is-note': contentType === 'note' }"
       >
-        <h3
-          v-if="normalizedSections.length > 1 || section.label"
-          class="reading-flow__section-title"
-          :data-section-title="section.key"
-        >
-          {{ section.label }}
-        </h3>
-        <div
-          class="reading-flow__paged-content"
-          :data-section-content="section.key"
-          v-html="section.html"
-        />
-      </template>
-      <!-- eslint-enable vue/no-v-html -->
-    </article>
-
-    <!-- ===== 纵向滚动：逐章分块懒加载 ===== -->
-    <article
-      v-else
-      class="reading-flow__paper"
-      :class="{ 'is-note': contentType === 'note' }"
-    >
-      <template
-        v-for="section in sectionChunks"
-        :key="section.key"
-      >
-        <section
-          class="reading-flow__section"
-          :data-reading-section="section.key"
+        <!-- eslint-disable vue/no-v-html -->
+        <template
+          v-for="section in normalizedSections"
+          :key="section.key"
         >
           <h3
-            v-if="normalizedSections.length > 1"
-            class="reading-flow__section-title reading-flow__section-title--scroll"
+            v-if="normalizedSections.length > 1 || section.label"
+            class="reading-flow__section-title"
             :data-section-title="section.key"
           >
             {{ section.label }}
           </h3>
-          <!-- eslint-disable vue/no-v-html -->
           <div
-            v-for="chunk in visibleChunksOf(section)"
-            :key="chunk.id"
-            class="reading-flow__chunk"
-            :data-reading-chunk="chunk.index"
-            v-html="chunk.html"
+            class="reading-flow__paged-content"
+            :data-section-content="section.key"
+            v-html="section.html"
           />
-          <!-- eslint-enable vue/no-v-html -->
-          <div
-            v-if="sectionHasMore(section)"
-            class="reading-flow__loader"
-            :data-section-loader="section.key"
-            role="status"
-            aria-live="polite"
-          >
-            继续向下滑动，动态加载后续内容
-          </div>
-        </section>
-      </template>
-      <div
-        v-if="sectionChunks.length"
-        class="reading-flow__end"
-        data-testid="reading-flow-end"
-      >
-        {{ bookEnd ? '全书完' : '继续下滑，将自动续接下一章' }}
-      </div>
-    </article>
+        </template>
+      <!-- eslint-enable vue/no-v-html -->
+      </article>
 
-    <!-- 左右翻页模式的页码指示 -->
+      <!-- ===== 纵向滚动：逐章分块懒加载 ===== -->
+      <article
+        v-else
+        class="reading-flow__paper"
+        :class="{ 'is-note': contentType === 'note' }"
+      >
+        <template
+          v-for="section in sectionChunks"
+          :key="section.key"
+        >
+          <section
+            class="reading-flow__section"
+            :data-reading-section="section.key"
+          >
+            <h3
+              v-if="normalizedSections.length > 1"
+              class="reading-flow__section-title reading-flow__section-title--scroll"
+              :data-section-title="section.key"
+            >
+              {{ section.label }}
+            </h3>
+            <!-- eslint-disable vue/no-v-html -->
+            <div
+              v-for="chunk in visibleChunksOf(section)"
+              :key="chunk.id"
+              class="reading-flow__chunk"
+              :data-reading-chunk="chunk.index"
+              v-html="chunk.html"
+            />
+            <!-- eslint-enable vue/no-v-html -->
+            <div
+              v-if="sectionHasMore(section)"
+              class="reading-flow__loader"
+              :data-section-loader="section.key"
+              role="status"
+              aria-live="polite"
+            >
+              继续向下滑动，动态加载后续内容
+            </div>
+          </section>
+        </template>
+        <div
+          v-if="sectionChunks.length"
+          class="reading-flow__end"
+          data-testid="reading-flow-end"
+        >
+          {{ bookEnd ? '全书完' : '继续下滑，将自动续接下一章' }}
+        </div>
+      </article>
+
+      <!-- 左右翻页模式的页码指示（位于滚动容器外，固定屏幕底部中央） -->
+    </div>
     <div
       v-if="isPaged && pageCount > 0"
       class="reading-flow__page-indicator"
@@ -460,6 +466,12 @@ function handleKeydown(event) {
  * - 拖选文字、点在链接/按钮上时不翻页
  */
 function handleTapToPage(event) {
+  if (suppressClickUntil && Date.now() < suppressClickUntil) {
+    suppressClickUntil = 0
+    event.preventDefault?.()
+    event.stopPropagation?.()
+    return
+  }
   const coarsePointer = window.matchMedia?.('(hover: none) and (pointer: coarse)').matches
   if (!isPaged.value && !coarsePointer) return
   const selection = window.getSelection?.()
@@ -471,6 +483,118 @@ function handleTapToPage(event) {
   const relativeX = event.clientX - rect.left
   const forward = relativeX >= rect.width / 3
   void (isPaged.value ? turnPage(forward ? 1 : -1) : scrollPage(forward ? 1 : -1))
+}
+
+// ===== 触摸横滑翻页（跟手拖动 + 松手判定；paged 模式专属） =====
+
+/**
+ * 手势状态机：
+ * - touchstart 记录起点与当时 scrollLeft，只认「第一根手指、主键」
+ * - touchmove 若横向主导（|dx|>|dy| 且 |dx|>8px）则进入拖动：scrollLeft 跟手（阻尼 1:1），
+ *   并 preventDefault 阻止原生滚动/回弹（touch-action 已在 CSS 限定 pan-y）
+ * - touchend 按总位移与速度判定：|dx| ≥ 48px 或速度 ≥ 0.35px/ms → 翻页；否则回弹。
+ *   判定翻页后设置 suppressClickUntil，吞掉浏览器在 tap 位置合成的 click 防双触发。
+ * - 滚动模式不拦截：竖向原生滚动不受影响；paged 下若用户竖滑（|dy|>|dx|）也放行。
+ */
+const TOUCH_TURN_THRESHOLD_PX = 48
+const TOUCH_TURN_VELOCITY = 0.35
+let touchState = null // { id, x, y, startX, startY, startScrollLeft, startAt, dragging, moved, lastX, lastAt, maxDx }
+let suppressClickUntil = 0
+
+function handleTouchStart(event) {
+  if (!isPaged.value || event.touches.length !== 1) {
+    touchState = null
+    return
+  }
+  const element = scrollRef.value
+  if (element) {
+    // 程序性翻页动画进行中：用户触摸立即打断动画，钉到目标整页再开始手势，
+    // 保证 startScrollLeft 采样自整页位置（否则连翻/快操作时 basePage 会算错）
+    if (
+      programmaticPage.value >= 0 &&
+      Date.now() - programmaticPageAt.value < PROGRAMMATIC_PAGE_WINDOW_MS
+    ) {
+      const width = pagedViewportWidth()
+      if (width > 0) element.scrollLeft = programmaticPage.value * width
+    }
+  }
+  const touch = event.touches[0]
+  touchState = {
+    id: touch.identifier,
+    startX: touch.clientX,
+    startY: touch.clientY,
+    startScrollLeft: scrollRef.value?.scrollLeft || 0,
+    startAt: Date.now(),
+    dragging: false,
+    moved: false,
+    lastX: touch.clientX,
+    lastAt: Date.now(),
+    maxDx: 0
+  }
+}
+
+function handleTouchMove(event) {
+  const state = touchState
+  if (!state || !isPaged.value || event.touches.length !== 1) return
+  const touch = event.touches[0]
+  if (touch.identifier !== state.id) return
+  const element = scrollRef.value
+  if (!element) return
+  const dx = touch.clientX - state.startX
+  const dy = touch.clientY - state.startY
+  if (!state.dragging) {
+    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
+    if (Math.abs(dy) > Math.abs(dx)) {
+      // 竖向手势：放行原生行为，结束本次手势追踪
+      touchState = null
+      return
+    }
+    state.dragging = true
+  }
+  // 横向拖动跟手：向左滑（dx<0）= scrollLeft 增大 = 下一页方向
+  state.moved = true
+  state.maxDx = Math.max(state.maxDx, Math.abs(dx))
+  event.preventDefault()
+  element.scrollLeft = state.startScrollLeft - dx
+}
+
+function handleTouchEnd(event) {
+  const state = touchState
+  touchState = null
+  if (!state || !state.dragging || !isPaged.value) return
+  if (event.touches.length > 0) return
+  const element = scrollRef.value
+  if (!element) return
+  const width = pagedViewportWidth()
+  if (width <= 0) return
+  const endTouch = event.changedTouches[0]
+  const dx = endTouch ? endTouch.clientX - state.startX : 0
+  const dt = Math.max(1, Date.now() - state.startAt)
+  const velocity = Math.abs(dx) / dt
+  const fastFlick = velocity >= TOUCH_TURN_VELOCITY
+  const farDrag = Math.abs(dx) >= TOUCH_TURN_THRESHOLD_PX
+  // 从手势起点页计算目标：拖动期间 syncPagedFromScroll 会把 pageIndex 更新成中途值，
+  // 不能用 pageIndex+direction（否则拖过大半页时会跳两页）
+  const basePage = Math.round(state.startScrollLeft / width)
+  suppressClickUntil = Date.now() + 600
+  if (!fastFlick && !farDrag) {
+    // 未达阈值：吸附回最近的整页（容器无原生 scroll-snap，必须主动回弹）
+    goToPage(Math.max(0, Math.min(pageCount.value - 1, Math.round(element.scrollLeft / width))))
+    return
+  }
+  const direction = dx < 0 ? 1 : -1
+  const target = basePage + direction
+  if (target < 0) {
+    emitReach('prev')
+    goToPage(0) // scrollLeft 已被钳在 0，视觉无跳变；上一章 prepend 后由锚点补偿接管
+    return
+  }
+  if (target >= pageCount.value) {
+    emitReach('next')
+    goToPage(pageCount.value - 1) // 末页边界：回弹到当前末页，续接成功后由新章首页接管
+    return
+  }
+  goToPage(target)
 }
 
 // ===== 左右翻页（CSS 多列分页） =====
@@ -830,6 +954,8 @@ defineExpose({
   /* 翻页时横向滚动，平滑插值由 JS 控制 */
   scroll-behavior: auto;
   overscroll-behavior-x: contain;
+  /* 横向手势交给 JS 跟手翻页（touchmove 里 preventDefault），竖向放行系统行为 */
+  touch-action: pan-y;
 }
 
 .reading-flow__paper--paged {
@@ -862,6 +988,15 @@ defineExpose({
 .reading-flow__paper--paged :deep(h3),
 .reading-flow__paper--paged :deep(h4) {
   break-after: avoid-column;
+}
+
+/* 外层 wrap：flex 容器，指示器以 sticky 悬浮在滚动区底部（不随横向滚动移动） */
+.reading-flow-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .reading-flow__page-indicator {

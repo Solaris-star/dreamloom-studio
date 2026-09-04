@@ -868,6 +868,108 @@ test('阅读模式左右翻页：tap/键盘/滚轮翻页 + 翻页方式持久化
   await expect(readingFlow).toHaveAttribute('data-paged', 'false')
 })
 
+test('移动端阅读：横滑跟手翻页 + tap 翻页 + 边界回弹', async ({ page, context, request }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', '移动端横滑翻页仅在 mobile 视口执行')
+  const bookName = testBookName(testInfo.project.name)
+  await createTestBook(request, testInfo.project.name)
+
+  // 长内容保证多页；每段含基准断言文本
+  const longContent = Array.from(
+    { length: 60 },
+    (_, index) =>
+      `第${index + 1}段：夜雨落在青石长街上，少年在山道上遇见了白鹿，白鹿开口说话，声音像檐角的铜铃。${
+        index % 7 === 0 ? '他把这句话记在心里，很多年后才明白其中的含义，原来一切早有伏笔埋下。' : ''
+      }`
+  ).join('\n')
+  await postApi(request, '/api/chapters/save', {
+    bookName,
+    volumeName: '正文',
+    chapterName: '第1章',
+    content: longContent
+  })
+  await openEditor(page, bookName)
+  await openFirstChapter(page)
+
+  // 进入阅读模式并切 paged（移动端入口在悬浮坞：editor-floating-reading-toggle）
+  await page.getByTestId('editor-floating-reading-toggle').click()
+  const readingFlow = page.getByTestId('editor-reading-flow')
+  await expect(readingFlow).toBeVisible()
+  await page.getByRole('button', { name: '阅读设置' }).first().click()
+  const readingDialog = page.getByRole('dialog', { name: '阅读设置' })
+  await readingDialog.getByTestId('reading-page-mode-paged').click()
+  await readingDialog.getByRole('button', { name: '完成' }).click()
+  await expect(page.locator('.el-overlay-dialog:visible')).toHaveCount(0, { timeout: 5000 })
+  await expect(readingFlow).toHaveAttribute('data-paged', 'true')
+  await expect(readingFlow).toHaveAttribute('data-paged-current', '1')
+
+  const client = await context.newCDPSession(page)
+  const box = await readingFlow.boundingBox()
+  expect(box).toBeTruthy()
+  const cx = box.x + box.width * 0.5
+  const cy = box.y + box.height * 0.5
+
+  /** CDP 合成真实 touch 事件流：press → moves(分步插值) → release */
+  async function swipe(fromX, toX, steps = 8, holdMs = 0) {
+    const type = await client.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x: fromX, y: cy }]
+    })
+    void type
+    for (let i = 1; i <= steps; i++) {
+      const x = fromX + ((toX - fromX) * i) / steps
+      await client.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x, y: cy }]
+      })
+      await page.waitForTimeout(16)
+    }
+    if (holdMs) await page.waitForTimeout(holdMs)
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: []
+    })
+    await page.waitForTimeout(120)
+  }
+
+  const current = () => readingFlow.getAttribute('data-paged-current').then(Number)
+
+  // 1) 左滑（下一页）：跟手拖动 + 松手落位
+  await swipe(cx, cx - box.width * 0.55)
+  await expect.poll(current, { timeout: 4000 }).toBe(2)
+
+  // 2) 快速轻扫（速度判定翻页）
+  await swipe(cx + 60, cx - box.width * 0.4, 5)
+  await expect.poll(current, { timeout: 4000 }).toBe(3)
+
+  // 3) 小幅拖动后松手（未达阈值）→ 回弹到原页
+  await swipe(cx, cx - 24, 4)
+  await expect.poll(current, { timeout: 4000 }).toBe(3)
+
+  // 4) 右滑（上一页）
+  await swipe(cx, cx + box.width * 0.55)
+  await expect.poll(current, { timeout: 4000 }).toBe(2)
+
+  // 5) 连续两次右滑：第一次回到第 1 页，第二次在第 1 页被钳位（不越界仍回弹）
+  await swipe(cx, cx + box.width * 0.55)
+  await expect.poll(current, { timeout: 4000 }).toBe(1)
+  await swipe(cx, cx + box.width * 0.55)
+  await expect.poll(current, { timeout: 4000 }).toBe(1)
+
+  // 6) tap 右侧区域翻页（移动端主交互，不与 swipe 冲突）
+  //    先越过 swipe 的 suppressClickUntil 600ms 窗口（真实手指不会这么快连点）
+  await page.waitForTimeout(700)
+  await page.touchscreen.tap(box.x + box.width * 0.8, cy)
+  await expect.poll(current, { timeout: 4000 }).toBe(2)
+
+  // 7) swipe 后的合成 click 被吞（无双翻页）
+  await swipe(cx, cx - box.width * 0.55)
+  await expect.poll(current, { timeout: 4000 }).toBe(3)
+  await page.waitForTimeout(700) // 越过 suppressClickUntil 窗口确认没有补翻
+  await expect
+    .poll(current, { timeout: 2000 })
+    .toBe(3)
+})
+
 test('AI 整章清理返回期间正文变化时不会应用旧结果', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'wide', 'AI 清理并发巡检仅在宽屏视口执行')
   let releaseResponse
