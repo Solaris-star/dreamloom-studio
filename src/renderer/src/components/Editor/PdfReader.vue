@@ -1,17 +1,30 @@
 <template>
-  <div class="pdf-reader" data-testid="pdf-reader-root">
+  <div
+    class="pdf-reader"
+    data-testid="pdf-reader-root"
+  >
     <!-- 顶部工具条：只读标识 + 页码 + 缩放 -->
     <div class="pdf-toolbar">
-      <span class="pdf-readonly-badge" data-testid="pdf-readonly-badge">
+      <span
+        class="pdf-readonly-badge"
+        data-testid="pdf-readonly-badge"
+      >
         <Lock :size="13" /> PDF 只读
       </span>
-      <span class="pdf-page-indicator" data-testid="pdf-page-indicator">
+      <span
+        class="pdf-page-indicator"
+        data-testid="pdf-page-indicator"
+      >
         {{ currentPage }} / {{ pageCount || '…' }}
       </span>
-      <span v-if="outlineTitle" class="pdf-outline-hint" data-testid="pdf-outline-hint">{{
+      <span
+        v-if="outlineTitle"
+        class="pdf-outline-hint"
+        data-testid="pdf-outline-hint"
+      >{{
         outlineTitle
       }}</span>
-      <span class="pdf-toolbar-spacer"></span>
+      <span class="pdf-toolbar-spacer" />
       <div class="pdf-zoom-controls">
         <button
           class="pdf-tool-btn"
@@ -24,7 +37,10 @@
         >
           <ZoomOut :size="16" />
         </button>
-        <span class="pdf-zoom-value" data-testid="pdf-zoom-value">{{ zoomPercent }}%</span>
+        <span
+          class="pdf-zoom-value"
+          data-testid="pdf-zoom-value"
+        >{{ zoomPercent }}%</span>
         <button
           class="pdf-tool-btn"
           type="button"
@@ -47,27 +63,64 @@
           <MoveHorizontal :size="16" />
         </button>
       </div>
+      <div class="pdf-mode-controls">
+        <button
+          class="pdf-tool-btn"
+          type="button"
+          :class="{ active: viewMode === 'single' }"
+          title="单页模式（点击页面左右区域翻页）"
+          aria-label="单页模式"
+          data-testid="pdf-mode-single"
+          :aria-pressed="viewMode === 'single'"
+          @click="setViewMode('single')"
+        >
+          <BookOpenText :size="16" />
+        </button>
+        <button
+          class="pdf-tool-btn"
+          type="button"
+          :class="{ active: viewMode === 'continuous' }"
+          title="连续滚动模式"
+          aria-label="连续滚动模式"
+          data-testid="pdf-mode-continuous"
+          :aria-pressed="viewMode === 'continuous'"
+          @click="setViewMode('continuous')"
+        >
+          <Rows3 :size="16" />
+        </button>
+      </div>
     </div>
 
     <!-- 错误 / 加载态 -->
-    <div v-if="loadError" class="pdf-state pdf-state-error" data-testid="pdf-error">
+    <div
+      v-if="loadError"
+      class="pdf-state pdf-state-error"
+      data-testid="pdf-error"
+    >
       <FileWarning :size="28" />
       <p>{{ loadError }}</p>
     </div>
-    <div v-else-if="loading" class="pdf-state" data-testid="pdf-loading">
-      <span class="pdf-spinner"></span>
+    <div
+      v-else-if="loading"
+      class="pdf-state"
+      data-testid="pdf-loading"
+    >
+      <span class="pdf-spinner" />
       <p>{{ loadingMessage }}</p>
     </div>
 
     <!-- 连续纸页滚动区 -->
     <div
-      v-show="!loadError"
+      v-show="!loadError && viewMode === 'continuous'"
       ref="scrollContainerRef"
       class="pdf-scroll-container"
       data-testid="pdf-scroll-container"
       @scroll.passive="handleScrollThrottled"
     >
-      <div class="pdf-pages-stack" :style="{ width: stackWidth, padding: stackPadding }">
+      <div
+        class="pdf-pages-stack"
+        :style="{ width: stackWidth, padding: stackPadding }"
+      >
         <div
           v-for="page in pageCount"
           :key="page"
@@ -76,9 +129,61 @@
           :data-page="page"
           :style="pageSlotStyle"
         >
-          <div class="pdf-page-number">{{ page }}</div>
+          <div class="pdf-page-number">
+            {{ page }}
+          </div>
         </div>
-        <div v-if="pageCount" class="pdf-end-mark">— 全书完 · 共 {{ pageCount }} 页 —</div>
+        <div
+          v-if="pageCount"
+          class="pdf-end-mark"
+        >
+          — 全书完 · 共 {{ pageCount }} 页 —
+        </div>
+      </div>
+    </div>
+
+    <!-- 单页模式：整页展示 + 点击左右翻页 -->
+    <div
+      v-if="!loadError && viewMode === 'single'"
+      class="pdf-single-view"
+      data-testid="pdf-single-view"
+      tabindex="0"
+      role="region"
+      aria-label="单页阅读区（点击左右区域翻页）"
+      @keydown="handleSingleKeydown"
+    >
+      <div
+        class="pdf-single-stage"
+        :style="pageSlotStyle"
+      >
+        <div
+          :ref="(el) => setPageEl(currentPage, el)"
+          class="pdf-page-slot pdf-page-slot--single"
+          :data-page="currentPage"
+        >
+          <div class="pdf-page-number">
+            {{ currentPage }}
+          </div>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="pdf-single-tap-zone pdf-single-tap-zone--left"
+        aria-label="上一页"
+        data-testid="pdf-tap-prev"
+        :disabled="currentPage <= 1"
+        @click="goPrevPage"
+      />
+      <button
+        type="button"
+        class="pdf-single-tap-zone pdf-single-tap-zone--right"
+        aria-label="下一页"
+        data-testid="pdf-tap-next"
+        :disabled="currentPage >= pageCount"
+        @click="goNextPage"
+      />
+      <div class="pdf-single-hint">
+        点击左右区域翻页 · ← → 键翻页
       </div>
     </div>
   </div>
@@ -86,7 +191,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch, nextTick } from 'vue'
-import { FileWarning, Lock, MoveHorizontal, ZoomIn, ZoomOut } from 'lucide-vue-next'
+import { FileWarning, Lock, MoveHorizontal, ZoomIn, ZoomOut, BookOpenText, Rows3 } from 'lucide-vue-next'
 import { buildPdfFileUrl, getPdfOutline } from '@renderer/service/importExport'
 
 const props = defineProps({
@@ -101,6 +206,7 @@ const ZOOM_LEVELS = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3]
 const FIT_WIDTH = 'fit-width'
 const RENDER_PADDING = 2 // 视口上下各多渲染 N 页
 const PAGE_GAP = 18
+const PDF_VIEW_MODE_KEY = 'dreamloom:pdf-view-mode:v1'
 
 const scrollContainerRef = ref(null)
 const loading = ref(true)
@@ -111,6 +217,42 @@ const outline = ref(Array.isArray(props.outline) ? props.outline : [])
 const currentPage = ref(1)
 const zoomMode = ref(FIT_WIDTH)
 const zoomScale = ref(1)
+// 阅读模式：continuous 连续滚动（默认）/ single 单页点击翻页
+const viewMode = ref(readSavedViewMode())
+
+function readSavedViewMode() {
+  try {
+    const raw = localStorage.getItem(PDF_VIEW_MODE_KEY)
+    return raw === 'single' ? 'single' : 'continuous'
+  } catch {
+    return 'continuous'
+  }
+}
+
+function setViewMode(mode) {
+  const next = mode === 'single' ? 'single' : 'continuous'
+  if (next === viewMode.value) return
+  viewMode.value = next
+  try {
+    localStorage.setItem(PDF_VIEW_MODE_KEY, next)
+  } catch {
+    // ignore
+  }
+  if (next === 'single') {
+    // 单页模式：只保留当前页渲染，其余页canvas移除省内存
+    for (const [page, record] of pageRegistry) {
+      if (page !== currentPage.value) removeCanvas(record)
+    }
+    renderedPages.clear()
+    void nextTick(() => renderPage(currentPage.value))
+  } else {
+    // 回到连续模式：重新挂滚动渲染 + 对齐当前页
+    void nextTick(() => {
+      setupObservers()
+      void scrollToPage(currentPage.value, { immediate: true })
+    })
+  }
+}
 
 // 每页尺寸（PDF 点），index 0 = 第 1 页
 const pageSizes = ref([])
@@ -437,6 +579,11 @@ async function scrollToPage(page, options = {}) {
   const container = scrollContainerRef.value
   if (!container) return
   await nextTick()
+  if (viewMode.value === 'single') {
+    // 单页模式：不操作隐藏的滚动容器，只渲染当前页
+    renderPage(target)
+    return
+  }
   const top = pageSlotTop(target)
   if (top == null) {
     // 布局尚未完成（如极远页），用估算高度直接定位
@@ -462,11 +609,51 @@ function scrollByViewport(direction) {
 }
 
 function goPrevPage() {
+  if (currentPage.value <= 1) {
+    if (viewMode.value === 'single') ElMessageLite('已经是第一页了')
+    return
+  }
   void scrollToPage(currentPage.value - 1)
+  if (viewMode.value === 'single') {
+    renderedPages.clear()
+    void nextTick(() => renderPage(currentPage.value))
+  }
 }
 
 function goNextPage() {
+  if (currentPage.value >= pageCount.value) {
+    if (viewMode.value === 'single') ElMessageLite('已经是最后一页了')
+    return
+  }
   void scrollToPage(currentPage.value + 1)
+  if (viewMode.value === 'single') {
+    renderedPages.clear()
+    void nextTick(() => renderPage(currentPage.value))
+  }
+}
+
+/** 轻提示（单页模式边界），不引入 Element Plus 依赖 */
+let boundaryToast = null
+function ElMessageLite(message) {
+  if (boundaryToast) clearTimeout(boundaryToast)
+  const stage = document.querySelector('.pdf-single-view .pdf-single-hint')
+  if (stage) {
+    stage.textContent = message
+    boundaryToast = setTimeout(() => {
+      if (stage.isConnected) stage.textContent = '点击左右区域翻页 · ← → 键翻页'
+    }, 1500)
+  }
+}
+
+/** 单页模式键盘翻页：← → / PageUp PageDown / 空格 */
+function handleSingleKeydown(event) {
+  if (event.key === 'ArrowRight' || event.key === 'PageDown' || (event.key === ' ' && !event.shiftKey)) {
+    event.preventDefault()
+    goNextPage()
+  } else if (event.key === 'ArrowLeft' || event.key === 'PageUp' || (event.key === ' ' && event.shiftKey)) {
+    event.preventDefault()
+    goPrevPage()
+  }
 }
 
 // ===== 缩放 =====
@@ -709,6 +896,79 @@ const outlineTitle = computed(() => {
   overflow-y: auto;
   overflow-x: auto;
   position: relative;
+}
+
+/* ===== 单页模式 ===== */
+.pdf-single-view {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  outline: none;
+}
+
+.pdf-single-stage {
+  position: relative;
+}
+
+.pdf-page-slot--single {
+  margin: 0 auto;
+}
+
+.pdf-single-tap-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 34%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pdf-single-tap-zone--left {
+  left: 0;
+}
+
+.pdf-single-tap-zone--right {
+  right: 0;
+}
+
+.pdf-single-tap-zone:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.pdf-single-hint {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+  background: color-mix(in srgb, var(--pdf-reader-bg, #eceef1) 82%, transparent);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 5;
+}
+
+.pdf-mode-controls {
+  display: flex;
+  gap: 2px;
+  margin-left: 6px;
+  padding-left: 8px;
+  border-left: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.pdf-tool-btn.active {
+  background: color-mix(in srgb, var(--el-color-primary, #409eff) 14%, transparent);
+  color: var(--el-color-primary, #409eff);
 }
 
 .pdf-pages-stack {

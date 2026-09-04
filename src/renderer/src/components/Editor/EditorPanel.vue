@@ -95,6 +95,13 @@
         ref="readingFlowRef"
         :html="readingHtml"
         :content-type="editorStore.file?.type || 'chapter'"
+        :page-mode="pageMode"
+        :sections="readingSections"
+        :chapter-label="readingChapterLabel"
+        :anchor-section-key="editorStore.file?.path || ''"
+        :book-end="readingBookEnd"
+        @reach-end="handleReadingReachEnd"
+        @active-section-change="handleActiveSectionChange"
       />
       <EditorContent
         v-show="!readingMode"
@@ -465,7 +472,9 @@ import {
   onDeactivated,
   computed,
   nextTick,
-  defineAsyncComponent
+  defineAsyncComponent,
+  inject,
+  unref
 } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowDown } from '@element-plus/icons-vue'
@@ -533,8 +542,62 @@ const props = defineProps({
   readingMode: {
     type: Boolean,
     default: false
+  },
+  /** 阅读翻页方式：scroll 纵向滚动 / paged 左右翻页 */
+  pageMode: {
+    type: String,
+    default: 'scroll'
   }
 })
+
+/** 翻到章首/章尾时通知外层（外层负责跨章续接或提示） */
+function handleReadingReachEnd(direction) {
+  emit('reading-reach-end', direction)
+}
+
+// 当前章节标题：翻页模式下展示在页码指示中
+const readingChapterLabel = computed(() => {
+  const fileType = editorStore.file?.type
+  if (fileType === 'note') return editorStore.file?.name || ''
+  return editorStore.chapterTitle || editorStore.file?.name || ''
+})
+
+// ===== 跨章无缝阅读：sections 管理 =====
+// 当前章实时 HTML 来自编辑器；其他章由外层通过 provide/inject 预取注入。
+// 这里只负责拼装顺序 + 当前章内容实时化。
+const readingPrefetched = inject('readingPrefetchedSections', () => ref([]), true)
+const readingBookEnd = inject('readingBookEnd', () => ref(false), true)
+const readingExtraSections = computed(() => unref(readingPrefetched))
+const activeReadingSectionKey = ref('')
+
+/** 多章 sections：按预取列表顺序，把当前章替换为编辑器实时内容 */
+const readingSections = computed(() => {
+  const extras = readingExtraSections.value
+  if (!Array.isArray(extras) || !extras.length) return null
+  const currentPath = editorStore.file?.path
+  return extras.map((section) => {
+    if (section && section.key === currentPath) {
+      return { ...section, html: readingHtml.value, label: readingChapterLabel.value }
+    }
+    return section
+  })
+})
+
+/** 视野所在章（ReadingFlow 汇报）；退出阅读模式时外层据此回到正确章节 */
+function handleActiveSectionChange(key) {
+  activeReadingSectionKey.value = String(key || '')
+  // 把视野章路径回传给外层（Editor 用来切换编辑目标）
+  emit('reading-active-chapter', activeReadingSectionKey.value)
+}
+
+/** 当前编辑章路径变化时上报外层（阅读引擎以新章为中心预取纸带） */
+watch(
+  () => editorStore.file?.path,
+  (path) => {
+    if (path) emit('editing-chapter-change', path)
+  },
+  { immediate: true }
+)
 
 watch(
   () => props.bookName,
@@ -2585,7 +2648,10 @@ const emit = defineEmits([
   'toggle-left',
   'toggle-right',
   'cleanup-task-state',
-  'reading-style-changed'
+  'reading-style-changed',
+  'reading-reach-end',
+  'reading-active-chapter',
+  'editing-chapter-change'
 ])
 
 // 监听当前文件类型，动态设置首行缩进和编辑器模式

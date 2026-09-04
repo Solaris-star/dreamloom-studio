@@ -791,6 +791,83 @@ test('创作台字号扩展到48px，阅读流动态加载且可复制不可改�
   await page.waitForTimeout(600)
 })
 
+test('阅读模式左右翻页：tap/键盘/滚轮翻页 + 翻页方式持久化', async ({ page, context, request }, testInfo) => {
+  test.skip(testInfo.project.name !== 'wide', '阅读翻页巡检仅在宽屏视口执行')
+  const bookName = testBookName(testInfo.project.name)
+  await createTestBook(request, testInfo.project.name)
+
+  // 长内容保证 paged 模式有多页；纯文本 + \n 分段（章节 .txt 是纯文本管道，不能用 HTML 标签）；
+  // 每段保留“夜雨落在青石长街上”以通过 openEditor/openFirstChapter 的基准断言
+  const longContent = Array.from(
+    { length: 60 },
+    (_, index) => `第${index + 1}段：夜雨落在青石长街上，少年在山道上遇见了白鹿，白鹿开口说话，声音像檐角的铜铃。${index % 7 === 0 ? '他把这句话记在心里，很多年后才明白其中的含义，原来一切早有伏笔埋下。' : ''}`
+  ).join('\n')
+  await postApi(request, '/api/chapters/save', {
+    bookName,
+    volumeName: '正文',
+    chapterName: '第1章',
+    content: longContent
+  })
+  await openEditor(page, bookName)
+  await openFirstChapter(page)
+
+  // 进入阅读模式（默认纵向滚动）
+  await page.getByTestId('editor-reading-mode-toggle').click()
+  const readingFlow = page.getByTestId('editor-reading-flow')
+  await expect(readingFlow).toBeVisible()
+  await expect(readingFlow).toHaveAttribute('data-paged', 'false')
+
+  // 切换到左右翻页
+  await page.getByRole('button', { name: '阅读设置' }).click()
+  const readingDialog = page.getByRole('dialog', { name: '阅读设置' })
+  await readingDialog.getByTestId('reading-page-mode-paged').click()
+  await readingDialog.getByRole('button', { name: '完成' }).click()
+  // 等弹窗遮罩彻底关闭（含过渡动画），否则后续 tap 会点到淡出中的遮罩上。
+  // 注：页面上存在多个历史弹窗残留的隐藏 overlay 节点，只等「可见的」清零。
+  await expect(page.locator('.el-overlay-dialog:visible')).toHaveCount(0, { timeout: 5000 })
+
+  // paged 生效：列布局 + 页码指示
+  await expect(readingFlow).toHaveAttribute('data-paged', 'true')
+  await expect(readingFlow.locator('.reading-flow__paper--paged')).toBeVisible()
+  const indicator = page.getByTestId('reading-page-indicator')
+  await expect(indicator).toBeVisible()
+  await expect(indicator).toContainText('1 /')
+
+  // 键盘翻页 → 第 2 页
+  await readingFlow.focus()
+  await page.keyboard.press('ArrowRight')
+  await expect.poll(() => readingFlow.getAttribute('data-paged-current').then(Number)).toBe(2)
+
+  // 点击右侧区域 → 下一页；点击左侧 → 上一页。
+  // 位置取 62%/12% 高度 40%：避开右侧悬浮坞（约 66%+ 宽度处垂直居中）和底部页码指示器。
+  const box = await readingFlow.boundingBox()
+  expect(box).toBeTruthy()
+  await page.mouse.click(box.x + box.width * 0.62, box.y + box.height * 0.4)
+  await expect.poll(() => readingFlow.getAttribute('data-paged-current').then(Number)).toBe(3)
+  await page.mouse.click(box.x + box.width * 0.12, box.y + box.height * 0.4)
+  await expect.poll(() => readingFlow.getAttribute('data-paged-current').then(Number)).toBe(2)
+
+  // 滚轮翻页
+  await page.mouse.move(box.x + box.width * 0.45, box.y + box.height * 0.4)
+  await page.mouse.wheel(0, 240)
+  await expect.poll(() => readingFlow.getAttribute('data-paged-current').then(Number)).toBe(3)
+
+  // 持久化：重新打开设置弹窗仍是 paged；prefs 里有 pageMode
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => JSON.parse(localStorage.getItem('dreamloom:editor-reading-prefs:v1') || '{}').pageMode
+      )
+    )
+    .toBe('paged')
+
+  // 退回滚动模式
+  await page.getByRole('button', { name: '阅读设置' }).click()
+  await readingDialog.getByTestId('reading-page-mode-scroll').click()
+  await readingDialog.getByRole('button', { name: '完成' }).click()
+  await expect(readingFlow).toHaveAttribute('data-paged', 'false')
+})
+
 test('AI 整章清理返回期间正文变化时不会应用旧结果', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'wide', 'AI 清理并发巡检仅在宽屏视口执行')
   let releaseResponse

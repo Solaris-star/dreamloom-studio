@@ -39,12 +39,16 @@
           :left-collapsed="leftPanelSize === 0"
           :right-collapsed="rightPanelSize === 0"
           :reading-mode="readingMode"
+          :page-mode="readingMode ? readingSettings.pageMode : 'scroll'"
           @toggle-left="toggleLeftPanel"
           @toggle-right="toggleRightPanel"
           @refresh-notes="refreshNotes"
           @refresh-chapters="refreshChapters"
           @cleanup-task-state="handleCleanupTaskState"
           @reading-style-changed="handleReadingStyleChanged"
+          @reading-reach-end="handleReadingReachEnd"
+          @reading-active-chapter="handleReadingActiveChapter"
+          @editing-chapter-change="handleEditingPathChange"
         />
       </el-splitter-panel>
       <el-splitter-panel
@@ -327,6 +331,29 @@
           />
         </el-select>
       </div>
+      <div class="reading-setting">
+        <span>翻页方式</span>
+        <div
+          class="margin-chip-row"
+          role="listbox"
+          aria-label="翻页方式"
+        >
+          <button
+            v-for="option in pageModeOptions"
+            :key="option.value"
+            type="button"
+            class="margin-chip"
+            :class="{ active: readingSettings.pageMode === option.value }"
+            role="option"
+            :aria-selected="readingSettings.pageMode === option.value"
+            :data-page-mode-option="option.value"
+            :data-testid="`reading-page-mode-${option.value}`"
+            @click="readingSettings.pageMode = option.value"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+      </div>
       <div class="reading-setting margin-setting">
         <span>页边距</span>
         <div
@@ -373,7 +400,9 @@ import {
   onDeactivated,
   onMounted,
   onBeforeUnmount,
-  watch
+  watch,
+  provide,
+  shallowRef
 } from 'vue'
 import { onBeforeRouteLeave, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -398,6 +427,7 @@ import {
 import { useThemeStore } from '@renderer/stores/theme'
 import { readBooksDir } from '@renderer/service/books'
 import { getPdfOutline } from '@renderer/service/importExport'
+import { listChapterTree, readChapterContent } from '@renderer/service/editor'
 
 const route = useRoute()
 const themeStore = useThemeStore()
@@ -481,7 +511,8 @@ const readingSettings = ref({
   fontSize: 16,
   lineHeight: 1.6,
   pageWidth: '80%',
-  pageMargin: 'normal'
+  pageMargin: 'normal',
+  pageMode: 'scroll'
 })
 
 const pageWidthOptions = [
@@ -490,6 +521,17 @@ const pageWidthOptions = [
   { label: '自适应 (中)', value: '80%' },
   { label: '自适应 (窄)', value: '70%' }
 ]
+
+// 翻页方式：scroll = 纵向滚动（默认，保持老习惯）；paged = 左右翻页（左右键/点击/滚轮/tap）
+const PAGE_MODES = ['scroll', 'paged']
+const pageModeOptions = [
+  { label: '上下滚动', value: 'scroll' },
+  { label: '左右翻页', value: 'paged' }
+]
+
+function normalizePageMode(value) {
+  return PAGE_MODES.includes(value) ? value : 'scroll'
+}
 
 // 书页页边距：映射到稿纸内边距（上下 / 左右）
 const pageMarginOptions = [
@@ -503,6 +545,158 @@ const DEFAULT_PAGE_MARGIN = 'normal'
 function normalizePageMargin(value) {
   return pageMarginOptions.some((option) => option.value === value) ? value : DEFAULT_PAGE_MARGIN
 }
+
+// ===== 跨章无缝阅读引擎（Editor 层负责预取与章节顺序） =====
+// readingSections: [{ key, label, html }]，ReadingFlow 只管渲染；
+// 当前章内容由 EditorPanel 实时替换（key === editorStore.file.path）。
+
+const MAX_PREFETCH_SECTIONS = 6 // 纸带上限：当前章前后各若干章，防止超长书 DOM 爆炸
+const PREFETCH_AHEAD = 1 // 向前/向后各多保留 1 章缓冲
+
+const readingSectionsRef = shallowRef([])
+provide('readingPrefetchedSections', readingSectionsRef)
+const readingBookEndRef = ref(false)
+provide('readingBookEnd', readingBookEndRef)
+
+/** 扁平章节列表缓存：[{ volumeName, name, path }]，从 NoteChapter 大纲同步 */
+const flatChapters = shallowRef([])
+const flatChaptersDirty = ref(true)
+
+function syncFlatChaptersFromOutline() {
+  const outline = noteChapterRef.value?.getChapterOutline?.()
+  if (!Array.isArray(outline)) return false
+  const list = []
+  for (const volume of outline) {
+    for (const chapter of volume.chapters || []) {
+      if (chapter.path) list.push({ volumeName: volume.name, name: chapter.name, path: chapter.path })
+    }
+  }
+  if (!list.length) return false
+  flatChapters.value = list
+  flatChaptersDirty.value = false
+  return true
+}
+
+function flatIndexByPath(path) {
+  return flatChapters.value.findIndex((item) => item.path === path)
+}
+
+const readingPrefetchInflight = new Set()
+
+async function fetchSectionChapter(chapter) {
+  const res = await readChapterContent(bookName.value, chapter.volumeName, chapter.name)
+  return { key: chapter.path, label: chapter.name, html: res.content || '' }
+}
+
+/** 以当前章为中心重建纸带（进入阅读模式/切章时调用） */
+async function rebuildReadingSections(centerPath) {
+  if (!centerPath) return
+  if (flatChaptersDirty.value && !syncFlatChaptersFromOutline()) return
+  const centerIndex = flatIndexByPath(centerPath)
+  if (centerIndex < 0) return
+  const from = Math.max(0, centerIndex - PREFETCH_AHEAD)
+  const to = Math.min(flatChapters.value.length, centerIndex + PREFETCH_AHEAD + 1)
+  const targets = flatChapters.value.slice(from, to)
+  const entries = await Promise.all(
+    targets
+      .filter((chapter) => !readingPrefetchInflight.has(chapter.path))
+      .map(async (chapter) => {
+        readingPrefetchInflight.add(chapter.path)
+        try {
+          return await fetchSectionChapter(chapter)
+        } catch {
+          return null
+        } finally {
+          readingPrefetchInflight.delete(chapter.path)
+        }
+      })
+  )
+  readingSectionsRef.value = entries.filter(Boolean)
+}
+
+/** reach-end：向后追加下一章 / 向前插入上一章（带窗口滑动与去重） */
+async function extendReadingSections(direction) {
+  const current = readingSectionsRef.value
+  if (!current.length) return
+  if (flatChaptersDirty.value && !syncFlatChaptersFromOutline()) return
+  const firstIndex = flatIndexByPath(current[0]?.key)
+  const lastIndex = flatIndexByPath(current[current.length - 1]?.key)
+  if (firstIndex < 0 && lastIndex < 0) return
+
+  if (direction === 'next') {
+    const nextChapter = flatChapters.value[lastIndex + 1]
+    if (!nextChapter) {
+      readingBookEndRef.value = true
+      return
+    }
+    if (current.some((section) => section.key === nextChapter.path)) return
+    if (readingPrefetchInflight.has(nextChapter.path)) return
+    readingPrefetchInflight.add(nextChapter.path)
+    try {
+      const section = await fetchSectionChapter(nextChapter)
+      const next = [...current, section].slice(-MAX_PREFETCH_SECTIONS)
+      readingSectionsRef.value = next
+    } catch {
+      // 单章预取失败静默：ReadingFlow 会再次触发 reach-end 重试
+    } finally {
+      readingPrefetchInflight.delete(nextChapter.path)
+    }
+  } else if (direction === 'prev') {
+    const prevChapter = flatChapters.value[firstIndex - 1]
+    if (!prevChapter) {
+      ElMessage.info('已经是第一章了')
+      return
+    }
+    if (current.some((section) => section.key === prevChapter.path)) return
+    if (readingPrefetchInflight.has(prevChapter.path)) return
+    readingPrefetchInflight.add(prevChapter.path)
+    try {
+      const section = await fetchSectionChapter(prevChapter)
+      const next = [section, ...current].slice(0, MAX_PREFETCH_SECTIONS)
+      readingSectionsRef.value = next
+    } catch {
+      // 静默重试
+    } finally {
+      readingPrefetchInflight.delete(prevChapter.path)
+    }
+  }
+}
+
+let reachEndHandlerBusy = false
+async function handleReadingReachEnd(direction) {
+  if (reachEndHandlerBusy) return
+  reachEndHandlerBusy = true
+  try {
+    await extendReadingSections(direction)
+  } finally {
+    reachEndHandlerBusy = false
+  }
+}
+
+// 阅读模式下当前编辑章变化 → 以新章为中心重建纸带（目录跳转/切换章节）
+// 当前编辑章路径由 EditorPanel 通过 reading-active-chapter 上报（editorStore 只在 Panel 层使用）
+const currentEditingPath = ref('')
+function handleEditingPathChange(path) {
+  currentEditingPath.value = String(path || '')
+}
+watch(
+  [readingMode, currentEditingPath],
+  async ([enabled, path]) => {
+    if (!enabled) {
+      readingSectionsRef.value = []
+      readingBookEndRef.value = false
+      return
+    }
+    if (path) await rebuildReadingSections(path)
+  }
+)
+
+// 视野章变化（用户翻页跨章）：只记录，退出阅读模式时据此切回视野章
+const readingActiveChapter = ref('')
+function handleReadingActiveChapter(path) {
+  readingActiveChapter.value = String(path || '')
+}
+
 
 function pageMarginPadding(value) {
   const matched = pageMarginOptions.find((option) => option.value === normalizePageMargin(value))
@@ -540,7 +734,8 @@ function toReadingSettings(source = {}) {
     fontSize: parseFontSizePx(source.fontSize, 16),
     lineHeight: parseLineHeight(source.lineHeight, 1.6),
     pageWidth: normalizeEditorPageWidth(source.pageWidth ?? source.contentWidth, source.contentWidth),
-    pageMargin: normalizePageMargin(source.pageMargin ?? readingSettings.value.pageMargin)
+    pageMargin: normalizePageMargin(source.pageMargin ?? readingSettings.value.pageMargin),
+    pageMode: normalizePageMode(source.pageMode ?? readingSettings.value.pageMode)
   }
 }
 
@@ -552,7 +747,8 @@ function applyReadingSettingsToEditor(settings = readingSettings.value, { syncSt
       current.fontSize !== next.fontSize ||
       current.lineHeight !== next.lineHeight ||
       current.pageWidth !== next.pageWidth ||
-      current.pageMargin !== next.pageMargin
+      current.pageMargin !== next.pageMargin ||
+      current.pageMode !== next.pageMode
     ) {
       readingSettings.value = next
     }
@@ -580,9 +776,21 @@ function finishReadingSettings() {
 
 // 阅读模式：正文只读、隐光标/选区高亮，仅专心看排版（与专注模式正交，可叠加）
 function toggleReadingMode() {
-  readingMode.value = !readingMode.value
-  editorPanelRef.value?.setEditable?.(!readingMode.value)
-  ElMessage.info(readingMode.value ? '已进入阅读模式' : '已回到编辑模式')
+  const next = !readingMode.value
+  // 退出阅读模式时：若视野已跨章（与编辑目标不同步），先切回视野所在章，
+  // 左右翻页阅读模式下：退出时若视野章已跨章，自动切回视野章，
+  // 保证回到编辑模式时看到的就是刚才读到的章节；纵向滚动模式保持当前编辑章不变以防误切。
+  if (!next && readingMode.value && readingSettings.pageMode === 'paged') {
+    const activePath = readingActiveChapter.value
+    const editingPath = currentEditingPath.value
+    if (activePath && editingPath && activePath !== editingPath) {
+      noteChapterRef.value?.selectChapterByPath?.(activePath)
+    }
+    readingActiveChapter.value = ''
+  }
+  readingMode.value = next
+  editorPanelRef.value?.setEditable?.(!next)
+  ElMessage.info(next ? '已进入阅读模式' : '已回到编辑模式')
 }
 
 function loadPageMargin() {
@@ -634,7 +842,8 @@ function mergeGlobalReadingPrefs(base = {}) {
     fontSize: saved.fontSize ?? base.fontSize ?? 16,
     lineHeight: saved.lineHeight ?? base.lineHeight ?? 1.6,
     pageWidth: saved.pageWidth ?? base.pageWidth ?? '80%',
-    pageMargin: saved.pageMargin ?? base.pageMargin ?? 'normal'
+    pageMargin: saved.pageMargin ?? base.pageMargin ?? 'normal',
+    pageMode: normalizePageMode(saved.pageMode ?? base.pageMode)
   }
 }
 
@@ -882,7 +1091,13 @@ async function selectCatalogChapter(path) {
 }
 
 function resetReadingSettings() {
-  applyReadingSettingsToEditor({ fontSize: 16, lineHeight: 1.6, pageWidth: '80%', pageMargin: 'normal' })
+  applyReadingSettingsToEditor({
+    fontSize: 16,
+    lineHeight: 1.6,
+    pageWidth: '80%',
+    pageMargin: 'normal',
+    pageMode: 'scroll'
+  })
   persistLayout()
 }
 
@@ -892,7 +1107,8 @@ function handleReadingStyleChanged(payload = {}) {
     fontSize: parseFontSizePx(payload.fontSize, readingSettings.value.fontSize),
     lineHeight: parseLineHeight(payload.lineHeight, readingSettings.value.lineHeight),
     pageWidth: payload.pageWidth ?? readingSettings.value.pageWidth,
-    pageMargin: readingSettings.value.pageMargin
+    pageMargin: readingSettings.value.pageMargin,
+    pageMode: readingSettings.value.pageMode
   })
   readingSettings.value = next
   writeGlobalReadingPrefs(next)
